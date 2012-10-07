@@ -2,6 +2,7 @@ import SocketServer
 import logging
 import sys
 import os
+import threading
 
 import listener
 
@@ -31,25 +32,36 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
         self.logger.debug('PID %s: Received "%s" from client %s:%s', cur_pid, rcvd, cip, cport)
 
-        #FORMAT OF LOG REQUEST: LIVELOG!KEY!MR_IPGNBOOKER(OPTIONAL)
+        #FORMAT OF LOG REQUEST: LIVELOG!KEY!SIP!SPORT!MR_IPGNBOOKER(OPTIONAL)
         tokenized = rcvd.split('!')
-        if (tokenized[0] == "LIVELOG"):
+        tokLen = len(tokenized)
+        if (tokLen >= 4) and (tokenized[0] == "LIVELOG"):
             if (tokenized[1] == self.server.LL_API_KEY):
                 self.logger.debug('LIVELOG key is correct. Establishing listen socket and returning info')
                 #create listen socket
 
                 sip, sport = self.server.server_address
 
-                self.newListen = listener.llListenerObject(sip, self.client_address)
+                if (tokLen == 4):
+                    self.newListen = listener.llListenerObject(sip, self.client_address)
+
+                elif (tokLen == 5):
+                    self.newListen = listener.llListenerObject(sip, self.client_address, ipgnBooker = tokenized[4])
 
                 lport = self.newListen.lport
-                self.logger.debug("Listener port: %s", lport)
+                self.logger.debug("PID %s: Listener port: %s", cur_pid, lport)
 
                 returnMsg = "LIVELOG!%s!%s!%s" % (self.server.LL_API_KEY, sip, lport)
                 self.logger.debug("RESPONSE: %s", returnMsg)
                 self.request.send(returnMsg)
 
+#                lThread = threading.Thread(target=self.newListen.startListening)
+#                lThread.setDaemon(True)
+#                lThread.start()
+
                 self.newListen.startListening()
+        else:
+            self.logger.debug("PID %s: Invalid data received. Exiting", cur_pid)
 
         return
 
@@ -113,3 +125,8 @@ if __name__ == '__main__':
     logger.info("Server on %s:%s under PID %s", sip, sport, os.getpid())
 
     llServer.serve_forever()
+
+    #clean up
+    #client.close()
+    #llServer.server_close()
+    #logger.debug('END')
