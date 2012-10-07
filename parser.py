@@ -54,16 +54,59 @@ class parserClass():
         return socket.inet_ntoa(struct.pack('L', longip))
 
 
-    def parse(self, logString):
-        print "PARSING LOG: %s" % logString
+    def parse(self, logdata):
+        if not logdata:
+            return
 
-        res = self.regex("(.*)", logString)
+        print "PARSING LOG: %s" % logdata
+
+        regex = self.regex #avoid having to use fucking self.regex every time (ANNOYING++++)
+
+        #res = regex("(.*)", logdata)
+
+        #if (res):
+        #    print "Matching regex:"
+        #    pprint(res.groups())
+
+        #log file start
+        #RL 10/07/2012 - 01:13:34: Log file started (file "logs_pug/L1007104.log") (game "/games/tf2_pug/orangebox/tf") (version "5072")
+        res = regex(r"L (\S+) - (\S+) Log file started \x28file \"(.*?)\"\x29", logdata)
         if (res):
-            print "Matching regex:"
+            print "Log file started"
+            pprint(res.groups())
+            ##do shit with log file name?
+
+            return
+
+        #rcon command
+        res = regex('rcon from "(.*?)": command "(.*)"', logdata)
+        if (res):
+            print "Someone issued rcon command"
             pprint(res.groups())
 
-    def regex(self, expression, string):
-        preg = re.compile(expression, re.IGNORECASE)
+            return
+        #disconnect RL 10/07/2012 - 01:13:44: "triple h<162><STEAM_0:1:33713004><Red>" disconnected (reason " #tf2pug")
+        res = regex('"(.*)<(\d+)><(.*)><(Red|Blue)>" disconnected \(reason "(.*)"\)', logdata)
+        if (res):
+            print "Player disconnected"
+            pprint(res.groups())
 
-        match = preg.match(string)
+            return
+
+        #connect RL 10/07/2012 - 22:45:11: "GU | wm<3><STEAM_0:1:7175436><>" connected, address "124.168.51.7:27005"
+        res = regex('"(.*)<(\d+)><(.*)><>" connected, address "(.*?):(.*)"', logdata)
+        if (res):
+            print "Player connected"
+            pprint(res.groups())
+
+            return
+        #validated "hipsterhipster<4><STEAM_0:1:22674758><>" STEAM USERID validated
+
+
+    def regex(self, expression, string): #helper function for performing regular expression checks. avoids having to compile and match in-function 1000 times
+        preg = re.compile(expression, re.IGNORECASE | re.MULTILINE)
+
+        match = preg.search(string)
+
+        print match
         return match
