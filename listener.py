@@ -18,7 +18,7 @@ class llListener(SocketServer.UDPServer):
     def __init__(self, listener_address, handler_class=llListenerHandler):
         SocketServer.UDPServer.__init__(self, listener_address, handler_class)
         print "Initialised log listener. Initialising parser instance"
-
+        
         return
 
     def server_close(self):
@@ -47,7 +47,7 @@ class llListenerObject():
 
         #self.lThread = threading.Thread(target=self.listener.serve_forever)
         #self.lThread.setDaemon(True)
-        #self.lThread.start()
+        #self.lThread.start()    
 
     def startListening(self):
         self.listener.serve_forever()

@@ -49,4 +49,5 @@ client.send('L 10/01/2012 - 21:38:34: "[v3] Chrome<48><STEAM_0:1:41365809><Red>"
 client.send('L 10/01/2012 - 21:38:34: "[v3] Kaki<51><STEAM_0:1:35387674><Red>" triggered "damage" (damage "40")')
 client.send('L 10/01/2012 - 21:38:34: "[v3] Jak<49><STEAM_0:0:18518582><Red>" triggered "damage" (damage "20")')
 client.send('L 10/01/2012 - 21:38:34: "Liquid\'zato<46><STEAM_0:0:42607036><Blue>" triggered "damage" (damage "65")')
+
 client.close()

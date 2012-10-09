@@ -11,7 +11,7 @@ class parserClass():
             self.bNamedLog = True
             self.namedLogName = ipgnBooker
 
-        
+        self.finish = False
         self.serverSendingLogs = server_address
 
         self.UNIQUE_IDENT = str(self.ip2long(server_address[0])) + "_" + str(server_address[1]) + "_" + str(int(round(time.time())))
@@ -20,18 +20,18 @@ class parserClass():
         
 
         try:
-            self.psqlConn = psycopg2.connect(host="localhost", port="5432", database="livelogs", user="livelogs", password="hello")
+            self.pgsqlConn = psycopg2.connect(host="localhost", port="5432", database="livelogs", user="livelogs", password="hello")
     
         except Exception, e:
             print "Had exception while trying to connect to psql database: " + e.pgerror
 
         
-        self.dbCursor = self.psqlConn.cursor()
+        dbCursor = self.pgsqlConn.cursor()
         
-        self.dbCursor.execute("SELECT create_global_stat_table()")
-        self.dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
+        dbCursor.execute("SELECT create_global_stat_table()")
+        dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
 
-        self.psqlConn.commit()
+        self.pgsqlConn.commit()
 
         self.EVENT_TABLE = "log_event_" + self.UNIQUE_IDENT
         self.STAT_TABLE = "log_stat_" + self.UNIQUE_IDENT
@@ -39,8 +39,8 @@ class parserClass():
         self.CHAT_TABLE = "log_chat_" + self.UNIQUE_IDENT
         self.ROUND_TABLE = "log_round_" + self.UNIQUE_IDENT
 
-        self.dbCursor.close()
-        self.psqlConn.close()
+        dbCursor.close()
+        #self.psqlConn.close()
 
         print "Parser initialised"
 
@@ -53,7 +53,7 @@ class parserClass():
 
 
     def parse(self, logdata):
-        if not logdata:
+        if not logdata or self.finish:
             return
 
         print "PARSING LOG: %s" % logdata
@@ -90,11 +90,18 @@ class parserClass():
             pprint(res.groups())
             #('[v3] Kaki', '51', 'STEAM_0:1:35387674', 'Red', '40')
             sid = regml(res, 3)
-            name = regml(res, 1)
+            name = regml(res, 1).replace("'", "''")
             dmg = regml(res, 5)
 
-            #query = "INSERT INTO %s 
-            
+            insert_query = "INSERT INTO %s (steamid, name, damage_dealt) VALUES (E'%s', E'%s', %s)" % (self.STAT_TABLE, sid, name, dmg)
+            update_query = "UPDATE %s SET damage_dealt = damage_dealt + %s WHERE steamid = E'%s'" % (self.STAT_TABLE, dmg, sid)
+
+            curs = self.pgsqlConn.cursor()
+            curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
+                        
+            self.pgsqlConn.commit()
+            curs.close()
+
             return
 
         #healing done
@@ -143,7 +150,7 @@ class parserClass():
 
         #medic death ubercharge = 0 or 1, healing = amount healed in that life. kill message comes directly after
         #"%s<%i><%s><%s>" triggered "medic_death" against "%s<%i><%s><%s>" (healing "%d") (ubercharge "%s")
-        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "medic_death" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28healing "(.*)"\x29 \x28ubercharge "(.*)"\x29)', logdata)
+        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "medic_death" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28healing "(.*)"\x29 \x28ubercharge "(.*)"\x29', logdata)
         if (res):
             print "Medic death"
             pprint(res.groups())
@@ -212,7 +219,7 @@ class parserClass():
 
         #engi building destruction
         #"dcup<109><STEAM_0:0:15236776><Red>" triggered "killedobject" (object "OBJ_SENTRYGUN") (weapon "tf_projectile_pipe") (objectowner "NsS. oLiVz<101><STEAM_0:1:15674014><Blue>") (attacker_position "551 2559 216")
-        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "killedobject" \x28object "(.*)"\x29 \x28weapon "(.*)"\x29 \x28objectowner "(.*)<(\d+)><(.*)><(Blue|Red)>)"\x29 \x28attacker_position "(.*)"\x29', logdata)
+        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "killedobject" \x28object "(.*)"\x29 \x28weapon "(.*)"\x29 \x28objectowner "(.*)<(\d+)><(.*)><(Blue|Red)>"\x29 \x28attacker_position "(.*)"\x29', logdata)
         if (res):
             print "Player destroyed engineer building"
             pprint(res.groups())

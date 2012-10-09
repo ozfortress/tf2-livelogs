@@ -13,20 +13,20 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
     def __init__(self, request, client_address, server):
         self.logger = logging.getLogger('llDaemonHandler')
         self.logger.debug('Handler init. APIKEY: %s', server.LL_API_KEY)
-
+        
         self.cip, self.cport = client_address
 
         SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
-
+        
     def setup(self):
         self.logger.debug('Handler setup')
         return SocketServer.BaseRequestHandler.setup(self)
-
+        
     def handle(self):
         self.logger.debug('Daemon Handler Handling')
-
+        
         rcvd = self.request.recv(1024) #read 1024 bytes of data
-
+        
         cip, cport = self.client_address
         cur_pid = os.getpid()
 
@@ -41,7 +41,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 #create listen socket
 
                 sip, sport = self.server.server_address
-
+                
                 if (tokLen == 4):
                     self.newListen = listener.llListenerObject(sip, self.client_address)
 
@@ -50,7 +50,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
                 lport = self.newListen.lport
                 self.logger.debug("PID %s: Listener port: %s", cur_pid, lport)
-
+                
                 returnMsg = "LIVELOG!%s!%s!%s" % (self.server.LL_API_KEY, sip, lport)
                 self.logger.debug("RESPONSE: %s", returnMsg)
                 self.request.send(returnMsg)
@@ -58,29 +58,31 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 #                lThread = threading.Thread(target=self.newListen.startListening)
 #                lThread.setDaemon(True)
 #                lThread.start()
-
+                
                 self.newListen.startListening()
+
+                self.logger.debug("PID %s: Stopped listening for logs", cur_pid)
         else:
             self.logger.debug("PID %s: Invalid data received. Exiting", cur_pid)
 
         return
-
+        
     def finish(self):
         self.logger.debug('Finished handling request from %s:%s', self.cip, self.cport)
         return SocketServer.BaseRequestHandler.finish(self)
-
+        
 class llDaemon(SocketServer.ForkingMixIn, SocketServer.TCPServer):
     def __init__(self, server_ip, handler=llDaemonHandler):
         self.logger = logging.getLogger('llDaemon')
         self.logger.debug('DAEMON INIT')
-
+        
         self.allow_reuse_address = True
 
         SocketServer.TCPServer.__init__(self, server_ip, handler)
-
+        
     def server_activate(self):
         self.logger.debug('Starting TCP listener')
-
+        
         SocketServer.TCPServer.server_activate(self)
 
     def serve_forever(self):
@@ -91,39 +93,39 @@ class llDaemon(SocketServer.ForkingMixIn, SocketServer.TCPServer):
 
     def handle(self):
         return SocketServer.TCPServer.handle_request(self)
-
+        
     def verify_request(self, request, client_ip):
         return SocketServer.TCPServer.verify_request(self, request, client_ip)
-
+        
     #def process_request(self, request, client_ip):
     #    return SocketServer.TCPServer.process_request(self, request, client_ip)
-
+        
     def server_close(self):
         return SocketServer.TCPServer.server_close(self)
-
+        
     #def finish_request(self, request, client_ip):
     #    return SocketServer.TCPServer.finish_request(self, request, client_ip)
-
+        
     def close_request(self, reqAddress):
         return SocketServer.TCPServer.close_request(self, reqAddress)
-
+        
 if __name__ == '__main__':
     #import threading
     #import socket
-
+    
     serverAddr = ('192.168.35.128', 61222)
-
+    
     llServer = llDaemon(serverAddr, llDaemonHandler)
-    llServer.LL_API_KEY = "123test"
+    llServer.LL_API_KEY = "123test"    
 
     #sThread = threading.Thread(target=llServer.serve_forever)
     #sThread.setDaemon(True)
     #sThread.start()
-    sip, sport = llServer.server_address
+    sip, sport = llServer.server_address   
 
     logger = logging.getLogger('MAIN')
     logger.info("Server on %s:%s under PID %s", sip, sport, os.getpid())
-
+    
     llServer.serve_forever()
 
     #clean up
