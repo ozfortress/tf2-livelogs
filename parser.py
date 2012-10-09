@@ -27,19 +27,17 @@ class parserClass():
 
         
         self.dbCursor = self.psqlConn.cursor()
-
-        query = "CREATE TABLE log_%s (id serial PRIMARY KEY, num int, text varchar)" % self.UNIQUE_IDENT
-        self.dbCursor.execute(query)
-
-        query = "INSERT INTO log_%s (num, text) VALUES (%%s, %%s)" % self.UNIQUE_IDENT
-        self.dbCursor.execute(query, (10, "hi friend",))
-
-        query = "SELECT * FROM log_%s" % self.UNIQUE_IDENT
-        self.dbCursor.execute(query)
-
-        self.dbCursor.fetchone()
+        
+        self.dbCursor.execute("SELECT create_global_stat_table()")
+        self.dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
 
         self.psqlConn.commit()
+
+        self.EVENT_TABLE = "log_event_" + self.UNIQUE_IDENT
+        self.STAT_TABLE = "log_stat_" + self.UNIQUE_IDENT
+        self.KILL_TABLE = "log_kill_" + self.UNIQUE_IDENT
+        self.CHAT_TABLE = "log_chat_" + self.UNIQUE_IDENT
+        self.ROUND_TABLE = "log_round_" + self.UNIQUE_IDENT
 
         self.dbCursor.close()
         self.psqlConn.close()
@@ -61,8 +59,8 @@ class parserClass():
         print "PARSING LOG: %s" % logdata
 
         regex = self.regex #avoid having to use fucking self.regex every time (ANNOYING++++)
+        regml = self.regml #local def for regml ^^^
 
-        #res = regex("(.*)", logdata)
 
         #if (res):
         #    print "Matching regex:"
@@ -79,19 +77,24 @@ class parserClass():
             return
 
         #log time
-        res = regex(r'L (\S+) - (\S+)', logdata)
+        res = regex(r'L (\S+) - (\S+):', logdata)
         if (res):
             print "Time of current log"
             pprint(res.groups())
             
-            return
 
         #damage dealt
         res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage" \x28damage "(\d+)"\x29', logdata)
         if (res):
             print "Damage dealt"
             pprint(res.groups())
+            #('[v3] Kaki', '51', 'STEAM_0:1:35387674', 'Red', '40')
+            sid = regml(res, 3)
+            name = regml(res, 1)
+            dmg = regml(res, 5)
 
+            #query = "INSERT INTO %s 
+            
             return
 
         #healing done
@@ -313,7 +316,7 @@ class parserClass():
 
         #setup end
         res = regex(r'World triggered "Round_Setup_End"', logdata)
-        if (res);
+        if (res):
             print "Round Setup End"
             pprint(res.groups())
 
@@ -339,8 +342,9 @@ class parserClass():
         preg = re.compile(expression, re.IGNORECASE | re.MULTILINE)
         
         match = preg.search(string)
-
-        print match
+        #print expression + " match?: "
+        #print match
         return match
 
-
+    def regml(self, retuple, index): #get index of re group tuple
+        return retuple.group(index)
