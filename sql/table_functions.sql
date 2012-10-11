@@ -80,7 +80,7 @@ BEGIN
 		CREATE TABLE livelogs_player_stats (steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points integer, healing_done integer,
 					     healing_received integer, ubers_used integer, ubers_lost integer, damage_dealt integer, ap_small integer, ap_medium integer, ap_large integer,
 					     mk_small integer, mk_medium integer, mk_large integer, captures integer, captures_blocked integer, dominations integer, revenges integer,
-					     suicides integer, buildings_destroyed integer);
+					     suicides integer, buildings_destroyed integer, wins integer, losses integer, draws integer);
 	END IF;
 END;
 $_$ LANGUAGE 'plpgsql';
@@ -105,5 +105,45 @@ BEGIN
 			RETURN;
 		END;
 	END LOOP;
+END;
+$_$ LANGUAGE 'plpgsql';
+
+CREATE OR REPLACE FUNCTION merge_stat_table(tablename text) RETURNS void AS $_$
+--Merges all stats in a new log table with the master player stat table :o)
+--SELECT merge_stat_table('log_stat_3232244481_61317_1349787463');
+--COLUMNS: (steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points integer, healing_done integer,
+--					     healing_received integer, ubers_used integer, ubers_lost integer, damage_dealt integer, ap_small integer, ap_medium integer, ap_large integer,
+--					     mk_small integer, mk_medium integer, mk_large integer, captures integer, captures_blocked integer, dominations integer, revenges integer,
+--					     suicides integer, buildings_destroyed integer)
+BEGIN
+	EXECUTE 'UPDATE livelogs_player_stats master SET
+	
+		name = newlog.name,
+		kills = master.kills + newlog.kills,
+		deaths = master.deaths + newlog.deaths,
+		assists = master.assists + newlog.assists,
+		points = master.points + newlog.points,
+		healing_done = master.healing_done + newlog.healing_done,
+		healing_received = master.healing_received + newlog.healing_received,
+		ubers_used = master.ubers_used + newlog.ubers_used,
+		damage_dealt = master.damage_dealt + newlog.damage_dealt,
+		ap_small = master.ap_small + newlog.ap_small,
+		ap_medium = master.ap_medium + newlog.ap_medium,
+		ap_large = master.ap_large + newlog.ap_large,
+		mk_small = master.mk_small + newlog.mk_small,
+		mk_medium = master.mk_medium + newlog.mk_medium,
+		mk_large = master.mk_large + newlog.mk_large,
+		captures = master.captures + newlog.captures,
+		captures_blocked = master.captures_blocked + newlog.captures_blocked,
+		dominations = master.dominations + newlog.dominations,
+		revenges = master.revenges + newlog.revenges,
+		suicides = master.suicides + newlog.suicides,
+		buildings_destroyed = master.buildings_destroyed + newlog.buildings_destroyed
+		
+	FROM ' || tablename || ' newlog
+	WHERE master.steamid = newlog.steamid';
+
+	EXECUTE 'INSERT INTO livelogs_player_stats (SELECT * FROM ' || tablename || ' WHERE ' || tablename || '.steamid 
+						NOT IN (SELECT steamid FROM livelogs_player_stats))';
 END;
 $_$ LANGUAGE 'plpgsql';
