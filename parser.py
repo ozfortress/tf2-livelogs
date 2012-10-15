@@ -42,6 +42,8 @@ class parserClass():
         dbCursor.close()
         #self.psqlConn.close()
 
+        self.itemDict = dict([['ammopack_small', 'ap_small'], ['ammopack_medium', 'ap_medium'], ['tf_ammo_pack', 'ap_large'], ['medkit_small', 'mk_small'], ['medkit_medium', 'mk_medium'], ['medkit_large', 'mk_large']])
+
         print "Parser initialised"
 
     def ip2long(self, ip):
@@ -111,6 +113,26 @@ class parserClass():
             print "Healing done"
             pprint(res.groups())
 
+            medic_sid = regml(res, 3)
+            medic_name = regml(res, 1).replace("'", "''")
+            medic_healing = regml(res, 8)
+
+            healt_name = regml(res, 5)
+            healt_id = regml(res, 7)
+            
+            medic_insert_query = "INSERT INTO %s (steamid, name, healing_done) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, medic_sid, medic_name, medic_healing)
+            medic_update_query = "UPDATE %s SET healing_done = healing_done + %s WHERE steamid= E'%s'" % (self.STAT_TABLE, medic_healing, medic_sid)
+
+            healt_insert_query = "INSERT INTO %s (steamid, name, healing_received) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, healt_id, healt_name, medic_healing)
+            healt_update_qyery = "UPDATE %s SET healing_received = healing_received + %s WHERE steamid = E'%s'" % (self.STAT_TABLE, medic_healing, healt_id)
+
+            curs = self.pgsqlConn.cursor()
+            curs.execute("SELECT pgsql_upsert(%s, %s)", (medic_insert_query, medic_update_query,))
+            curs.execute("SELECT pgsql_upsert(%s, %s)", (healt_insert_query, healt_update_query,))
+
+            self.pgsqlConn.commit()
+            curs.close()
+
             return
 
         #item picked up
@@ -119,7 +141,19 @@ class parserClass():
         if (res):
             print "Item picked up"
             pprint(res.groups())
+
+            sid = regml(res, 3)
+            name = regml(res, 1)
+
+            colname = self.selectItemName(regml(res, 5))
         
+            insert_query = "INSERT INTO %s (steamid, name, E'%s') VALUES (E'%s', E'%s', 1)" % (self.STAT_TABLE, colname, sid, name)
+            update_query = "UPDATE %s SET E'%s' = E'%s' + 1 WHERE steamid = E'%s'" % (self.STAT_TABLE, colname, colname, sid)
+
+            curs = self.pgsqlConn.cursor()
+            curs.execute ("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
+            curs.close()
+
             return
 
         #player killed (normal)
@@ -127,6 +161,11 @@ class parserClass():
         if (res):
             print "Player killed (normal kill)"
             pprint(res.groups())
+            k_sid = regml(res, 3)
+            k_name = regml(res, 1)
+
+            
+
 
             return
 
@@ -355,3 +394,6 @@ class parserClass():
 
     def regml(self, retuple, index): #get index of re group tuple
         return retuple.group(index)
+
+    def selectItemName(self, item_name):
+        return self.itemDict[item_name]

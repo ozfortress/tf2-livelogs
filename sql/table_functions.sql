@@ -85,7 +85,7 @@ BEGIN
 END;
 $_$ LANGUAGE 'plpgsql';
 
-CREATE OR REPLACE FUNCTION pgsql_upsert(insert_query text, update_query text) RETURNS void AS $_$
+CREATE OR REPLACE FUNCTION pgsql_upsert (insert_query text, update_query text) RETURNS void AS $_$
 --THIS FUNCTION WILL TAKE TWO QUERIES, AN INSERT AND AN UPDATE QUERY. IT WILL ATTEMPT TO RUN THE UPDATE QUERY FIRST, IF UNSUCCESSFUL IT WILL RUN THE INSERT QUERY
 --Allows the user to avoid having to check the contents via their language first to decide whether to insert or update.
 BEGIN
@@ -108,7 +108,7 @@ BEGIN
 END;
 $_$ LANGUAGE 'plpgsql';
 
-CREATE OR REPLACE FUNCTION merge_stat_table(tablename text) RETURNS void AS $_$
+CREATE OR REPLACE FUNCTION merge_stat_table (tablename text) RETURNS void AS $_$
 --Merges all stats in a new log table with the master player stat table :o)
 --SELECT merge_stat_table('log_stat_3232244481_61317_1349787463');
 --COLUMNS: (steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points integer, healing_done integer,
