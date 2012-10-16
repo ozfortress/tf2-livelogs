@@ -49,5 +49,7 @@ client.send('L 10/01/2012 - 21:38:34: "[v3] Chrome<48><STEAM_0:1:41365809><Red>"
 client.send('L 10/01/2012 - 21:38:34: "[v3] Kaki<51><STEAM_0:1:35387674><Red>" triggered "damage" (damage "40")')
 client.send('L 10/01/2012 - 21:38:34: "[v3] Jak<49><STEAM_0:0:18518582><Red>" triggered "damage" (damage "20")')
 client.send('L 10/01/2012 - 21:38:34: "Liquid\'zato<46><STEAM_0:0:42607036><Blue>" triggered "damage" (damage "65")')
+client.send('L 10/01/2012 - 21:41:52: "[v3] Faithless<47><STEAM_0:0:52150090><Red>" triggered "medic_death" against "Liquid\'Iyvn<40><STEAM_0:1:41931908><Blue>" (healing "3544") (ubercharge "0")')
+client.send('L 10/01/2012 - 21:41:52: "[v3] Faithless<47><STEAM_0:0:52150090><Red>" killed "Liquid\'Iyvn<40><STEAM_0:1:41931908><Blue>" with "scattergun" (attacker_position "-1105 -1138 110") (victim_position "-1075 -901 143")')
 
 client.close()

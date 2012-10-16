@@ -15,7 +15,7 @@ DECLARE
 BEGIN
 	table_name := 'log_stat_' || unique_id;
 	
-	EXECUTE 'CREATE TABLE ' || table_name || ' (steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points integer, healing_done integer,
+	EXECUTE 'CREATE TABLE ' || table_name || ' (steamid varchar(64) PRIMARY KEY, name text, team text, kills integer, deaths integer, assists integer, points decimal, healing_done integer,
 					     healing_received integer, ubers_used integer, ubers_lost integer, damage_dealt integer, ap_small integer, ap_medium integer, ap_large integer,
 					     mk_small integer, mk_medium integer, mk_large integer, captures integer, captures_blocked integer, dominations integer, revenges integer,
 					     suicides integer, buildings_destroyed integer)';
@@ -56,6 +56,15 @@ BEGIN
 END;
 $_$ LANGUAGE 'plpgsql';
 
+CREATE OR REPLACE FUNCTION create_game_medic_table (unique_id text) RETURNS void AS $_$
+DECLARE
+	table_name varchar(128);
+BEGIN
+	table_name := 'log_medic_' || unique_id;
+
+	EXECUTE 'CREATE TABLE ' || table_name || ' (eventid integer PRIMARY KEY, steamid varchar(64), uber_used integer, uber_lost integer)';
+END;
+$_$ LANGUAGE 'plpgsql';
 
 CREATE OR REPLACE FUNCTION setup_log_tables (unique_id text) RETURNS void AS $_$
 BEGIN
@@ -64,6 +73,7 @@ BEGIN
 	PERFORM create_game_kill_table(unique_id);
 	PERFORM create_game_chat_table(unique_id);
 	PERFORM create_game_round_table(unique_id);
+	PERFORM create_game_medic_table(unique_id);
 END;
 $_$ LANGUAGE 'plpgsql';
 
@@ -77,7 +87,7 @@ BEGIN
 	THEN
 		RAISE NOTICE 'Table livelogs.livelogs_player_stats already exists';
 	ELSE
-		CREATE TABLE livelogs_player_stats (steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points integer, healing_done integer,
+		CREATE TABLE livelogs_player_stats (steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points decimal, healing_done integer,
 					     healing_received integer, ubers_used integer, ubers_lost integer, damage_dealt integer, ap_small integer, ap_medium integer, ap_large integer,
 					     mk_small integer, mk_medium integer, mk_large integer, captures integer, captures_blocked integer, dominations integer, revenges integer,
 					     suicides integer, buildings_destroyed integer, wins integer, losses integer, draws integer);

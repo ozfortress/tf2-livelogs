@@ -7,24 +7,22 @@ from pprint import pprint
 
 class parserClass():
     def __init__(self, server_address, ipgnBooker=None):
+        try:
+            self.pgsqlConn = psycopg2.connect(host="localhost", port="5432", database="livelogs", user="livelogs", password="hello")
+
+        except Exception, e:
+            print "Had exception while trying to connect to psql database: " + e.pgerror
+            return
+        
         if (ipgnBooker != None):
             self.bNamedLog = True
             self.namedLogName = ipgnBooker
 
-        self.finish = False
         self.serverSendingLogs = server_address
 
         self.UNIQUE_IDENT = str(self.ip2long(server_address[0])) + "_" + str(server_address[1]) + "_" + str(int(round(time.time())))
 
         print "PARSER UNIQUE IDENT: " + self.UNIQUE_IDENT
-        
-
-        try:
-            self.pgsqlConn = psycopg2.connect(host="localhost", port="5432", database="livelogs", user="livelogs", password="hello")
-    
-        except Exception, e:
-            print "Had exception while trying to connect to psql database: " + e.pgerror
-
         
         dbCursor = self.pgsqlConn.cursor()
         
@@ -38,6 +36,7 @@ class parserClass():
         self.KILL_TABLE = "log_kill_" + self.UNIQUE_IDENT
         self.CHAT_TABLE = "log_chat_" + self.UNIQUE_IDENT
         self.ROUND_TABLE = "log_round_" + self.UNIQUE_IDENT
+        self.MEDIC_TABLE = "log_medic_" + self.UNIQUE_IDENT
 
         dbCursor.close()
         #self.psqlConn.close()
@@ -55,7 +54,7 @@ class parserClass():
 
 
     def parse(self, logdata):
-        if not logdata or self.finish:
+        if not logdata or not self.pgsqlConn:
             return
 
         print "PARSING LOG: %s" % logdata
@@ -70,7 +69,7 @@ class parserClass():
 
         #log file start
         #RL 10/07/2012 - 01:13:34: Log file started (file "logs_pug/L1007104.log") (game "/games/tf2_pug/orangebox/tf") (version "5072")
-        res = regex(r"L (\S+) - (\S+) Log file started \x28file \"(.*?)\"\x29", logdata)
+        res = regex(r'L (\S+) - (\S+) Log file started \x28file "(.*?)"\x29', logdata)
         if (res):
             print "Log file started"
             pprint(res.groups())
@@ -84,6 +83,8 @@ class parserClass():
             print "Time of current log"
             pprint(res.groups())
             
+            event_time = regml(res, 1) + " " + regml(res, 2)
+
 
         #damage dealt
         res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage" \x28damage "(\d+)"\x29', logdata)
@@ -92,17 +93,11 @@ class parserClass():
             pprint(res.groups())
             #('[v3] Kaki', '51', 'STEAM_0:1:35387674', 'Red', '40')
             sid = regml(res, 3)
-            name = regml(res, 1).replace("'", "''")
+            name = self.escapePlayerName(regml(res, 1))
             dmg = regml(res, 5)
 
-            insert_query = "INSERT INTO %s (steamid, name, damage_dealt) VALUES (E'%s', E'%s', %s)" % (self.STAT_TABLE, sid, name, dmg)
-            update_query = "UPDATE %s SET damage_dealt = damage_dealt + %s WHERE steamid = E'%s'" % (self.STAT_TABLE, dmg, sid)
-
-            curs = self.pgsqlConn.cursor()
-            curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
-                        
-            self.pgsqlConn.commit()
-            curs.close()
+            #pg_statupsert(self, table, column, steamid, name, value)
+            self.pg_statupsert(self.STAT_TABLE, "damage_dealt", sid, name, dmg)        
 
             return
 
@@ -114,24 +109,16 @@ class parserClass():
             pprint(res.groups())
 
             medic_sid = regml(res, 3)
-            medic_name = regml(res, 1).replace("'", "''")
-            medic_healing = regml(res, 8)
+            medic_name = self.escapePlayerName(regml(res, 1))
+            medic_healing = regml(res, 9)
+            medic_points = round(int(medic_healing) / 500, 2)
 
-            healt_name = regml(res, 5)
-            healt_id = regml(res, 7)
+            healt_name = self.escapePlayerName(regml(res, 5))
+            healt_sid = regml(res, 7)
             
-            medic_insert_query = "INSERT INTO %s (steamid, name, healing_done) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, medic_sid, medic_name, medic_healing)
-            medic_update_query = "UPDATE %s SET healing_done = healing_done + %s WHERE steamid= E'%s'" % (self.STAT_TABLE, medic_healing, medic_sid)
-
-            healt_insert_query = "INSERT INTO %s (steamid, name, healing_received) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, healt_id, healt_name, medic_healing)
-            healt_update_qyery = "UPDATE %s SET healing_received = healing_received + %s WHERE steamid = E'%s'" % (self.STAT_TABLE, medic_healing, healt_id)
-
-            curs = self.pgsqlConn.cursor()
-            curs.execute("SELECT pgsql_upsert(%s, %s)", (medic_insert_query, medic_update_query,))
-            curs.execute("SELECT pgsql_upsert(%s, %s)", (healt_insert_query, healt_update_query,))
-
-            self.pgsqlConn.commit()
-            curs.close()
+            self.pg_statupsert(self.STAT_TABLE, "healing_done", medic_sid, medic_name, medic_healing)
+            self.pg_statupsert(self.STAT_TABLE, "points", medic_sid, medic_name, medic_points)
+            self.pg_statupsert(self.STAT_TABLE, "healing_received", healt_sid, healt_name, medic_healing)
 
             return
 
@@ -143,16 +130,12 @@ class parserClass():
             pprint(res.groups())
 
             sid = regml(res, 3)
-            name = regml(res, 1)
+            name = self.escapePlayerName(regml(res, 1))
 
             colname = self.selectItemName(regml(res, 5))
-        
-            insert_query = "INSERT INTO %s (steamid, name, E'%s') VALUES (E'%s', E'%s', 1)" % (self.STAT_TABLE, colname, sid, name)
-            update_query = "UPDATE %s SET E'%s' = E'%s' + 1 WHERE steamid = E'%s'" % (self.STAT_TABLE, colname, colname, sid)
 
-            curs = self.pgsqlConn.cursor()
-            curs.execute ("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
-            curs.close()
+            self.pg_statupsert(self.STAT_TABLE, colname, sid, name, 1) #add 1 to whatever item was picked up
+
 
             return
 
@@ -162,10 +145,35 @@ class parserClass():
             print "Player killed (normal kill)"
             pprint(res.groups())
             k_sid = regml(res, 3)
-            k_name = regml(res, 1)
+            k_name = self.escapePlayerName(regml(res, 1))
+            k_pos = regml(res, 10)
+            k_weapon = regml(res, 9)
 
+            v_sid = regml(res, 7)
+            v_name = self.escapePlayerName(regml(res, 5))
+            v_pos = regml(res, 11)
+
+            #killer stats
+            self.pg_statupsert(self.STAT_TABLE, "kills", k_sid, k_name, 1) #add kill to killer stat
+            self.pg_statupsert(self.STAT_TABLE, "points", k_sid, k_name, 1) #add point to killer
+ 
+            #victim stats
+            self.pg_statupsert(self.STAT_TABLE, "deaths", v_sid, v_name, 1) #add death to victim stat
+
+            #increment event ids and SHIT
+            event_insert_query = "INSERT INTO %s (time, event_type) VALUES (E'%s', '%s')" % (self.EVENT_TABLE, event_time, "kill") #creates a new, unique eventid
+            curs = self.pgsqlConn.cursor()
+            curs.execute(event_insert_query)
             
+            eventid_query = "SELECT eventid FROM %s ORDER BY eventid DESC LIMIT 1" % self.EVENT_TABLE #need to get the just inserted event id for kill table and possible assist
+            curs.execute(eventid_query)
+            self.prevEventId = curs.fetchone()[0]
 
+            kill_insert_query = "INSERT INTO %s (eventid, attacker_id, attacker_pos, victim_id, victim_pos) VALUES (E'%s', E'%s', E'%s', E'%s', E'%s')" % (self.KILL_TABLE, self.prevEventId, k_sid, k_pos, v_sid, v_pos)
+            curs.execute(kill_insert_query)
+            
+            self.pgsqlConn.commit()
+            curs.close()
 
             return
 
@@ -184,6 +192,24 @@ class parserClass():
         if (res):
             print "Player assisted in kill"
             pprint(res.groups())
+            a_sid = regml(res, 3)
+            a_name = self.escapePlayerName(regml(res, 1))
+            a_pos = regml(res, 9)
+
+            self.pg_statupsert(self.STAT_TABLE, "assists", a_sid, a_name, 1)
+            self.pg_statupsert(self.STAT_TABLE, "points", a_sid, a_name, 0.5)
+
+            curs = self.pgsqlConn.cursor()
+            
+            #kill assist ALWAYS (99.9999999999999%) comes after a kill, so we use the previous event id obtained when inserting the kill into the event table. might need to change later
+            assist_insert_query = "UPDATE %s SET assister_id = E'%s', assister_pos = %s WHERE eventid = %s" % (self.KILL_TABLE, a_sid, a_pos, self.prevEventId)
+            curs.execute(assist_insert_query)
+
+            event_insert_query = "INSERT INTO %s (time, event_type) VALUES (E'%s', 'assist')" % (self.EVENT_TABLE, event_time)
+            curs.execute(event_insert_query)
+
+            self.pgsqlConn.commit()
+            curs.close()
 
             return
 
@@ -193,6 +219,27 @@ class parserClass():
         if (res):
             print "Medic death"
             pprint(res.groups())
+            m_sid = regml(res, 7)
+            m_name = self.escapePlayerName(regml(res, 5))
+            m_uberlost = regml(res, 10)
+
+            if (m_uberlost):
+                #noob medic lost uber!
+                self.pg_statupsert(self.STAT_TABLE, "ubers_lost", m_sid, m_name, 1)
+                
+                curs = self.pgsqlConn.cursor()
+    
+                event_insert_query = "INSERT INTO %s (time, event_type) VALUES (E'%s', 'uber_lost')" % (self.EVENT_TABLE, event_time)
+                curs.execute(event_insert_query)
+
+                eventid_query = "SELECT eventid FROM %s WHERE event_type = 'uber_lost' ORDER BY eventid DESC LIMIT 1" % self.EVENT_TABLE
+                curs.execute(eventid_query)
+                eventid = curs.fetchone()[0]
+
+                medic_table_insert = "INSERT INTO %s (eventid, steamid, uber_lost) VALUES (%s, E'%s', 1)" % (self.MEDIC_TABLE, eventid, m_sid)
+                curs.execute(medic_table_insert)
+
+                curs.close()
 
             return
 
@@ -397,3 +444,21 @@ class parserClass():
 
     def selectItemName(self, item_name):
         return self.itemDict[item_name]
+
+    def pg_statupsert(self, table, column, steamid, name, value):
+        #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
+        insert_query = "INSERT INTO %s (steamid, name, %s) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, steamid, name, value)
+        update_query = "UPDATE %s SET %s = %s + %s WHERE steamid = E'%s'" % (self.STAT_TABLE, column, column, value, steamid)
+
+        curs = self.pgsqlConn.cursor()
+        curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
+        
+        self.pgsqlConn.commit()
+        curs.close()
+        
+        return
+
+    def escapePlayerName(self, unescaped_name_string):
+        return unescaped_name_string.replace("'", "''")
+
+
