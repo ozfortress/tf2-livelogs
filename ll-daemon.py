@@ -46,6 +46,12 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
                 if (self.server.clientExists(self.ll_clientip, self.ll_clientport)):
                     self.logger.debug("PID %s: Client %s:%s already has a listener ?", cur_pid, self.ll_clientip, self.ll_clientport)
+                    dict_key = "c" + self.ll_clientip + self.ll_clientport
+                    listen_ip, listen_port = self.server.clientDict[dict_key]
+
+                    returnMsg = "LIVELOG!%s!%s!%s!REUSE" % (self.server.LL_API_KEY, listen_ip, listen_port)
+                    self.logger.debug("RESENDING LISTENER INFO: %s", returnMsg)
+                    self.request.send(returnMsg)
                     return    
 
                 sip, sport = self.server.server_address
@@ -63,7 +69,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 self.logger.debug("RESPONSE: %s", returnMsg)
                 self.request.send(returnMsg)
 
-                self.server.addClient(self.ll_clientip, self.ll_clientport) 
+                self.server.addClient(self.ll_clientip, self.ll_clientport, (sip, lport)) 
 
                 self.newListen.startListening()
                 
@@ -98,10 +104,10 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         
         SocketServer.TCPServer.server_activate(self)
 
-    def addClient(self, ip, port):
+    def addClient(self, ip, port, listen_tuple):
         dict_key = "c" + ip + port
         if dict_key not in self.clientDict:
-            self.clientDict[dict_key] = 1
+            self.clientDict[dict_key] = listen_tuple
             self.logger.debug('Added %s:%s to client dict with key %s', ip, port, dict_key)
         
         return
@@ -135,7 +141,7 @@ if __name__ == '__main__':
     
     llServer = llDaemon(serverAddr, llDaemonHandler)
     llServer.LL_API_KEY = "123test"    
-    llServer.clientDict = dict([['asdf', 1]])
+    llServer.clientDict = dict()
 
     sip, sport = llServer.server_address   
 
