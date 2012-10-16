@@ -3,6 +3,8 @@ import logging
 import sys
 import os
 import threading
+from pprint import pprint
+
 
 import listener
 
@@ -27,10 +29,9 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         
         rcvd = self.request.recv(1024) #read 1024 bytes of data
         
-        cip, cport = self.client_address
         cur_pid = os.getpid()
 
-        self.logger.debug('PID %s: Received "%s" from client %s:%s', cur_pid, rcvd, cip, cport)
+        self.logger.debug('PID %s: Received "%s" from client %s:%s', cur_pid, rcvd, self.cip, self.cport)
 
         #FORMAT OF LOG REQUEST: LIVELOG!KEY!SIP!SPORT!MR_IPGNBOOKER(OPTIONAL)
         tokenized = rcvd.split('!')
@@ -38,15 +39,22 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         if (tokLen >= 4) and (tokenized[0] == "LIVELOG"):
             if (tokenized[1] == self.server.LL_API_KEY):
                 self.logger.debug('LIVELOG key is correct. Establishing listen socket and returning info')
-                #create listen socket
+                #---- THE IP AND PORT SENT BY THE SERVER PLUGIN. USED TO RECOGNISE THE SERVER
+                #---- client_address cannot be used, because that is the ip:port of the plugin's socket sending the livelogs request
+                self.ll_clientip = tokenized[2]
+                self.ll_clientport = tokenized[3]
+
+                if (self.server.clientExists(self.ll_clientip, self.ll_clientport)):
+                    self.logger.debug("PID %s: Client %s:%s already has a listener ?", cur_pid, self.ll_clientip, self.ll_clientport)
+                    return    
 
                 sip, sport = self.server.server_address
-                
+
                 if (tokLen == 4):
-                    self.newListen = listener.llListenerObject(sip, self.client_address)
+                    self.newListen = listener.llListenerObject(sip, (self.ll_clientip, self.ll_clientport))
 
                 elif (tokLen == 5):
-                    self.newListen = listener.llListenerObject(sip, self.client_address, ipgnBooker = tokenized[4])
+                    self.newListen = listener.llListenerObject(sip, (self.ll_clientip, self.ll_clientport), ipgnBooker = tokenized[4])
 
                 lport = self.newListen.lport
                 self.logger.debug("PID %s: Listener port: %s", cur_pid, lport)
@@ -55,13 +63,13 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 self.logger.debug("RESPONSE: %s", returnMsg)
                 self.request.send(returnMsg)
 
-#                lThread = threading.Thread(target=self.newListen.startListening)
-#                lThread.setDaemon(True)
-#                lThread.start()
-                
-                self.newListen.startListening()
+                self.server.addClient(self.ll_clientip, self.ll_clientport) 
 
+                self.newListen.startListening()
+                
                 self.logger.debug("PID %s: Stopped listening for logs", cur_pid)
+
+                self.server.removeClient(self.ll_clientip, self.ll_clientport)
         else:
             self.logger.debug("PID %s: Invalid data received. Exiting", cur_pid)
 
@@ -69,66 +77,74 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         
     def finish(self):
         self.logger.debug('Finished handling request from %s:%s', self.cip, self.cport)
+
+        #self.newListen.listener.server_close()
+        #self.server.removeClient(self.ll_clientip, self.ll_clientport)
+
         return SocketServer.BaseRequestHandler.finish(self)
         
-class llDaemon(SocketServer.ForkingMixIn, SocketServer.TCPServer):
+class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def __init__(self, server_ip, handler=llDaemonHandler):
         self.logger = logging.getLogger('llDaemon')
         self.logger.debug('DAEMON INIT')
         
         self.allow_reuse_address = True
+        self.daemon_threads = True
 
         SocketServer.TCPServer.__init__(self, server_ip, handler)
         
     def server_activate(self):
-        self.logger.debug('Starting TCP listener')
+        self.logger.debug('Starting TCP listener and waiting for data')
         
         SocketServer.TCPServer.server_activate(self)
 
-    def serve_forever(self):
-        self.logger.debug('Waiting for data')
-        while True:
-            self.handle()
+    def addClient(self, ip, port):
+        dict_key = "c" + ip + port
+        if dict_key not in self.clientDict:
+            self.clientDict[dict_key] = 1
+            self.logger.debug('Added %s:%s to client dict with key %s', ip, port, dict_key)
+        
         return
 
-    def handle(self):
-        return SocketServer.TCPServer.handle_request(self)
-        
-    def verify_request(self, request, client_ip):
-        return SocketServer.TCPServer.verify_request(self, request, client_ip)
-        
-    #def process_request(self, request, client_ip):
-    #    return SocketServer.TCPServer.process_request(self, request, client_ip)
-        
-    def server_close(self):
-        return SocketServer.TCPServer.server_close(self)
-        
-    #def finish_request(self, request, client_ip):
-    #    return SocketServer.TCPServer.finish_request(self, request, client_ip)
-        
-    def close_request(self, reqAddress):
-        return SocketServer.TCPServer.close_request(self, reqAddress)
-        
+    def clientExists(self, ip, port):
+        #self.addClient(ip, port)
+
+        print "Keys in self.clientDict: "
+        pprint(self.clientDict.keys())
+
+        dict_key = "c" + ip + port
+
+        if dict_key in self.clientDict:
+            self.logger.debug('Key %s is in client dict', dict_key)
+            return True
+        else:
+            self.logger.debug('Key %s is NOT in client dict', dict_key)
+            return False
+
+    def removeClient(self, ip, port):
+        dict_key = "c" + ip + port
+        if dict_key in self.clientDict:
+            del self.clientDict[dict_key]
+            self.logger.debug('Removed client %s:%s from client dict', ip, port)
+
+        return
+
+
 if __name__ == '__main__':
-    #import threading
-    #import socket
-    
     serverAddr = ('192.168.35.128', 61222)
     
     llServer = llDaemon(serverAddr, llDaemonHandler)
     llServer.LL_API_KEY = "123test"    
+    llServer.clientDict = dict([['asdf', 1]])
 
-    #sThread = threading.Thread(target=llServer.serve_forever)
-    #sThread.setDaemon(True)
-    #sThread.start()
     sip, sport = llServer.server_address   
 
     logger = logging.getLogger('MAIN')
     logger.info("Server on %s:%s under PID %s", sip, sport, os.getpid())
     
-    llServer.serve_forever()
+    sthread = threading.Thread(target = llServer.serve_forever())
+    sthread.daemon = True
+    sthread.start()
+    #llServer.serve_forever()
 
-    #clean up
-    #client.close()
-    #llServer.server_close()
-    #logger.debug('END')
+    #wat do?

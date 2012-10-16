@@ -134,6 +134,9 @@ class parserClass():
 
             colname = self.selectItemName(regml(res, 5))
 
+            if not colname:
+                return
+
             self.pg_statupsert(self.STAT_TABLE, colname, sid, name, 1) #add 1 to whatever item was picked up
 
 
@@ -239,6 +242,7 @@ class parserClass():
                 medic_table_insert = "INSERT INTO %s (eventid, steamid, uber_lost) VALUES (%s, E'%s', 1)" % (self.MEDIC_TABLE, eventid, m_sid)
                 curs.execute(medic_table_insert)
 
+                self.pgsqlConn.commit()
                 curs.close()
 
             return
@@ -443,7 +447,8 @@ class parserClass():
         return retuple.group(index)
 
     def selectItemName(self, item_name):
-        return self.itemDict[item_name]
+        if item_name in self.itemDict:
+            return self.itemDict[item_name]
 
     def pg_statupsert(self, table, column, steamid, name, value):
         #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
