@@ -95,6 +95,21 @@ BEGIN
 END;
 $_$ LANGUAGE 'plpgsql';
 
+CREATE OR REPLACE FUNCTION create_global_server_table () RETURNS void AS $_$
+BEGIN
+	IF EXISTS (
+		SELECT *
+		FROM pg_catalog.pg_tables
+		WHERE tablename = 'livelogs_servers'
+		)
+	THEN
+		RAISE NOTICE 'Table livelogs.livelogs_servers already exists';
+	ELSE
+		CREATE TABLE livelogs_servers (server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, booker_name text);
+	END IF;
+END;
+$_$ LANGUAGE 'plpgsql';
+
 CREATE OR REPLACE FUNCTION pgsql_upsert (insert_query text, update_query text) RETURNS void AS $_$
 --THIS FUNCTION WILL TAKE TWO QUERIES, AN INSERT AND AN UPDATE QUERY. IT WILL ATTEMPT TO RUN THE UPDATE QUERY FIRST, IF UNSUCCESSFUL IT WILL RUN THE INSERT QUERY
 --Allows the user to avoid having to check the contents via their language first to decide whether to insert or update.
@@ -153,7 +168,11 @@ BEGIN
 	FROM ' || tablename || ' newlog
 	WHERE master.steamid = newlog.steamid';
 
-	EXECUTE 'INSERT INTO livelogs_player_stats (SELECT * FROM ' || tablename || ' WHERE ' || tablename || '.steamid 
-						NOT IN (SELECT steamid FROM livelogs_player_stats))';
+	EXECUTE 'INSERT INTO livelogs_player_stats (
+						SELECT name, kills, deaths, assists, points, healing_done, healing_received, ubers_used,
+							damage_dealt, ap_small, ap_medium, ap_large, mk_small, mk_medium, mk_large, captures,
+							captures_blocked, dominations, revengers, suicides, buildings_destroyed 
+						FROM ' || tablename || ' WHERE ' || tablename || '.steamid 
+							NOT IN (SELECT steamid FROM livelogs_player_stats))';
 END;
 $_$ LANGUAGE 'plpgsql';
