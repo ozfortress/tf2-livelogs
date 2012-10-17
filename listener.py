@@ -1,13 +1,11 @@
 import SocketServer
-import parser
 import threading
+import time
 from pprint import pprint
 
+import parser
 
 class llListenerHandler(SocketServer.BaseRequestHandler):
-    #def __init__(self, request, client_address, server):
-    #    SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
-    #    return
 
     def handle(self):
         data = self.request[0].strip()
@@ -21,17 +19,40 @@ class llListenerHandler(SocketServer.BaseRequestHandler):
 class llListener(SocketServer.UDPServer):
     def __init__(self, listener_address, handler_class=llListenerHandler):
         SocketServer.UDPServer.__init__(self, listener_address, handler_class)
-        print "Initialised log listener. Initialising parser instance"
+        print "Initialised log listener. Waiting for logs"
+
+        self.timeoutTimer = threading.Timer(60.0, self.handle_server_timeout)
+        self.timeoutTimer.start()
 
         return
 
-    #def server_close(self):
-    #    print "Listener exiting"
-    #    return SocketServer.UDPServer.server_close(self)
+    def verify_request(self, request, client_address):
+        """
+        Verify the request to make sure it's coming from the expected client
+        Won't be from the same port every time, so we'll just check by IP
+        """
+        #print "Current client addr: " + client_address[0] + ". Expected addr: " + self.lClientAddr[0]
+        if (client_address[0] == self.lClientAddr[0]):
+            #print "Client address is same as initial client. Accepting log"
+            #reset the timeout timer
+            self.timeoutTimer.cancel()
 
-    #def close_request(self, request_address):
-    #    print "Closing log listener request"
-    #    return SocketServer.UDPServer.close_request(self, request_address)
+            #restart!
+            self.timeoutTimer = threading.Timer(60.0, self.handle_server_timeout)
+            self.timeoutTimer.start()
+
+            return True
+        else:
+            #print "Client address differs from initial client. Rejecting log"
+            return False
+    
+    def handle_server_timeout(self):
+        print "Server timeout (no logs received in 60 seconds). Exiting"
+        self.shutdown()
+
+        return
+
+
 
 class llListenerObject():
     def __init__(self, listenIP, lClientAddr, ipgnBooker=None):
@@ -40,6 +61,7 @@ class llListenerObject():
         self.listenAddress = (self.listenIP, 0)
         self.listener = llListener(self.listenAddress, handler_class=llListenerHandler)
 
+        print "Initialising parser"
         self.listener.parser = parser.parserClass(lClientAddr, ipgnBooker)
         self.listener.lClientAddr = lClientAddr
 
