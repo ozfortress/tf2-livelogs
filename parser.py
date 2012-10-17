@@ -27,7 +27,16 @@ class parserClass():
         dbCursor = self.pgsqlConn.cursor()
         
         dbCursor.execute("SELECT create_global_stat_table()")
+        dbCursor.execute("SELECT create_global_server_table()")
         dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
+        
+        if (self.bNamedLog):
+            dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, booker_name) VALUES (%s, %s, %s, %s)", 
+                                        (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.namedLogName,))
+        else:
+            dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident) VALUES (%s, %s, %s)",
+                                        (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT,))
+
 
         self.pgsqlConn.commit()
 
@@ -46,7 +55,6 @@ class parserClass():
         print "Parser initialised"
 
     def ip2long(self, ip):
-        print "ip2long ip: " + ip
         return struct.unpack('!L', socket.inet_aton(ip))[0]
 
     def long2ip(self, longip):
