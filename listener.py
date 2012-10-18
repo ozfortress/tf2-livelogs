@@ -17,11 +17,13 @@ class llListenerHandler(SocketServer.BaseRequestHandler):
 
 
 class llListener(SocketServer.UDPServer):
-    def __init__(self, listener_address, handler_class=llListenerHandler):
+    def __init__(self, listener_address, timeout, handler_class=llListenerHandler):
         SocketServer.UDPServer.__init__(self, listener_address, handler_class)
         print "Initialised log listener. Waiting for logs"
 
-        self.timeoutTimer = threading.Timer(60.0, self.handle_server_timeout)
+        self.timeout = timeout
+
+        self.timeoutTimer = threading.Timer(timeout, self.handle_server_timeout)
         self.timeoutTimer.start()
 
         return
@@ -38,7 +40,7 @@ class llListener(SocketServer.UDPServer):
             self.timeoutTimer.cancel()
 
             #restart!
-            self.timeoutTimer = threading.Timer(60.0, self.handle_server_timeout)
+            self.timeoutTimer = threading.Timer(self.timeout, self.handle_server_timeout)
             self.timeoutTimer.start()
 
             return True
@@ -55,14 +57,14 @@ class llListener(SocketServer.UDPServer):
 
 
 class llListenerObject():
-    def __init__(self, listenIP, lClientAddr, ipgnBooker=None):
+    def __init__(self, listenIP, lClientAddr, current_map, ipgnBooker=None, timeout=60.0):
         self.listenIP = listenIP
 
         self.listenAddress = (self.listenIP, 0)
-        self.listener = llListener(self.listenAddress, handler_class=llListenerHandler)
+        self.listener = llListener(self.listenAddress, timeout, handler_class=llListenerHandler)
 
         print "Initialising parser"
-        self.listener.parser = parser.parserClass(lClientAddr, ipgnBooker)
+        self.listener.parser = parser.parserClass(lClientAddr, current_map = current_map, ipgnBooker = ipgnBooker)
         self.listener.lClientAddr = lClientAddr
 
         self.lip, self.lport = self.listener.server_address
