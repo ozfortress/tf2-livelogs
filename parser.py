@@ -6,7 +6,7 @@ import re
 from pprint import pprint
 
 class parserClass():
-    def __init__(self, server_address, ipgnBooker=None):
+    def __init__(self, server_address, current_map=None, ipgnBooker=None):
         try:
             self.pgsqlConn = psycopg2.connect(host="localhost", port="5432", database="livelogs", user="livelogs", password="hello")
 
@@ -14,9 +14,18 @@ class parserClass():
             print "Had exception while trying to connect to psql database: " + e.pgerror
             return
         
+        print "Parser params: Map: " + current_map + " Booker: " + ipgnBooker
+
+        self.bNamedLog = False
         if (ipgnBooker != None):
             self.bNamedLog = True
             self.namedLogName = ipgnBooker
+
+        #if no map is specified (auto detect), set map to 0
+        if (current_map == None):
+            self.current_map = 0
+        else:
+            self.current_map = current_map
 
         self.serverSendingLogs = server_address
 
@@ -31,11 +40,11 @@ class parserClass():
         dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
         
         if (self.bNamedLog):
-            dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, booker_name) VALUES (%s, %s, %s, %s)", 
-                                        (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.namedLogName,))
+            dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, booker_name) VALUES (%s, %s, %s, %s, %s)", 
+                                        (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map, self.namedLogName,))
         else:
-            dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident) VALUES (%s, %s, %s)",
-                                        (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT,))
+            dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map) VALUES (%s, %s, %s)",
+                                        (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map,))
 
 
         self.pgsqlConn.commit()
@@ -240,6 +249,7 @@ class parserClass():
                 
                 curs = self.pgsqlConn.cursor()
     
+                #this methodology is exactly the same as inserting the kills. we need to insert a new event, get the id and then use the id to tie it to the medic table
                 event_insert_query = "INSERT INTO %s (time, event_type) VALUES (E'%s', 'uber_lost')" % (self.EVENT_TABLE, event_time)
                 curs.execute(event_insert_query)
 
@@ -260,7 +270,11 @@ class parserClass():
         if (res):
             print "Ubercharge used"
             pprint(res.groups())
-            
+            m_sid = regml(res, 3)
+            m_name = self.escapePlayerName(regml(res, 1))
+
+            self.pg_statupsert(self.STAT_TABLE, "ubers_used", m_sid, m_name, 1)
+ 
             return
 
         #point capture
@@ -270,6 +284,12 @@ class parserClass():
         if (res):
             print "Point captured"
             pprint(res.groups())
+            #this is going to be tricky to get all of the players...
+            cap_team = regml(res, 1)
+            cap_name = regml(res, 3)
+            num_cappers = regml(res, 4)
+
+            
 
             return
 

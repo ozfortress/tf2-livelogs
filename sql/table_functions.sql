@@ -105,7 +105,7 @@ BEGIN
 	THEN
 		RAISE NOTICE 'Table livelogs.livelogs_servers already exists';
 	ELSE
-		CREATE TABLE livelogs_servers (server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, booker_name text);
+		CREATE TABLE livelogs_servers (server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, booker_name text);
 	END IF;
 END;
 $_$ LANGUAGE 'plpgsql';
