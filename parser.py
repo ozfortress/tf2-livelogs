@@ -274,7 +274,22 @@ class parserClass():
             m_name = self.escapePlayerName(regml(res, 1))
 
             self.pg_statupsert(self.STAT_TABLE, "ubers_used", m_sid, m_name, 1)
- 
+
+            curs = self.pgsqlConn.cursor() 
+
+            event_insert_query = "INSERT INTO %s (time, event_type) VALUES (E'%s', 'uber_used')" % (self.EVENT_TABLE, event_time)
+            cursor.execute(event_insert_query)
+
+            eventid_query = "SELECT eventid FROM %s WHERE event_type = 'uber_used' ORDER BY eventid DESC LIMIT 1" % self.EVENT_TABLE
+            curs.execute(eventid_query)
+            eventid = curs.fetchone()[0]
+            
+            medic_table_insert = "INSERT INTO %s (eventid, steamid, uber_used) VALUES (%s, E'%s', 1)" % (self.MEDIC_TABLE, eventid, m_sid)
+            curs.execute(medic_table_insert)
+
+            self.pgsqlConn.commit()
+            curs.close()
+
             return
 
         #point capture
@@ -289,7 +304,16 @@ class parserClass():
             cap_name = regml(res, 3)
             num_cappers = regml(res, 4)
 
+            capper_re = re.compile(r'\x28player(\d) "(.*?)<(\d+)><(.*?)><(Red|Blue)>"')
             
+            for capper in capper_re.finditer(logdata):
+                print "Capper:"
+                pprint(capper.groups())
+
+                c_sid = regml(capper, 3)
+                c_name = regml(capper, 1)
+
+                
 
             return
 
