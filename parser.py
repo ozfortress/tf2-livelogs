@@ -231,7 +231,7 @@ class parserClass():
                 
                 return
 
-            event_insert_query = "INSERT INTO %s (event_time, event_type, kill_attacker_id, kill_attacker_pos, kill_victim id, kill_victim_pos) VALUES (E'%s', '%s', E'%s', E'%s', E'%s', E'%s')" % (self.EVENT_TABLE,
+            event_insert_query = "INSERT INTO %s (event_time, event_type, kill_attacker_id, kill_attacker_pos, kill_victim_id, kill_victim_pos) VALUES (E'%s', '%s', E'%s', E'%s', E'%s', E'%s')" % (self.EVENT_TABLE,
                                                     event_time, event_type, k_sid, k_pos, v_sid, v_pos)
             self.executeQuery(event_insert_query)
 
@@ -361,9 +361,9 @@ class parserClass():
             p_name = self.escapePlayerName(regml(res, 1))
 
             v_sid = regml(res, 7)
-            v_name = regml(res, 5)
+            v_name = self.escapePlayerName(regml(res, 5))
 
-            self.pg_statupsrt(self.STAT_TABLE, "dominations", p_sid, p_name, 1)
+            self.pg_statupsert(self.STAT_TABLE, "dominations", p_sid, p_name, 1)
             self.pg_statupsert(self.STAT_TABLE, "times_dominated", v_sid, v_name, 1)
 
 
@@ -392,7 +392,7 @@ class parserClass():
             p_sid = regml(res, 3)
             p_name = self.escapePlayerName(regml(res, 1))
 
-            self.pg_statupsrt(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
+            self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
 
             return
 
@@ -428,8 +428,8 @@ class parserClass():
             p_sid = regml(res, 3)
             p_name = self.escapePlayerName(regml(res, 1))
 
-            self.pg_statupsrt(self.STAT_TABLE, "buildings_destroyed", p_sid, p_name, 1)
-            self.pg_statupsrt(self.STAT_TABLE, "points", p_sid, p_name, 1)
+            self.pg_statupsert(self.STAT_TABLE, "buildings_destroyed", p_sid, p_name, 1)
+            self.pg_statupsert(self.STAT_TABLE, "points", p_sid, p_name, 1)
 
             return
 
