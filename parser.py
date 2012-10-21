@@ -6,7 +6,8 @@ import re
 from pprint import pprint
 
 class parserClass():
-    def __init__(self, server_address, current_map=None, ipgnBooker=None):
+    def __init__(self, unique_ident, server_address=None current_map=None, log_name=None, log_uploaded=False):
+        #ALWAYS REQUIRE A UNIQUE IDENT, OTHER PARAMS ARE OPTIONAL
         try:
             self.pgsqlConn = psycopg2.connect(host="localhost", port="5432", database="livelogs", user="livelogs", password="hello")
 
@@ -14,12 +15,14 @@ class parserClass():
             print "Had exception while trying to connect to psql database: " + e.pgerror
             return
         
-        print "Parser params: Map: " + current_map + " Booker: " + ipgnBooker
+        print "Parser params: Map: " + current_map + " Log name: " + log_name
+
+        self.UNIQUE_IDENT = unique_ident
 
         self.bNamedLog = False
-        if (ipgnBooker != None):
+        if (log_name != None):
             self.bNamedLog = True
-            self.namedLogName = ipgnBooker
+            self.namedLogName = log_name
 
         #if no map is specified (auto detect), set map to 0
         if (current_map == None):
@@ -27,34 +30,31 @@ class parserClass():
         else:
             self.current_map = current_map
 
-        self.serverSendingLogs = server_address
-
-        self.UNIQUE_IDENT = str(self.ip2long(server_address[0])) + "_" + str(server_address[1]) + "_" + str(int(round(time.time())))
-
         print "PARSER UNIQUE IDENT: " + self.UNIQUE_IDENT
         
         dbCursor = self.pgsqlConn.cursor()
         
         dbCursor.execute("SELECT create_global_stat_table()")
-        dbCursor.execute("SELECT create_global_server_table()")
         dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
+
+        if (server_address != None):
+            dbCursor.execute("SELECT create_global_server_table()")
         
-        if (self.bNamedLog):
-            dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, booker_name) VALUES (%s, %s, %s, %s, %s)", 
+            if (self.bNamedLog):
+                dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name) VALUES (%s, %s, %s, %s, %s)", 
                                         (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map, self.namedLogName,))
-        else:
-            dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map) VALUES (%s, %s, %s)",
+            else:
+                dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map) VALUES (%s, %s, %s)",
                                         (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map,))
 
+        if (log_uploaded):
+            #TODO: Create an indexing method for logs that were manually uploaded and parsed
 
         self.pgsqlConn.commit()
 
         self.EVENT_TABLE = "log_event_" + self.UNIQUE_IDENT
         self.STAT_TABLE = "log_stat_" + self.UNIQUE_IDENT
-        self.KILL_TABLE = "log_kill_" + self.UNIQUE_IDENT
         self.CHAT_TABLE = "log_chat_" + self.UNIQUE_IDENT
-        self.ROUND_TABLE = "log_round_" + self.UNIQUE_IDENT
-        self.MEDIC_TABLE = "log_medic_" + self.UNIQUE_IDENT
 
         dbCursor.close()
         #self.psqlConn.close()
@@ -62,6 +62,8 @@ class parserClass():
         self.itemDict = dict([['ammopack_small', 'ap_small'], ['ammopack_medium', 'ap_medium'], ['tf_ammo_pack', 'ap_large'], ['medkit_small', 'mk_small'], ['medkit_medium', 'mk_medium'], ['medkit_large', 'mk_large']])
 
         print "Parser initialised"
+
+    
 
     def ip2long(self, ip):
         return struct.unpack('!L', socket.inet_aton(ip))[0]
@@ -181,17 +183,11 @@ class parserClass():
             self.pg_statupsert(self.STAT_TABLE, "deaths", v_sid, v_name, 1) #add death to victim stat
 
             #increment event ids and SHIT
-            event_insert_query = "INSERT INTO %s (time, event_type) VALUES (E'%s', '%s')" % (self.EVENT_TABLE, event_time, "kill") #creates a new, unique eventid
+            event_insert_query = "INSERT INTO %s (event_time, event_type, kill_attacker_id, kill_attacker_pos, kill_victim_id, kill_victim_pos) VALUES (E'%s', E'%s', E'%s', E'%s', E'%s', E'%s')" % (self.EVENT_TABLE, 
+                                                    event_time, "kill", k_sid, k_pos, v_sid, v_pos) #creates a new, unique eventid with details of the event
             curs = self.pgsqlConn.cursor()
             curs.execute(event_insert_query)
-            
-            eventid_query = "SELECT eventid FROM %s ORDER BY eventid DESC LIMIT 1" % self.EVENT_TABLE #need to get the just inserted event id for kill table and possible assist
-            curs.execute(eventid_query)
-            self.prevEventId = curs.fetchone()[0]
-
-            kill_insert_query = "INSERT INTO %s (eventid, attacker_id, attacker_pos, victim_id, victim_pos) VALUES (E'%s', E'%s', E'%s', E'%s', E'%s')" % (self.KILL_TABLE, self.prevEventId, k_sid, k_pos, v_sid, v_pos)
-            curs.execute(kill_insert_query)
-            
+                      
             self.pgsqlConn.commit()
             curs.close()
 
@@ -216,20 +212,14 @@ class parserClass():
             a_name = self.escapePlayerName(regml(res, 1))
             a_pos = regml(res, 9)
 
+            #increment stats!
             self.pg_statupsert(self.STAT_TABLE, "assists", a_sid, a_name, 1)
             self.pg_statupsert(self.STAT_TABLE, "points", a_sid, a_name, 0.5)
 
-            curs = self.pgsqlConn.cursor()
-            
-            #kill assist ALWAYS (99.9999999999999%) comes after a kill, so we use the previous event id obtained when inserting the kill into the event table. might need to change later
-            assist_insert_query = "UPDATE %s SET assister_id = E'%s', assister_pos = %s WHERE eventid = %s" % (self.KILL_TABLE, a_sid, a_pos, self.prevEventId)
-            curs.execute(assist_insert_query)
-
-            event_insert_query = "INSERT INTO %s (time, event_type) VALUES (E'%s', 'assist')" % (self.EVENT_TABLE, event_time)
-            curs.execute(event_insert_query)
-
-            self.pgsqlConn.commit()
-            curs.close()
+            #kill assist ALWAYS (99.9999999999999%) comes after a kill, so we use the previous event id from inserting the kill into the event table. might need to change later
+            assist_update_query = "UPDATE %s SET kill_assister_id = E'%s', kill_assister_pos = E'%s' WHERE eventid = (SELECT eventid FROM %s WHERE event_type = 'kill' ORDER BY eventid DESC LIMIT 1)" % (self.EVENT_TABLE, 
+                                                        a_sid, a_pos, self.EVENT_TABLE)
+            self.executeQuery(assist_update_query)
 
             return
 
@@ -241,27 +231,15 @@ class parserClass():
             pprint(res.groups())
             m_sid = regml(res, 7)
             m_name = self.escapePlayerName(regml(res, 5))
+            m_healing = regml(res, 9)
             m_uberlost = regml(res, 10)
 
-            if (m_uberlost):
-                #noob medic lost uber!
-                self.pg_statupsert(self.STAT_TABLE, "ubers_lost", m_sid, m_name, 1)
-                
-                curs = self.pgsqlConn.cursor()
+            self.pg_statupsert(self.STAT_TABLE, "ubers_lost", m_sid, m_name, m_uberlost) #may increment, or may do nothing (uberlost = 0 or 1)
     
-                #this methodology is exactly the same as inserting the kills. we need to insert a new event, get the id and then use the id to tie it to the medic table
-                event_insert_query = "INSERT INTO %s (time, event_type) VALUES (E'%s', 'uber_lost')" % (self.EVENT_TABLE, event_time)
-                curs.execute(event_insert_query)
-
-                eventid_query = "SELECT eventid FROM %s WHERE event_type = 'uber_lost' ORDER BY eventid DESC LIMIT 1" % self.EVENT_TABLE
-                curs.execute(eventid_query)
-                eventid = curs.fetchone()[0]
-
-                medic_table_insert = "INSERT INTO %s (eventid, steamid, uber_lost) VALUES (%s, E'%s', 1)" % (self.MEDIC_TABLE, eventid, m_sid)
-                curs.execute(medic_table_insert)
-
-                self.pgsqlConn.commit()
-                curs.close()
+            #put medic_death info into event table
+            event_insert_query = "INSERT INTO %s (event_time, event_type, medic_steamid, medic_uber_lost, medic_healing) VALUES (E'%s', '%s', E'%s', '%s', '%s')" % (self.EVENT_TABLE, 
+                                                   event_time, "medic_death", m_sid, m_uberlost, m_healing)
+            self.executeQuery(event_insert_query)
 
             return
 
@@ -275,20 +253,9 @@ class parserClass():
 
             self.pg_statupsert(self.STAT_TABLE, "ubers_used", m_sid, m_name, 1)
 
-            curs = self.pgsqlConn.cursor() 
-
-            event_insert_query = "INSERT INTO %s (time, event_type) VALUES (E'%s', 'uber_used')" % (self.EVENT_TABLE, event_time)
-            cursor.execute(event_insert_query)
-
-            eventid_query = "SELECT eventid FROM %s WHERE event_type = 'uber_used' ORDER BY eventid DESC LIMIT 1" % self.EVENT_TABLE
-            curs.execute(eventid_query)
-            eventid = curs.fetchone()[0]
-            
-            medic_table_insert = "INSERT INTO %s (eventid, steamid, uber_used) VALUES (%s, E'%s', 1)" % (self.MEDIC_TABLE, eventid, m_sid)
-            curs.execute(medic_table_insert)
-
-            self.pgsqlConn.commit()
-            curs.close()
+            event_insert_query = "INSERT INTO %s (event_time, event_type, medic_steamid, medic_uber_used) VALUES (E'%s', '%s', E'%s', '%s')" % (self.EVENT_TABLE, 
+                                                    event_time, "uber_used", m_sid, 1)
+            self.executeQuery(event_insert_query)
 
             return
 
@@ -299,21 +266,29 @@ class parserClass():
         if (res):
             print "Point captured"
             pprint(res.groups())
-            #this is going to be tricky to get all of the players...
+            #this is going to be tricky
             cap_team = regml(res, 1)
-            cap_name = regml(res, 3)
+            cap_name = self.escapePlayerName(regml(res, 3))
             num_cappers = regml(res, 4)
-
-            capper_re = re.compile(r'\x28player(\d) "(.*?)<(\d+)><(.*?)><(Red|Blue)>"')
             
+            event_insert_query = "INSERT INTO %s (event_time, event_type, capture_name, capture_team, capture_num_cappers) VALUES (E'%s', '%s', E'%s', '%s', '%s')" % (self.EVENT_TABLE,
+                                                    event_time, "point_capture", cap_name, cap_team, num_cappers)
+
+            self.executeQuery(event_insert_query)
+
+            #INPUT: (player2 "[v3] Chrome<48><STEAM_0:1:41365809><Red>")
+            capper_re = re.compile(r'\x28player(\d) "(.*?)<(\d+)><(.*?)><(Red|Blue)>"')
+            #OUTPUT: ('2', '[v3] Chrome', '48', 'STEAM_0:1:41365809', 'Red')            
+
             for capper in capper_re.finditer(logdata):
                 print "Capper:"
                 pprint(capper.groups())
 
                 c_sid = regml(capper, 3)
-                c_name = regml(capper, 1)
+                c_name = self.escapePlayerName(regml(capper, 1))
 
-                
+                self.pg_statupsert(self.STAT_TABLE, "captures", c_sid, c_name, 1)
+                self.pg_statupsert(self.STAT_TABLE, "points", c_sid, c_name, 2)
 
             return
 
@@ -324,6 +299,21 @@ class parserClass():
             print "Capture blocked"
             pprint(res.groups())
 
+            cb_sid = regml(res, 3)
+            cb_name = self.escapePlayerName(regml(res, 1))
+
+            self.pg_statupsert(self.STAT_TABLE, "captures_blocked", cb_sid, cb_name, 1)
+            self.pg_statupsert(self.STAT_TABLE, "points", cb_sid, cb_name, 1)
+
+            cap_name = self.escapePlayerName(regml(res, 6))
+            cap_block_team = regml(res, 4)
+
+            #re-use the capture event columns, but this time capture_blocked is 1 instead of NULL, so we can distinguish
+            event_insert_query = "INSERT INTO %s (event_time, event_type, capture_name, capture_team, capture_blocked) VALUES (E'%s', '%s', E'%s', '%s', '%s')" % (self.EVENT_TABLE,
+                                                    event_time, "point_capture_block", cap_name, cap_block_team, 1)
+
+            self.executeQuery(event_insert_query)
+
             return
 
         #domination
@@ -332,6 +322,11 @@ class parserClass():
             print "Player dominated"
             pprint(res.groups())
 
+            p_sid = regml(res, 3)
+            p_name = self.escapePlayerName(regml(res, 1))
+
+            self.pg_statupsrt(self.STAT_TABLE, "dominations", p_sid, p_name, 1)
+
             return
 
         #revenge
@@ -339,6 +334,11 @@ class parserClass():
         if (res):
             print "Player got revenge"
             pprint(res.groups())
+
+            p_sid = regml(res, 3)
+            p_name = self.escapePlayerName(regml(res, 1))
+
+            self.pg_statupsrt(self.STAT_TABLE, "revenges", p_sid, p_name, 1)
 
             return
         
@@ -349,13 +349,32 @@ class parserClass():
             print "Player committed suicide"
             pprint(res.groups())
 
+            p_sid = regml(res, 3)
+            p_name = self.escapePlayerName(regml(res, 1))
+
+            self.pg_statupsrt(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
+
             return
 
         #current score (shown after round win/round length
+        #L 10/21/2012 - 01:23:48: World triggered "Round_Win" (winner "Blue")
+        #L 10/21/2012 - 01:23:48: World triggered "Round_Length" (seconds "88.26")
+        #L 10/21/2012 - 01:23:48: Team "Red" current score "0" with "6" players
+        #L 10/21/2012 - 01:23:48: Team "Blue" current score "4" with "6" players
         res = regex(r'Team "(Blue|Red)" current score "(\d+)" with "(\d+)" players', logdata)
         if (res):
             print "Current scores"
             pprint(res.groups())
+
+            team = regml(res, 1)
+            t_score = regml(res, 2)
+            #t_players = regml(res, 3)
+
+            #use previous round_win event id. Round_Win WILL ****ALWAYS**** trigger before this event (presuming we don't get gayed and lose packets along the way)
+            event_update_query = "UPDATE %s SET round_%s_score = '%s' WHERE eventid = (SELECT eventid FROM %s WHERE event_type = 'round_end' ORDER BY eventid DESC LIMIT 1)" % (self.EVENT_TABLE, 
+                                                    team.lower(), t_score, self.EVENT_TABLE)
+
+            self.executeQuery(event_update_query)
 
             return
 
@@ -366,13 +385,11 @@ class parserClass():
             print "Player destroyed engineer building"
             pprint(res.groups())
 
-            return
+            p_sid = regml(res, 3)
+            p_name = self.escapePlayerName(regml(res, 1))
 
-        #final scores
-        res = regex(r'Team "(Blue|Red)" final score "(\d+)" with "(\d+)" players', logdata)
-        if (res):
-            print "Final scores"
-            pprint(res.groups())
+            self.pg_statupsrt(self.STAT_TABLE, "buildings_destroyed", p_sid, p_name, 1)
+            self.pg_statupsrt(self.STAT_TABLE, "points", p_sid, p_name, 1)
 
             return
 
@@ -381,6 +398,25 @@ class parserClass():
         if (res):
             print "Game over"
             pprint(res.groups())
+        
+            go_reason = regml(res, 1)
+
+            event_insert_query = "INSERT INTO %s (event_time, event_type, game_over_reason) VALUES (E'%s', '%s', E'%s')" % (self.EVENT_TABLE, event_time, "game_over", go_reason)
+            self.executeQuery(event_insert_query)
+
+            return
+
+        #final scores always comes after game_over
+        res = regex(r'Team "(Blue|Red)" final score "(\d+)" with "(\d+)" players', logdata)
+        if (res):
+            print "Final scores"
+            pprint(res.groups())
+
+            fs_team = regml(res, 1)
+            fs_score = regml(res, 2)
+            
+            final_score_query = "UPDATE %s SET round_%s_score = '%s' WHERE event_type = 'game_over'" % (self.EVENT_TABLE, fs_team.lower(), fs_score)
+            self.executeQuery(final_score_query)
 
             return
 
@@ -421,6 +457,28 @@ class parserClass():
             print "Chat was said"
             pprint(res.groups())
 
+            c_sid = regml(res, 3)
+            c_name = self.escapePlayerName(regml(res, 1))
+            c_team = regml(res, 4)
+
+            chat_type = regml(res, 5)
+            chat_message = regml(res, 6)
+
+            event_insert_query = "INSERT INTO %s (event_time, event_type) VALUES (E'%s', '%s')" % (self.EVENT_TABLE, event_time, "chat")
+            self.executeQuery(event_insert_query)
+
+            #now we need to get the event ID and put it into chat!
+            curs = self.pgsqlConn.cursor()
+            eventid_query = "SELECT eventid FROM %s WHERE event_type = 'chat' ORDER BY eventid DESC LIMIT 1" % self.EVENT_TABLE
+            eventid = curs.fetchone()[0]
+
+            chat_insert_query = "INSERT INTO %s (eventid, steamid, name, team, chat_type, chat_message) VALUES ('%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, eventid, c_sid, c_name, c_team, chat_type, chat_message)
+
+            curs.execute(chat_insert_query)
+            
+            self.pgsqlConn.commit()
+            curs.close()
+
             return
         
         #class change    
@@ -437,6 +495,10 @@ class parserClass():
             print "Round won"
             pprint(res.groups())
 
+            event_insert_query = "INSERT INTO %s (event_time, event_type) VALUES (E'%s', '%s')" % (self.EVENT_TABLE, event_time, "round_end")
+
+            self.executeQuery(event_insert_query)
+
             return
 
         #overtime
@@ -445,14 +507,25 @@ class parserClass():
             print "Overtime"
             pprint(res.groups())
 
+            event_insert_query = "INSERT INTO %s (event_time, event_type) VALUES (E'%s', '%s')" % (self.EVENT_TABLE, event_time, "round_overtime")
+
+            self.executeQuery(event_insert_query)
+
             return
 
         #round length
-        res = regex(r'World triggered "Round_Length".+seconds.+"(\d+.\d+)', logdata)
+        #World triggered "Round_Length" (seconds "402.58")
+        res = regex(r'World triggered "Round_Length" \28seconds "(\d+\.\d+)\x29', logdata)
         if (res):
             print "Round length"
             pprint(res.groups())
     
+            r_length = regml(res, 1)
+
+            event_update_query = "UPDATE %s SET round_length = '%s' WHERE eventid = (SELECT eventid FROM %s WHERE event_type = 'round_end' ORDER BY eventid DESC LIMIT 1)" % (self.EVENT_TABLE, r_length, self.EVENT_TABLE)
+
+            self.executeQuery(event_update_query)
+
             return
 
         #round start
@@ -461,15 +534,20 @@ class parserClass():
             print "Round start"
             pprint(res.groups())
 
+            event_insert_query = "INSERT INTO %s (event_time, event_type) VALUES (E'%s', '%s')" % (self.EVENT_TABLE, event_time, "round_start")
+
+            self.executeQuery(event_insert_query)
+
             return
 
-        #setup end
-        res = regex(r'World triggered "Round_Setup_End"', logdata)
+        #setup end UNUSED
+        """res = regex(r'World triggered "Round_Setup_End"', logdata)
         if (res):
             print "Round Setup End"
             pprint(res.groups())
 
             return
+        """
 
         #mini round win
         res = regex(r'World triggered "Mini_Round_Win" \x28winner "(Blue|Red)"\x29 \x28round "round_(\d+)"\x29', logdata)
@@ -518,4 +596,9 @@ class parserClass():
     def escapePlayerName(self, unescaped_name_string):
         return unescaped_name_string.replace("'", "''")
 
+    def executeQuery(self, query):
+        curs = self.pgsqlConn.cursor()
+        curs.execute(query)
 
+        self.pgsqlConn.commit()
+        curs.close()
