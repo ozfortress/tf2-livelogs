@@ -4,7 +4,14 @@ DECLARE
 BEGIN
 	table_name := 'log_event_' || unique_id;
 	
-	EXECUTE 'CREATE TABLE ' || table_name || ' (eventid serial PRIMARY KEY, time text, event_type text)';
+	EXECUTE 'CREATE TABLE ' || table_name || ' (eventid serial PRIMARY KEY, event_time text, event_type text,
+						    kill_attacker_id varchar(64), kill_attacker_pos varchar(32),
+						    kill_assister_id varchar(64), kill_assister_pos varchar(32),
+						    kill_victim_id varchar(64), kill_victim_pos varchar(32),
+						    medic_steamid varchr(64), medic_uber_used integer, medic_uber_lost integer, medic_healing integer,
+						    capture_name varchar(64), capture_team varchar(16), capture_num_cappers integer, capture_blocked integer,
+						    round_winner varchar(16), round_red_score integer, round_blue_score integer, round_length decimal,
+						    game_over_reason varchar(128))';
 END;
 $_$ LANGUAGE 'plpgsql';
 
@@ -23,46 +30,13 @@ END;
 $_$ LANGUAGE 'plpgsql';
 
 
-CREATE OR REPLACE FUNCTION create_game_kill_table (unique_id text) RETURNS void AS $_$
-DECLARE
-	table_name varchar(128);
-BEGIN
-	table_name := 'log_kill_' || unique_id;
-	
-	EXECUTE 'CREATE TABLE ' || table_name || ' (eventid integer PRIMARY KEY, attacker_id varchar(64), attacker_pos varchar(32),
-	                                                                         assister_id varchar(64), assister_pos varchar(32),
-	                                                                         victim_id varchar(64), victim_pos varchar(32))';
-END;
-$_$ LANGUAGE 'plpgsql';
-
-
 CREATE OR REPLACE FUNCTION create_game_chat_table (unique_id text) RETURNS void AS $_$
 DECLARE
 	table_name varchar(128);
 BEGIN
 	table_name := 'log_chat_' || unique_id;
 	
-	EXECUTE 'CREATE TABLE ' || table_name || ' (eventid integer PRIMARY KEY, steamid varchar(64), chat_type varchar(12), chat_message text)';
-END;
-$_$ LANGUAGE 'plpgsql';
-
-CREATE OR REPLACE FUNCTION create_game_round_table (unique_id text) RETURNS void AS $_$
-DECLARE
-	table_name varchar(128);
-BEGIN
-	table_name := 'log_round_' || unique_id;
-	
-	EXECUTE 'CREATE TABLE ' || table_name || ' (eventid integer PRIMARY KEY, red_score integer, blue_score integer, round_length decimal)';
-END;
-$_$ LANGUAGE 'plpgsql';
-
-CREATE OR REPLACE FUNCTION create_game_medic_table (unique_id text) RETURNS void AS $_$
-DECLARE
-	table_name varchar(128);
-BEGIN
-	table_name := 'log_medic_' || unique_id;
-
-	EXECUTE 'CREATE TABLE ' || table_name || ' (eventid integer PRIMARY KEY, steamid varchar(64), uber_used integer, uber_lost integer)';
+	EXECUTE 'CREATE TABLE ' || table_name || ' (eventid integer PRIMARY KEY, steamid varchar(64), name text, team text, chat_type varchar(12), chat_message text)';
 END;
 $_$ LANGUAGE 'plpgsql';
 
@@ -70,10 +44,7 @@ CREATE OR REPLACE FUNCTION setup_log_tables (unique_id text) RETURNS void AS $_$
 BEGIN
 	PERFORM create_game_event_table(unique_id);
 	PERFORM create_game_stat_table(unique_id);
-	PERFORM create_game_kill_table(unique_id);
 	PERFORM create_game_chat_table(unique_id);
-	PERFORM create_game_round_table(unique_id);
-	PERFORM create_game_medic_table(unique_id);
 END;
 $_$ LANGUAGE 'plpgsql';
 
@@ -105,7 +76,7 @@ BEGIN
 	THEN
 		RAISE NOTICE 'Table livelogs.livelogs_servers already exists';
 	ELSE
-		CREATE TABLE livelogs_servers (server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, booker_name text);
+		CREATE TABLE livelogs_servers (server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text);
 	END IF;
 END;
 $_$ LANGUAGE 'plpgsql';
