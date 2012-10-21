@@ -1,4 +1,5 @@
 import socket
+import time
 
 print "Creating client socket"
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -20,8 +21,8 @@ if (len(tokenized) <= 4):
     client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     client.connect((tokenized[2], int(tokenized[3])))
 
-    client.send('L 10/01/2012 - 21:38:18: "Liquid\'zato<46><STEAM_0:0:42607036><Blue>" say "glhf"')
-    """client.send('L 10/01/2012 - 21:38:22: "[v3] Jak<49><STEAM_0:0:18518582><Red>" say "glhf"')
+    """client.send('L 10/01/2012 - 21:38:18: "Liquid\'zato<46><STEAM_0:0:42607036><Blue>" say "glhf"')
+    client.send('L 10/01/2012 - 21:38:22: "[v3] Jak<49><STEAM_0:0:18518582><Red>" say "glhf"')
     client.send('L 10/01/2012 - 21:38:26: "Liquid\'Time<41><STEAM_0:1:19238234><Blue>" say "gl hf"')
     client.send('L 10/01/2012 - 21:38:27: "[v3] taintedromance<52><STEAM_0:0:41933053><Red>" triggered "healed" against "[v3] Chrome<48><STEAM_0:1:41365809><Red>" (healing "19")')
     client.send('L 10/01/2012 - 21:38:29: "Liquid\'Iyvn<40><STEAM_0:1:41931908><Blue>" triggered "healed" against "Liquid\'Shneaky<45><STEAM_0:0:25721066><Blue>" (healing "27")')
@@ -53,6 +54,17 @@ if (len(tokenized) <= 4):
     client.send('L 10/01/2012 - 21:41:52: "[v3] Faithless<47><STEAM_0:0:52150090><Red>" triggered "medic_death" against "Liquid\'Iyvn<40><STEAM_0:1:41931908><Blue>" (healing "3544") (ubercharge "0")')
     client.send('L 10/01/2012 - 21:41:52: "[v3] Faithless<47><STEAM_0:0:52150090><Red>" killed "Liquid\'Iyvn<40><STEAM_0:1:41931908><Blue>" with "scattergun" (attacker_position "-1105 -1138 110") (victim_position "-1075 -901 143")')
     """
+
+    log_file = open(r'E:\Git\livelogs\test_log.log')
+
+    for logline in log_file:
+        print logline
+        client.send(logline)
+
+        time.sleep(0.02)
+
+    log_file.close()
+
     client.close()
 
 else:

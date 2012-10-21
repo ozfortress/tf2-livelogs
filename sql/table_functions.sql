@@ -8,7 +8,7 @@ BEGIN
 						    kill_attacker_id varchar(64), kill_attacker_pos varchar(32),
 						    kill_assister_id varchar(64), kill_assister_pos varchar(32),
 						    kill_victim_id varchar(64), kill_victim_pos varchar(32),
-						    medic_steamid varchr(64), medic_uber_used integer, medic_uber_lost integer, medic_healing integer,
+						    medic_steamid varchar(64), medic_uber_used integer, medic_uber_lost integer, medic_healing integer,
 						    capture_name varchar(64), capture_team varchar(16), capture_num_cappers integer, capture_blocked integer,
 						    round_winner varchar(16), round_red_score integer, round_blue_score integer, round_length decimal,
 						    game_over_reason varchar(128))';

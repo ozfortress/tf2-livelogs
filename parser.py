@@ -6,7 +6,7 @@ import re
 from pprint import pprint
 
 class parserClass():
-    def __init__(self, unique_ident, server_address=None current_map=None, log_name=None, log_uploaded=False):
+    def __init__(self, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False):
         #ALWAYS REQUIRE A UNIQUE IDENT, OTHER PARAMS ARE OPTIONAL
         try:
             self.pgsqlConn = psycopg2.connect(host="localhost", port="5432", database="livelogs", user="livelogs", password="hello")
@@ -50,6 +50,7 @@ class parserClass():
 
         if (log_uploaded):
             #TODO: Create an indexing method for logs that were manually uploaded and parsed
+            pass
 
         self.pgsqlConn.commit()
 
@@ -318,8 +319,8 @@ class parserClass():
                 print "Capper:"
                 pprint(capper.groups())
 
-                c_sid = regml(capper, 3)
-                c_name = self.escapePlayerName(regml(capper, 1))
+                c_sid = regml(capper, 4)
+                c_name = self.escapePlayerName(regml(capper, 2))
 
                 self.pg_statupsert(self.STAT_TABLE, "captures", c_sid, c_name, 1)
                 self.pg_statupsert(self.STAT_TABLE, "points", c_sid, c_name, 2)
@@ -377,7 +378,7 @@ class parserClass():
             p_sid = regml(res, 3)
             p_name = self.escapePlayerName(regml(res, 1))
 
-            self.pg_statupsrt(self.STAT_TABLE, "revenges", p_sid, p_name, 1)
+            self.pg_statupsert(self.STAT_TABLE, "revenges", p_sid, p_name, 1)
 
             return
         
@@ -509,9 +510,10 @@ class parserClass():
             #now we need to get the event ID and put it into chat!
             curs = self.pgsqlConn.cursor()
             eventid_query = "SELECT eventid FROM %s WHERE event_type = 'chat' ORDER BY eventid DESC LIMIT 1" % self.EVENT_TABLE
+            curs.execute(eventid_query)
             eventid = curs.fetchone()[0]
 
-            chat_insert_query = "INSERT INTO %s (eventid, steamid, name, team, chat_type, chat_message) VALUES ('%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, eventid, c_sid, c_name, c_team, chat_type, chat_message)
+            chat_insert_query = "INSERT INTO %s (eventid, steamid, name, team, chat_type, chat_message) VALUES ('%s', E'%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, eventid, c_sid, c_name, c_team, chat_type, chat_message)
 
             curs.execute(chat_insert_query)
             
@@ -554,7 +556,7 @@ class parserClass():
 
         #round length
         #World triggered "Round_Length" (seconds "402.58")
-        res = regex(r'World triggered "Round_Length" \28seconds "(\d+\.\d+)\x29', logdata)
+        res = regex(r'World triggered "Round_Length" \x28seconds "(\d+\.\d+)\x29', logdata)
         if (res):
             print "Round length"
             pprint(res.groups())

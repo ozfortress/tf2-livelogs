@@ -1,6 +1,8 @@
 import SocketServer
 import threading
 import time
+import socket
+import struct
 from pprint import pprint
 
 import parser
@@ -13,7 +15,7 @@ class llListenerHandler(SocketServer.BaseRequestHandler):
 
         print "LOG: %s" % data
 
-        #self.server.parser.parse(data)
+        self.server.parser.parse(data)
 
 
 class llListener(SocketServer.UDPServer):
@@ -86,3 +88,6 @@ class llListenerObject():
 
     def returnClientAddress(self):
         return self.lClientAddr
+
+    def ip2long(self, ip):
+        return struct.unpack('!L', socket.inet_aton(ip))[0]
