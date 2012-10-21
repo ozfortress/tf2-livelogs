@@ -22,10 +22,14 @@ DECLARE
 BEGIN
 	table_name := 'log_stat_' || unique_id;
 	
-	EXECUTE 'CREATE TABLE ' || table_name || ' (steamid varchar(64) PRIMARY KEY, name text, team text, kills integer, deaths integer, assists integer, points decimal, healing_done integer,
-					     healing_received integer, ubers_used integer, ubers_lost integer, damage_dealt integer, ap_small integer, ap_medium integer, ap_large integer,
-					     mk_small integer, mk_medium integer, mk_large integer, captures integer, captures_blocked integer, dominations integer, revenges integer,
-					     suicides integer, buildings_destroyed integer)';
+	EXECUTE 'CREATE TABLE ' || table_name || ' (steamid varchar(64) PRIMARY KEY, name text, team text, kills integer, deaths integer, assists integer, points decimal, 
+					     healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer, 
+					     headshots integer, backstabs integer, damage_dealt integer, 
+					     ap_small integer, ap_medium integer, ap_large integer,
+					     mk_small integer, mk_medium integer, mk_large integer, 
+					     captures integer, captures_blocked integer, 
+					     dominations integer, times_dominated integer, revenges integer,
+					     suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer)';
 END;
 $_$ LANGUAGE 'plpgsql';
 
@@ -58,10 +62,15 @@ BEGIN
 	THEN
 		RAISE NOTICE 'Table livelogs.livelogs_player_stats already exists';
 	ELSE
-		CREATE TABLE livelogs_player_stats (steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points decimal, healing_done integer,
-					     healing_received integer, ubers_used integer, ubers_lost integer, damage_dealt integer, ap_small integer, ap_medium integer, ap_large integer,
-					     mk_small integer, mk_medium integer, mk_large integer, captures integer, captures_blocked integer, dominations integer, revenges integer,
-					     suicides integer, buildings_destroyed integer, wins integer, losses integer, draws integer);
+		CREATE TABLE livelogs_player_stats (steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points decimal, 
+		                             healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer, 
+		                             headshots integer, backstabs integer, damage_dealt integer, 
+		                             ap_small integer, ap_medium integer, ap_large integer,
+					     mk_small integer, mk_medium integer, mk_large integer,
+					     captures integer, captures_blocked integer, 
+					     dominations integer, times_dominated integer, revenges integer,
+					     suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer,
+					     wins integer, losses integer, draws integer);
 	END IF;
 END;
 $_$ LANGUAGE 'plpgsql';
@@ -107,10 +116,14 @@ $_$ LANGUAGE 'plpgsql';
 CREATE OR REPLACE FUNCTION merge_stat_table (tablename text) RETURNS void AS $_$
 --Merges all stats in a new log table with the master player stat table :o)
 --SELECT merge_stat_table('log_stat_3232244481_61317_1349787463');
---COLUMNS: (steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points integer, healing_done integer,
---					     healing_received integer, ubers_used integer, ubers_lost integer, damage_dealt integer, ap_small integer, ap_medium integer, ap_large integer,
---					     mk_small integer, mk_medium integer, mk_large integer, captures integer, captures_blocked integer, dominations integer, revenges integer,
---					     suicides integer, buildings_destroyed integer)
+--COLUMNS: steamid varchar(64) PRIMARY KEY, name text, team text, kills integer, deaths integer, assists integer, points decimal, 
+--					     healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer, 
+--					     headshots integer, backstabs integer, damage_dealt integer, 
+--					     ap_small integer, ap_medium integer, ap_large integer,
+--					     mk_small integer, mk_medium integer, mk_large integer, 
+--					     captures integer, captures_blocked integer, 
+--					     dominations integer, times_dominated integer, revenges integer,
+--					     suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer)';
 BEGIN
 	EXECUTE 'UPDATE livelogs_player_stats master SET
 	
@@ -122,6 +135,8 @@ BEGIN
 		healing_done = master.healing_done + newlog.healing_done,
 		healing_received = master.healing_received + newlog.healing_received,
 		ubers_used = master.ubers_used + newlog.ubers_used,
+		headshots = master.headshots + newlog.headshots,
+		backstabs = master.backstabs + newlog.backstabs,
 		damage_dealt = master.damage_dealt + newlog.damage_dealt,
 		ap_small = master.ap_small + newlog.ap_small,
 		ap_medium = master.ap_medium + newlog.ap_medium,
@@ -132,9 +147,11 @@ BEGIN
 		captures = master.captures + newlog.captures,
 		captures_blocked = master.captures_blocked + newlog.captures_blocked,
 		dominations = master.dominations + newlog.dominations,
+		times_dominated = master.times_dominated + newlog.times_dominated,
 		revenges = master.revenges + newlog.revenges,
 		suicides = master.suicides + newlog.suicides,
-		buildings_destroyed = master.buildings_destroyed + newlog.buildings_destroyed
+		buildings_destroyed = master.buildings_destroyed + newlog.buildings_destroyed,
+		extinguishes = master.extinguishes + newlog.extinguishes
 		
 	FROM ' || tablename || ' newlog
 	WHERE master.steamid = newlog.steamid';
