@@ -18,6 +18,7 @@ class parserClass():
         print "Parser params: Map: " + current_map + " Log name: " + log_name
 
         self.UNIQUE_IDENT = unique_ident
+        self.GAME_OVER = False
 
         self.bNamedLog = False
         if (log_name != None):
@@ -73,7 +74,7 @@ class parserClass():
 
 
     def parse(self, logdata):
-        if not logdata or not self.pgsqlConn:
+        if not logdata or not self.pgsqlConn or self.GAME_OVER:
             return
 
         print "PARSING LOG: %s" % logdata
@@ -130,7 +131,7 @@ class parserClass():
             medic_sid = regml(res, 3)
             medic_name = self.escapePlayerName(regml(res, 1))
             medic_healing = regml(res, 9)
-            medic_points = round(int(medic_healing) / 500, 2)
+            medic_points = round(int(medic_healing) / 600, 2)
 
             healt_name = self.escapePlayerName(regml(res, 5))
             healt_sid = regml(res, 7)
@@ -185,11 +186,7 @@ class parserClass():
             #increment event ids and SHIT
             event_insert_query = "INSERT INTO %s (event_time, event_type, kill_attacker_id, kill_attacker_pos, kill_victim_id, kill_victim_pos) VALUES (E'%s', E'%s', E'%s', E'%s', E'%s', E'%s')" % (self.EVENT_TABLE, 
                                                     event_time, "kill", k_sid, k_pos, v_sid, v_pos) #creates a new, unique eventid with details of the event
-            curs = self.pgsqlConn.cursor()
-            curs.execute(event_insert_query)
-                      
-            self.pgsqlConn.commit()
-            curs.close()
+            self.executeQuery(event_insert_query)
 
             return
 
@@ -199,6 +196,43 @@ class parserClass():
         if (res):
             print "Player killed (customkill)"
             pprint(res.groups())
+    
+            ck_type = regml(res, 10)
+
+            if (ck_type == "feign_death"):
+                return
+        
+            event_type = "kill_custom"
+        
+            k_sid = regml(res, 3)
+            k_name = self.escapePlayerName(regml(res, 1))
+            k_pos = regml(res, 11)
+            k_weapon = regml(res, 9)
+
+            v_sid = regml(res, 7)
+            v_name = self.escapePlayerName(regml(res, 5))
+            v_pos = regml(res, 12)
+
+            self.pg_statupsert(self.STAT_TABLE, "kills", k_sid, k_name, 1)
+
+            if (ck_type == "backstab"):
+                self.pg_statupsert(self.STAT_TABLE, "backstabs", k_sid, k_name, 1)
+                self.pg_statupsert(self.STAT_TABLE, "points", k_sid, k_name, 2)
+
+                event_type = "kill_custom_backstab"
+            elif (ck_type == "headshot"):
+                self.pg_statupsert(self.STAT_TABLE, "headshots", k_sid, k_name, 1)
+                self.pg_statupsert(self.STAT_TABLE, "points", k_sid, k_name, 1.5)
+
+                event_type = "kill_custom_headshot"
+            else:
+                print "ERROR: UNKNOWN CUSTOM KILL TYPE \"%s\"" % ck_type
+                
+                return
+
+            event_insert_query = "INSERT INTO %s (event_time, event_type, kill_attacker_id, kill_attacker_pos, kill_victim id, kill_victim_pos) VALUES (E'%s', '%s', E'%s', E'%s', E'%s', E'%s')" % (self.EVENT_TABLE,
+                                                    event_time, event_type, k_sid, k_pos, v_sid, v_pos)
+            self.executeQuery(event_insert_query)
 
             return
         
@@ -325,7 +359,12 @@ class parserClass():
             p_sid = regml(res, 3)
             p_name = self.escapePlayerName(regml(res, 1))
 
+            v_sid = regml(res, 7)
+            v_name = regml(res, 5)
+
             self.pg_statupsrt(self.STAT_TABLE, "dominations", p_sid, p_name, 1)
+            self.pg_statupsert(self.STAT_TABLE, "times_dominated", v_sid, v_name, 1)
+
 
             return
 
