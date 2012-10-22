@@ -165,8 +165,8 @@ BEGIN
 		revenges = master.revenges + newlog.revenges,
 		suicides = master.suicides + newlog.suicides,
 		buildings_destroyed = master.buildings_destroyed + newlog.buildings_destroyed,
-		extinguishes = master.extinguishes + newlog.extinguishes
-		killstreak = newlog.killstreak
+		extinguishes = master.extinguishes + newlog.extinguishes,
+		kill_streak = newlog.kill_streak
 		
 	FROM ' || tablename || ' newlog
 	WHERE master.steamid = newlog.steamid';
