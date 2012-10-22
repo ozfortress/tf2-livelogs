@@ -22,7 +22,7 @@ DECLARE
 BEGIN
 	table_name := 'log_stat_' || unique_id;
 	
-	EXECUTE 'CREATE TABLE ' || table_name || ' (steamid varchar(64) PRIMARY KEY, name text, team text, kills integer, deaths integer, assists integer, points decimal, 
+	EXECUTE 'CREATE TABLE ' || table_name || ' (steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points decimal, 
 					     healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer, 
 					     headshots integer, backstabs integer, damage_dealt integer, 
 					     ap_small integer, ap_medium integer, ap_large integer,
@@ -30,6 +30,11 @@ BEGIN
 					     captures integer, captures_blocked integer, 
 					     dominations integer, times_dominated integer, revenges integer,
 					     suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer)';
+
+	EXECUTE 'CREATE TRIGGER zero_null_stat
+		 BEFORE INSERT ON ' || table_name || '
+			FOR EACH ROW EXECUTE PROCEDURE zero_null_stat()';
+
 END;
 $_$ LANGUAGE 'plpgsql';
 
@@ -71,7 +76,15 @@ BEGIN
 					     dominations integer, times_dominated integer, revenges integer,
 					     suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer,
 					     wins integer, losses integer, draws integer);
+
+		
 	END IF;
+
+	DROP TRIGGER IF EXISTS zero_null_stat ON livelogs_player_stats;
+
+	CREATE TRIGGER zero_null_stat
+	BEFORE INSERT ON livelogs_player_stats
+		FOR EACH ROW EXECUTE PROCEDURE zero_null_stat();
 END;
 $_$ LANGUAGE 'plpgsql';
 
@@ -135,6 +148,7 @@ BEGIN
 		healing_done = master.healing_done + newlog.healing_done,
 		healing_received = master.healing_received + newlog.healing_received,
 		ubers_used = master.ubers_used + newlog.ubers_used,
+		ubers_lost = master.ubers_lost + newlog.ubers_lost,
 		headshots = master.headshots + newlog.headshots,
 		backstabs = master.backstabs + newlog.backstabs,
 		damage_dealt = master.damage_dealt + newlog.damage_dealt,
@@ -152,15 +166,23 @@ BEGIN
 		suicides = master.suicides + newlog.suicides,
 		buildings_destroyed = master.buildings_destroyed + newlog.buildings_destroyed,
 		extinguishes = master.extinguishes + newlog.extinguishes
+		killstreak = newlog.killstreak
 		
 	FROM ' || tablename || ' newlog
 	WHERE master.steamid = newlog.steamid';
 
 	EXECUTE 'INSERT INTO livelogs_player_stats (
-						SELECT name, kills, deaths, assists, points, healing_done, healing_received, ubers_used,
-							damage_dealt, ap_small, ap_medium, ap_large, mk_small, mk_medium, mk_large, captures,
-							captures_blocked, dominations, revengers, suicides, buildings_destroyed 
+						SELECT *
 						FROM ' || tablename || ' WHERE ' || tablename || '.steamid 
 							NOT IN (SELECT steamid FROM livelogs_player_stats))';
+
+							--steamid, name, kills, deaths, assists, points, 
+							--healing_done, healing_received, ubers_used, ubers_lost,
+							--headshots, backstabs, damage_dealt, 
+							--ap_small, ap_medium, ap_large, 
+							--mk_small, mk_medium, mk_large, 
+							--captures, captures_blocked, 
+							--dominations, times_dominated, revenges, 
+							--suicides, buildings_destroyed, extinguishes, kill_streak
 END;
 $_$ LANGUAGE 'plpgsql';
