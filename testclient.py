@@ -3,8 +3,11 @@ import time
 
 print "Creating client socket"
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+try:
+    client.connect(('192.168.35.128', 61222))
+except:
+    quit()
 
-client.connect(('192.168.35.128', 61222))
 testm = "LIVELOG!123test!192.168.35.1!27015!cp_granary!John"
 slen = client.send(testm)
 

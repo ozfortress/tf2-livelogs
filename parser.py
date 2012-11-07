@@ -42,10 +42,10 @@ class parserClass():
             dbCursor.execute("SELECT create_global_server_table()")
         
             if (self.bNamedLog):
-                dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name) VALUES (%s, %s, %s, %s, %s)", 
+                dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name, live) VALUES (%s, %s, %s, %s, %s, 'true')", 
                                         (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map, self.namedLogName,))
             else:
-                dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map) VALUES (%s, %s, %s)",
+                dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, live) VALUES (%s, %s, %s, 'true')",
                                         (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map,))
 
         if (log_uploaded):
@@ -624,7 +624,7 @@ class parserClass():
     def pg_statupsert(self, table, column, steamid, name, value):
         #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
         insert_query = "INSERT INTO %s (steamid, name, %s) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, steamid, name, value)
-        update_query = "UPDATE %s SET %s = %s + %s WHERE steamid = E'%s'" % (self.STAT_TABLE, column, column, value, steamid)
+        update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE steamid = E'%s'" % (self.STAT_TABLE, column, column, value, steamid)
 
         curs = self.pgsqlConn.cursor()
         curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
