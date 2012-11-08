@@ -8,7 +8,7 @@
     <!--<link href="/favicon.ico" rel="shortcut icon">-->
 
     <?php
-        require conf/ll_database.php
+        require "conf/ll_database.php"
     ?>
 
 </head>
@@ -16,15 +16,15 @@
     <div class="wrapper">
         <div class="log_details">
         <?php
-            echo "Hello<br>";
-            echo $_GET['ident'];
+            echo $_GET['ident'] . " <br><br>";
             
-            $escaped_ident = pg_escape_literal($_GET["ident"]);
+            $escaped_ident = pg_escape_string($_GET["ident"]);
             
-            $namequery = "SELECT log_name, server_ip, server_port, map, live FROM livelogs_servers WHERE log_ident = '{$escaped_ident}'";
-            
+            $log_detail_query = "SELECT log_name, server_ip, server_port, map, live FROM livelogs_servers WHERE log_ident = '{$escaped_ident}'";
+            $log_detail_res = pg_query($ll_db, $log_detail_query);
+
             ////server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
-            $log_details = pg_fetch_array($namequery, NULL, PGSQL_BOTH);
+            $log_details = pg_fetch_array($log_detail_res, 0, PGSQL_BOTH);
             if (!$log_details["log_name"])
             {
                 die("404");
@@ -60,3 +60,7 @@
     </div>
 </body>
 </html>
+
+<?php
+    pg_close($ll_db)
+?>

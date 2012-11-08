@@ -9,7 +9,7 @@
 
 
     <?php
-        require conf/ll_database.php
+        require "conf/ll_database.php"
     ?>
 
 </head>
@@ -69,5 +69,5 @@
 </html>
 
 <?php
-
+    pg_close($ll_db)
 ?>
