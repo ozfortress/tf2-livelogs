@@ -9,13 +9,7 @@
 
 
     <?php
-        $ll_db = pg_connect("host=localhost dbname=livelogs user=livelogs password=hello");
-
-        if (!$ll_db)
-        {
-            $dataBaseError = true;
-        }
-
+        require conf/ll_database.php
     ?>
 
 </head>
@@ -26,46 +20,46 @@
         </div>
 
         <div class="live_now">
-            <?php
-                if ($dataBaseError)
+        <?php
+            if (!$ll_db)
+            {
+                echo "Unable to connect to database";
+            }
+            else
+            {
+                $live_query = "SELECT * FROM livelogs_servers WHERE live='true'";
+                $res = pg_query($ll_db, $live_query);
+
+                if (!$res)
                 {
-                    echo "Unable to connect to database";
+                ?>
+                    <p>Unable to retrieve live status</p>
+                <?php
                 }
                 else
                 {
-                    $live_query = "SELECT * FROM livelogs_servers WHERE live='true'";
-                    $res = pg_query($ll_db, $live_query);
-
-                    if (!$res)
+                    while ($live = pg_fetch_array($res, NULL, PGSQL_BOTH))
                     {
+                    //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
                     ?>
-                        <p>Unable to retrieve live status</p>
+                    <div class="live_list">
+                        <table width="100%">
+                            <tr>
+                                <td class="server_ip"><?=long2ip($live["server_ip"])?></td>
+                                <td class="server_port"><?=$live["server_port"]?></td>
+                                <td class="log_map"><?=$live["map"]?></td>
+                                <td class="log_name"><a href="/view/<?=$live["log_ident"]?>"><?=$live["log_name"]?></a></td>
+
+                            </tr>
+                        </table>
+                    </div>
+
                     <?php
                     }
-                    else
-                    {
-                        while ($live = pg_fetch_array($res, NULL, PGSQL_BOTH))
-                        {
-                            //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
-                            ?>
-                            <div class="live_list">
-                                <table width="100%">
-                                    <tr>
-                                        <td class="server_ip"><?=long2ip($live["server_ip"])?></td>
-                                        <td class="server_port"><?=$live["server_port"]?></td>
-                                        <td class="log_map"><?=$live["map"]?></td>
-                                        <td class="log_name"><a href="/view/<?=$live["log_ident"]?>"><?=$live["log_name"]?></a></td>
-
-                                    </tr>
-                                </table>
-                            </div>
-
-                            <?php
-                        }
-                    }
                 }
+            }
 
-            ?>
+        ?>
         </div>
 
         
