@@ -4,9 +4,14 @@
     width: 95%;
 }
 
-.stat_table, .stat_table td {
+.stat_table{
     text-align: left;
-    font-size: 10px;
+    /*font-size: 10px;*/
+    
+}
+
+.stat_table td {
+    white-space: nowrap;
 }
 
 .stat_table li, .stat_table ul {
@@ -29,22 +34,26 @@
 
 .log_details {
     width: 20%;
-    padding: 3;
-    border-radius: 10px;
-    border: solid 1px black;
+    padding: 8px;
+    border: 1px solid #dddddd;
+    border-left: 0;
+    *border-collapse: collapse;
+    -webkit-border-radius: 4px;
+        -moz-border-radius: 4px;
+            border-radius: 4px;
 }
 
 .live_or_not {
 
 }
 
-.log_name_id, .server_details_id, .log_map_id, .live_id {
+.log_name_id, .server_details_id, .log_map_id, .live_id, .log_id_tag {
     font-size: 15px;
     text-align: left;
     font-weight: bold;
 }
 
-.log_name, .server_details, .log_map {
+.log_name, .server_details, .log_map, .log_id {
     font-size: 14px;
     text-align: center;
 }

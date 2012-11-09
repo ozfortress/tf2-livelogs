@@ -18,7 +18,6 @@
     <div class="log_view_wrapper">
         <div class="log_details">
         <?php
-            echo $_GET['ident'] . " <br><br>";
             $UNIQUE_IDENT = $_GET["ident"];
             $escaped_ident = pg_escape_string($UNIQUE_IDENT);
             
@@ -49,11 +48,19 @@
             $stat_query = "SELECT * FROM {$escaped_stat_table}";
             $stat_result = pg_query($ll_db, $stat_query);
             
-            if (!$stat_result)
+            $event_query = "SELECT * FROM {$escaped_event_table}";
+            $event_result = pg_query($ll_db, $event_query);
+            
+            $chat_query = "SELECT * FROM {$escaped_chat_table}";
+            $chat_result = pg_query($ll_db, $chat_query);
+            
+            if ((!$stat_result) || (!$event_result) || (!$chat_result))
             {
                 echo "PGSQL HAD ERROR: " . pg_last_error();
             }
+            
         ?>
+            <span class="log_id_tag">Log ID: </span><span class="log_id"><?=$UNIQUE_IDENT?></span>
             <span class="log_name_id">Name: </span><span class="log_name"><?=$log_details["log_name"]?></span><br>
             <span class="server_details_id">Server: </span><span class="server_details"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span><br>
             <span class="log_map_id">Map: </span><span class="log_map"><?=$log_details["map"]?></span><br>
@@ -81,7 +88,6 @@
             </div>
             <div class="general_stat_summary">
                 <table class="table table-bordered table-striped table-hover stat_table" id="general_stats" cellspacing="0" cellpadding="3" border="1">
-                    <caption>Summary of player statistics</caption>
                     <thead>
                         <tr class="stat_summary_title_bar info">
                             <th class="stat_summary_col_title">
@@ -160,10 +166,10 @@
                         while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_BOTH))
                         {
                             $community_id = steamid_to_bigint($pstat["steamid"]);
-                            $p_kpd = $pstat["kills"] / $pstat["deaths"]; // kills/death
-                            $p_ppd = $pstat["points"] / $pstat["deaths"]; // points/death
-                            $p_apd = $pstat["assists"] / $pstat["deaths"]; // assists/death
-                            $p_dpd = $pstat["damage_dealt"] / $pstat["deaths"]; //damage/death
+                            $p_kpd = round($pstat["kills"] / $pstat["deaths"], 3); // kills/death
+                            $p_ppd = round($pstat["points"] / $pstat["deaths"], 3); // points/death
+                            $p_apd = round($pstat["assists"] / $pstat["deaths"], 3); // assists/death
+                            $p_dpd = round($pstat["damage_dealt"] / $pstat["deaths"], 3); //damage/death
                             $p_dpr = 0; //we have no round summation yet!
                     ?>
                         <tr>
@@ -192,6 +198,7 @@
                     ?>
                         
                     </tbody>
+                    <caption>Summary of player statistics</caption>
                 </table>
             </div>
         </div>
@@ -199,6 +206,15 @@
         
         </div>
     </div>
+    
+    <script type="text/javascript">
+        $(document).ready(function() 
+        {
+            $('#general_stats').dataTable( {
+                "aaSorting": [[2, 'asc']]
+            } );
+        } );
+    </script>
     <!-- LOAD SCRIPTS AT THE BOTOM FOR PERFORMANCE ++ -->
     <!-- use local scripts for dev
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
