@@ -121,8 +121,8 @@
             $time_result = pg_query($ll_db, $time_query);
             
             $time_array = pg_fetch_array($time_result, 
-            */
-            //$time_elapsed = 0;
+            
+            $time_elapsed = 0;*/
             
         ?>
             <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="/download/<?=$UNIQUE_IDENT?>"><?=$UNIQUE_IDENT?></a></span><br>
@@ -236,7 +236,7 @@
                             $p_ppd = round($pstat["points"] / $pstat["deaths"], 3); // points/death
                             $p_apd = round($pstat["assists"] / $pstat["deaths"], 3); // assists/death
                             $p_dpd = round($pstat["damage_dealt"] / $pstat["deaths"], 3); //damage/death
-                            $p_dpr = 0; //we have no round summation yet!
+                            $p_dpr = round($pstat["damage_dealt"] / ($red_score + $blue_score), 3); //num rounds are red score + blue score, damage/round
                     ?>
                         <tr>
                             <td><a class="player_community_id_link" href="/player/<?=$community_id?>"><?=$pstat["name"]?></a></td>
