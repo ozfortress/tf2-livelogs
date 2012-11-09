@@ -238,6 +238,11 @@
                 </table>
             </div>
         </div>
+        <div class="stat_table_container">
+            <div class="medic_stat_summary">
+                hh
+            </div>
+        </div>
         <div class="event_feed_container">
             event feed
         </div>
