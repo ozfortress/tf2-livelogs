@@ -122,15 +122,15 @@
             </div>
         </div>
         <div class="stat_table_container">
-            <div class="table_header">
+            <!--<div class="table_header">
                 <strong>INDIVIDUAL PLAYER STATISTICS</strong>
-            </div>
+            </div>-->
             <div class="general_stat_summary">
                 <table class="table table-bordered table-striped table-hover stat_table" id="general_stats" cellspacing="0" cellpadding="3" border="1">
                     <thead>
                         <tr class="stat_summary_title_bar info">
                             <th class="stat_summary_col_title">
-                                Name
+                                <abbr title="Player Name">Name</abbr>
                             </th>
                             <th class="stat_summary_col_title">
                                 <abbr title="Kills">K</abbr>
@@ -139,52 +139,52 @@
                                 <abbr title="Deaths">D</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                A
+                                <abbr title="Assists">A</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                P
+                                <abbr title="Points">Points</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                DMG
+                                <abbr title="Damage Dealt">DMG</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                HEAL
+                                <abbr title="Healing Received">HREC</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                HS
+                                <abbr title="Headshots">HS</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                BS
+                                <abbr title="Backstabs">BS</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                PC
+                                <abbr title="Points Captured">PC</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                PB
+                                <abbr title="Point Captures Blocked">PCB</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                DMN
+                                <abbr title="Dominations">DMN</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                TDMN
+                                <abbr title="Times Dominated">TDMN</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                R
+                                <abbr title="Revenges">R</abbr>
                             </th>
                             <th class="stat_summary_col_title_secondary">
-                                KPD
+                                <abbr title="Kills per Death">KPD</abbr>
                             </th>
                             <th class="stat_summary_col_title_secondary">
-                                APD
+                                <abbr title="Assists per Death">APD</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                PPD
+                                <abbr title="Points per Death">PPD</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                DPD
+                                <abbr title="Damage Dealt per Death">DPD</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                DPR
+                                <abbr title="Damage per Round">DPR</abbr>
                             </th>
                         </tr>
                     </thead>
@@ -242,7 +242,10 @@
             </div>
         </div>
         <div class="event_feed_container">
-        
+            event feed
+        </div>
+        <div class="chat_feed_container">
+            chat feed
         </div>
     </div>
     <!-- LOAD SCRIPTS AT THE BOTOM FOR PERFORMANCE ++ -->

@@ -1,6 +1,6 @@
 .view_navbar {
     margin-bottom: 1em;
-    padding: 8px;
+    padding: 6px;
 }
 
 .log_view_wrapper {
@@ -56,7 +56,7 @@
 
 .log_details {
     width: 20%;
-    padding: 8px;
+    padding: 3px;
     border: 1px solid #dddddd;
     /*border-left: 0;*/
     *border-collapse: collapse;
@@ -86,10 +86,6 @@
     font-size: 16px;
 }
 
-.event_feed_container {
-    width: 40%;
-}
-
 .stat_summary_col_title {
 
 }
@@ -109,3 +105,13 @@
 
 .sorting_asc_disabled { background: url('/images/sort_asc_disabled.png') no-repeat center right; }
 .sorting_desc_disabled { background: url('/images/sort_desc_disabled.png') no-repeat center right; }
+
+.event_feed_container {
+    float:left;
+    width: 40%;
+}
+
+.chat_feed_container {
+    float:left;
+    width: 40%;
+}
