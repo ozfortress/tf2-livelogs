@@ -55,7 +55,7 @@
             </ul>
         </div>
     
-        <div class="log_details">
+        <div class="log_details_container">
         <?php
             $UNIQUE_IDENT = $_GET["ident"];
             $escaped_ident = pg_escape_string($UNIQUE_IDENT);
@@ -98,18 +98,28 @@
                 echo "PGSQL HAD ERROR: " . pg_last_error();
             }
             
+            $score_query = "SELECT COALESCE(round_red_score, 0), COALESCE(round_blue_score, 0) FROM {$escaped_event_table} ORDER BY eventid DESC LIMIT 1";
+            $score_result = pg_query($ll_db, $score_query);
+            
+            $red_score = $score_result["round_red_score"];
+            $blue_score = $score_result["round_blue_score"];
+            
         ?>
-            <span class="log_id_tag">Log ID: </span><span class="log_id"><a href="/download/<?=$UNIQUE_IDENT?>"><?=$UNIQUE_IDENT?></a></span><br>
-            <span class="log_name_id">Name: </span><span class="log_name"><?=$log_details["log_name"]?></span><br>
-            <span class="server_details_id">Server: </span><span class="server_details"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span><br>
-            <span class="log_map_id">Map: </span><span class="log_map"><?=$log_details["map"]?></span><br>
+            <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="/download/<?=$UNIQUE_IDENT?>"><?=$UNIQUE_IDENT?></a></span><br>
+            <span class="log_name_id">Name: </span><span class="log_detail"><?=$log_details["log_name"]?></span><br>
+            <span class="server_details_id">Server: </span><span class="log_detail"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span><br>
+            <span class="log_map_id">Map: </span><span class="log_detail"><?=$log_details["map"]?></span><br>
             <div class="live_or_not">
                 <span class="live_id">Status: </span>
             <?php
                 if ($log_details["live"])
                 {
                 ?>
-                    <span class="log_live text-success">Live!</span>
+                    <span class="log_live text-success">Live!</span><br>
+                    <span class="time_elapsed_id">Time Elapsed: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
+                    
+                    <span class="red_score_tag">RED </span><span class="red_score" id="red_score_value"><?=$red_score?></span>
+                    <span class="blue_score_tag">BLUE </span><span class="blue_score" id="blue_score_value"><?=$blue_score?></span>
                 <?php
                 }
                 else

@@ -9,7 +9,7 @@
             "bPaginate": false,
             "bAutoWidth": false,
             "bSortClasses": false,
-            "bSearchable": true,
+            "bSearchable": false,
             "bInfo": false,
             "bJQueryUI": true,
         } );
