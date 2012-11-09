@@ -58,6 +58,11 @@
         
         </div>
     </div>
+    <!-- LOAD SCRIPTS AT THE BOTOM FOR PERFORMANCE ++ -->
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.1/jquery-ui.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
+
 </body>
 </html>
 

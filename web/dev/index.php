@@ -6,7 +6,8 @@
     <title>Livelogs DEV</title>
 
     <!--<link href="/favicon.ico" rel="shortcut icon">-->
-
+    <!--<link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">-->
+    <link rel="stylesheet" type="text/css" href="css/jquery.dataTables.css">
 
     <?php
         require "conf/ll_database.php"
@@ -64,6 +65,17 @@
 
         
     </div>
+
+    <!-- LOAD SCRIPTS AT THE BOTOM FOR PERFORMANCE ++ -->
+    <!-- use locally hosted scripts for dev 
+    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.1/jquery-ui.min.js"></script>
+    <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
+    -->
+    <script src="scripts/jquery.min.js"></script>
+    <script src="scripts/jquery-ui.min.js"></script>
+    <script src="scripts/jquery.dataTables.min.js"></script>
+    
 </body>
 
 </html>
