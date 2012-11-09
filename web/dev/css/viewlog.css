@@ -1,5 +1,5 @@
 .view_navbar {
-    margin-bottom: 2em;
+    margin-bottom: 4em;
     padding: 8px;
 }
 
@@ -41,11 +41,13 @@
     width: 20%;
     padding: 8px;
     border: 1px solid #dddddd;
-    border-left: 0;
+    /*border-left: 0;*/
     *border-collapse: collapse;
     -webkit-border-radius: 4px;
         -moz-border-radius: 4px;
             border-radius: 4px;
+            
+    margin-bottom: 4px;
 }
 
 .live_or_not {

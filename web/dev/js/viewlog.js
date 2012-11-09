@@ -6,5 +6,10 @@
     {
         $('#general_stats').dataTable( {
             "aaSorting": [[2, 'asc']]
+            "bJQueryUI": true,
+            "bPaginate": false,
+            "bAutoWidth": false;
+            "bSortClasses": false,
+            "bSearchable": true,
         } );
     } );

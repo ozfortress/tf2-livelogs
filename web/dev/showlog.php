@@ -16,13 +16,13 @@
 </head>
 <body>
     <div class="log_view_wrapper">
-        <div id="navigation" class="navbar view_navbar">
+        <div id="navigation" class="view_navbar">
             <ul class="nav nav-pills">
                 <li>
                     <a href="/">Home</a>
                 </li>
-                <li class="active dropdown">
-                    <a class="dropdown-toggle" href="#">View Settings <b class="caret"></b></a>
+                <li class="dropdown active">
+                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">View Settings <b class="caret"></b></a>
                     <ul class="dropdown-menu">
                         <li>
                             <a href="#">Stream Chat</a>
@@ -33,7 +33,7 @@
                     </ul>
                 </li>
                 <li class="dropdown">
-                    <a class="dropdown-toggle" href="#">Help <b class="caret"></b></a>
+                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
                     <ul class="dropdown-menu">
                         <li>
                             <a href="#">About</a>
@@ -47,7 +47,9 @@
                         </li>
                     </ul>
                 </li>
-                
+                <li>
+                    <a href="#">Login</a>
+                </li>
             </ul>
         </div>
     
@@ -119,7 +121,7 @@
         </div>
         <div class="stat_table_container">
             <div class="table_header">
-                INDIVIDUAL PLAYER STATISTICS
+                <strong>INDIVIDUAL PLAYER STATISTICS</strong>
             </div>
             <div class="general_stat_summary">
                 <table class="table table-bordered table-striped table-hover stat_table" id="general_stats" cellspacing="0" cellpadding="3" border="1">
@@ -247,6 +249,11 @@
         {
             $('#general_stats').dataTable( {
                 "aaSorting": [[2, 'asc']]
+                "bJQueryUI": true,
+                "bPaginate": false,
+                "bAutoWidth": false;
+                "bSortClasses": false,
+                "bSearchable": true,
             } );
         } );
     </script>
