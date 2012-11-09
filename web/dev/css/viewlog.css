@@ -1,3 +1,9 @@
+.log_view_wrapper {
+    margin-left: auto;
+    margin-right: auto;
+    width: 95%;
+}
+
 .stat_table, .stat_table td {
     text-align: left;
     font-size: 10px;
@@ -13,7 +19,12 @@
 .stat_table_container {
     width: 55%;
     border-radius: 10px;
-    border: solid 1px black;
+    /*border: solid 1px black;*/
+}
+
+.table_header {
+    text-align: center;
+    font-size: 16px;
 }
 
 .log_details {
@@ -27,7 +38,7 @@
 
 }
 
-.log_name_id, .server_details, .log_map_id, .live_id {
+.log_name_id, .server_details_id, .log_map_id, .live_id {
     font-size: 15px;
     text-align: left;
     font-weight: bold;
@@ -51,9 +62,9 @@
 }
 
 .stat_summary_col_title_secondary {
-    border-left: solid 1px black;
+    border-left: solid 4px black;
 }
 
 .player_community_id_link {
-
+    font-weight: bold;
 }

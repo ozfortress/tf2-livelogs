@@ -77,7 +77,7 @@
         </div>
         <div class="stat_table_container">
             <div class="table_header">
-                TABLE HEADER :O
+                INDIVIDUAL PLAYER STATISTICS
             </div>
             <div class="general_stat_summary">
                 <table class="table table-bordered table-striped table-hover stat_table" id="general_stats" cellspacing="0" cellpadding="3" border="1">
@@ -91,7 +91,7 @@
                                 <abbr title="Kills">K</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                D
+                                <abbr title="Deaths">D</abbr>
                             </th>
                             <th class="stat_summary_col_title">
                                 A
@@ -129,6 +129,9 @@
                             <th class="stat_summary_col_title_secondary">
                                 KPD
                             </th>
+                            <th class="stat_summary_col_title_secondary">
+                                APD
+                            </th>
                             <th class="stat_summary_col_title">
                                 PPD
                             </th>
@@ -153,14 +156,36 @@
 					     suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer)'
                          */
                          
-                        //NAME:K:D:A:P:DMG:HEAL:HS:BS:PC:PB:DMN:TDMN:R:KPD:PPD:DPD:DPR
+                        //NAME:K:D:A:P:DMG:HEAL:HS:BS:PC:PB:DMN:TDMN:R:KPD:APD:PPD:DPD:DPR
                         while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_BOTH))
                         {
                             $community_id = steamid_to_bigint($pstat["steamid"]);
+                            $p_kpd = $pstat["kills"] / $pstat["deaths"]; // kills/death
+                            $p_ppd = $pstat["points"] / $pstat["deaths"]; // points/death
+                            $p_apd = $pstat["assists"] / $pstat["deaths"]; // assists/death
+                            $p_dpd = $pstat["damage_dealt"] / $pstat["deaths"]; //damage/death
+                            $p_dpr = 0; //we have no round summation yet!
                     ?>
                         <tr>
                             <td><a class="player_community_id_link" href="/player/<?=$community_id?>"><?=$pstat["name"]?></a></td>
                             <td><span id="<?=$community_id . kills?>"><?=$pstat["kills"]?></span></td>
+                            <td><span id="<?=$community_id . deaths?>"><?=$pstat["deaths"]?></span></td>
+                            <td><span id="<?=$community_id . assists?>"><?=$pstat["assists"]?></span></td>
+                            <td><span id="<?=$community_id . points?>"><?=$pstat["points"]?></span></td>
+                            <td><span id="<?=$community_id . damage?>"><?=$pstat["damage_dealt"]?></span></td>
+                            <td><span id="<?=$community_id . heal_rcvd?>"><?=$pstat["healing_received"]?></span></td>
+                            <td><span id="<?=$community_id . headshots?>"><?=$pstat["headshots"]?></span></td>
+                            <td><span id="<?=$community_id . backstabs?>"><?=$pstat["backstabs"]?></span></td>
+                            <td><span id="<?=$community_id . pointcaps?>"><?=$pstat["captures"]?></span></td>
+                            <td><span id="<?=$community_id . pointblocks?>"><?=$pstat["captures_blocked"]?></span></td>
+                            <td><span id="<?=$community_id . dominations?>"><?=$pstat["dominations"]?></span></td>
+                            <td><span id="<?=$community_id . t_dominated?>"><?=$pstat["times_dominated"]?></span></td>
+                            <td><span id="<?=$community_id . revenges?>"><?=$pstat["revenges"]?></span></td>
+                            <td><span id="<?=$community_id . kpd?>"><?=$p_kpd?></span></td>
+                            <td><span id="<?=$community_id . apd?>"><?=$p_apd?></span></td>
+                            <td><span id="<?=$community_id . ppd?>"><?=$p_ppd?></span></td>
+                            <td><span id="<?=$community_id . dpd?>"><?=$p_dpd?></span></td>
+                            <td><span id="<?=$community_id . dpr?>"><?=$p_dpr?></span></td>
                         </tr>
                     <?php
                         }
@@ -198,7 +223,7 @@
         $iServer = "0";
         $iAuthID = "0";
         
-        $szAuthID = $pszAuthID;
+        $szAuthID = $steamid;
         
         $szTmp = strtok($szAuthID, ":");
         
