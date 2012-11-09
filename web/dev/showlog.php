@@ -38,26 +38,28 @@
             $escaped_event_table = pg_escape_string("log_event_" . $UNIQUE_IDENT);
             $escaped_chat_table = pg_escape_string("log_chat_" . $UNIQUE_IDENT);
         ?>
-            <span class="log_name_id">Name: </span><span class="log_name"><?=$log_details["log_name"]?></span><br>
-            <span class="server_details_id">Server: </span><span class="server_details"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span><br>
-            <span class="log_map_id">Map: </span><span class="log_map"><?=$log_details["map"]?></span>
-            <div class="live_or_not">
-                <span class="live_id">Status: </span>
-            <?php
-                if ($log_details["live"])
-                {
-                ?>
-                    <span class="log_live">Live!</span>
+            <address>
+                <span class="log_name_id">Name: </span><span class="log_name"><?=$log_details["log_name"]?></span>
+                <span class="server_details_id">Server: </span><span class="server_details"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span>
+                <span class="log_map_id">Map: </span><span class="log_map"><?=$log_details["map"]?></span>
+                <div class="live_or_not">
+                    <span class="live_id">Status: </span>
                 <?php
-                }
-                else
-                {
+                    if ($log_details["live"])
+                    {
+                    ?>
+                        <span class="log_live text-success">Live!</span>
+                    <?php
+                    }
+                    else
+                    {
+                    ?>
+                        <span class="log_not_live text-error">Not live</span>
+                    <?php
+                    }
                 ?>
-                    <span class="log_not_live">Not live</span>
-                <?php
-                }
-            ?>
-            </div>
+                </div>
+            </address>
         </div>
         <div class="stat_table_container">
             <div class="table_header">

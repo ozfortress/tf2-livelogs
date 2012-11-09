@@ -9,3 +9,31 @@
     margin: 0;
     padding: 0;
 }
+
+.stat_table_container {
+    width: 70%;
+}
+
+.log_details {
+    width: 20%;
+    padding: 3;
+}
+
+.live_or_not {
+
+}
+
+.log_name_id, .server_details, .log_map_id, .live_id {
+    font-size: 15px;
+    text-align: left;
+    font-weight: bold;
+}
+
+.log_name, .server_details, .log_map {
+    font-size: 14px;
+    text-align: center;
+}
+
+.log_live {
+    font-size: 16px;
+}
