@@ -1,3 +1,8 @@
+.view_navbar {
+    margin-bottom: 2em;
+    padding: 8px;
+}
+
 .log_view_wrapper {
     margin-left: auto;
     margin-right: auto;

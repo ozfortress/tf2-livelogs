@@ -16,6 +16,41 @@
 </head>
 <body>
     <div class="log_view_wrapper">
+        <div id="navigation" class="navbar view_navbar">
+            <ul class="nav nav-pills">
+                <li>
+                    <a href="/">Home</a>
+                </li>
+                <li class="active dropdown">
+                    <a class="dropdown-toggle" href="#">View Settings <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="#">Stream Chat</a>
+                        </li>
+                        <li class="disabled">
+                            <a href="#">Auto Update Stats</a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="dropdown">
+                    <a class="dropdown-toggle" href="#">Help <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="#">About</a>
+                        </li>
+                        
+                        <li>
+                            <a href="#">FAQ</a>
+                        </li>
+                        <li class="disabled">
+                            <a href="#">Source @ github</a>
+                        </li>
+                    </ul>
+                </li>
+                
+            </ul>
+        </div>
+    
         <div class="log_details">
         <?php
             $UNIQUE_IDENT = $_GET["ident"];
@@ -60,7 +95,7 @@
             }
             
         ?>
-            <span class="log_id_tag">Log ID: </span><span class="log_id"><?=$UNIQUE_IDENT?></span>
+            <span class="log_id_tag">Log ID: </span><span class="log_id"><?=$UNIQUE_IDENT?></span><br>
             <span class="log_name_id">Name: </span><span class="log_name"><?=$log_details["log_name"]?></span><br>
             <span class="server_details_id">Server: </span><span class="server_details"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span><br>
             <span class="log_map_id">Map: </span><span class="log_map"><?=$log_details["map"]?></span><br>
