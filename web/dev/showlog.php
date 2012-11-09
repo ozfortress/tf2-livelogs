@@ -97,7 +97,7 @@
             }
             
         ?>
-            <span class="log_id_tag">Log ID: </span><span class="log_id"><?=$UNIQUE_IDENT?></span><br>
+            <span class="log_id_tag">Log ID: </span><span class="log_id"><a href="/download/<?=$UNIQUE_IDENT?>"><?=$UNIQUE_IDENT?></a></span><br>
             <span class="log_name_id">Name: </span><span class="log_name"><?=$log_details["log_name"]?></span><br>
             <span class="server_details_id">Server: </span><span class="server_details"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span><br>
             <span class="log_map_id">Map: </span><span class="log_map"><?=$log_details["map"]?></span><br>
@@ -249,7 +249,6 @@
         {
             $('#general_stats').dataTable( {
                 "aaSorting": [[2, 'asc']]
-                "bJQueryUI": true,
                 "bPaginate": false,
                 "bAutoWidth": false;
                 "bSortClasses": false,
