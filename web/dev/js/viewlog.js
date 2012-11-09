@@ -5,11 +5,13 @@
     $(document).ready(function() 
     {
         $('#general_stats').dataTable( {
-            "aaSorting": [[2, 'asc']]
-            "bJQueryUI": true,
+            "aaSorting": [[2, 'asc']],
             "bPaginate": false,
             "bAutoWidth": false;
             "bSortClasses": false,
             "bSearchable": true,
+            "bInfo": false,
+            "bJQueryUI": true,
+            
         } );
     } );

@@ -243,19 +243,6 @@
         
         </div>
     </div>
-    
-    <script type="text/javascript">
-        $(document).ready(function() 
-        {
-            $('#general_stats').dataTable( {
-                "aaSorting": [[2, 'asc']]
-                "bPaginate": false,
-                "bAutoWidth": false;
-                "bSortClasses": false,
-                "bSearchable": true,
-            } );
-        } );
-    </script>
     <!-- LOAD SCRIPTS AT THE BOTOM FOR PERFORMANCE ++ -->
     <!-- use local scripts for dev
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
