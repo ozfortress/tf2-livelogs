@@ -98,12 +98,31 @@
                 echo "PGSQL HAD ERROR: " . pg_last_error();
             }
             
-            $score_query = "SELECT COALESCE(round_red_score, 0), COALESCE(round_blue_score, 0) FROM {$escaped_event_table} ORDER BY eventid DESC LIMIT 1";
+            $score_query = "SELECT COALESCE(round_red_score, 0) as red_score, COALESCE(round_blue_score, 0) as blue_score FROM {$escaped_event_table} ORDER BY eventid DESC LIMIT 1";
             $score_result = pg_query($ll_db, $score_query);
             
             $score_array = pg_fetch_array($score_result, 0);
-            $red_score = $score_array["round_red_score"];
-            $blue_score = $score_array["round_blue_score"];
+            $red_score = $score_array["red_score"];
+            $blue_score = $score_array["blue_score"];
+            
+            $event_array = pg_fetch_all($event_result);
+            $time_start = $event_array[0]["event_time"];
+            $time_last = $event_array[(sizeof($event_array) - 1)]["event_time"];
+            
+            //time is in format "10/01/2012 21:38:18"
+            $time_start_ctime = strtotime($time_start);
+            $time_last_ctime = strtotime($time_last);
+            
+            $time_elapsed_sec = $time_last_ctime - $time_start_ctime;
+            $time_elapsed = sprintf("%02d minute(s) and %02d second(s)", ($time_elapsed_sec/60)%60, $time_elapsed_sec%60);
+            
+            /*
+            $time_query = "SELECT event_time as start_last_time FROM {$escaped_event_table} WHERE eventid = '1' UNION SELECT event_time FROM {$escaped_event_table} WHERE eventid = (SELECT MAX(eventid) FROM {$escaped_event_table})";
+            $time_result = pg_query($ll_db, $time_query);
+            
+            $time_array = pg_fetch_array($time_result, 
+            */
+            //$time_elapsed = 0;
             
         ?>
             <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="/download/<?=$UNIQUE_IDENT?>"><?=$UNIQUE_IDENT?></a></span><br>
@@ -118,18 +137,18 @@
                 ?>
                     <span class="log_live text-success">Live!</span><br>
                     <span class="time_elapsed_id">Time Elapsed: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
-                    
-                    <span class="red_score_tag">RED </span><span class="red_score" id="red_score_value"><?=$red_score?></span>
-                    <span class="blue_score_tag">BLUE </span><span class="blue_score" id="blue_score_value"><?=$blue_score?></span>
                 <?php
                 }
                 else
                 {
                 ?>
-                    <span class="log_not_live text-error">Not live</span>
+                    <span class="log_not_live text-error">Not live</span><br>
+                    <span class="time_elapsed_id">Total Time: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
                 <?php
                 }
             ?>
+                    <span class="red_score_tag">RED </span><span class="red_score" id="red_score_value"><?=$red_score?></span>
+                    <span class="blue_score_tag">BLUE </span><span class="blue_score" id="blue_score_value"><?=$blue_score?></span>
             </div>
         </div>
         <div class="stat_table_container">
