@@ -101,7 +101,8 @@
 }
 
 .blue_score, .red_score {
-    color: #FFCC99;
+    color: #663300;
+    font-size: 22px;
 }
 
 .stat_summary_col_title {
