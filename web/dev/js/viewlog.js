@@ -2,7 +2,7 @@
  * will probably also contain stuff for real-time display
  */
  
-    $(document).ready(function() 
+    $(function() 
     {
         $('#general_stats').dataTable( {
             "aaSorting": [[2, 'asc']],

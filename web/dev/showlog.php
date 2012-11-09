@@ -249,12 +249,12 @@
     <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.1/jquery-ui.min.js"></script>
     <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
     -->
-    <script src="/js/jquery.min.js"></script>
-    <script src="/js/jquery-ui.min.js"></script>
-    <script src="/js/jquery.dataTables.min.js"></script>
-    <script src="/js/bootstrap/bootstrap.js"></script>
+    <script src="/js/jquery.min.js" type="text/javascript"></script>
+    <script src="/js/jquery-ui.min.js" type="text/javascript"></script>
+    <script src="/js/jquery.dataTables.min.js" type="text/javascript"></script>
+    <script src="/js/bootstrap/bootstrap.js" type="text/javascript"></script>
     
-    <script src="/js/viewlog.js"></script>
+    <script type="text/javascript" src="/js/viewlog.js"></script>
 </body>
 </html>
 
