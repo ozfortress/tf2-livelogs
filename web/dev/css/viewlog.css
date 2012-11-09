@@ -6,7 +6,7 @@
 .log_view_wrapper {
     margin-left: auto;
     margin-right: auto;
-    float: left;
+    overflow: auto;
     width: 80%;
     border: 1px solid #dddddd;
     /*border-left: 0;*/

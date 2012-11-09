@@ -101,8 +101,9 @@
             $score_query = "SELECT COALESCE(round_red_score, 0), COALESCE(round_blue_score, 0) FROM {$escaped_event_table} ORDER BY eventid DESC LIMIT 1";
             $score_result = pg_query($ll_db, $score_query);
             
-            $red_score = $score_result["round_red_score"];
-            $blue_score = $score_result["round_blue_score"];
+            $score_array = pg_fetch_array($score_result, 0);
+            $red_score = $score_array["round_red_score"];
+            $blue_score = $score_array["round_blue_score"];
             
         ?>
             <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="/download/<?=$UNIQUE_IDENT?>"><?=$UNIQUE_IDENT?></a></span><br>
@@ -220,24 +221,24 @@
                     ?>
                         <tr>
                             <td><a class="player_community_id_link" href="/player/<?=$community_id?>"><?=$pstat["name"]?></a></td>
-                            <td><span id="<?=$community_id . kills?>"><?=$pstat["kills"]?></span></td>
-                            <td><span id="<?=$community_id . deaths?>"><?=$pstat["deaths"]?></span></td>
-                            <td><span id="<?=$community_id . assists?>"><?=$pstat["assists"]?></span></td>
-                            <td><span id="<?=$community_id . points?>"><?=$pstat["points"]?></span></td>
-                            <td><span id="<?=$community_id . damage?>"><?=$pstat["damage_dealt"]?></span></td>
-                            <td><span id="<?=$community_id . heal_rcvd?>"><?=$pstat["healing_received"]?></span></td>
-                            <td><span id="<?=$community_id . headshots?>"><?=$pstat["headshots"]?></span></td>
-                            <td><span id="<?=$community_id . backstabs?>"><?=$pstat["backstabs"]?></span></td>
-                            <td><span id="<?=$community_id . pointcaps?>"><?=$pstat["captures"]?></span></td>
-                            <td><span id="<?=$community_id . pointblocks?>"><?=$pstat["captures_blocked"]?></span></td>
-                            <td><span id="<?=$community_id . dominations?>"><?=$pstat["dominations"]?></span></td>
-                            <td><span id="<?=$community_id . t_dominated?>"><?=$pstat["times_dominated"]?></span></td>
-                            <td><span id="<?=$community_id . revenges?>"><?=$pstat["revenges"]?></span></td>
-                            <td><span id="<?=$community_id . kpd?>"><?=$p_kpd?></span></td>
-                            <td><span id="<?=$community_id . apd?>"><?=$p_apd?></span></td>
-                            <td><span id="<?=$community_id . ppd?>"><?=$p_ppd?></span></td>
-                            <td><span id="<?=$community_id . dpd?>"><?=$p_dpd?></span></td>
-                            <td><span id="<?=$community_id . dpr?>"><?=$p_dpr?></span></td>
+                            <td><span id="<?=$community_id . "kills"?>"><?=$pstat["kills"]?></span></td>
+                            <td><span id="<?=$community_id . "deaths"?>"><?=$pstat["deaths"]?></span></td>
+                            <td><span id="<?=$community_id . "assists"?>"><?=$pstat["assists"]?></span></td>
+                            <td><span id="<?=$community_id . "points"?>"><?=$pstat["points"]?></span></td>
+                            <td><span id="<?=$community_id . "damage"?>"><?=$pstat["damage_dealt"]?></span></td>
+                            <td><span id="<?=$community_id . "heal_rcvd"?>"><?=$pstat["healing_received"]?></span></td>
+                            <td><span id="<?=$community_id . "headshots"?>"><?=$pstat["headshots"]?></span></td>
+                            <td><span id="<?=$community_id . "backstabs"?>"><?=$pstat["backstabs"]?></span></td>
+                            <td><span id="<?=$community_id . "pointcaps"?>"><?=$pstat["captures"]?></span></td>
+                            <td><span id="<?=$community_id . "pointblocks"?>"><?=$pstat["captures_blocked"]?></span></td>
+                            <td><span id="<?=$community_id . "dominations"?>"><?=$pstat["dominations"]?></span></td>
+                            <td><span id="<?=$community_id . "t_dominated"?>"><?=$pstat["times_dominated"]?></span></td>
+                            <td><span id="<?=$community_id . "revenges"?>"><?=$pstat["revenges"]?></span></td>
+                            <td><span id="<?=$community_id . "kpd"?>"><?=$p_kpd?></span></td>
+                            <td><span id="<?=$community_id . "apd"?>"><?=$p_apd?></span></td>
+                            <td><span id="<?=$community_id . "ppd"?>"><?=$p_ppd?></span></td>
+                            <td><span id="<?=$community_id . "dpd"?>"><?=$p_dpd?></span></td>
+                            <td><span id="<?=$community_id . "dpr"?>"><?=$p_dpr?></span></td>
                         </tr>
                     <?php
                         }
