@@ -51,8 +51,19 @@
             ?>
             </div>
         </div>
-        <div class="stat_summary">
-        
+        <div class="stat_table_container">
+            <div class="table_header">
+            </div>
+            <div class="general_stat_summary">
+                <table class="stat_table" id="general_stats" cellspacing="0" cellpadding="3" border="0">
+                    <thead>
+                    
+                    </thead>
+                    <tbody>
+                        <tr>
+                    </tbody>
+                </table>
+            </div>
         </div>
         <div class="event_feed">
         
