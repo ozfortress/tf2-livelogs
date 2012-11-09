@@ -33,33 +33,47 @@
             }
             
             //have a valid ident. now we can grab stats and stuff!
+            if (function_exists("pg_escape_identifier"))
+            {
+                $escaped_stat_table = pg_escape_identifier("log_stat_" . $UNIQUE_IDENT);
+                $escaped_event_table = pg_escape_identifier("log_event_" . $UNIQUE_IDENT);
+                $escaped_chat_table = pg_escape_identifier("log_chat_" . $UNIQUE_IDENT);
+            }
+            else
+            {
+                $escaped_stat_table = pg_escape_string("log_stat_" . $UNIQUE_IDENT);
+                $escaped_event_table = pg_escape_string("log_event_" . $UNIQUE_IDENT);
+                $escaped_chat_table = pg_escape_string("log_chat_" . $UNIQUE_IDENT);
+            }
             
-            $escaped_stat_table = pg_escape_string("log_stat_" . $UNIQUE_IDENT);
-            $escaped_event_table = pg_escape_string("log_event_" . $UNIQUE_IDENT);
-            $escaped_chat_table = pg_escape_string("log_chat_" . $UNIQUE_IDENT);
+            $stat_query = "SELECT * FROM {$escaped_stat_table}";
+            $stat_result = pg_query($ll_db, $stat_query);
+            
+            if (!$stat_result)
+            {
+                echo "PGSQL HAD ERROR: " . pg_last_error();
+            }
         ?>
-            <address>
-                <span class="log_name_id">Name: </span><span class="log_name"><?=$log_details["log_name"]?></span>
-                <span class="server_details_id">Server: </span><span class="server_details"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span>
-                <span class="log_map_id">Map: </span><span class="log_map"><?=$log_details["map"]?></span>
-                <div class="live_or_not">
-                    <span class="live_id">Status: </span>
-                <?php
-                    if ($log_details["live"])
-                    {
-                    ?>
-                        <span class="log_live text-success">Live!</span>
-                    <?php
-                    }
-                    else
-                    {
-                    ?>
-                        <span class="log_not_live text-error">Not live</span>
-                    <?php
-                    }
+            <span class="log_name_id">Name: </span><span class="log_name"><?=$log_details["log_name"]?></span><br>
+            <span class="server_details_id">Server: </span><span class="server_details"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span><br>
+            <span class="log_map_id">Map: </span><span class="log_map"><?=$log_details["map"]?></span><br>
+            <div class="live_or_not">
+                <span class="live_id">Status: </span>
+            <?php
+                if ($log_details["live"])
+                {
                 ?>
-                </div>
-            </address>
+                    <span class="log_live text-success">Live!</span>
+                <?php
+                }
+                else
+                {
+                ?>
+                    <span class="log_not_live text-error">Not live</span>
+                <?php
+                }
+            ?>
+            </div>
         </div>
         <div class="stat_table_container">
             <div class="table_header">
@@ -67,13 +81,14 @@
             </div>
             <div class="general_stat_summary">
                 <table class="table table-bordered table-striped table-hover stat_table" id="general_stats" cellspacing="0" cellpadding="3" border="1">
+                    <caption>Summary of player statistics</caption>
                     <thead>
                         <tr class="stat_summary_title_bar info">
                             <th class="stat_summary_col_title">
                                 Name
                             </th>
                             <th class="stat_summary_col_title">
-                                K
+                                <abbr title="Kills">K</abbr>
                             </th>
                             <th class="stat_summary_col_title">
                                 D
@@ -138,14 +153,24 @@
 					     suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer)'
                          */
                          
-                        
+                        //NAME:K:D:A:P:DMG:HEAL:HS:BS:PC:PB:DMN:TDMN:R:KPD:PPD:DPD:DPR
+                        while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_BOTH))
+                        {
+                            $community_id = steamid_to_bigint($pstat["steamid"]);
                     ?>
-                        <tr>asdf</tr>
+                        <tr>
+                            <td><a class="player_community_id_link" href="/player/<?=$community_id?>"><?=$pstat["name"]?></a></td>
+                            <td><span id="<?=$community_id . kills?>"><?=$pstat["kills"]?></span></td>
+                        </tr>
+                    <?php
+                        }
+                    ?>
+                        
                     </tbody>
                 </table>
             </div>
         </div>
-        <div class="event_feed">
+        <div class="event_feed_container">
         
         </div>
     </div>
@@ -165,5 +190,38 @@
 </html>
 
 <?php
+    function steamid_to_bigint($steamid)
+    {
+        //from Seather @ https://forums.alliedmods.net/showpost.php?p=565979&postcount=16
+        //Used in https://www.gamealphamoreecho.com/steamidconverter
+    
+        $iServer = "0";
+        $iAuthID = "0";
+        
+        $szAuthID = $pszAuthID;
+        
+        $szTmp = strtok($szAuthID, ":");
+        
+        while(($szTmp = strtok(":")) !== false)
+        {
+            $szTmp2 = strtok(":");
+            if($szTmp2 !== false)
+            {
+                $iServer = $szTmp;
+                $iAuthID = $szTmp2;
+            }
+        }
+        if($iAuthID == "0")
+            return "0";
+
+        $i64friendID = bcmul($iAuthID, "2");
+
+        //Friend ID's with even numbers are the 0 auth server.
+        //Friend ID's with odd numbers are the 1 auth server.
+        $i64friendID = bcadd($i64friendID, bcadd("76561197960265728", $iServer)); 
+        
+        return $i64friendID;
+    }
+
     pg_close($ll_db)
 ?>

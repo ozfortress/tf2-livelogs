@@ -11,12 +11,16 @@
 }
 
 .stat_table_container {
-    width: 70%;
+    width: 55%;
+    border-radius: 10px;
+    border: solid 1px black;
 }
 
 .log_details {
     width: 20%;
     padding: 3;
+    border-radius: 10px;
+    border: solid 1px black;
 }
 
 .live_or_not {
@@ -36,4 +40,20 @@
 
 .log_live {
     font-size: 16px;
+}
+
+.event_feed_container {
+    width: 40%;
+}
+
+.stat_summary_col_title {
+
+}
+
+.stat_summary_col_title_secondary {
+    border-left: solid 1px black;
+}
+
+.player_community_id_link {
+
 }
