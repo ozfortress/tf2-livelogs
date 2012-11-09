@@ -1,0 +1,11 @@
+.stat_table, .stat_table td {
+    text-align: left;
+    font-size: 10px;
+}
+
+.stat_table li, .stat_table ul {
+    display: inline;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}

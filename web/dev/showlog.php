@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!DOCTYPE html>
 <html lang="en" xml:lang="en">
 <head>
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
@@ -7,13 +7,15 @@
 
     <!--<link href="/favicon.ico" rel="shortcut icon">-->
 
+    <link rel="stylesheet" type="text/css" href="/css/viewlog.css">
+    <link rel="stylesheet" type="text/css" href="/css/bootstrap/bootstrap.css">
     <?php
         require "conf/ll_database.php"
     ?>
 
 </head>
 <body>
-    <div class="wrapper">
+    <div class="log_view_wrapper">
         <div class="log_details">
         <?php
             echo $_GET['ident'] . " <br><br>";
@@ -59,11 +61,12 @@
         </div>
         <div class="stat_table_container">
             <div class="table_header">
+                TABLE HEADER :O
             </div>
             <div class="general_stat_summary">
-                <table class="stat_table" id="general_stats" cellspacing="0" cellpadding="3" border="0">
+                <table class="table table-bordered table-striped table-hover stat_table" id="general_stats" cellspacing="0" cellpadding="3" border="1">
                     <thead>
-                        <tr>
+                        <tr class="stat_summary_title_bar info">
                             <th class="stat_summary_col_title">
                                 Name
                             </th>
@@ -150,11 +153,12 @@
     <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.1/jquery-ui.min.js"></script>
     <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
     -->
-    <script src="scripts/jquery.min.js"></script>
-    <script src="scripts/jquery-ui.min.js"></script>
-    <script src="scripts/jquery.dataTables.min.js"></script>
+    <script src="/js/jquery.min.js"></script>
+    <script src="/js/jquery-ui.min.js"></script>
+    <script src="/js/jquery.dataTables.min.js"></script>
+    <script src="/js/bootstrap/bootstrap.js"></script>
     
-    <script src="scripts/viewlog.js"></script>
+    <script src="/js/viewlog.js"></script>
 </body>
 </html>
 

@@ -4,5 +4,7 @@
  
     $(document).ready(function() 
     {
-        $('#general_stats').dataTable();
+        $('#general_stats').dataTable( {
+            "aaSorting": [[2, 'asc']]
+        } );
     } );
