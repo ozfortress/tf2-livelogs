@@ -6,23 +6,24 @@
     <title>Livelogs DEV - SHOWLOG</title>
 
     <!--<link href="/favicon.ico" rel="shortcut icon">-->
-
+    <!--<link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">-->
     <link rel="stylesheet" type="text/css" href="/css/jquery.dataTables.css">
-    <link rel="stylesheet" type="text/css" href="/css/viewlog.css">
     <link rel="stylesheet" type="text/css" href="/css/bootstrap/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="/css/viewlog.css">
+        
     <?php
         require "conf/ll_database.php"
     ?>
 
 </head>
-<body>
+<body class="llBody">
     <div class="log_view_wrapper">
         <div id="navigation" class="view_navbar">
             <ul class="nav nav-pills">
                 <li>
                     <a href="/">Home</a>
                 </li>
-                <li class="dropdown active">
+                <li class="dropdown">
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#">View Settings <b class="caret"></b></a>
                     <ul class="dropdown-menu">
                         <li>

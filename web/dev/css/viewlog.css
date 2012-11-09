@@ -13,6 +13,12 @@
     -webkit-border-radius: 4px;
         -moz-border-radius: 4px;
             border-radius: 4px;
+            
+    background-color: #FFFFFF;
+}
+
+.llBody {
+    background-color: #FFFFF0;
 }
 
 .stat_table{
@@ -95,3 +101,11 @@
 .player_community_id_link {
     font-weight: bold;
 }
+
+/*Override the dataTables sorting image locations*/
+.sorting { background: url('/images/sort_both.png') no-repeat center right; }
+.sorting_asc { background: url('/images/sort_asc.png') no-repeat center right; }
+.sorting_desc { background: url('/images/sort_desc.png') no-repeat center right; }
+
+.sorting_asc_disabled { background: url('/images/sort_asc_disabled.png') no-repeat center right; }
+.sorting_desc_disabled { background: url('/images/sort_desc_disabled.png') no-repeat center right; }

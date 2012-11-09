@@ -12,6 +12,6 @@
             "bSearchable": true,
             "bInfo": false,
             "bJQueryUI": true,
-            
+            "bSort": false,
         } );
     } );

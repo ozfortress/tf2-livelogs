@@ -7,7 +7,9 @@
 
     <!--<link href="/favicon.ico" rel="shortcut icon">-->
     <!--<link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">-->
-    <link rel="stylesheet" type="text/css" href="css/jquery.dataTables.css">
+    <link rel="stylesheet" type="text/css" href="/css/jquery.dataTables.css">
+    <link rel="stylesheet" type="text/css" href="/css/bootstrap/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="/css/viewlog.css">
 
     <?php
         require "conf/ll_database.php"
@@ -16,6 +18,42 @@
 </head>
 <body>
     <div class="wrapper">
+        <div id="navigation" class="view_navbar">
+            <ul class="nav nav-pills">
+                <li class="active">
+                    <a href="/">Home</a>
+                </li>
+                <li class="dropdown">
+                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">View Settings <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="#">Stream Chat</a>
+                        </li>
+                        <li class="disabled">
+                            <a href="#">Auto Update Stats</a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="dropdown">
+                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="#">About</a>
+                        </li>
+                        
+                        <li>
+                            <a href="#">FAQ</a>
+                        </li>
+                        <li class="disabled">
+                            <a href="#">Source @ github</a>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="#">Login</a>
+                </li>
+            </ul>
+        </div>
         <div class="header">
             <p>HI!</p>
         </div>
