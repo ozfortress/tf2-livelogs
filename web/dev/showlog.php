@@ -7,6 +7,7 @@
 
     <!--<link href="/favicon.ico" rel="shortcut icon">-->
 
+    <link rel="stylesheet" type="text/css" href="/css/jquery.dataTables.css">
     <link rel="stylesheet" type="text/css" href="/css/viewlog.css">
     <link rel="stylesheet" type="text/css" href="/css/bootstrap/bootstrap.css">
     <?php

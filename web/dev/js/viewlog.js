@@ -2,12 +2,12 @@
  * will probably also contain stuff for real-time display
  */
  
-    $(function() 
+    $(document).ready( function() 
     {
         $('#general_stats').dataTable( {
             "aaSorting": [[2, 'asc']],
             "bPaginate": false,
-            "bAutoWidth": false;
+            "bAutoWidth": false,
             "bSortClasses": false,
             "bSearchable": true,
             "bInfo": false,
