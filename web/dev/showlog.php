@@ -122,9 +122,6 @@
             </div>
         </div>
         <div class="stat_table_container">
-            <!--<div class="table_header">
-                <strong>INDIVIDUAL PLAYER STATISTICS</strong>
-            </div>-->
             <div class="general_stat_summary">
                 <table class="table table-bordered table-striped table-hover stat_table" id="general_stats" cellspacing="0" cellpadding="3" border="1">
                     <thead>
@@ -248,6 +245,7 @@
             chat feed
         </div>
     </div>
+        
     <!-- LOAD SCRIPTS AT THE BOTOM FOR PERFORMANCE ++ -->
     <!-- use local scripts for dev
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
