@@ -270,7 +270,19 @@
         </div>
         <div class="stat_table_container">
             <div class="medic_stat_summary">
-                hh
+                <table class="table table-bordered table-striped table-hover stat_table" id="medic_stats" cellspacing="0" cellpadding="3" border="1">
+                    <thead>
+                        <tr class="stat_summary_title_bar info">
+                            <th class="stat_summary_title_bar">
+                            
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    
+                    </tbody>
+                    <caption>Summary of medic statistics</caption>
+                </table>
             </div>
         </div>
         <div class="event_feed_container">
