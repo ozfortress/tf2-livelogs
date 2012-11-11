@@ -169,25 +169,25 @@
                                 <abbr title="Assists">A</abbr>
                             </th>
                             <th class="stat_summary_col_title">
+                                <abbr title="Points Captured">PC</abbr>
+                            </th>
+                            <th class="stat_summary_col_title">
+                                <abbr title="Point Captures Blocked">PB</abbr>
+                            </th>
+                            <th class="stat_summary_col_title">
                                 <abbr title="Points">Points</abbr>
                             </th>
                             <th class="stat_summary_col_title">
                                 <abbr title="Damage Dealt">DMG</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                <abbr title="Healing Received">HREC</abbr>
+                                <abbr title="Healing Received">HealR</abbr>
                             </th>
                             <th class="stat_summary_col_title">
                                 <abbr title="Headshots">HS</abbr>
                             </th>
                             <th class="stat_summary_col_title">
                                 <abbr title="Backstabs">BS</abbr>
-                            </th>
-                            <th class="stat_summary_col_title">
-                                <abbr title="Points Captured">PC</abbr>
-                            </th>
-                            <th class="stat_summary_col_title">
-                                <abbr title="Point Captures Blocked">PB</abbr>
                             </th>
                             <th class="stat_summary_col_title">
                                 <abbr title="Dominations">DMN</abbr>
@@ -237,13 +237,13 @@
                             <td><span id="<?=$community_id . ".kills"?>"><?=$pstat["kills"]?></span></td>
                             <td><span id="<?=$community_id . ".deaths"?>"><?=$pstat["deaths"]?></span></td>
                             <td><span id="<?=$community_id . ".assists"?>"><?=$pstat["assists"]?></span></td>
+                            <td><span id="<?=$community_id . ".pointcaps"?>"><?=$pstat["captures"]?></span></td>
+                            <td><span id="<?=$community_id . ".pointblocks"?>"><?=$pstat["captures_blocked"]?></span></td>
                             <td><span id="<?=$community_id . ".points"?>"><?=$pstat["points"]?></span></td>
                             <td><span id="<?=$community_id . ".damage"?>"><?=$pstat["damage_dealt"]?></span></td>
                             <td><span id="<?=$community_id . ".heal_rcvd"?>"><?=$pstat["healing_received"]?></span></td>
                             <td><span id="<?=$community_id . ".headshots"?>"><?=$pstat["headshots"]?></span></td>
                             <td><span id="<?=$community_id . ".backstabs"?>"><?=$pstat["backstabs"]?></span></td>
-                            <td><span id="<?=$community_id . ".pointcaps"?>"><?=$pstat["captures"]?></span></td>
-                            <td><span id="<?=$community_id . ".pointblocks"?>"><?=$pstat["captures_blocked"]?></span></td>
                             <td><span id="<?=$community_id . ".dominations"?>"><?=$pstat["dominations"]?></span></td>
                             <td><span id="<?=$community_id . ".t_dominated"?>"><?=$pstat["times_dominated"]?></span></td>
                             <td><span id="<?=$community_id . ".revenges"?>"><?=$pstat["revenges"]?></span></td>
