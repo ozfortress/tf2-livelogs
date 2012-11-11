@@ -66,9 +66,9 @@ class llListenerObject():
         self.listener = llListener(self.listenAddress, timeout, handler_class=llListenerHandler)
 
         print "Initialising parser"
-        unique_parser_ident = str(self.ip2long(lClientAddr[0])) + "_" + str(lClientAddr[1]) + "_" + str(int(round(time.time())))
+        self.unique_parser_ident = str(self.ip2long(lClientAddr[0])) + "_" + str(lClientAddr[1]) + "_" + str(int(round(time.time())))
         
-        self.listener.parser = parser.parserClass(unique_parser_ident, server_address = lClientAddr, current_map = current_map, log_name = server_booker)
+        self.listener.parser = parser.parserClass(self.unique_parser_ident, server_address = lClientAddr, current_map = current_map, log_name = server_booker)
         self.listener.lClientAddr = lClientAddr
 
         self.lip, self.lport = self.listener.server_address

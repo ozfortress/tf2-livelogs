@@ -187,7 +187,7 @@
                                 <abbr title="Points Captured">PC</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                <abbr title="Point Captures Blocked">PCB</abbr>
+                                <abbr title="Point Captures Blocked">PB</abbr>
                             </th>
                             <th class="stat_summary_col_title">
                                 <abbr title="Dominations">DMN</abbr>
@@ -200,12 +200,6 @@
                             </th>
                             <th class="stat_summary_col_title_secondary">
                                 <abbr title="Kills per Death">KPD</abbr>
-                            </th>
-                            <th class="stat_summary_col_title_secondary">
-                                <abbr title="Assists per Death">APD</abbr>
-                            </th>
-                            <th class="stat_summary_col_title">
-                                <abbr title="Points per Death">PPD</abbr>
                             </th>
                             <th class="stat_summary_col_title">
                                 <abbr title="Damage Dealt per Death">DPD</abbr>
@@ -228,36 +222,34 @@
 					     suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer)'
                          */
                          
-                        //NAME:K:D:A:P:DMG:HEAL:HS:BS:PC:PB:DMN:TDMN:R:KPD:APD:PPD:DPD:DPR
+                        //NAME:K:D:A:P:DMG:HEAL:HS:BS:PC:PB:DMN:TDMN:R:KPD:DPD:DPR
                         while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_BOTH))
                         {
                             $community_id = steamid_to_bigint($pstat["steamid"]);
                             $p_kpd = round($pstat["kills"] / $pstat["deaths"], 3); // kills/death
-                            $p_ppd = round($pstat["points"] / $pstat["deaths"], 3); // points/death
-                            $p_apd = round($pstat["assists"] / $pstat["deaths"], 3); // assists/death
+                            //$p_ppd = round($pstat["points"] / $pstat["deaths"], 3); // points/death - useless statistic
+                            //$p_apd = round($pstat["assists"] / $pstat["deaths"], 3); // assists/death - useless statistic
                             $p_dpd = round($pstat["damage_dealt"] / $pstat["deaths"], 3); //damage/death
                             $p_dpr = round($pstat["damage_dealt"] / ($red_score + $blue_score), 3); //num rounds are red score + blue score, damage/round
                     ?>
                         <tr>
                             <td><a class="player_community_id_link" href="/player/<?=$community_id?>"><?=$pstat["name"]?></a></td>
-                            <td><span id="<?=$community_id . "kills"?>"><?=$pstat["kills"]?></span></td>
-                            <td><span id="<?=$community_id . "deaths"?>"><?=$pstat["deaths"]?></span></td>
-                            <td><span id="<?=$community_id . "assists"?>"><?=$pstat["assists"]?></span></td>
-                            <td><span id="<?=$community_id . "points"?>"><?=$pstat["points"]?></span></td>
-                            <td><span id="<?=$community_id . "damage"?>"><?=$pstat["damage_dealt"]?></span></td>
-                            <td><span id="<?=$community_id . "heal_rcvd"?>"><?=$pstat["healing_received"]?></span></td>
-                            <td><span id="<?=$community_id . "headshots"?>"><?=$pstat["headshots"]?></span></td>
-                            <td><span id="<?=$community_id . "backstabs"?>"><?=$pstat["backstabs"]?></span></td>
-                            <td><span id="<?=$community_id . "pointcaps"?>"><?=$pstat["captures"]?></span></td>
-                            <td><span id="<?=$community_id . "pointblocks"?>"><?=$pstat["captures_blocked"]?></span></td>
-                            <td><span id="<?=$community_id . "dominations"?>"><?=$pstat["dominations"]?></span></td>
-                            <td><span id="<?=$community_id . "t_dominated"?>"><?=$pstat["times_dominated"]?></span></td>
-                            <td><span id="<?=$community_id . "revenges"?>"><?=$pstat["revenges"]?></span></td>
-                            <td><span id="<?=$community_id . "kpd"?>"><?=$p_kpd?></span></td>
-                            <td><span id="<?=$community_id . "apd"?>"><?=$p_apd?></span></td>
-                            <td><span id="<?=$community_id . "ppd"?>"><?=$p_ppd?></span></td>
-                            <td><span id="<?=$community_id . "dpd"?>"><?=$p_dpd?></span></td>
-                            <td><span id="<?=$community_id . "dpr"?>"><?=$p_dpr?></span></td>
+                            <td><span id="<?=$community_id . ".kills"?>"><?=$pstat["kills"]?></span></td>
+                            <td><span id="<?=$community_id . ".deaths"?>"><?=$pstat["deaths"]?></span></td>
+                            <td><span id="<?=$community_id . ".assists"?>"><?=$pstat["assists"]?></span></td>
+                            <td><span id="<?=$community_id . ".points"?>"><?=$pstat["points"]?></span></td>
+                            <td><span id="<?=$community_id . ".damage"?>"><?=$pstat["damage_dealt"]?></span></td>
+                            <td><span id="<?=$community_id . ".heal_rcvd"?>"><?=$pstat["healing_received"]?></span></td>
+                            <td><span id="<?=$community_id . ".headshots"?>"><?=$pstat["headshots"]?></span></td>
+                            <td><span id="<?=$community_id . ".backstabs"?>"><?=$pstat["backstabs"]?></span></td>
+                            <td><span id="<?=$community_id . ".pointcaps"?>"><?=$pstat["captures"]?></span></td>
+                            <td><span id="<?=$community_id . ".pointblocks"?>"><?=$pstat["captures_blocked"]?></span></td>
+                            <td><span id="<?=$community_id . ".dominations"?>"><?=$pstat["dominations"]?></span></td>
+                            <td><span id="<?=$community_id . ".t_dominated"?>"><?=$pstat["times_dominated"]?></span></td>
+                            <td><span id="<?=$community_id . ".revenges"?>"><?=$pstat["revenges"]?></span></td>
+                            <td><span id="<?=$community_id . ".kpd"?>"><?=$p_kpd?></span></td>
+                            <td><span id="<?=$community_id . ".dpd"?>"><?=$p_dpd?></span></td>
+                            <td><span id="<?=$community_id . ".dpr"?>"><?=$p_dpr?></span></td>
                         </tr>
                     <?php
                         }

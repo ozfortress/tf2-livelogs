@@ -48,7 +48,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                     self.logger.debug("PID %s: Client %s:%s already has a listener ?", cur_pid, self.ll_clientip, self.ll_clientport)
                     dict_key = "c" + self.ll_clientip + self.ll_clientport
                     listen_ip, listen_port = self.server.clientDict[dict_key]
-
+                    
                     returnMsg = "LIVELOG!%s!%s!%s!REUSE" % (self.server.LL_API_KEY, listen_ip, listen_port)
                     self.logger.debug("RESENDING LISTENER INFO: %s", returnMsg)
                     self.request.send(returnMsg)
@@ -65,7 +65,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 lport = self.newListen.lport
                 self.logger.debug("PID %s: Listener port: %s", cur_pid, lport)
                 
-                returnMsg = "LIVELOG!%s!%s!%s" % (self.server.LL_API_KEY, sip, lport)
+                returnMsg = "LIVELOG!%s!%s!%s!%s" % (self.server.LL_API_KEY, sip, lport, self.newListen.unique_parser_ident)
                 self.logger.debug("RESPONSE: %s", returnMsg)
                 self.request.send(returnMsg)
 
