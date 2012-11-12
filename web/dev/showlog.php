@@ -222,6 +222,7 @@
 					     suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer)'
                          */
                          
+                        $mstats = Array();
                         //NAME:K:D:A:P:DMG:HEAL:HS:BS:PC:PB:DMN:TDMN:R:KPD:DPD:DPR
                         while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_BOTH))
                         {
@@ -231,6 +232,11 @@
                             //$p_apd = round($pstat["assists"] / $pstat["deaths"], 3); // assists/death - useless statistic
                             $p_dpd = round($pstat["damage_dealt"] / $pstat["deaths"], 2); //damage/death
                             $p_dpr = round($pstat["damage_dealt"] / ($red_score + $blue_score), 2); //num rounds are red score + blue score, damage/round
+                            
+                            if (($pstat["healing_done"] > 0) || ($pstat["ubers_used"]) || ($pstat["ubers_lost"]))
+                            {
+                                $mstats[sizeof($mstats)] = $pstat;
+                            }
                     ?>
                         <tr>
                             <td><a class="player_community_id_link" href="/player/<?=$community_id?>"><?=$pstat["name"]?></a></td>
@@ -280,7 +286,23 @@
                         </tr>
                     </thead>
                     <tbody>
-                    
+                    <?php
+                        $num_med = sizeof($mstats);
+                        $i = 0;
+                        
+                        while ($i < $num_med)
+                        {
+                            $community_id = steamid_to_bigint($mstats[$i]["steamid"]);
+                        ?>
+                        <tr>
+                            <td><a class="player_community_id_link" href="/player/<?=$community_id?>"><?=$mstats[$i]["name"]?></a></td>
+                            <td><span id="<?=$community_id . ".heal_done"?>"><?=$mstats[$i]["healing_done"]?></span></td>
+                            <td><span id="<?=$community_id . ".ubers_used"?>"><?=$mstats[$i]["ubers_used"]?></span></td>
+                            <td><span id="<?=$community_id . ".ubers_lost"?>"><?=$mstats[$i]["ubers_lost"]?></span></td>
+                        </tr>
+                    <?php
+                        }
+                    ?>
                     </tbody>
                     <caption>Summary of medic statistics</caption>
                 </table>
