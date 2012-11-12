@@ -52,6 +52,10 @@
     border: solid 1px black;*/
 }
 
+.stat_table_container #medic {
+    width: 25%;
+}
+
 .table_header {
     text-align: center;
     font-size: 16px;

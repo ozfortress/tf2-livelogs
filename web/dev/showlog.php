@@ -151,7 +151,7 @@
                     <span class="blue_score_tag">BLUE </span><span class="blue_score" id="blue_score_value"><?=$blue_score?></span>
             </div>
         </div>
-        <div class="stat_table_container">
+        <div class="stat_table_container" id="general">
             <div class="general_stat_summary">
                 <table class="table table-bordered table-striped table-hover stat_table" id="general_stats" cellspacing="0" cellpadding="3" border="1">
                     <thead>
@@ -266,7 +266,7 @@
                 </table>
             </div>
         </div>
-        <div class="stat_table_container">
+        <div class="stat_table_container" id="medic">
             <div class="medic_stat_summary">
                 <table class="table table-bordered table-striped table-hover stat_table" id="medic_stats" cellspacing="0" cellpadding="3" border="1">
                     <thead>
@@ -301,6 +301,7 @@
                             <td><span id="<?=$community_id . ".ubers_lost"?>"><?=$mstats[$i]["ubers_lost"]?></span></td>
                         </tr>
                     <?php
+                            $i++;
                         }
                     ?>
                     </tbody>
