@@ -226,11 +226,11 @@
                         while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_BOTH))
                         {
                             $community_id = steamid_to_bigint($pstat["steamid"]);
-                            $p_kpd = round($pstat["kills"] / $pstat["deaths"], 3); // kills/death
+                            $p_kpd = round($pstat["kills"] / $pstat["deaths"], 2); // kills/death
                             //$p_ppd = round($pstat["points"] / $pstat["deaths"], 3); // points/death - useless statistic
                             //$p_apd = round($pstat["assists"] / $pstat["deaths"], 3); // assists/death - useless statistic
-                            $p_dpd = round($pstat["damage_dealt"] / $pstat["deaths"], 3); //damage/death
-                            $p_dpr = round($pstat["damage_dealt"] / ($red_score + $blue_score), 3); //num rounds are red score + blue score, damage/round
+                            $p_dpd = round($pstat["damage_dealt"] / $pstat["deaths"], 2); //damage/death
+                            $p_dpr = round($pstat["damage_dealt"] / ($red_score + $blue_score), 2); //num rounds are red score + blue score, damage/round
                     ?>
                         <tr>
                             <td><a class="player_community_id_link" href="/player/<?=$community_id?>"><?=$pstat["name"]?></a></td>
@@ -265,8 +265,17 @@
                 <table class="table table-bordered table-striped table-hover stat_table" id="medic_stats" cellspacing="0" cellpadding="3" border="1">
                     <thead>
                         <tr class="stat_summary_title_bar info">
-                            <th class="stat_summary_title_bar">
-                            
+                            <th class="stat_summary_col_title">
+                                <abbr title="Player Name">Name</abbr>
+                            </th>
+                            <th class="stat_summary_col_title">
+                                <abbr title="Healing Done">HealD</abbr>
+                            </th>
+                            <th class="stat_summary_col_title">
+                                <abbr title="Ubers Used">UU</abbr>
+                            </th>
+                            <th class="stat_summary_col_title">
+                                <abbr title="Ubers Lost">UL</abbr>
                             </th>
                         </tr>
                     </thead>

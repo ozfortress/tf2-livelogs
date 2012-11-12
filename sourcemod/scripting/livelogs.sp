@@ -41,7 +41,7 @@ new String:socket_data[256];
 //Handles for convars
 new Handle:livelogs_daemon_adress = INVALID_HANDLE; //ip/dns of livelogs daemon
 new Handle:livelogs_daemon_port = INVALID_HANDLE; //port of livelogs daemon
-new Handle:livelogs_daemon_apikey = INVALID_HANDLE; //the key that must be specified when communicating with the ll daemon
+//new Handle:livelogs_daemon_apikey = INVALID_HANDLE; //the key that must be specified when communicating with the ll daemon
 
 //------------------------------------------------------------------------------
 // Startup
