@@ -113,6 +113,7 @@
     <script src="/js/jquery.min.js"></script>
     <script src="/js/jquery-ui.min.js"></script>
     <script src="/js/jquery.dataTables.min.js"></script>
+    <script src="/js/bootstrap/bootstrap.js" type="text/javascript"></script>
     
 </body>
 

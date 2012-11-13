@@ -202,7 +202,7 @@ public onSocketSendQueueEmpty(Handle:socket, any:arg)
 
 public onSocketError(Handle:socket, const errorType, const errorNum, any:arg)
 {
-	LogError("Connect socket error %d (errno %d)", errorType, errorNum);
+	LogError("SOCKET ERROR %d (errno %d)", errorType, errorNum);
 	CloseHandle(socket);
 }
 
@@ -225,7 +225,7 @@ public sendSocketData(String:msg[])
 
     SocketConnect(socket, onSocketConnected, onSocketReceive, onSocketDisconnect, ll_ip, ll_port);
 
-    if (DEBUG) { LogMessage("Attempted to open socket"); }
+    if (DEBUG) { LogMessage("Attempting to connect to %s:%d (DATA: %s)", ll_ip, ll_port, msg); }
 }
 
 //Command for testing socket sending

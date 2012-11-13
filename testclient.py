@@ -5,19 +5,17 @@ print "Creating client socket"
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 try:
-    client.connect(('192.168.35.128', 61222))
+    client.connect(('119.15.97.230', 61222))
 except:
     quit()
  
+#testm = "LIVELOG!123test!124.148.180.174!27015!cp_granary!John"
 testm = "LIVELOG!123test!192.168.35.1!27015!cp_granary!John"
-client.connect((192.168.35.128, 38113))
-testm = "TESTING 123"
 slen = client.send(testm)
- 
+
 rsp = client.recv(1024)
 
 client.close()
-rsp = client.recv(slen)
  
 print "Server responded: %s" % rsp
  
