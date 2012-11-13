@@ -60,7 +60,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                     self.newListen = listener.llListenerObject(sip, (self.ll_clientip, self.ll_clientport), tokenized[4])
 
                 elif (tokLen == 6):
-                    self.newListen = listener.llListenerObject(sip, (self.ll_clientip, self.ll_clientport), tokenized[4], server_booker = tokenized[5])
+                    self.newListen = listener.llListenerObject(sip, (self.ll_clientip, self.ll_clientport), tokenized[4], log_name = tokenized[5])
 
                 lport = self.newListen.lport
                 self.logger.debug("PID %s: Listener port: %s", cur_pid, lport)

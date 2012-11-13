@@ -275,10 +275,10 @@
                                 <abbr title="Player Name">Name</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                <abbr title="Healing Done">HealD</abbr>
+                                <abbr title="Healing Done">Healing</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                <abbr title="Ubers Used">UU</abbr>
+                                <abbr title="Ubers Used">U</abbr>
                             </th>
                             <th class="stat_summary_col_title">
                                 <abbr title="Ubers Lost">UL</abbr>
