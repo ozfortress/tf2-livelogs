@@ -105,14 +105,16 @@ public tournamentStateChangeEvent(Handle:event, const String:name[], bool:dontBr
 
 public gameRestartEvent(Handle:event, const String:name[], bool:dontBroadcast)
 {
-	//if teams are ready, get log listener address
-	if (live_at_restart)
-	{
-		requestListenerAddress();
-		live_at_restart = false;
-		t_state[RED] = false;
-		t_state[BLUE] = false;
-	}
+    //if teams are ready, get log listener address
+    if (live_at_restart)
+    {
+        requestListenerAddress();
+        live_at_restart = false;
+        t_state[RED] = false;
+        t_state[BLUE] = false;
+
+        is_logging = true;
+    }
 }
 
 public gameOverEvent(Handle:event, const String:name[], bool:dontBroadcast)
@@ -165,13 +167,19 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
 
     decl String:split_buffer[5][64];
     
-    new response_len = ExplodeString(rcvd, "!", split_buffer, sizeof(split_buffer[]), sizeof(split_buffer[][]), true);
+    new response_len = ExplodeString(rcvd, "!", split_buffer, 6, 64);
+    
+    LogMessage("Num Toks: %d Tokenized params: 1 %s 2 %s 3 %s 4 %s 5 %s", response_len, split_buffer[0], split_buffer[1], split_buffer[2], split_buffer[3], split_buffer[4]);
     
     if (response_len == 5)
     {
-        if ((StrEqual("LIVELOGS", split_buffer[0])) && (StrEqual(ll_api_key, split_buffer[1])))
+        LogMessage("Have tokenized response with len > 1. APIKEY: %s, SPECIFIED: %s", ll_api_key, split_buffer[1]);
+        
+        
+        if ((StrEqual("LIVELOG", split_buffer[0])) && (StrEqual(ll_api_key, split_buffer[1])))
         {            
-            Format(ll_listener_address, sizeof(ll_listener_address), "%s:%d", split_buffer[2], split_buffer[3]);
+            LogMessage("API keys match");
+            Format(ll_listener_address, sizeof(ll_listener_address), "%s:%s", split_buffer[2], split_buffer[3]);
             
             if (!StrEqual(split_buffer[4], "REUSE"))
             {
