@@ -393,9 +393,24 @@ class parserClass():
             p_name = self.escapePlayerName(regml(res, 1))
 
             self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
+            self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
 
             return
 
+        # 11/13/2012 - 23:03:29: "crixus of gaul<3><STEAM_0:1:10325827><Blue>" committed suicide with "tf_projectile_rocket" (attacker_position "-1233 5907 -385")
+        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" committed suicide with "(.*)"', logdata)
+        if (res):
+            print "Player committed suicide"
+            pprint(res.groups())
+            
+            p_sid = regml(res, 3)
+            p_name = self.escapePlayerName(regml(res, 1))
+            
+            self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
+            self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
+            
+            return
+            
         #current score (shown after round win/round length
         #L 10/21/2012 - 01:23:48: World triggered "Round_Win" (winner "Blue")
         #L 10/21/2012 - 01:23:48: World triggered "Round_Length" (seconds "88.26")

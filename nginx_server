@@ -1,0 +1,25 @@
+server {
+        listen 192.168.106.128:80 default;
+        server_name 192.165.106.128;
+
+        root /var/www/livelogs/dev/;
+
+        index index.php;
+
+        rewrite ^/view/([0-9\_]+)$ /showlog.php?ident=$1;
+
+        rewrite ^/view/scripts/(.*)$ /scripts/$1;
+
+
+        location ~ \.php$ {
+                try_files $uri =404;
+                fastcgi_split_path_info ^(.+\.php)(/.+)$;
+                fastcgi_pass 127.0.0.1:9000;
+#               fastcgi_index index.php;
+                include fastcgi_params;
+        }
+
+        location /conf {
+                deny all;
+        }
+}
