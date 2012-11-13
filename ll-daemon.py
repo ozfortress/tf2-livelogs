@@ -1,4 +1,5 @@
 import SocketServer
+import socket
 import logging
 import sys
 import os
@@ -41,7 +42,22 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 self.logger.debug('LIVELOG key is correct. Establishing listen socket and returning info')
                 #---- THE IP AND PORT SENT BY THE SERVER PLUGIN. USED TO RECOGNISE THE SERVER
                 #---- client_address cannot be used, because that is the ip:port of the plugin's socket sending the livelogs request
-                self.ll_clientip = tokenized[2]
+                
+                try:
+                    socket.inet_pton(socket.AF_INET, tokenized[2]) #if we can do this, it is a valid ipv4 address
+                    #socket.inet_pton(socket.AF_INET6, client_ip) srcds does not at this stage support ipv6, and nor do i
+                    
+                    self.ll_clientip = tokenized[2]
+                except:
+                    #either invalid address, or dns name sent. let's fix that up
+                    dns_res = socket.getaddrinfo(tokenized[2], None, socket.AF_INET) #limit to ipv4
+                    
+                    if not dns_res:
+                        self.logger.debug("Unable to resolve DNS. EXITING")
+                        return
+                        
+                    self.ll_clientip = dns_res[0][4][0]
+                
                 self.ll_clientport = tokenized[3]
 
                 if (self.server.clientExists(self.ll_clientip, self.ll_clientport)):

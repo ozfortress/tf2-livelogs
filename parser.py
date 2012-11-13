@@ -16,15 +16,6 @@ class parserClass():
             return
         
         print "Parser params: Map: " + current_map + " Log name: " + log_name
-
-        client_ip = server_address[0];
-        #try:
-        #    socket.inet_pton(socket.AF_INET, client_ip) #if we can do this, it is a valid ipv4 address
-            #socket.inet_pton(socket.AF_INET6, client_ip) srcds does not at this stage support ipv6, and nor do i
-        #except:
-            #either invalid address, or dns name sent. let's fix that up
-        dns_res = socket.getaddrinfo(client_ip, None, socket.AF_INET) #don't need a port, limit to ipv4
-        server_address[0] = dns_res[0][4][0]
             
         self.UNIQUE_IDENT = unique_ident
         self.GAME_OVER = False
