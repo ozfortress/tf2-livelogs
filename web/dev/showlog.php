@@ -98,7 +98,10 @@
                 echo "PGSQL HAD ERROR: " . pg_last_error();
             }
             
-            $score_query = "SELECT COALESCE(round_red_score, 0) as red_score, COALESCE(round_blue_score, 0) as blue_score FROM {$escaped_event_table} ORDER BY eventid DESC LIMIT 1";
+            $score_query = "SELECT COALESCE(round_red_score, 0) as red_score, COALESCE(round_blue_score, 0) as blue_score 
+                            FROM {$escaped_event_table} WHERE round_red_score IS NOT NULL AND round_blue_score IS NOT NULL 
+                            ORDER BY eventid DESC LIMIT 1";
+                            
             $score_result = pg_query($ll_db, $score_query);
             
             $score_array = pg_fetch_array($score_result, 0);
