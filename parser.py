@@ -114,7 +114,7 @@ class parserClass():
             pprint(res.groups())
             #('[v3] Kaki', '51', 'STEAM_0:1:35387674', 'Red', '40')
             sid = regml(res, 3)
-            name = self.escapePlayerName(regml(res, 1))
+            name = self.escapePlayerString(regml(res, 1))
             dmg = regml(res, 5)
 
             #pg_statupsert(self, table, column, steamid, name, value)
@@ -130,11 +130,11 @@ class parserClass():
             pprint(res.groups())
 
             medic_sid = regml(res, 3)
-            medic_name = self.escapePlayerName(regml(res, 1))
+            medic_name = self.escapePlayerString(regml(res, 1))
             medic_healing = regml(res, 9)
             medic_points = round(int(medic_healing) / 600, 2)
 
-            healt_name = self.escapePlayerName(regml(res, 5))
+            healt_name = self.escapePlayerString(regml(res, 5))
             healt_sid = regml(res, 7)
             
             self.pg_statupsert(self.STAT_TABLE, "healing_done", medic_sid, medic_name, medic_healing)
@@ -151,7 +151,7 @@ class parserClass():
             pprint(res.groups())
 
             sid = regml(res, 3)
-            name = self.escapePlayerName(regml(res, 1))
+            name = self.escapePlayerString(regml(res, 1))
 
             colname = self.selectItemName(regml(res, 5))
 
@@ -169,12 +169,12 @@ class parserClass():
             print "Player killed (normal kill)"
             pprint(res.groups())
             k_sid = regml(res, 3)
-            k_name = self.escapePlayerName(regml(res, 1))
+            k_name = self.escapePlayerString(regml(res, 1))
             k_pos = regml(res, 10)
             k_weapon = regml(res, 9)
 
             v_sid = regml(res, 7)
-            v_name = self.escapePlayerName(regml(res, 5))
+            v_name = self.escapePlayerString(regml(res, 5))
             v_pos = regml(res, 11)
 
             #killer stats
@@ -206,12 +206,12 @@ class parserClass():
             event_type = "kill_custom"
         
             k_sid = regml(res, 3)
-            k_name = self.escapePlayerName(regml(res, 1))
+            k_name = self.escapePlayerString(regml(res, 1))
             k_pos = regml(res, 11)
             k_weapon = regml(res, 9)
 
             v_sid = regml(res, 7)
-            v_name = self.escapePlayerName(regml(res, 5))
+            v_name = self.escapePlayerString(regml(res, 5))
             v_pos = regml(res, 12)
 
             self.pg_statupsert(self.STAT_TABLE, "kills", k_sid, k_name, 1)
@@ -244,7 +244,7 @@ class parserClass():
             print "Player assisted in kill"
             pprint(res.groups())
             a_sid = regml(res, 3)
-            a_name = self.escapePlayerName(regml(res, 1))
+            a_name = self.escapePlayerString(regml(res, 1))
             a_pos = regml(res, 9)
 
             #increment stats!
@@ -265,7 +265,7 @@ class parserClass():
             print "Medic death"
             pprint(res.groups())
             m_sid = regml(res, 7)
-            m_name = self.escapePlayerName(regml(res, 5))
+            m_name = self.escapePlayerString(regml(res, 5))
             m_healing = regml(res, 9)
             m_uberlost = regml(res, 10)
 
@@ -284,7 +284,7 @@ class parserClass():
             print "Ubercharge used"
             pprint(res.groups())
             m_sid = regml(res, 3)
-            m_name = self.escapePlayerName(regml(res, 1))
+            m_name = self.escapePlayerString(regml(res, 1))
 
             self.pg_statupsert(self.STAT_TABLE, "ubers_used", m_sid, m_name, 1)
 
@@ -303,7 +303,7 @@ class parserClass():
             pprint(res.groups())
             #this is going to be tricky
             cap_team = regml(res, 1)
-            cap_name = self.escapePlayerName(regml(res, 3))
+            cap_name = self.escapePlayerString(regml(res, 3))
             num_cappers = regml(res, 4)
             
             event_insert_query = "INSERT INTO %s (event_time, event_type, capture_name, capture_team, capture_num_cappers) VALUES (E'%s', '%s', E'%s', '%s', '%s')" % (self.EVENT_TABLE,
@@ -320,7 +320,7 @@ class parserClass():
                 pprint(capper.groups())
 
                 c_sid = regml(capper, 4)
-                c_name = self.escapePlayerName(regml(capper, 2))
+                c_name = self.escapePlayerString(regml(capper, 2))
 
                 self.pg_statupsert(self.STAT_TABLE, "captures", c_sid, c_name, 1)
                 self.pg_statupsert(self.STAT_TABLE, "points", c_sid, c_name, 2)
@@ -335,12 +335,12 @@ class parserClass():
             pprint(res.groups())
 
             cb_sid = regml(res, 3)
-            cb_name = self.escapePlayerName(regml(res, 1))
+            cb_name = self.escapePlayerString(regml(res, 1))
 
             self.pg_statupsert(self.STAT_TABLE, "captures_blocked", cb_sid, cb_name, 1)
             self.pg_statupsert(self.STAT_TABLE, "points", cb_sid, cb_name, 1)
 
-            cap_name = self.escapePlayerName(regml(res, 6))
+            cap_name = self.escapePlayerString(regml(res, 6))
             cap_block_team = regml(res, 4)
 
             #re-use the capture event columns, but this time capture_blocked is 1 instead of NULL, so we can distinguish
@@ -358,10 +358,10 @@ class parserClass():
             pprint(res.groups())
 
             p_sid = regml(res, 3)
-            p_name = self.escapePlayerName(regml(res, 1))
+            p_name = self.escapePlayerString(regml(res, 1))
 
             v_sid = regml(res, 7)
-            v_name = self.escapePlayerName(regml(res, 5))
+            v_name = self.escapePlayerString(regml(res, 5))
 
             self.pg_statupsert(self.STAT_TABLE, "dominations", p_sid, p_name, 1)
             self.pg_statupsert(self.STAT_TABLE, "times_dominated", v_sid, v_name, 1)
@@ -376,7 +376,7 @@ class parserClass():
             pprint(res.groups())
 
             p_sid = regml(res, 3)
-            p_name = self.escapePlayerName(regml(res, 1))
+            p_name = self.escapePlayerString(regml(res, 1))
 
             self.pg_statupsert(self.STAT_TABLE, "revenges", p_sid, p_name, 1)
 
@@ -390,7 +390,7 @@ class parserClass():
             pprint(res.groups())
 
             p_sid = regml(res, 3)
-            p_name = self.escapePlayerName(regml(res, 1))
+            p_name = self.escapePlayerString(regml(res, 1))
 
             self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
             self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
@@ -404,7 +404,7 @@ class parserClass():
             pprint(res.groups())
             
             p_sid = regml(res, 3)
-            p_name = self.escapePlayerName(regml(res, 1))
+            p_name = self.escapePlayerString(regml(res, 1))
             
             self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
             self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
@@ -441,7 +441,7 @@ class parserClass():
             pprint(res.groups())
 
             p_sid = regml(res, 3)
-            p_name = self.escapePlayerName(regml(res, 1))
+            p_name = self.escapePlayerString(regml(res, 1))
 
             self.pg_statupsert(self.STAT_TABLE, "buildings_destroyed", p_sid, p_name, 1)
             self.pg_statupsert(self.STAT_TABLE, "points", p_sid, p_name, 1)
@@ -517,11 +517,11 @@ class parserClass():
             pprint(res.groups())
 
             c_sid = regml(res, 3)
-            c_name = self.escapePlayerName(regml(res, 1))
+            c_name = self.escapePlayerString(regml(res, 1))
             c_team = regml(res, 4)
 
             chat_type = regml(res, 5)
-            chat_message = regml(res, 6)
+            chat_message = self.escapePlayerString(regml(res, 6))
 
             event_insert_query = "INSERT INTO %s (event_time, event_type) VALUES (E'%s', '%s')" % (self.EVENT_TABLE, event_time, "chat")
             self.executeQuery(event_insert_query)
@@ -653,8 +653,8 @@ class parserClass():
         
         return
 
-    def escapePlayerName(self, unescaped_name_string):
-        return unescaped_name_string.replace("'", "''")
+    def escapePlayerString(self, unescaped_string):
+        return unescaped_string.replace("'", "''")
 
     def executeQuery(self, query):
         curs = self.pgsqlConn.cursor()
