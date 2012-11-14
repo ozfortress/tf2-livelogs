@@ -50,8 +50,12 @@ class llListener(SocketServer.UDPServer):
             #print "Client address differs from initial client. Rejecting log"
             return False
     
-    def handle_server_timeout(self):
-        print "Server timeout (no logs received in 60 seconds). Exiting"
+    def handle_server_timeout(self, game_over=False):
+        if game_over:
+            print "Game over. Closing listening socket"
+        else:
+            print "Server timeout (no logs received in 90 seconds). Exiting"
+            
         self.shutdown()
 
         return
@@ -59,7 +63,7 @@ class llListener(SocketServer.UDPServer):
 
 
 class llListenerObject():
-    def __init__(self, listenIP, lClientAddr, current_map, log_name=None, timeout=240.0):
+    def __init__(self, listenIP, lClientAddr, current_map, log_name=None, timeout=90.0):
         self.listenIP = listenIP
 
         self.listenAddress = (self.listenIP, 0)
@@ -69,7 +73,7 @@ class llListenerObject():
         
         self.unique_parser_ident = str(self.ip2long(lClientAddr[0])) + "_" + str(lClientAddr[1]) + "_" + str(int(round(time.time())))
         
-        self.listener.parser = parser.parserClass(self.unique_parser_ident, server_address = lClientAddr, current_map = current_map, log_name = log_name)
+        self.listener.parser = parser.parserClass(self.unique_parser_ident, server_address = lClientAddr, current_map = current_map, log_name = log_name, endfunc = self.listener.handle_server_timeout)
         self.listener.lClientAddr = lClientAddr
 
         self.lip, self.lport = self.listener.server_address
@@ -86,7 +90,7 @@ class llListenerObject():
             self.listener.serve_forever()
         except KeyboardInterrupt:
             self.listener.server_close()
-
+        
     def returnClientAddress(self):
         return self.lClientAddr
 

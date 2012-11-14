@@ -6,7 +6,7 @@ import re
 from pprint import pprint
 
 class parserClass():
-    def __init__(self, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False):
+    def __init__(self, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc = None):
         #ALWAYS REQUIRE A UNIQUE IDENT, OTHER PARAMS ARE OPTIONAL
         try:
             self.pgsqlConn = psycopg2.connect(host="localhost", port="5432", database="livelogs", user="livelogs", password="hello")
@@ -16,10 +16,13 @@ class parserClass():
             return
         
         print "Parser params: Map: " + current_map + " Log name: " + log_name
-            
+        
+        self.endLoggingCallback = endfunc
+        
         self.UNIQUE_IDENT = unique_ident
         self.GAME_OVER = False
-
+        self.ROUND_PAUSE = False
+        
         self.bNamedLog = False
         if (log_name != None):
             self.bNamedLog = True
@@ -106,194 +109,304 @@ class parserClass():
             
             event_time = regml(res, 1) + " " + regml(res, 2)
 
+        #don't want to record stats that happen after round_win (bonustime kills and shit)
+        if not self.ROUND_PAUSE:
+        #begin round_pause blocking
+            #damage dealt
+            res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage" \x28damage "(\d+)"\x29', logdata)
+            if (res):
+                print "Damage dealt"
+                pprint(res.groups())
+                #('[v3] Kaki', '51', 'STEAM_0:1:35387674', 'Red', '40')
+                sid = regml(res, 3)
+                name = self.escapePlayerString(regml(res, 1))
+                dmg = regml(res, 5)
 
-        #damage dealt
-        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage" \x28damage "(\d+)"\x29', logdata)
-        if (res):
-            print "Damage dealt"
-            pprint(res.groups())
-            #('[v3] Kaki', '51', 'STEAM_0:1:35387674', 'Red', '40')
-            sid = regml(res, 3)
-            name = self.escapePlayerString(regml(res, 1))
-            dmg = regml(res, 5)
+                #pg_statupsert(self, table, column, steamid, name, value)
+                self.pg_statupsert(self.STAT_TABLE, "damage_dealt", sid, name, dmg)        
 
-            #pg_statupsert(self, table, column, steamid, name, value)
-            self.pg_statupsert(self.STAT_TABLE, "damage_dealt", sid, name, dmg)        
+                return
 
-            return
+            #healing done
+            #"vsn.RynoCerus<6><STEAM_0:0:23192637><Blue>" triggered "healed" against "Hyperbrole<3><STEAM_0:1:22674758><Blue>" (healing "26")
+            res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "healed" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28healing "(\d+)"\x29', logdata)
+            if (res):
+                print "Healing done"
+                pprint(res.groups())
 
-        #healing done
-        #"vsn.RynoCerus<6><STEAM_0:0:23192637><Blue>" triggered "healed" against "Hyperbrole<3><STEAM_0:1:22674758><Blue>" (healing "26")
-        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "healed" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28healing "(\d+)"\x29', logdata)
-        if (res):
-            print "Healing done"
-            pprint(res.groups())
+                medic_sid = regml(res, 3)
+                medic_name = self.escapePlayerString(regml(res, 1))
+                medic_healing = regml(res, 9)
+                medic_points = round(int(medic_healing) / 600, 2)
 
-            medic_sid = regml(res, 3)
-            medic_name = self.escapePlayerString(regml(res, 1))
-            medic_healing = regml(res, 9)
-            medic_points = round(int(medic_healing) / 600, 2)
+                healt_name = self.escapePlayerString(regml(res, 5))
+                healt_sid = regml(res, 7)
+                
+                self.pg_statupsert(self.STAT_TABLE, "healing_done", medic_sid, medic_name, medic_healing)
+                self.pg_statupsert(self.STAT_TABLE, "points", medic_sid, medic_name, medic_points)
+                self.pg_statupsert(self.STAT_TABLE, "healing_received", healt_sid, healt_name, medic_healing)
 
-            healt_name = self.escapePlayerString(regml(res, 5))
-            healt_sid = regml(res, 7)
+                return
+
+            #item picked up
+            #"skae<14><STEAM_0:1:31647857><Red>" picked up item "ammopack_medium"
+            res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" picked up item "(.*)"', logdata)
+            if (res):
+                print "Item picked up"
+                pprint(res.groups())
+
+                sid = regml(res, 3)
+                name = self.escapePlayerString(regml(res, 1))
+
+                colname = self.selectItemName(regml(res, 5))
+
+                if not colname:
+                    return
+
+                self.pg_statupsert(self.STAT_TABLE, colname, sid, name, 1) #add 1 to whatever item was picked up
+
+
+                return
+
+            #player killed (normal)
+            res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" killed "(.*)<(\d+)><(.*)><(Red|Blue)>" with "(.*)" \x28attacker_position "(.*)"\x29 \x28victim_position "(.*)"\x29', logdata)
+            if (res):
+                print "Player killed (normal kill)"
+                pprint(res.groups())
+                k_sid = regml(res, 3)
+                k_name = self.escapePlayerString(regml(res, 1))
+                k_pos = regml(res, 10)
+                k_weapon = regml(res, 9)
+
+                v_sid = regml(res, 7)
+                v_name = self.escapePlayerString(regml(res, 5))
+                v_pos = regml(res, 11)
+
+                #killer stats
+                self.pg_statupsert(self.STAT_TABLE, "kills", k_sid, k_name, 1) #add kill to killer stat
+                self.pg_statupsert(self.STAT_TABLE, "points", k_sid, k_name, 1) #add point to killer
+     
+                #victim stats
+                self.pg_statupsert(self.STAT_TABLE, "deaths", v_sid, v_name, 1) #add death to victim stat
+
+                #increment event ids and SHIT
+                event_insert_query = "INSERT INTO %s (event_time, event_type, kill_attacker_id, kill_attacker_pos, kill_victim_id, kill_victim_pos) VALUES (E'%s', E'%s', E'%s', E'%s', E'%s', E'%s')" % (self.EVENT_TABLE, 
+                                                        event_time, "kill", k_sid, k_pos, v_sid, v_pos) #creates a new, unique eventid with details of the event
+                self.executeQuery(event_insert_query)
+
+                return
+
+            #player killed (special kill) 
+            #"Liquid'Time<41><STEAM_0:1:19238234><Blue>" killed "[v3] Roight<53><STEAM_0:0:8283620><Red>" with "knife" (customkill "backstab") (attacker_position "-1085 99 240") (victim_position "-1113 51 240")
+            res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" killed "(.*)<(\d+)><(.*)><(Red|Blue)>" with "(.*)" \x28customkill "(.*)"\x29 \x28attacker_position "(.*)"\x29 \x28victim_position "(.*)"\x29', logdata)
+            if (res):
+                print "Player killed (customkill)"
+                pprint(res.groups())
+        
+                ck_type = regml(res, 10)
+
+                if (ck_type == "feign_death"):
+                    return
             
-            self.pg_statupsert(self.STAT_TABLE, "healing_done", medic_sid, medic_name, medic_healing)
-            self.pg_statupsert(self.STAT_TABLE, "points", medic_sid, medic_name, medic_points)
-            self.pg_statupsert(self.STAT_TABLE, "healing_received", healt_sid, healt_name, medic_healing)
+                event_type = "kill_custom"
+            
+                k_sid = regml(res, 3)
+                k_name = self.escapePlayerString(regml(res, 1))
+                k_pos = regml(res, 11)
+                k_weapon = regml(res, 9)
 
-            return
+                v_sid = regml(res, 7)
+                v_name = self.escapePlayerString(regml(res, 5))
+                v_pos = regml(res, 12)
 
-        #item picked up
-        #"skae<14><STEAM_0:1:31647857><Red>" picked up item "ammopack_medium"
-        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" picked up item "(.*)"', logdata)
-        if (res):
-            print "Item picked up"
-            pprint(res.groups())
+                self.pg_statupsert(self.STAT_TABLE, "kills", k_sid, k_name, 1)
 
-            sid = regml(res, 3)
-            name = self.escapePlayerString(regml(res, 1))
+                if (ck_type == "backstab"):
+                    self.pg_statupsert(self.STAT_TABLE, "backstabs", k_sid, k_name, 1)
+                    self.pg_statupsert(self.STAT_TABLE, "points", k_sid, k_name, 2)
 
-            colname = self.selectItemName(regml(res, 5))
+                    event_type = "kill_custom_backstab"
+                elif (ck_type == "headshot"):
+                    self.pg_statupsert(self.STAT_TABLE, "headshots", k_sid, k_name, 1)
+                    self.pg_statupsert(self.STAT_TABLE, "points", k_sid, k_name, 1.5)
 
-            if not colname:
+                    event_type = "kill_custom_headshot"
+                else:
+                    print "ERROR: UNKNOWN CUSTOM KILL TYPE \"%s\"" % ck_type
+                    
+                    return
+
+                event_insert_query = "INSERT INTO %s (event_time, event_type, kill_attacker_id, kill_attacker_pos, kill_victim_id, kill_victim_pos) VALUES (E'%s', '%s', E'%s', E'%s', E'%s', E'%s')" % (self.EVENT_TABLE,
+                                                        event_time, event_type, k_sid, k_pos, v_sid, v_pos)
+                self.executeQuery(event_insert_query)
+
+                return
+            
+            #player assist
+            #"Iyvn<40><STEAM_0:1:41931908><Blue>" triggered "kill assist" against "[v3] Kaki<51><STEAM_0:1:35387674><Red>" (assister_position "-905 -705 187") (attacker_position "-1246 -478 237") (victim_position "-1221 -53 283")
+            res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "kill assist" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28assister_position "(.*)"\x29 \x28attacker_position "(.*)"\x29 \x28victim_position "(.*)"\x29', logdata)
+            if (res):
+                print "Player assisted in kill"
+                pprint(res.groups())
+                a_sid = regml(res, 3)
+                a_name = self.escapePlayerString(regml(res, 1))
+                a_pos = regml(res, 9)
+
+                #increment stats!
+                self.pg_statupsert(self.STAT_TABLE, "assists", a_sid, a_name, 1)
+                self.pg_statupsert(self.STAT_TABLE, "points", a_sid, a_name, 0.5)
+
+                #kill assist ALWAYS (99.9999999999999%) comes after a kill, so we use the previous event id from inserting the kill into the event table. might need to change later
+                assist_update_query = "UPDATE %s SET kill_assister_id = E'%s', kill_assister_pos = E'%s' WHERE eventid = (SELECT eventid FROM %s WHERE event_type = 'kill' ORDER BY eventid DESC LIMIT 1)" % (self.EVENT_TABLE, 
+                                                            a_sid, a_pos, self.EVENT_TABLE)
+                self.executeQuery(assist_update_query)
+
                 return
 
-            self.pg_statupsert(self.STAT_TABLE, colname, sid, name, 1) #add 1 to whatever item was picked up
+            #medic death ubercharge = 0 or 1, healing = amount healed in that life. kill message comes directly after
+            #"%s<%i><%s><%s>" triggered "medic_death" against "%s<%i><%s><%s>" (healing "%d") (ubercharge "%s")
+            res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "medic_death" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28healing "(.*)"\x29 \x28ubercharge "(.*)"\x29', logdata)
+            if (res):
+                print "Medic death"
+                pprint(res.groups())
+                m_sid = regml(res, 7)
+                m_name = self.escapePlayerString(regml(res, 5))
+                m_healing = regml(res, 9)
+                m_uberlost = regml(res, 10)
 
+                self.pg_statupsert(self.STAT_TABLE, "ubers_lost", m_sid, m_name, m_uberlost) #may increment, or may do nothing (uberlost = 0 or 1)
+        
+                #put medic_death info into event table
+                event_insert_query = "INSERT INTO %s (event_time, event_type, medic_steamid, medic_uber_lost, medic_healing) VALUES (E'%s', '%s', E'%s', '%s', '%s')" % (self.EVENT_TABLE, 
+                                                       event_time, "medic_death", m_sid, m_uberlost, m_healing)
+                self.executeQuery(event_insert_query)
 
-            return
-
-        #player killed (normal)
-        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" killed "(.*)<(\d+)><(.*)><(Red|Blue)>" with "(.*)" \x28attacker_position "(.*)"\x29 \x28victim_position "(.*)"\x29', logdata)
-        if (res):
-            print "Player killed (normal kill)"
-            pprint(res.groups())
-            k_sid = regml(res, 3)
-            k_name = self.escapePlayerString(regml(res, 1))
-            k_pos = regml(res, 10)
-            k_weapon = regml(res, 9)
-
-            v_sid = regml(res, 7)
-            v_name = self.escapePlayerString(regml(res, 5))
-            v_pos = regml(res, 11)
-
-            #killer stats
-            self.pg_statupsert(self.STAT_TABLE, "kills", k_sid, k_name, 1) #add kill to killer stat
-            self.pg_statupsert(self.STAT_TABLE, "points", k_sid, k_name, 1) #add point to killer
- 
-            #victim stats
-            self.pg_statupsert(self.STAT_TABLE, "deaths", v_sid, v_name, 1) #add death to victim stat
-
-            #increment event ids and SHIT
-            event_insert_query = "INSERT INTO %s (event_time, event_type, kill_attacker_id, kill_attacker_pos, kill_victim_id, kill_victim_pos) VALUES (E'%s', E'%s', E'%s', E'%s', E'%s', E'%s')" % (self.EVENT_TABLE, 
-                                                    event_time, "kill", k_sid, k_pos, v_sid, v_pos) #creates a new, unique eventid with details of the event
-            self.executeQuery(event_insert_query)
-
-            return
-
-        #player killed (special kill) 
-        #"Liquid'Time<41><STEAM_0:1:19238234><Blue>" killed "[v3] Roight<53><STEAM_0:0:8283620><Red>" with "knife" (customkill "backstab") (attacker_position "-1085 99 240") (victim_position "-1113 51 240")
-        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" killed "(.*)<(\d+)><(.*)><(Red|Blue)>" with "(.*)" \x28customkill "(.*)"\x29 \x28attacker_position "(.*)"\x29 \x28victim_position "(.*)"\x29', logdata)
-        if (res):
-            print "Player killed (customkill)"
-            pprint(res.groups())
-    
-            ck_type = regml(res, 10)
-
-            if (ck_type == "feign_death"):
                 return
-        
-            event_type = "kill_custom"
-        
-            k_sid = regml(res, 3)
-            k_name = self.escapePlayerString(regml(res, 1))
-            k_pos = regml(res, 11)
-            k_weapon = regml(res, 9)
 
-            v_sid = regml(res, 7)
-            v_name = self.escapePlayerString(regml(res, 5))
-            v_pos = regml(res, 12)
+            #ubercharge used
+            res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "chargedeployed"', logdata)
+            if (res):
+                print "Ubercharge used"
+                pprint(res.groups())
+                m_sid = regml(res, 3)
+                m_name = self.escapePlayerString(regml(res, 1))
 
-            self.pg_statupsert(self.STAT_TABLE, "kills", k_sid, k_name, 1)
+                self.pg_statupsert(self.STAT_TABLE, "ubers_used", m_sid, m_name, 1)
 
-            if (ck_type == "backstab"):
-                self.pg_statupsert(self.STAT_TABLE, "backstabs", k_sid, k_name, 1)
-                self.pg_statupsert(self.STAT_TABLE, "points", k_sid, k_name, 2)
+                event_insert_query = "INSERT INTO %s (event_time, event_type, medic_steamid, medic_uber_used) VALUES (E'%s', '%s', E'%s', '%s')" % (self.EVENT_TABLE, 
+                                                        event_time, "uber_used", m_sid, 1)
+                self.executeQuery(event_insert_query)
 
-                event_type = "kill_custom_backstab"
-            elif (ck_type == "headshot"):
-                self.pg_statupsert(self.STAT_TABLE, "headshots", k_sid, k_name, 1)
-                self.pg_statupsert(self.STAT_TABLE, "points", k_sid, k_name, 1.5)
+                return
 
-                event_type = "kill_custom_headshot"
-            else:
-                print "ERROR: UNKNOWN CUSTOM KILL TYPE \"%s\"" % ck_type
+            #domination
+            res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "domination" against "(.*)<(\d+)><(.*)><(Red|Blue)>"', logdata)
+            if (res):
+                print "Player dominated"
+                pprint(res.groups())
+
+                p_sid = regml(res, 3)
+                p_name = self.escapePlayerString(regml(res, 1))
+
+                v_sid = regml(res, 7)
+                v_name = self.escapePlayerString(regml(res, 5))
+
+                self.pg_statupsert(self.STAT_TABLE, "dominations", p_sid, p_name, 1)
+                self.pg_statupsert(self.STAT_TABLE, "times_dominated", v_sid, v_name, 1)
+
+
+                return
+
+            #revenge
+            res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "revenge" against "(.*)<(\d+)><(.*)><(Red|Blue)>"', logdata)
+            if (res):
+                print "Player got revenge"
+                pprint(res.groups())
+
+                p_sid = regml(res, 3)
+                p_name = self.escapePlayerString(regml(res, 1))
+
+                self.pg_statupsert(self.STAT_TABLE, "revenges", p_sid, p_name, 1)
+
+                return
+            
+            #suicide
+            #"Hypnos<20><STEAM_0:0:24915059><Red>" committed suicide with "world" (customkill "train") (attacker_position "568 397 -511")
+            res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" committed suicide with "(.*)" \x28customkill "(.*?)"\x29', logdata)
+            if (res):
+                print "Player committed suicide"
+                pprint(res.groups())
+
+                p_sid = regml(res, 3)
+                p_name = self.escapePlayerString(regml(res, 1))
+
+                self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
+                self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
+
+                return
+
+            # 11/13/2012 - 23:03:29: "crixus of gaul<3><STEAM_0:1:10325827><Blue>" committed suicide with "tf_projectile_rocket" (attacker_position "-1233 5907 -385")
+            res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" committed suicide with "(.*)"', logdata)
+            if (res):
+                print "Player committed suicide"
+                pprint(res.groups())
+                
+                p_sid = regml(res, 3)
+                p_name = self.escapePlayerString(regml(res, 1))
+                
+                self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
+                self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
                 
                 return
+                
+            #engi building destruction
+            #"dcup<109><STEAM_0:0:15236776><Red>" triggered "killedobject" (object "OBJ_SENTRYGUN") (weapon "tf_projectile_pipe") (objectowner "NsS. oLiVz<101><STEAM_0:1:15674014><Blue>") (attacker_position "551 2559 216")
+            res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "killedobject" \x28object "(.*)"\x29 \x28weapon "(.*)"\x29 \x28objectowner "(.*)<(\d+)><(.*)><(Blue|Red)>"\x29 \x28attacker_position "(.*)"\x29', logdata)
+            if (res):
+                print "Player destroyed engineer building"
+                pprint(res.groups())
 
-            event_insert_query = "INSERT INTO %s (event_time, event_type, kill_attacker_id, kill_attacker_pos, kill_victim_id, kill_victim_pos) VALUES (E'%s', '%s', E'%s', E'%s', E'%s', E'%s')" % (self.EVENT_TABLE,
-                                                    event_time, event_type, k_sid, k_pos, v_sid, v_pos)
-            self.executeQuery(event_insert_query)
+                p_sid = regml(res, 3)
+                p_name = self.escapePlayerString(regml(res, 1))
 
-            return
+                self.pg_statupsert(self.STAT_TABLE, "buildings_destroyed", p_sid, p_name, 1)
+                self.pg_statupsert(self.STAT_TABLE, "points", p_sid, p_name, 1)
+
+                return
+        #end round_pause blocking
         
-        #player assist
-        #"Iyvn<40><STEAM_0:1:41931908><Blue>" triggered "kill assist" against "[v3] Kaki<51><STEAM_0:1:35387674><Red>" (assister_position "-905 -705 187") (attacker_position "-1246 -478 237") (victim_position "-1221 -53 283")
-        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "kill assist" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28assister_position "(.*)"\x29 \x28attacker_position "(.*)"\x29 \x28victim_position "(.*)"\x29', logdata)
+        #chat
+        res = regex(r'"(.+)<(\d+)><(.+)><(Red|Blue|Spectator)>" (say|say_team) "(.+)"', logdata)
         if (res):
-            print "Player assisted in kill"
+            print "Chat was said"
             pprint(res.groups())
-            a_sid = regml(res, 3)
-            a_name = self.escapePlayerString(regml(res, 1))
-            a_pos = regml(res, 9)
 
-            #increment stats!
-            self.pg_statupsert(self.STAT_TABLE, "assists", a_sid, a_name, 1)
-            self.pg_statupsert(self.STAT_TABLE, "points", a_sid, a_name, 0.5)
+            c_sid = regml(res, 3)
+            c_name = self.escapePlayerString(regml(res, 1))
+            c_team = regml(res, 4)
 
-            #kill assist ALWAYS (99.9999999999999%) comes after a kill, so we use the previous event id from inserting the kill into the event table. might need to change later
-            assist_update_query = "UPDATE %s SET kill_assister_id = E'%s', kill_assister_pos = E'%s' WHERE eventid = (SELECT eventid FROM %s WHERE event_type = 'kill' ORDER BY eventid DESC LIMIT 1)" % (self.EVENT_TABLE, 
-                                                        a_sid, a_pos, self.EVENT_TABLE)
-            self.executeQuery(assist_update_query)
+            chat_type = regml(res, 5)
+            chat_message = self.escapePlayerString(regml(res, 6))
 
-            return
-
-        #medic death ubercharge = 0 or 1, healing = amount healed in that life. kill message comes directly after
-        #"%s<%i><%s><%s>" triggered "medic_death" against "%s<%i><%s><%s>" (healing "%d") (ubercharge "%s")
-        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "medic_death" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28healing "(.*)"\x29 \x28ubercharge "(.*)"\x29', logdata)
-        if (res):
-            print "Medic death"
-            pprint(res.groups())
-            m_sid = regml(res, 7)
-            m_name = self.escapePlayerString(regml(res, 5))
-            m_healing = regml(res, 9)
-            m_uberlost = regml(res, 10)
-
-            self.pg_statupsert(self.STAT_TABLE, "ubers_lost", m_sid, m_name, m_uberlost) #may increment, or may do nothing (uberlost = 0 or 1)
-    
-            #put medic_death info into event table
-            event_insert_query = "INSERT INTO %s (event_time, event_type, medic_steamid, medic_uber_lost, medic_healing) VALUES (E'%s', '%s', E'%s', '%s', '%s')" % (self.EVENT_TABLE, 
-                                                   event_time, "medic_death", m_sid, m_uberlost, m_healing)
+            event_insert_query = "INSERT INTO %s (event_time, event_type) VALUES (E'%s', '%s')" % (self.EVENT_TABLE, event_time, "chat")
             self.executeQuery(event_insert_query)
 
-            return
+            #now we need to get the event ID and put it into chat!
+            curs = self.pgsqlConn.cursor()
+            eventid_query = "SELECT eventid FROM %s WHERE event_type = 'chat' ORDER BY eventid DESC LIMIT 1" % self.EVENT_TABLE
+            curs.execute(eventid_query)
+            eventid = curs.fetchone()[0]
 
-        #ubercharge used
-        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "chargedeployed"', logdata)
-        if (res):
-            print "Ubercharge used"
-            pprint(res.groups())
-            m_sid = regml(res, 3)
-            m_name = self.escapePlayerString(regml(res, 1))
+            chat_insert_query = "INSERT INTO %s (eventid, steamid, name, team, chat_type, chat_message) VALUES ('%s', E'%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, 
+                                                    eventid, c_sid, c_name, c_team, chat_type, chat_message)
 
-            self.pg_statupsert(self.STAT_TABLE, "ubers_used", m_sid, m_name, 1)
+            curs.execute(chat_insert_query)
+            
+            self.pgsqlConn.commit()
+            curs.close()
 
-            event_insert_query = "INSERT INTO %s (event_time, event_type, medic_steamid, medic_uber_used) VALUES (E'%s', '%s', E'%s', '%s')" % (self.EVENT_TABLE, 
-                                                    event_time, "uber_used", m_sid, 1)
-            self.executeQuery(event_insert_query)
-
-            return
-
+            return        
+        
         #point capture
         #/Team "(Blue|Red)" triggered "pointcaptured" \x28cp "(\d+)"\x29 \x28cpname "(.+)"\x29 \x28numcappers "(\d+)".+/
         #Team "Red" triggered "pointcaptured" (cp "0") (cpname "#koth_viaduct_cap") (numcappers "5") (player1 "[v3] Faithless<47><STEAM_0:0:52150090><Red>") (position1 "-1370 59 229") (player2 "[v3] Chrome<48><STEAM_0:1:41365809><Red>") (position2 "-1539 87 231") (player3 "[v3] Jak<49><STEAM_0:0:18518582><Red>") (position3 "-1659 150 224") (player4 "[v3] Kaki<51><STEAM_0:1:35387674><Red>") (position4 "-1685 146 224") (player5 "[v3] taintedromance<52><STEAM_0:0:41933053><Red>") (position5 "-1418 182 236")
@@ -350,72 +463,13 @@ class parserClass():
             self.executeQuery(event_insert_query)
 
             return
-
-        #domination
-        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "domination" against "(.*)<(\d+)><(.*)><(Red|Blue)>"', logdata)
-        if (res):
-            print "Player dominated"
-            pprint(res.groups())
-
-            p_sid = regml(res, 3)
-            p_name = self.escapePlayerString(regml(res, 1))
-
-            v_sid = regml(res, 7)
-            v_name = self.escapePlayerString(regml(res, 5))
-
-            self.pg_statupsert(self.STAT_TABLE, "dominations", p_sid, p_name, 1)
-            self.pg_statupsert(self.STAT_TABLE, "times_dominated", v_sid, v_name, 1)
-
-
-            return
-
-        #revenge
-        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "revenge" against "(.*)<(\d+)><(.*)><(Red|Blue)>"', logdata)
-        if (res):
-            print "Player got revenge"
-            pprint(res.groups())
-
-            p_sid = regml(res, 3)
-            p_name = self.escapePlayerString(regml(res, 1))
-
-            self.pg_statupsert(self.STAT_TABLE, "revenges", p_sid, p_name, 1)
-
-            return
-        
-        #suicide
-        #"Hypnos<20><STEAM_0:0:24915059><Red>" committed suicide with "world" (customkill "train") (attacker_position "568 397 -511")
-        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" committed suicide with "(.*)" \x28customkill "(.*?)"\x29', logdata)
-        if (res):
-            print "Player committed suicide"
-            pprint(res.groups())
-
-            p_sid = regml(res, 3)
-            p_name = self.escapePlayerString(regml(res, 1))
-
-            self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
-            self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
-
-            return
-
-        # 11/13/2012 - 23:03:29: "crixus of gaul<3><STEAM_0:1:10325827><Blue>" committed suicide with "tf_projectile_rocket" (attacker_position "-1233 5907 -385")
-        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" committed suicide with "(.*)"', logdata)
-        if (res):
-            print "Player committed suicide"
-            pprint(res.groups())
-            
-            p_sid = regml(res, 3)
-            p_name = self.escapePlayerString(regml(res, 1))
-            
-            self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
-            self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
-            
-            return
             
         #current score (shown after round win/round length
         #L 10/21/2012 - 01:23:48: World triggered "Round_Win" (winner "Blue")
         #L 10/21/2012 - 01:23:48: World triggered "Round_Length" (seconds "88.26")
         #L 10/21/2012 - 01:23:48: Team "Red" current score "0" with "6" players
         #L 10/21/2012 - 01:23:48: Team "Blue" current score "4" with "6" players
+        #Team "Blue" current score "3" with "4" players
         res = regex(r'Team "(Blue|Red)" current score "(\d+)" with "(\d+)" players', logdata)
         if (res):
             print "Current scores"
@@ -430,21 +484,8 @@ class parserClass():
                                                     team.lower(), t_score, self.EVENT_TABLE)
 
             self.executeQuery(event_update_query)
-
-            return
-
-        #engi building destruction
-        #"dcup<109><STEAM_0:0:15236776><Red>" triggered "killedobject" (object "OBJ_SENTRYGUN") (weapon "tf_projectile_pipe") (objectowner "NsS. oLiVz<101><STEAM_0:1:15674014><Blue>") (attacker_position "551 2559 216")
-        res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "killedobject" \x28object "(.*)"\x29 \x28weapon "(.*)"\x29 \x28objectowner "(.*)<(\d+)><(.*)><(Blue|Red)>"\x29 \x28attacker_position "(.*)"\x29', logdata)
-        if (res):
-            print "Player destroyed engineer building"
-            pprint(res.groups())
-
-            p_sid = regml(res, 3)
-            p_name = self.escapePlayerString(regml(res, 1))
-
-            self.pg_statupsert(self.STAT_TABLE, "buildings_destroyed", p_sid, p_name, 1)
-            self.pg_statupsert(self.STAT_TABLE, "points", p_sid, p_name, 1)
+            
+            self.ROUND_PAUSE = True
 
             return
 
@@ -463,6 +504,9 @@ class parserClass():
             
             self.GAME_OVER = True
 
+            if (self.endLoggingCallback != None):
+                self.endLoggingCallback(game_over = True);
+            
             return
 
         #final scores always comes after game_over
@@ -510,36 +554,6 @@ class parserClass():
             pprint(res.groups())
 
             return
-        #chat
-        res = regex(r'"(.+)<(\d+)><(.+)><(Red|Blue|Spectator)>" (say|say_team) "(.+)"', logdata)
-        if (res):
-            print "Chat was said"
-            pprint(res.groups())
-
-            c_sid = regml(res, 3)
-            c_name = self.escapePlayerString(regml(res, 1))
-            c_team = regml(res, 4)
-
-            chat_type = regml(res, 5)
-            chat_message = self.escapePlayerString(regml(res, 6))
-
-            event_insert_query = "INSERT INTO %s (event_time, event_type) VALUES (E'%s', '%s')" % (self.EVENT_TABLE, event_time, "chat")
-            self.executeQuery(event_insert_query)
-
-            #now we need to get the event ID and put it into chat!
-            curs = self.pgsqlConn.cursor()
-            eventid_query = "SELECT eventid FROM %s WHERE event_type = 'chat' ORDER BY eventid DESC LIMIT 1" % self.EVENT_TABLE
-            curs.execute(eventid_query)
-            eventid = curs.fetchone()[0]
-
-            chat_insert_query = "INSERT INTO %s (eventid, steamid, name, team, chat_type, chat_message) VALUES ('%s', E'%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, eventid, c_sid, c_name, c_team, chat_type, chat_message)
-
-            curs.execute(chat_insert_query)
-            
-            self.pgsqlConn.commit()
-            curs.close()
-
-            return
         
         #class change    
         res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" changed role to "(.*)"', logdata)
@@ -550,7 +564,7 @@ class parserClass():
             return
 
         #round win
-        res = regex(r'World triggered "Round_Win".+winner.+"(Blue|Red)"', logdata)
+        res = regex(r'World triggered "Round_Win" \x28winner "(Blue|Red)"\x29', logdata)
         if (res):
             print "Round won"
             pprint(res.groups())
@@ -587,7 +601,7 @@ class parserClass():
             self.executeQuery(event_update_query)
 
             return
-
+            
         #round start
         res = regex(r'World triggered "Round_Start"', logdata)
         if (res):
@@ -598,8 +612,10 @@ class parserClass():
 
             self.executeQuery(event_insert_query)
 
+            self.ROUND_PAUSE = False
+            
             return
-
+            
         #setup end UNUSED
         """res = regex(r'World triggered "Round_Setup_End"', logdata)
         if (res):
