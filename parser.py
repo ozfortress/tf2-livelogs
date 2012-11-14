@@ -501,9 +501,9 @@ class parserClass():
             self.executeQuery(event_insert_query)
             
             live_end_query = "UPDATE livelogs_servers SET live='false' WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT)
+            self.executeQuery(live_end_query)
             
-            self.GAME_OVER = True
-
+            #begin ending timer
             if (self.endLoggingCallback != None):
                 self.endLoggingCallback(game_over = True);
             
@@ -521,6 +521,9 @@ class parserClass():
             final_score_query = "UPDATE %s SET round_%s_score = '%s' WHERE event_type = 'game_over'" % (self.EVENT_TABLE, fs_team.lower(), fs_score)
             self.executeQuery(final_score_query)
 
+            if (fs_team == "Blue"):
+                self.GAME_OVER = True
+            
             return
 
         #rcon command

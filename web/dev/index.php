@@ -54,53 +54,110 @@
                 </li>
             </ul>
         </div>
+        <?php
+            if (!$ll_db)
+            {
+                die("Unable to connect to database");
+            }
+        
+            $live_query = "SELECT * FROM livelogs_servers WHERE live='true' ORDER BY numeric_id DESC";
+            $live_res = pg_query($ll_db, $live_query);
+        
+            $past_query = "SELECT * FROM livelogs_servers WHERE live='false' ORDER BY numeric_id DESC LIMIT 10";
+            $past_res = pg_query($ll_db, $past_query);
+        
+        ?>
+        
+        
         <div class="header">
             <p>HI!</p>
         </div>
 
         <div class="live_now">
         <?php
-            if (!$ll_db)
+            if (!$liveres)
             {
-                echo "Unable to connect to database";
+            ?>
+                <p class="text-error">Unable to retrieve live status</p>
+            <?php
             }
             else
             {
-                $live_query = "SELECT * FROM livelogs_servers WHERE live='true' ORDER BY numeric_id DESC";
-                $res = pg_query($ll_db, $live_query);
-
-                if (!$res)
+            
+            ?>
+        <div class="live_log_list">
+            <table width="100%">
+                <thead>
+                
+                </thead>
+                <tbody>
+            <?php
+                while ($live = pg_fetch_array($res, NULL, PGSQL_BOTH))
                 {
+                //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
                 ?>
-                    <p>Unable to retrieve live status</p>
+                    <tr>
+                        <td class="server_ip"><?=long2ip($live["server_ip"])?></td>
+                        <td class="server_port"><?=$live["server_port"]?></td>
+                        <td class="log_map"><?=$live["map"]?></td>
+                        <td class="log_name"><a href="/view/<?=$live["log_ident"]?>"><?=$live["log_name"]?></a></td>
+
+                    </tr>
                 <?php
                 }
-                else
-                {
-                    while ($live = pg_fetch_array($res, NULL, PGSQL_BOTH))
-                    {
-                    //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
-                    ?>
-                    <div class="live_list">
-                        <table width="100%">
-                            <tr>
-                                <td class="server_ip"><?=long2ip($live["server_ip"])?></td>
-                                <td class="server_port"><?=$live["server_port"]?></td>
-                                <td class="log_map"><?=$live["map"]?></td>
-                                <td class="log_name"><a href="/view/<?=$live["log_ident"]?>"><?=$live["log_name"]?></a></td>
-
-                            </tr>
-                        </table>
-                    </div>
-
-                    <?php
-                    }
-                }
+                ?>
+                </tbody>
+                <caption>Logs that are currently live</caption>
+            </table>
+        </div>
+        <?php
             }
-
         ?>
         </div>
+        <div class="past_logs">
+        <?php
+            if (!$past_res)
+            {
+            ?>
+                <p class="text-error">Unable to retrieve past logs</p>
+            <?php
+            }
+            else
+            {
+            
+            ?>
+        <div class="past_log_list">
+            <table width="100%">
+                <thead>
+                
+                </thead>
+                <tbody>
+            <?php
+                while ($live = pg_fetch_array($past_res, NULL, PGSQL_BOTH))
+                {
+                //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
+                ?>
+                    <tr>
+                        <td class="server_ip"><?=long2ip($live["server_ip"])?></td>
+                        <td class="server_port"><?=$live["server_port"]?></td>
+                        <td class="log_map"><?=$live["map"]?></td>
+                        <td class="log_name"><a href="/view/<?=$live["log_ident"]?>"><?=$live["log_name"]?></a></td>
 
+                    </tr>
+                <?php
+                }
+                ?>
+                </tbody>
+                <caption>Past 10 Logs</caption>
+            </table>
+        </div>
+        <?php
+            }
+        ?>
+        </div>
+        <div class="uploaded_logs">
+        
+        </div>
         
     </div>
 
