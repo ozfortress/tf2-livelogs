@@ -66,7 +66,7 @@
             }
             else
             {
-                $live_query = "SELECT * FROM livelogs_servers WHERE live='true'";
+                $live_query = "SELECT * FROM livelogs_servers WHERE live='true' ORDER BY numeric_id DESC";
                 $res = pg_query($ll_db, $live_query);
 
                 if (!$res)
