@@ -75,7 +75,7 @@
 
         <div class="live_now">
         <?php
-            if (!$liveres)
+            if (!$live_res)
             {
             ?>
                 <p class="text-error">Unable to retrieve live status</p>
@@ -88,11 +88,22 @@
         <div class="live_log_list">
             <table width="100%">
                 <thead>
-                
+                    <th class="live_list_col_title">
+                        Server IP
+                    </th>
+                    <th class="live_list_col_title">
+                        Server Port
+                    </th>
+                    <th class="live_list_col_title">
+                        Map
+                    </th>
+                    <th class="live_list_col_title">
+                        Log Name
+                    </th>
                 </thead>
                 <tbody>
             <?php
-                while ($live = pg_fetch_array($res, NULL, PGSQL_BOTH))
+                while ($live = pg_fetch_array($live_res, NULL, PGSQL_BOTH))
                 {
                 //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
                 ?>
@@ -129,7 +140,18 @@
         <div class="past_log_list">
             <table width="100%">
                 <thead>
-                
+                    <th class="live_list_col_title">
+                        Server IP
+                    </th>
+                    <th class="live_list_col_title">
+                        Server Port
+                    </th>
+                    <th class="live_list_col_title">
+                        Map
+                    </th>
+                    <th class="live_list_col_title">
+                        Log Name
+                    </th>
                 </thead>
                 <tbody>
             <?php
