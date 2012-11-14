@@ -458,6 +458,10 @@ class parserClass():
 
             event_insert_query = "INSERT INTO %s (event_time, event_type, game_over_reason) VALUES (E'%s', '%s', E'%s')" % (self.EVENT_TABLE, event_time, "game_over", go_reason)
             self.executeQuery(event_insert_query)
+            
+            live_end_query = "UPDATE livelogs_servers SET live='false' WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT)
+            
+            self.GAME_OVER = True
 
             return
 
