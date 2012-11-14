@@ -88,18 +88,20 @@
         <div class="live_log_list">
             <table width="100%">
                 <thead>
-                    <th class="live_list_col_title">
-                        Server IP
-                    </th>
-                    <th class="live_list_col_title">
-                        Server Port
-                    </th>
-                    <th class="live_list_col_title">
-                        Map
-                    </th>
-                    <th class="live_list_col_title">
-                        Log Name
-                    </th>
+                    <tr>
+                        <th class="live_list_col_title">
+                            Server IP
+                        </th>
+                        <th class="live_list_col_title">
+                            Server Port
+                        </th>
+                        <th class="live_list_col_title">
+                            Map
+                        </th>
+                        <th class="live_list_col_title">
+                            Log Name
+                        </th>
+                    </tr>
                 </thead>
                 <tbody>
             <?php
@@ -140,18 +142,20 @@
         <div class="past_log_list">
             <table width="100%">
                 <thead>
-                    <th class="live_list_col_title">
-                        Server IP
-                    </th>
-                    <th class="live_list_col_title">
-                        Server Port
-                    </th>
-                    <th class="live_list_col_title">
-                        Map
-                    </th>
-                    <th class="live_list_col_title">
-                        Log Name
-                    </th>
+                    <tr>
+                        <th class="live_list_col_title">
+                            Server IP
+                        </th>
+                        <th class="live_list_col_title">
+                            Server Port
+                        </th>
+                        <th class="live_list_col_title">
+                            Map
+                        </th>
+                        <th class="live_list_col_title">
+                            Log Name
+                        </th>
+                    </tr>
                 </thead>
                 <tbody>
             <?php
