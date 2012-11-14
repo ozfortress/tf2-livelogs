@@ -227,11 +227,11 @@
                         while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_BOTH))
                         {
                             $community_id = steamid_to_bigint($pstat["steamid"]);
-                            $p_kpd = round($pstat["kills"] / $pstat["deaths"], 2); // kills/death
+                            $p_kpd = round($pstat["kills"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); // kills/death
                             //$p_ppd = round($pstat["points"] / $pstat["deaths"], 3); // points/death - useless statistic
                             //$p_apd = round($pstat["assists"] / $pstat["deaths"], 3); // assists/death - useless statistic
-                            $p_dpd = round($pstat["damage_dealt"] / $pstat["deaths"], 2); //damage/death
-                            $p_dpr = round($pstat["damage_dealt"] / ($red_score + $blue_score), 2); //num rounds are red score + blue score, damage/round
+                            $p_dpd = round($pstat["damage_dealt"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); //damage/death
+                            $p_dpr = round($pstat["damage_dealt"] / (($red_score) ? ($red_score + $blue_score) : 1), 2); //num rounds are red score + blue score, damage/round
                             
                             if (($pstat["healing_done"] > 0) || ($pstat["ubers_used"]) || ($pstat["ubers_lost"]))
                             {

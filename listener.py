@@ -59,7 +59,7 @@ class llListener(SocketServer.UDPServer):
 
 
 class llListenerObject():
-    def __init__(self, listenIP, lClientAddr, current_map, log_name=None, timeout=60.0):
+    def __init__(self, listenIP, lClientAddr, current_map, log_name=None, timeout=240.0):
         self.listenIP = listenIP
 
         self.listenAddress = (self.listenIP, 0)
