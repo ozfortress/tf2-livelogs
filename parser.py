@@ -682,6 +682,6 @@ class parserClass():
         self.executeQuery(live_end_query)
         
         #begin ending timer
-        if ((self.closeListenerCallback != None) and (game_over):
+        if ((self.closeListenerCallback != None) and (game_over)):
             self.closeListenerCallback(game_over);
     
