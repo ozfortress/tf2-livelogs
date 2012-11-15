@@ -135,17 +135,17 @@
             <div class="live_or_not">
                 <span class="live_id">Status: </span>
             <?php
-                if ($log_details["live"])
+                if ($log_details["live"] == 'true')
                 {
                 ?>
-                    <span class="log_live text-success">Live!</span><br>
+                    <span class="log_status text-success">Live!</span><br>
                     <span class="time_elapsed_id">Time Elapsed: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
                 <?php
                 }
                 else
                 {
                 ?>
-                    <span class="log_not_live text-error">Not live</span><br>
+                    <span class="log_status text-error">Not live</span><br>
                     <span class="time_elapsed_id">Total Time: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
                 <?php
                 }
