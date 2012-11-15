@@ -5,7 +5,8 @@ print "Creating client socket"
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
 try:
-    client.connect(('119.15.97.230', 61222))
+    #client.connect(('119.15.97.230', 61222))
+    client.connect(('192.168.35.128', 61222))
 except:
     quit()
  

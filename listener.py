@@ -63,6 +63,10 @@ class llListener(SocketServer.UDPServer):
             
         else:
             print "Server timeout (no logs received in 90 seconds). Exiting"
+            
+            #toggle log's status and stop recording
+            self.parser.endLogParsing()
+            
             self.shutdown()
        
         return

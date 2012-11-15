@@ -17,7 +17,7 @@ class parserClass():
         
         print "Parser params: Map: " + current_map + " Log name: " + log_name
         
-        self.endLoggingCallback = endfunc
+        self.closeListenerCallback = endfunc
         
         self.UNIQUE_IDENT = unique_ident
         self.GAME_OVER = False
@@ -500,13 +500,6 @@ class parserClass():
             event_insert_query = "INSERT INTO %s (event_time, event_type, game_over_reason) VALUES (E'%s', '%s', E'%s')" % (self.EVENT_TABLE, event_time, "game_over", go_reason)
             self.executeQuery(event_insert_query)
             
-            live_end_query = "UPDATE livelogs_servers SET live='false' WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT)
-            self.executeQuery(live_end_query)
-            
-            #begin ending timer
-            if (self.endLoggingCallback != None):
-                self.endLoggingCallback(game_over = True);
-            
             return
 
         #final scores always comes after game_over
@@ -523,6 +516,7 @@ class parserClass():
 
             if (fs_team == "Blue"):
                 self.GAME_OVER = True
+                self.endLogParsing(True)
             
             return
 
@@ -681,3 +675,13 @@ class parserClass():
 
         self.pgsqlConn.commit()
         curs.close()
+
+    def endLogParsing(self, game_over=False):
+        print "Ending log parsing"
+        live_end_query = "UPDATE livelogs_servers SET live='false' WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT)
+        self.executeQuery(live_end_query)
+        
+        #begin ending timer
+        if ((self.closeListenerCallback != None) and (game_over):
+            self.closeListenerCallback(game_over);
+    
