@@ -16,8 +16,8 @@
     ?>
 
 </head>
-<body>
-    <div class="wrapper">
+<body class="llBody">
+    <div class="livelogs_wrapper">
         <div id="navigation" class="view_navbar">
             <ul class="nav nav-pills">
                 <li class="active">
@@ -27,10 +27,10 @@
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#">View Settings <b class="caret"></b></a>
                     <ul class="dropdown-menu">
                         <li>
-                            <a href="#">Stream Chat</a>
+                            <a href="#">asdf</a>
                         </li>
                         <li class="disabled">
-                            <a href="#">Auto Update Stats</a>
+                            <a href="#">ghjk</a>
                         </li>
                     </ul>
                 </li>
@@ -73,7 +73,7 @@
             <p>HI!</p>
         </div>
 
-        <div class="live_now">
+        <div class="log_list_container">
         <?php
             if (!$live_res)
             {
@@ -85,49 +85,49 @@
             {
             
             ?>
-        <div class="live_log_list">
-            <table width="100%">
-                <thead>
-                    <tr>
-                        <th class="live_list_col_title">
-                            Server IP
-                        </th>
-                        <th class="live_list_col_title">
-                            Server Port
-                        </th>
-                        <th class="live_list_col_title">
-                            Map
-                        </th>
-                        <th class="live_list_col_title">
-                            Log Name
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-            <?php
-                while ($live = pg_fetch_array($live_res, NULL, PGSQL_BOTH))
-                {
-                //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
-                ?>
-                    <tr>
-                        <td class="server_ip"><?=long2ip($live["server_ip"])?></td>
-                        <td class="server_port"><?=$live["server_port"]?></td>
-                        <td class="log_map"><?=$live["map"]?></td>
-                        <td class="log_name"><a href="/view/<?=$live["log_ident"]?>"><?=$live["log_name"]?></a></td>
-
-                    </tr>
+            <div class="log_list">
+                <table class="table table-bordered table-hover ll_table">
+                    <thead>
+                        <tr>
+                            <th class="log_list_col_title">
+                                Server IP
+                            </th>
+                            <th class="log_list_col_title">
+                                Server Port
+                            </th>
+                            <th class="log_list_col_title">
+                                Map
+                            </th>
+                            <th class="log_list_col_title">
+                                Log Name
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
                 <?php
-                }
-                ?>
-                </tbody>
-                <caption>Logs that are currently live</caption>
-            </table>
-        </div>
+                    while ($live = pg_fetch_array($live_res, NULL, PGSQL_BOTH))
+                    {
+                    //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
+                    ?>
+                        <tr>
+                            <td class="server_ip"><?=long2ip($live["server_ip"])?></td>
+                            <td class="server_port"><?=$live["server_port"]?></td>
+                            <td class="log_map"><?=$live["map"]?></td>
+                            <td class="log_name"><a href="/view/<?=$live["log_ident"]?>"><?=$live["log_name"]?></a></td>
+
+                        </tr>
+                    <?php
+                    }
+                    ?>
+                    </tbody>
+                    <caption>Logs that are currently live</caption>
+                </table>
+            </div>
         <?php
             }
         ?>
         </div>
-        <div class="past_logs">
+        <div class="log_list_container">
         <?php
             if (!$past_res)
             {
@@ -139,45 +139,48 @@
             {
             
             ?>
-        <div class="past_log_list">
-            <table width="100%">
-                <thead>
-                    <tr>
-                        <th class="live_list_col_title">
-                            Server IP
-                        </th>
-                        <th class="live_list_col_title">
-                            Server Port
-                        </th>
-                        <th class="live_list_col_title">
-                            Map
-                        </th>
-                        <th class="live_list_col_title">
-                            Log Name
-                        </th>
-                    </tr>
-                </thead>
-                <tbody>
-            <?php
-                while ($past = pg_fetch_array($past_res, NULL, PGSQL_BOTH))
-                {
-                //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
-                ?>
-                    <tr>
-                        <td class="server_ip"><?=long2ip($past["server_ip"])?></td>
-                        <td class="server_port"><?=$past["server_port"]?></td>
-                        <td class="log_map"><?=$past["map"]?></td>
-                        <td class="log_name"><a href="/view/<?=$past["log_ident"]?>"><?=$past["log_name"]?></a></td>
-
-                    </tr>
+            <div class="log_list">
+                <table class="table table-bordered table-hover ll_table">
+                    <thead>
+                        <tr>
+                            <th class="log_list_col_title">
+                                Server IP
+                            </th>
+                            <th class="log_list_col_title">
+                                Server Port
+                            </th>
+                            <th class="log_list_col_title">
+                                Map
+                            </th>
+                            <th class="log_list_col_title">
+                                Log Name
+                            </th>
+                            <th class="log_list_col_title">
+                                Date
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
                 <?php
-                }
-                ?>
-                </tbody>
-                <caption>Past 10 Logs</caption>
-            </table>
-            <p><a href="pastlogs.php?opt=all">See all</a></p>
-        </div>
+                    while ($past = pg_fetch_array($past_res, NULL, PGSQL_BOTH))
+                    {
+                    //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
+                    ?>
+                        <tr>
+                            <td class="server_ip"><?=long2ip($past["server_ip"])?></td>
+                            <td class="server_port"><?=$past["server_port"]?></td>
+                            <td class="log_map"><?=$past["map"]?></td>
+                            <td class="log_name"><a href="/view/<?=$past["log_ident"]?>"><?=$past["log_name"]?></a></td>
+                            <td class="log_date">0</td>
+                        </tr>
+                    <?php
+                    }
+                    ?>
+                    </tbody>
+                    <caption>Past 10 Logs</caption>
+                </table>
+                <p><a href="pastlogs.php?opt=all">See all</a></p>
+            </div>
         <?php
             }
         ?>

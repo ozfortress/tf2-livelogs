@@ -3,7 +3,7 @@
     padding: 6px;
 }
 
-.log_view_wrapper {
+.livelogs_wrapper {
     margin-left: auto;
     margin-right: auto;
     overflow: auto;
@@ -22,17 +22,17 @@
     background-color: #FFFFF0;
 }
 
-.stat_table{
+.ll_table{
     text-align: left;
     /*font-size: 10px;*/
     
 }
 
-.stat_table td {
+.ll_table td {
     white-space: nowrap;
 }
 
-.stat_table thead {
+.ll_table thead {
     color: #339933;
     border-bottom: 2px solid #dddddd;
 }
@@ -56,11 +56,6 @@
     width: 22%;
 }
 
-.table_header {
-    text-align: center;
-    font-size: 16px;
-}
-
 .log_details_container {
     width: 20%;
     padding: 3px;
@@ -73,10 +68,6 @@
             
     margin-bottom: 5px;
     margin-left: 5px;
-}
-
-.live_or_not {
-
 }
 
 .log_name_id, .server_details_id, .log_map_id, .live_id, .log_id_tag, .time_elapsed_id, .score_id {
@@ -130,8 +121,24 @@
 }
 
 .chat_feed_container {
-    float:left;
+    float: left;
     width: 40%;
     margin-bottom: 5px;
     margin-left: 5px;
+}
+
+.log_list_container {
+    float: left;
+    width: 45%;
+    margin-bottom: 5px;
+    margin-left: 5px;
+    margin-right: 5px;
+}
+
+.log_list {
+    width: 100%;
+}
+
+.log_table {
+    text-align: left;
 }

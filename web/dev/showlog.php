@@ -17,7 +17,7 @@
 
 </head>
 <body class="llBody">
-    <div class="log_view_wrapper">
+    <div class="livelogs_wrapper">
         <div id="navigation" class="view_navbar">
             <ul class="nav nav-pills">
                 <li>
@@ -156,7 +156,7 @@
         </div>
         <div class="stat_table_container">
             <div class="general_stat_summary">
-                <table class="table table-bordered table-striped table-hover stat_table" id="general_stats" cellspacing="0" cellpadding="3" border="1">
+                <table class="table table-bordered table-striped table-hover ll_table" id="general_stats" cellspacing="0" cellpadding="3" border="1">
                     <thead>
                         <tr class="stat_summary_title_bar info">
                             <th class="stat_summary_col_title">
@@ -271,7 +271,7 @@
         </div>
         <div class="stat_table_container stat_table_container_medic">
             <div class="medic_stat_summary">
-                <table class="table table-bordered table-striped table-hover stat_table" id="medic_stats" cellspacing="0" cellpadding="3" border="1">
+                <table class="table table-bordered table-striped table-hover ll_table" id="medic_stats" cellspacing="0" cellpadding="3" border="1">
                     <thead>
                         <tr class="stat_summary_title_bar info">
                             <th class="stat_summary_col_title">
