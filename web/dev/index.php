@@ -16,9 +16,9 @@
     ?>
 
 </head>
-<body class="llBody">
+<body class="ll_body">
     <div class="livelogs_wrapper">
-        <div id="navigation" class="view_navbar">
+        <div id="navigation" class="ll_navbar">
             <ul class="nav nav-pills">
                 <li class="active">
                     <a href="/">Home</a>
@@ -68,9 +68,8 @@
         
         ?>
         
-        
-        <div class="header">
-            <p>HI!</p>
+        <div class="index_welcome">
+            <p>Welcome to Livelogs! Below you will find a list of logs that are currently live, and a list of past logs that you may view.</p>
         </div>
 
         <div class="log_list_container">
@@ -179,7 +178,7 @@
                     </tbody>
                     <caption>Past 10 Logs</caption>
                 </table>
-                <p><a href="pastlogs.php?opt=all">See all</a></p>
+                <p align="right"><a href="pastlogs.php?opt=all">See all</a></p>
             </div>
         <?php
             }

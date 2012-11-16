@@ -16,9 +16,9 @@
     ?>
 
 </head>
-<body class="llBody">
+<body class="ll_body">
     <div class="livelogs_wrapper">
-        <div id="navigation" class="view_navbar">
+        <div id="navigation" class="ll_navbar">
             <ul class="nav nav-pills">
                 <li>
                     <a href="/">Home</a>

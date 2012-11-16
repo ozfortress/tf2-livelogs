@@ -1,4 +1,4 @@
-.view_navbar {
+.ll_navbar {
     margin-bottom: 1em;
     padding: 6px;
 }
@@ -18,7 +18,7 @@
     background-color: #FFFFFF;
 }
 
-.llBody {
+.ll_body {
     background-color: #FFFFF0;
 }
 
@@ -129,10 +129,9 @@
 
 .log_list_container {
     float: left;
-    width: 45%;
+    width: 49%;
     margin-bottom: 5px;
-    margin-left: 5px;
-    margin-right: 5px;
+    margin-left: 10px;
 }
 
 .log_list {
@@ -141,4 +140,9 @@
 
 .log_table {
     text-align: left;
+}
+
+.index_welcome {
+    margin-left: 10px;
+    width: 90%;
 }
