@@ -3,7 +3,7 @@
 <head>
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
     
-    <title>Livelogs DEV</title>
+    <title>Livelogs DEV - INDEX</title>
 
     <!--<link href="/favicon.ico" rel="shortcut icon">-->
     <!--<link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">-->
@@ -13,6 +13,17 @@
 
     <?php
         require "conf/ll_database.php"
+        
+        if (!$ll_db)
+        {
+            die("Unable to connect to database");
+        }
+    
+        $live_query = "SELECT * FROM livelogs_servers WHERE live='true' ORDER BY numeric_id DESC";
+        $live_res = pg_query($ll_db, $live_query);
+    
+        $past_query = "SELECT * FROM livelogs_servers WHERE live='false' ORDER BY numeric_id DESC LIMIT 10";
+        $past_res = pg_query($ll_db, $past_query);
     ?>
 
 </head>
@@ -54,20 +65,6 @@
                 </li>
             </ul>
         </div>
-        <?php
-            if (!$ll_db)
-            {
-                die("Unable to connect to database");
-            }
-        
-            $live_query = "SELECT * FROM livelogs_servers WHERE live='true' ORDER BY numeric_id DESC";
-            $live_res = pg_query($ll_db, $live_query);
-        
-            $past_query = "SELECT * FROM livelogs_servers WHERE live='false' ORDER BY numeric_id DESC LIMIT 10";
-            $past_res = pg_query($ll_db, $past_query);
-        
-        ?>
-        
         <div class="index_welcome">
             <p>Welcome to Livelogs! Below you will find a list of logs that are currently live, and a list of past logs that you may view.</p>
         </div>

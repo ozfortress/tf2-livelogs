@@ -4,72 +4,24 @@
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
     
     <title>Livelogs DEV - SHOWLOG</title>
-
-    <!--<link href="/favicon.ico" rel="shortcut icon">-->
-    <!--<link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">-->
-    <link rel="stylesheet" type="text/css" href="/css/jquery.dataTables.css">
-    <link rel="stylesheet" type="text/css" href="/css/bootstrap/bootstrap.css">
-    <link rel="stylesheet" type="text/css" href="/css/viewlog.css">
-        
     <?php
         require "conf/ll_database.php"
-    ?>
+        
+        $UNIQUE_IDENT = $_GET["ident"];
+        $escaped_ident = pg_escape_string($UNIQUE_IDENT);
+        
+        $log_detail_query = "SELECT log_name, server_ip, server_port, map, live FROM livelogs_servers WHERE log_ident = '{$escaped_ident}'";
+        $log_detail_res = pg_query($ll_db, $log_detail_query);
 
-</head>
-<body class="ll_body">
-    <div class="livelogs_wrapper">
-        <div id="navigation" class="ll_navbar">
-            <ul class="nav nav-pills">
-                <li>
-                    <a href="/">Home</a>
-                </li>
-                <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">View Settings <b class="caret"></b></a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a href="#">Stream Chat</a>
-                        </li>
-                        <li class="disabled">
-                            <a href="#">Auto Update Stats</a>
-                        </li>
-                    </ul>
-                </li>
-                <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a href="#">About</a>
-                        </li>
-                        
-                        <li>
-                            <a href="#">FAQ</a>
-                        </li>
-                        <li class="disabled">
-                            <a href="#">Source @ github</a>
-                        </li>
-                    </ul>
-                </li>
-                <li>
-                    <a href="#">Login</a>
-                </li>
-            </ul>
-        </div>
-    
-        <div class="log_details_container">
-        <?php
-            $UNIQUE_IDENT = $_GET["ident"];
-            $escaped_ident = pg_escape_string($UNIQUE_IDENT);
-            
-            $log_detail_query = "SELECT log_name, server_ip, server_port, map, live FROM livelogs_servers WHERE log_ident = '{$escaped_ident}'";
-            $log_detail_res = pg_query($ll_db, $log_detail_query);
-
-            ////server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
-            $log_details = pg_fetch_array($log_detail_res, 0, PGSQL_BOTH);
-            if (!$log_details["log_name"])
-            {
-                die("404");
-            }
-            
+        ////server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
+        $log_details = pg_fetch_array($log_detail_res, 0, PGSQL_BOTH);
+        
+        if (!$log_details["log_name"])
+        {
+            $valid_log_ident = false;
+        }
+        else
+        {
             //have a valid ident. now we can grab stats and stuff!
             if (function_exists("pg_escape_identifier"))
             {
@@ -126,8 +78,74 @@
             $time_array = pg_fetch_array($time_result, 
             
             $time_elapsed = 0;*/
-            
+        }
+        
+        
+        //live or not
+        if ($log_details["live"] === "f")
+            $log_live = false;
+        else
+            $log_live = true;
+    ?>
+
+    <!--<link href="/favicon.ico" rel="shortcut icon">-->
+    <!--<link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">-->
+    <link rel="stylesheet" type="text/css" href="/css/jquery.dataTables.css">
+    <link rel="stylesheet" type="text/css" href="/css/bootstrap/bootstrap.css">
+    <link rel="stylesheet" type="text/css" href="/css/viewlog.css">
+    
+</head>
+<body class="ll_body">
+    <div class="livelogs_wrapper">
+    
+        <?php
+        if (!$valid_log_ident)
+        {
+            die("404</div>"); //die with an error if we have invalid log ident, but close the main div
+        }
         ?>
+    
+        <div id="navigation" class="ll_navbar">
+            <ul class="nav nav-pills">
+                <li>
+                    <a href="/">Home</a>
+                </li>
+                <li class="dropdown">
+                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">View Settings <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="#">Show Chat</a>
+                        </li>
+                        <li <?if (!$log_live) echo 'class="disabled"'?>>
+                            <a href="#" data-toggle="collapse" data-target="#sourcetv2d">Show SourceTV 2D</a>
+                        </li>
+                        <li class="disabled">
+                            <a href="#">Auto Update Stats</a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="dropdown">
+                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a href="#">About</a>
+                        </li>
+                        
+                        <li>
+                            <a href="#">FAQ</a>
+                        </li>
+                        <li class="disabled">
+                            <a href="#">Source @ github</a>
+                        </li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="#">Login</a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="log_details_container">
             <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="/download/<?=$UNIQUE_IDENT?>"><?=$UNIQUE_IDENT?></a></span><br>
             <span class="log_name_id">Name: </span><span class="log_detail"><?=$log_details["log_name"]?></span><br>
             <span class="server_details_id">Server: </span><span class="log_detail"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span><br>
@@ -135,7 +153,7 @@
             <div class="live_or_not">
                 <span class="live_id">Status: </span>
             <?php
-                if ($log_details["live"] == 't')
+                if ($log_live)
                 {
                 ?>
                     <span class="log_status text-success">Live!</span><br>
@@ -154,6 +172,7 @@
                     <span class="blue_score_tag">BLUE </span><span class="blue_score" id="blue_score_value"><?=$blue_score?></span>
             </div>
         </div>
+        
         <div class="stat_table_container">
             <div class="general_stat_summary">
                 <table class="table table-bordered table-striped table-hover ll_table" id="general_stats" cellspacing="0" cellpadding="3" border="1">
@@ -269,6 +288,7 @@
                 </table>
             </div>
         </div>
+        
         <div class="stat_table_container stat_table_container_medic">
             <div class="medic_stat_summary">
                 <table class="table table-bordered table-striped table-hover ll_table" id="medic_stats" cellspacing="0" cellpadding="3" border="1">
@@ -312,9 +332,11 @@
                 </table>
             </div>
         </div>
+        
         <div class="event_feed_container">
             event feed
         </div>
+        
         <div class="chat_feed_container">
             chat feed
         </div>
