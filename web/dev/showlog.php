@@ -10,7 +10,7 @@
         $UNIQUE_IDENT = $_GET["ident"];
         $escaped_ident = pg_escape_string($UNIQUE_IDENT);
         
-        $log_detail_query = "SELECT log_name, server_ip, server_port, map, live FROM livelogs_servers WHERE log_ident = '{$escaped_ident}'";
+        $log_detail_query = "SELECT log_name, server_ip, server_port, map, live, webtv_port FROM livelogs_servers WHERE log_ident = '{$escaped_ident}'";
         $log_detail_res = pg_query($ll_db, $log_detail_query);
 
         ////server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
@@ -358,12 +358,11 @@
                 chat/event feed<br>
                 chat/event feed<br>
                 chat/event feed<br>
-
             </div>
         </div>
         
-        <div class="left_float_sourcetv_container">
-            <div class="sourcetv_controls"<?if ((!$log_live) || (!$log_details["webtv_port"])) echo ' style="display: none;"'?>>
+        <div class="left_float_sourcetv_container collapse in"<?if ((!$log_live) || (!$log_details["webtv_port"])) echo ' style="display: none;"'?>>
+            <div class="sourcetv_controls">
                 <p class="text-info">STV 2D</p>
                 <button class="btn btn-success" onclick="stv2d_connect('<?=long2ip($log_details["server_ip"])?>', <?=$log_details["webtv_port"]?>)">Connect</button>
                 <button class="btn btn-danger" onclick="stv2d_disconnect()">Disconnect</button>
