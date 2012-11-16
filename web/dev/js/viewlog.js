@@ -5,7 +5,7 @@
     $(document).ready( function()
     {
         $('#general_stats').dataTable( {
-            "aaSorting": [[2, 'asc']],
+            "aaSorting": [[1, 'dt-numeric-html-desc']],
             "aoColumnDefs": [
                 { "sType": "html", "bSearchable": true, "aTargets": [0] },
                 { "sType": "dt-numeric-html", "bSearchable": false, "aTargets": ["_all"] },

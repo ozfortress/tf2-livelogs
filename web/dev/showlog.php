@@ -175,7 +175,7 @@
         
         <div class="stat_table_container">
             <div class="general_stat_summary">
-                <table class="table table-bordered table-striped table-hover ll_table" id="general_stats" cellspacing="0" cellpadding="3" border="1">
+                <table class="table table-bordered table-striped table-hover ll_table" id="general_stats">
                     <thead>
                         <tr class="stat_summary_title_bar info">
                             <th class="stat_summary_col_title">
@@ -288,57 +288,58 @@
                 </table>
             </div>
         </div>
-        
-        <div class="stat_table_container stat_table_container_medic">
-            <div class="medic_stat_summary">
-                <table class="table table-bordered table-striped table-hover ll_table" id="medic_stats" cellspacing="0" cellpadding="3" border="1">
-                    <thead>
-                        <tr class="stat_summary_title_bar info">
-                            <th class="stat_summary_col_title">
-                                <abbr title="Player Name">Name</abbr>
-                            </th>
-                            <th class="stat_summary_col_title">
-                                <abbr title="Healing Done">Healing</abbr>
-                            </th>
-                            <th class="stat_summary_col_title">
-                                <abbr title="Ubers Used">U</abbr>
-                            </th>
-                            <th class="stat_summary_col_title">
-                                <abbr title="Ubers Lost">UL</abbr>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php
-                        $num_med = sizeof($mstats);
-                        $i = 0;
-                        
-                        while ($i < $num_med)
-                        {
-                            $community_id = steamid_to_bigint($mstats[$i]["steamid"]);
+        <div class="left_float_feed_medic_container">
+            <div class="stat_table_container stat_table_container_medic">
+                <div class="medic_stat_summary">
+                    <table class="table table-bordered table-striped table-hover ll_table" id="medic_stats">
+                        <thead>
+                            <tr class="stat_summary_title_bar info">
+                                <th class="stat_summary_col_title">
+                                    <abbr title="Player Name">Name</abbr>
+                                </th>
+                                <th class="stat_summary_col_title">
+                                    <abbr title="Healing Done">Healing</abbr>
+                                </th>
+                                <th class="stat_summary_col_title">
+                                    <abbr title="Ubers Used">U</abbr>
+                                </th>
+                                <th class="stat_summary_col_title">
+                                    <abbr title="Ubers Lost">UL</abbr>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php
+                            $num_med = sizeof($mstats);
+                            $i = 0;
+                            
+                            while ($i < $num_med)
+                            {
+                                $community_id = steamid_to_bigint($mstats[$i]["steamid"]);
+                            ?>
+                            <tr>
+                                <td><a class="player_community_id_link" href="/player/<?=$community_id?>"><?=$mstats[$i]["name"]?></a></td>
+                                <td><span id="<?=$community_id . ".heal_done"?>"><?=$mstats[$i]["healing_done"]?></span></td>
+                                <td><span id="<?=$community_id . ".ubers_used"?>"><?=$mstats[$i]["ubers_used"]?></span></td>
+                                <td><span id="<?=$community_id . ".ubers_lost"?>"><?=$mstats[$i]["ubers_lost"]?></span></td>
+                            </tr>
+                        <?php
+                                $i++;
+                            }
                         ?>
-                        <tr>
-                            <td><a class="player_community_id_link" href="/player/<?=$community_id?>"><?=$mstats[$i]["name"]?></a></td>
-                            <td><span id="<?=$community_id . ".heal_done"?>"><?=$mstats[$i]["healing_done"]?></span></td>
-                            <td><span id="<?=$community_id . ".ubers_used"?>"><?=$mstats[$i]["ubers_used"]?></span></td>
-                            <td><span id="<?=$community_id . ".ubers_lost"?>"><?=$mstats[$i]["ubers_lost"]?></span></td>
-                        </tr>
-                    <?php
-                            $i++;
-                        }
-                    ?>
-                    </tbody>
-                    <caption>Summary of medic statistics</caption>
-                </table>
+                        </tbody>
+                        <caption>Summary of medic statistics</caption>
+                    </table>
+                </div>
+            </div>
+            
+            <div class="live_feed_container">
+                chat/event feed
             </div>
         </div>
         
-        <div class="event_feed_container">
-            event feed
-        </div>
-        
-        <div class="chat_feed_container">
-            chat feed
+        <div class="left_float_sourcetv_container">
+            asdf
         </div>
     </div>
         

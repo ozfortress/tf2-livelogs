@@ -53,7 +53,7 @@
 }
 
 .stat_table_container_medic {
-    width: 22%;
+    width: 100%;
 }
 
 .log_details_container {
@@ -112,15 +112,26 @@
     font-weight: bold;
 }
 
-.event_feed_container {
+/*.event_feed_container {
     float:left;
     width: 40%;
     margin-bottom: 5px;
     margin-left: 5px;
     margin-right: 5px;
+}*/
+
+.left_float_feed_medic_container {
+    float:left;
+    width: 22%;
 }
 
-.chat_feed_container {
+.left_float_sourcetv_container {
+    float: left;
+    width: 76%;
+    margin-left: 5px;
+}
+
+.live_feed_container {
     float: left;
     width: 40%;
     margin-bottom: 5px;
