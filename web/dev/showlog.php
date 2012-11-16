@@ -97,14 +97,12 @@
 </head>
 <body class="ll_body">
     <div class="livelogs_wrapper">
-    
         <?php
         if ($invalid_log_ident)
         {
             die("404</div>"); //die with an error if we have invalid log ident, but close the main div
         }
         ?>
-    
         <div id="navigation" class="ll_navbar">
             <ul class="nav nav-pills">
                 <li>
@@ -150,26 +148,26 @@
             <span class="log_name_id">Name: </span><span class="log_detail"><?=$log_details["log_name"]?></span><br>
             <span class="server_details_id">Server: </span><span class="log_detail"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span><br>
             <span class="log_map_id">Map: </span><span class="log_detail"><?=$log_details["map"]?></span><br>
-            <div class="live_or_not">
+            <div>
                 <span class="live_id">Status: </span>
             <?php
-                if ($log_live)
-                {
-                ?>
-                    <span class="log_status text-success">Live!</span><br>
-                    <span class="time_elapsed_id">Time Elapsed: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
-                <?php
-                }
-                else
-                {
-                ?>
-                    <span class="log_status text-error">Not live</span><br>
-                    <span class="time_elapsed_id">Total Time: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
-                <?php
-                }
+            if ($log_live)
+            {
             ?>
-                    <span class="red_score_tag">RED </span><span class="red_score" id="red_score_value"><?=$red_score?></span>
-                    <span class="blue_score_tag">BLUE </span><span class="blue_score" id="blue_score_value"><?=$blue_score?></span>
+                <span class="log_status text-success">Live!</span><br>
+                <span class="time_elapsed_id">Time Elapsed: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
+            <?php
+            }
+            else
+            {
+            ?>
+                <span class="log_status text-error">Not live</span><br>
+                <span class="time_elapsed_id">Total Time: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
+            <?php
+            }
+            ?>
+                <span class="red_score_tag">RED </span><span class="red_score" id="red_score_value"><?=$red_score?></span>
+                <span class="blue_score_tag">BLUE </span><span class="blue_score" id="blue_score_value"><?=$blue_score?></span>
             </div>
         </div>
         
@@ -374,6 +372,10 @@
             
             <div id="sourcetv2d">
                 <!--leave this blank, the sourcetv2d js will populate it on connect-->
+            </div>
+            
+            <div id="debug">
+            
             </div>
         </div>
     </div>
