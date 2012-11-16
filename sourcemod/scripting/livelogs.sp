@@ -3,9 +3,14 @@
 
 */
 
-
 #include <sourcemod>
 #include <socket>
+
+#undef REQUIRE_EXTENSIONS
+
+#tryinclude <websocket>
+
+#define REQUIRE_EXTENSIONS
 
 #pragma semicolon 1 //must use semicolon to end lines
 
@@ -13,6 +18,10 @@
 #define BLUE 1
 #define TEAM_OFFSET 2
 #define DEBUG true
+
+#if defined _websocket_included
+#define WEBTV_POSITION_UPDATE_RATE 0.3
+#endif
 
 public Plugin:myinfo =
 {
@@ -42,6 +51,20 @@ new String:ll_listener_address[128];
 new Handle:livelogs_daemon_address = INVALID_HANDLE; //ip/dns of livelogs daemon
 new Handle:livelogs_daemon_port = INVALID_HANDLE; //port of livelogs daemon
 new Handle:livelogs_daemon_apikey = INVALID_HANDLE; //the key that must be specified when communicating with the ll daemon
+
+//if websocket is included, let's define the websocket stuff!
+#if defined _websocket_includedd
+new webtv_round_time;
+
+new WebsocketHandle:livelogs_webtv_listen_socket = INVALID_WEBSOCKET_HANDLE;
+new Handle:livelogs_webtv_listenport = INVALID_HANDLE;
+new Handle:livelogs_webtv_children;
+new Handle:livelogs_webtv_children_ip;
+new Handle:livelogs_webtv_positions_timer = INVALID_HANDLE;
+
+new Handle:livelogs_webtv_buffer = INVALID_HANDLE;
+new Handle:livelogs_webtv_buffer_timer = INVALID_HANDLE;
+#endif
 
 //------------------------------------------------------------------------------
 // Startup
@@ -73,9 +96,49 @@ public OnPluginStart()
     //Setup variables for later sending
     GetConVarString(FindConVar("ip"), server_ip, sizeof(server_ip));
     server_port = GetConVarInt(FindConVar("hostport"));
+    
+#if defined _websocket_includedd
+    livelogs_webtv_listenport = CreateConVar("livelogs_webtv_port", "36324", "The port to listen on for SourceTV 2D connections", FCVAR_PROTECTED);
+
+    livelogs_webtv_children = CreateArray();
+    livelogs_webtv_children_ip = CreateArray(ByteCountToCells(33));
+    livelogs_webtv_buffer = CreateArray();
+#endif
 }
 
+#if defined _websocket_includedd
+public OnAllPluginsLoaded()
+{
+    if (LibraryExists("websocket"))
+    {
+        if (livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE)
+        {
+            new webtv_lport = GetConVarInt(livelogs_webtv_listenport);
+            livelogs_webtv_listen_socket = Websocket_Open(server_ip, webtv_lport, onWebSocketConnection, onWebSocketListenError, onWebSocketListenClose);
+        }
+        
+    }
+}
 
+#endif
+
+public OnMapStart()
+{
+	clearVars();
+    
+#if defined _websocket_includedd
+    new iClientSize = GetArraySize(livelogs_webtv_children);
+    if (iClientSize == 0)
+        return;
+        
+    decl String:buffer[64];
+    GetCurrentMap(buffer, sizeof(buffer));
+    
+    Format(buffer, sizeof(buffer), "M%s", buffer);
+    
+    sendToAllWebChildren(buffer);
+#endif
+}
 
 //------------------------------------------------------------------------------
 // Callbacks
@@ -131,15 +194,307 @@ public Action:tournamentRestartHook(client, const String:command[], arg)
     }
 }
 
-public OnMapStart()
+#if defined _websocket_includedd
+public OnClientPutInServer(client)
 {
-	clearVars();
+    new iClientSize = GetArraySize(livelogs_webtv_children);
+    if (iClientSize == 0)
+        return;
+        
+    decl String:buffer[128];
+    //CUSERID:IP:TEAM:ALIVE:FRAGS:DEATHS:HEALTH:BOMB:DEFUSER:NAME
+    Format(buffer, sizeof(buffer), "C%d:%s:%d:0:x:x:100:0:0:%N", GetClientUserId(client), "0.0.0.0", GetClientTeam(client), client);
+    
+    sendToAllWebChildren(buffer);
 }
+
+public OnClientDisconnect(client)
+{
+    new iClientSize = GetArraySize(livelogs_webtv_children);
+    if (iClientSize == 0)
+        return;
+        
+    if (IsClientInGame(client))
+    {
+        decl String:buffer[12];
+        Format(buffer, sizeof(buffer), "D%d", GetClientUserId(client));
+        
+        addToWebBuffer(buffer);
+    }
+}
+
+public playerTeamChangeEvent(Handle: event, const String:name[], bool:dontBroadcast)
+{
+    new iClientSize = GetArraySize(livelogs_webtv_children);
+    if (iClientSize == 0)
+        return;
+    
+    new userid = GetEventInt(event, "userid");
+    new team = GetEventInt(event, "team");
+    if (team == 0)
+        return;
+        
+    decl String:buffer[12];
+    Format(buffer, sizeof(buffer), "T%d:%d", userid, team);
+    
+    addToWebBuffer(buffer);
+}
+
+public playerDeathEvent(Handle:event, const String:name[], bool:dontBroadcast)
+{
+    new iClientSize = GetArraySize(livelogs_webtv_children);
+    if (iClientSize == 0)
+        return;
+        
+    new v_id = GetEventInt(event, "userid");
+    new a_id = GetEventInt(event, "attacker");
+    
+    decl String:buffer[64];
+    GetEventString(event, "weapon", buffer, sizeof(buffer));
+    
+    Format(buffer, sizeof(buffer), "K%d:%d:%s", v_id, a_id, buffer);
+    
+    addToWebBuffer(buffer);
+}
+
+public playerSpawnEvent(Handle:event, const String:name[], bool:dontBroadcast)
+{
+    new iClientSize = GetArraySize(livelogs_webtv_children);
+    if (iClientSize == 0)
+        return;
+        
+    new userid = GetEventInt(event, "userid");
+    
+    decl String:buffer[12];
+    Format(buffer, sizeof(buffer), "S%d", userid);
+    
+    addToWebBuffer(buffer);
+}
+
+public roundStartEvent(Handle:event, const String:name[], bool:dontBroadcast)
+{
+    new iClientSize = GetArraySize(livelogs_webtv_children);
+    if (iClientSize == 0)
+        return;
+        
+    webtv_round_time = GetTime();
+    
+    decl String:buffer[64];
+    Format(buffer, sizeof(buffer), "R%d", webtv_round_time);
+    
+    addToWebBuffer(buffer);
+}
+
+public roundEndEvent(Handle:event, const String:name[], bool:dontBroadcast)
+{
+    new iClientSize = GetArraySize(livelogs_webtv_children);
+    if (iClientSize == 0)
+        return;
+        
+    webtv_round_time = -1;
+    
+    new winner = GetEventInt(event, "team");
+    
+    decl String:buffer[12];
+    Format(buffer, sizeof(buffer), "E%d", winner);
+    
+    addToWebBuffer(buffer);
+}
+
+public nameChangeEvent(Handle:event, const String:name[], bool:dontBroadcast)
+{
+    new iClientSize = GetArraySize(livelogs_webtv_children);
+    if (iClientSize == 0)
+        return;
+        
+    new userid = GetEventInt(event, "userid");
+    
+    decl String:old_name[MAX_NAME_LENGTH];
+    decl String:new_name[MAX_NAME_LENGTH];
+    
+    GetEventString(event, "newname", new_name, sizeof(new_name));
+    GetEventString(event, "oldname", old_name, sizeof(old_name));
+    
+    if (StrEqual(old_name, new_name))
+        return;
+        
+    decl String:buffer[MAX_NAME_LENGTH+12];
+    Format(buffer, sizeof(buffer), "N%d:%s", userid, new_name);
+    
+    addToWebBuffer(buffer);
+}
+
+public Action:onWebSocketConnection(WebsocketHandle:listen_sock, WebsocketHandle:child_sock, const String:remoteIP[], remotePort, String:protocols[256])
+{
+    Websocket_HookChild(child_sock, onWebSocketChildReceive, onWebSocketChildDisconnect, onWebSocketChildError);
+    Websocket_HookReadyStateChange(child_sock, onWebSocketReadyStateChange);
+    
+    PushArrayCell(livelogs_webtv_children, child_sock);
+    PushArrayString(livelogs_webtv_children_ip, remoteIP);
+    
+    return Plugin_Continue;
+}
+
+public onWebSocketReadyStateChange(WebsocketHandle:sock, WebsocketReadyState:readystate)
+{
+    new child_index = FindValueInArray(livelogs_webtv_children, sock);
+    if (child_index == -1)
+        return;
+    
+    if (readystate != State_Open)
+        return;
+        
+    decl String:map[64], String:game[32], String:buffer[196], String:hostname[128];
+    
+    GetCurrentMap(map, sizeof(map));
+    GetGameFolderName(game, sizeof(game));
+    
+    GetConVarString(FindConVar("hostname"), hostname, sizeof(hostname));
+    
+    //IGAME:MAP:TEAM2NAME:TEAM3NAME:HOSTNAME
+    Format(buffer, sizeof(buffer), "I%s:%s:%s:%s:%s", game, map, "BLUE", "RED", hostname);
+    
+    Websocket_Send(sock, SendType_Text, buffer);
+    
+    if (webtv_round_time != -1)
+    {
+        Format(buffer, sizeof(buffer), "R%d", webtv_round_time);
+    }
+    
+    //populate with all players in the server
+    for (new i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientInGame(i) && !IsFakeClient(i))
+        {
+            //CUSERID:IP:TEAM:ALIVE:FRAGS:DEATHS:HEALTH:BOMB:DEFUSER:NAME
+            Format(buffer, sizeof(buffer), "C%d:%s:%d:%d:%d:%d:%d:%d:%d:%N", GetClientUserId(i), "0.0.0.0", 
+                    GetClientTeam(i), IsPlayerAlive(i), GetClientFrags(i), GetClientDeaths(i), 100, 0, 0, i);
+                    
+            Websocket_Send(sock, SendType_Text, buffer);
+        }
+    }
+    
+    if (livelogs_webtv_positions_timer == INVALID_HANDLE)
+        livelogs_webtv_positions_timer = CreateTimer(WEBTV_POSITION_UPDATE_RATE, updatePlayerPositionTimer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+        
+    return;
+}
+
+public Action:updatePlayerPositionTimer(Handle:timer, any:data)
+{
+    new iClientSize = GetArraySize(livelogs_webtv_children);
+    if (iClientSize == 0)
+        return Plugin_Continue;
+    
+    decl String:buffer[4096];
+    
+    Format(buffer, sizeof(buffer), "O");
+    
+    new Float:p_origin[3], Float:p_angle[3]; //two vectors, one containing the position of the player and the other the angle the player is facing
+    
+    for (new i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i))
+        {
+            if (strlen(buffer) > 1) //if more than just "O" is in the buffer, add separator
+                Format(buffer, sizeof(buffer), "%s|", buffer); //player positions will be appended after an |
+                
+            GetClientAbsOrigin(i, p_origin);
+            GetClientEyeAngles(i, p_angle);
+            
+            //we only need X and Y co-ords, and only need theta (angle corresponding to the X Y plane)
+            Format(buffer, sizeof(buffer), "%s%d:%d:%d:%d", buffer, GetClientUserId(i), RoundToNearest(p_origin[0]), 
+                                                RoundToNearest(p_origin[1]), RoundToNearest(p_angle[1]));
+        }
+    }
+    
+    if (strlen(buffer)) == 1)
+        return Plugin_Continue;
+        
+    addToWebBuffer(buffer);
+    return Plugin_Continue;
+}
+
+public Action:webtv_bufferProcessTimer(Handle:timer, any:data)
+{
+    return Plugin_Continue;
+}
+
+
+public onWebSocketChildReceive(WebsocketHandle:sock, WebsocketSendType:send_type, const String:rcvd[], const dataSize)
+{
+    if (send_type != SendType_Text)
+        return;
+        
+    LogMessage("Child %d received msg %s (len: %d)", _:sock, rcvd, dataSize);
+    
+    return;
+        
+}
+
+public onWebSocketChildDisconnect(WebsocketHandle:sock)
+{
+    new client_index = FindValueInArray(livelogs_webtv_children, sock);
+    
+    RemoveFromArray(livelogs_webtv_children, client_index);
+    RemoveFromArray(livelogs_webtv_children_ip, client_index);
+    
+    if (GetArraySize(livelogs_webtv_children) == 0 && livelogs_webtv_positions_timer != INVALID_HANDLE)
+    {
+        KillTimer(livelogs_webtv_positions_timer);
+        livelogs_webtv_positions_timer = INVALID_HANDLE;
+    }
+}
+#endif
+
+//------------------------------------------------------------------------------
+// Clean up
+//------------------------------------------------------------------------------
 
 public OnMapEnd()
 {
 	endLogging();
+    
+#if defined _websocket_includedd
+    if (livelogs_webtv_listen_socket != INVALID_WEBSOCKET_HANDLE)
+    {
+        Websocket_Close(livelogs_webtv_listen_socket);
+    }
+#endif
 }
+
+#if defined _websocket_includedd
+public onWebSocketListenClose(WebsocketHandle:listen_sock)
+{
+    livelogs_webtv_listen_sock = INVALID_WEBSOCKET_HANDLE;
+    
+    ClearArray(livelogs_webtv_children);
+    ClearArray(livelogs_webtv_children_ip);
+}
+
+public onWebSocketListenError(WebsocketHandle:sock, const errorType, const errorNum)
+{
+    LogError("MASTER SOCKET ERROR: %d (errno %d)", errorType, errorNum);
+    livelogs_webtv_listen_socket = INVALID_WEBSOCKET_HANDLE;
+}
+
+
+public onWebSocketChildError(WebsocketHandle:sock, const errorType, const errorNum)
+{
+    LogError("CHILD SOCKET ERROR: %d (err no %d)", errorType, errorNum);
+    
+    new client_index = FindValueInArray(livelogs_webtv_children, sock);
+    
+    RemoveFromArray(livelogs_webtv_children, client_index);
+    RemoveFromArray(livelogs_webtv_children_ip, client_index);
+    
+    if (GetArraySize(livelogs_webtv_children) == 0 && livelogs_webtv_positions_timer != INVALID_HANDLE)
+    {
+        KillTimer(livelogs_webtv_positions_timer);
+        livelogs_webtv_positions_timer = INVALID_HANDLE;
+    }
+}
+#endif
 
 //------------------------------------------------------------------------------
 // Socket Functions
@@ -166,16 +521,14 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
     GetConVarString(livelogs_daemon_apikey, ll_api_key, sizeof(ll_api_key));
 
     decl String:split_buffer[5][64];
-    
     new response_len = ExplodeString(rcvd, "!", split_buffer, 6, 64);
     
-    LogMessage("Num Toks: %d Tokenized params: 1 %s 2 %s 3 %s 4 %s 5 %s", response_len, split_buffer[0], split_buffer[1], split_buffer[2], split_buffer[3], split_buffer[4]);
+    //LogMessage("Num Toks: %d Tokenized params: 1 %s 2 %s 3 %s 4 %s 5 %s", response_len, split_buffer[0], split_buffer[1], split_buffer[2], split_buffer[3], split_buffer[4]);
     
     if (response_len == 5)
     {
         LogMessage("Have tokenized response with len > 1. APIKEY: %s, SPECIFIED: %s", ll_api_key, split_buffer[1]);
-        
-        
+
         if ((StrEqual("LIVELOG", split_buffer[0])) && (StrEqual(ll_api_key, split_buffer[1])))
         {            
             LogMessage("API keys match");
@@ -294,3 +647,27 @@ stock ConVarExists(const String:cvar_name[])
 {
     return FindConVar(cvar_name);
 }
+
+#if defined _websocket_includedd
+addToWebBuffer(const String:buffer[])
+{
+    if (strlen(buffer) < 1)
+        return;
+        
+    new time = GetTime();
+    
+    decl String:newbuffer[4096];
+    Format(newbuffer, sizeof(newbuffer), "%d%%%s", time, buffer); //append the timestamp to the buffer
+    
+    PushArrayString(livelogs_webtv_buffer, newbuffer);
+    
+    if (livelogs_webtv_buffer_timer == INVALID_HANDLE)
+        livelogs_webtv_buffer_timer = CreateTimer(float(GetConVarInt(FindConVar("tv_delay"))), webtv_bufferProcessTimer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+        
+}
+
+sendToAllWebChildren(const String:buffer[])
+{
+
+}
+#endif
