@@ -135,7 +135,7 @@
             <div class="live_or_not">
                 <span class="live_id">Status: </span>
             <?php
-                if ($log_details["live"] == 'true')
+                if ($log_details["live"] == 't')
                 {
                 ?>
                     <span class="log_status text-success">Live!</span><br>

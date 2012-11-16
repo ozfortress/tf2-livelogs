@@ -53,7 +53,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                     dns_res = socket.getaddrinfo(tokenized[2], None, socket.AF_INET) #limit to ipv4
                     
                     if not dns_res:
-                        self.logger.debug("Unable to resolve DNS. EXITING")
+                        self.logger.debug("Unable to resolve DNS. Rejecting connection")
                         return
                         
                     self.ll_clientip = dns_res[0][4][0]
