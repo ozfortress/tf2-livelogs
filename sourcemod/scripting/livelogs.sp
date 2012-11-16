@@ -5,6 +5,7 @@
 
 #include <sourcemod>
 #include <socket>
+#include <sdktools>
 
 #undef REQUIRE_EXTENSIONS
 
@@ -28,7 +29,7 @@ public Plugin:myinfo =
 	name = "Livelogs",
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
-	version = "0.0.1",
+	version = "0.1.1",
 	url = "http://livelogs.unknown.ip"
 };
 
@@ -53,7 +54,7 @@ new Handle:livelogs_daemon_port = INVALID_HANDLE; //port of livelogs daemon
 new Handle:livelogs_daemon_apikey = INVALID_HANDLE; //the key that must be specified when communicating with the ll daemon
 
 //if websocket is included, let's define the websocket stuff!
-#if defined _websocket_includedd
+#if defined _websocket_included
 new webtv_round_time;
 
 new WebsocketHandle:livelogs_webtv_listen_socket = INVALID_WEBSOCKET_HANDLE;
@@ -97,7 +98,7 @@ public OnPluginStart()
     GetConVarString(FindConVar("ip"), server_ip, sizeof(server_ip));
     server_port = GetConVarInt(FindConVar("hostport"));
     
-#if defined _websocket_includedd
+#if defined _websocket_included
     livelogs_webtv_listenport = CreateConVar("livelogs_webtv_port", "36324", "The port to listen on for SourceTV 2D connections", FCVAR_PROTECTED);
 
     livelogs_webtv_children = CreateArray();
@@ -106,13 +107,15 @@ public OnPluginStart()
 #endif
 }
 
-#if defined _websocket_includedd
+#if defined _websocket_included
 public OnAllPluginsLoaded()
 {
+    LogMessage("all plugins loaded");
     if (LibraryExists("websocket"))
     {
         if (livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE)
         {
+            LogMessage("websocket is present. initialising socket");
             new webtv_lport = GetConVarInt(livelogs_webtv_listenport);
             livelogs_webtv_listen_socket = Websocket_Open(server_ip, webtv_lport, onWebSocketConnection, onWebSocketListenError, onWebSocketListenClose);
         }
@@ -126,7 +129,7 @@ public OnMapStart()
 {
 	clearVars();
     
-#if defined _websocket_includedd
+#if defined _websocket_included
     new iClientSize = GetArraySize(livelogs_webtv_children);
     if (iClientSize == 0)
         return;
@@ -194,7 +197,7 @@ public Action:tournamentRestartHook(client, const String:command[], arg)
     }
 }
 
-#if defined _websocket_includedd
+#if defined _websocket_included
 public OnClientPutInServer(client)
 {
     new iClientSize = GetArraySize(livelogs_webtv_children);
@@ -326,6 +329,7 @@ public nameChangeEvent(Handle:event, const String:name[], bool:dontBroadcast)
 
 public Action:onWebSocketConnection(WebsocketHandle:listen_sock, WebsocketHandle:child_sock, const String:remoteIP[], remotePort, String:protocols[256])
 {
+    LogMessage("Incoming connection from %s:%d", remoteIP, remotePort);
     Websocket_HookChild(child_sock, onWebSocketChildReceive, onWebSocketChildDisconnect, onWebSocketChildError);
     Websocket_HookReadyStateChange(child_sock, onWebSocketReadyStateChange);
     
@@ -337,6 +341,8 @@ public Action:onWebSocketConnection(WebsocketHandle:listen_sock, WebsocketHandle
 
 public onWebSocketReadyStateChange(WebsocketHandle:sock, WebsocketReadyState:readystate)
 {
+    LogMessage("r state change");
+
     new child_index = FindValueInArray(livelogs_webtv_children, sock);
     if (child_index == -1)
         return;
@@ -385,7 +391,9 @@ public Action:updatePlayerPositionTimer(Handle:timer, any:data)
     new iClientSize = GetArraySize(livelogs_webtv_children);
     if (iClientSize == 0)
         return Plugin_Continue;
-    
+ 
+    LogMessage("update player pos");
+ 
     decl String:buffer[4096];
     
     Format(buffer, sizeof(buffer), "O");
@@ -408,7 +416,7 @@ public Action:updatePlayerPositionTimer(Handle:timer, any:data)
         }
     }
     
-    if (strlen(buffer)) == 1)
+    if (strlen(buffer) == 1)
         return Plugin_Continue;
         
     addToWebBuffer(buffer);
@@ -455,7 +463,7 @@ public OnMapEnd()
 {
 	endLogging();
     
-#if defined _websocket_includedd
+#if defined _websocket_included
     if (livelogs_webtv_listen_socket != INVALID_WEBSOCKET_HANDLE)
     {
         Websocket_Close(livelogs_webtv_listen_socket);
@@ -463,10 +471,11 @@ public OnMapEnd()
 #endif
 }
 
-#if defined _websocket_includedd
+#if defined _websocket_included
 public onWebSocketListenClose(WebsocketHandle:listen_sock)
 {
-    livelogs_webtv_listen_sock = INVALID_WEBSOCKET_HANDLE;
+    LogMessage("listen sock close");
+    livelogs_webtv_listen_socket = INVALID_WEBSOCKET_HANDLE;
     
     ClearArray(livelogs_webtv_children);
     ClearArray(livelogs_webtv_children_ip);
@@ -648,16 +657,16 @@ stock ConVarExists(const String:cvar_name[])
     return FindConVar(cvar_name);
 }
 
-#if defined _websocket_includedd
-addToWebBuffer(const String:buffer[])
+#if defined _websocket_included
+addToWebBuffer(const String:msg[])
 {
-    if (strlen(buffer) < 1)
+    if (strlen(msg) < 1)
         return;
         
     new time = GetTime();
     
     decl String:newbuffer[4096];
-    Format(newbuffer, sizeof(newbuffer), "%d%%%s", time, buffer); //append the timestamp to the buffer
+    Format(newbuffer, sizeof(newbuffer), "%d%%%s", time, msg); //append the timestamp to the msg
     
     PushArrayString(livelogs_webtv_buffer, newbuffer);
     
@@ -666,7 +675,7 @@ addToWebBuffer(const String:buffer[])
         
 }
 
-sendToAllWebChildren(const String:buffer[])
+sendToAllWebChildren(const String:msg[])
 {
 
 }
