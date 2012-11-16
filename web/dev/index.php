@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="/css/viewlog.css">
 
     <?php
-        require "conf/ll_database.php"
+        require "conf/ll_database.php";
         
         if (!$ll_db)
         {
