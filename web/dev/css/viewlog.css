@@ -136,6 +136,9 @@
     width: 40%;
     margin-bottom: 5px;
     margin-left: 5px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    height: 400px;
 }
 
 .log_list_container {

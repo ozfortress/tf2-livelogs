@@ -116,7 +116,7 @@
                         <li>
                             <a href="#">Show Chat</a>
                         </li>
-                        <li <?if (!$log_live) echo 'class="disabled"'?>>
+                        <li<?if (!$log_live) echo ' class="disabled"'?>>
                             <a href="#" data-toggle="collapse" data-target="#sourcetv2d">Show SourceTV 2D</a>
                         </li>
                         <li class="disabled">
@@ -334,12 +334,43 @@
             </div>
             
             <div class="live_feed_container">
-                chat/event feed
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+                chat/event feed<br>
+
             </div>
         </div>
         
         <div class="left_float_sourcetv_container">
-            asdf
+            <p class="text-info">STV</p>
+            <button class="btn btn-success" onclick="#">Connect</button>
+            <button class="btn btn-danger" onclick="#">Disconnect</button>
+            <button class="btn btn-info" onclick="#">Toggle STV</button>
+            
+            <div id="sourcetv2d">
+                <!--leave this blank, the sourcetv2d js will populate it-->
+            </div>
         </div>
     </div>
         
@@ -354,7 +385,8 @@
     <script src="/js/jquery.dataTables.min.js" type="text/javascript"></script>
     <script src="/js/bootstrap/bootstrap.js" type="text/javascript"></script>
     
-    <script type="text/javascript" src="/js/viewlog.js"></script>
+    <script src="/js/viewlog.js" type="text/javascript"></script>
+    <script src="/js/sourcetv2d.js" type="text/javascript"></script>
 </body>
 </html>
 
