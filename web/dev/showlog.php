@@ -116,7 +116,7 @@
                         <li>
                             <a href="#">Show Chat</a>
                         </li>
-                        <li<?if (!$log_live) echo ' class="disabled"'?>>
+                        <li<?if ((!$log_live) || (!$log_details["webtv_port"])) echo ' class="disabled"'?>>
                             <a href="#" data-toggle="collapse" data-target="#sourcetv2d">Show SourceTV 2D</a>
                         </li>
                         <li class="disabled">
@@ -363,13 +363,18 @@
         </div>
         
         <div class="left_float_sourcetv_container">
-            <p class="text-info">STV</p>
-            <button class="btn btn-success" onclick="#">Connect</button>
-            <button class="btn btn-danger" onclick="#">Disconnect</button>
-            <button class="btn btn-info" onclick="#">Toggle STV</button>
+            <div class="sourcetv_controls"<?if ((!$log_live) || (!$log_details["webtv_port"])) echo ' style="display: none;"'?>>
+                <p class="text-info">STV 2D</p>
+                <button class="btn btn-success" onclick="stv2d_connect('<?=long2ip($log_details["server_ip"])?>', <?=$log_details["webtv_port"]?>)">Connect</button>
+                <button class="btn btn-danger" onclick="stv2d_disconnect()">Disconnect</button>
+                <div class="btn-group" data-toggle="buttons-checkbox">
+                    <button class="btn btn-info" data-toggle="collapse" data-target="#sourcetv2d">Toggle STV</button>
+                    <button class="btn" onclick="#">Toggle Names</button>
+                </div>
+            </div>
             
             <div id="sourcetv2d">
-                <!--leave this blank, the sourcetv2d js will populate it-->
+                <!--leave this blank, the sourcetv2d js will populate it on connect-->
             </div>
         </div>
     </div>

@@ -123,6 +123,7 @@
 .left_float_feed_medic_container {
     float:left;
     width: 22%;
+    
 }
 
 .left_float_sourcetv_container {
@@ -137,8 +138,12 @@
     margin-bottom: 5px;
     margin-left: 5px;
     overflow-x: hidden;
-    overflow-y: auto;
+    overflow-y: scroll;
     height: 400px;
+}
+
+.sourcetv_controls {
+    text-align: center;
 }
 
 .log_list_container {
