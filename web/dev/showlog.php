@@ -18,7 +18,7 @@
         
         if (!$log_details["log_name"])
         {
-            $valid_log_ident = false;
+            $invalid_log_ident = true;
         }
         else
         {
@@ -99,7 +99,7 @@
     <div class="livelogs_wrapper">
     
         <?php
-        if (!$valid_log_ident)
+        if ($invalid_log_ident)
         {
             die("404</div>"); //die with an error if we have invalid log ident, but close the main div
         }
