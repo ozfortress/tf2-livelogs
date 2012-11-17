@@ -24,6 +24,14 @@ $(document).keyup(function(e) {
     }
 });
 
+function stv2d_togglenames()
+{
+    if (SourceTV2D.shownames == 1)
+        SourceTV2D.shownames = 0;
+    else
+        SourceTV2D.shownames = 1;
+}
+
 function init()
 {
     SourceTV2D.socket = null;
@@ -58,6 +66,7 @@ function init()
     SourceTV2D.chatHoldTime = 10;
     SourceTV2D.chatFadeTime = 2;
     SourceTV2D.totalUsersWatching = 0;
+    SourceTV2D.shownames = 1;
     $("sourcetv2d").mousemove = null;
     $("#player").html("");
     $("#players2").html("");
@@ -118,7 +127,7 @@ function connect(ip, port)
             var offset = 0;
             frame.type = msg.data.charAt(offset);
             offset++;
-            //debug("Received frame type: "+frame.type);
+            debug("Received frame type: "+frame.type+" Msg: "+msg.data);
             switch(frame.type)
             {
                 // Initialisation
@@ -440,8 +449,10 @@ function connect(ip, port)
                         if(SourceTV2D.mapsettings.flipy)
                             frame.positions[i][2] *= -1;
                         
-                        frame.positions[i][1] = Math.round(((frame.positions[i][1] + SourceTV2D.mapsettings.xoffset) / SourceTV2D.mapsettings.scale) * SourceTV2D.scaling);
-                        frame.positions[i][2] = Math.round(((frame.positions[i][2] + SourceTV2D.mapsettings.yoffset) / SourceTV2D.mapsettings.scale) * SourceTV2D.scaling);
+                        frame.positions[i][1] = Math.round(((frame.positions[i][1] + SourceTV2D.mapsettings.xoffset) / SourceTV2D.mapsettings.scale)); //* SourceTV2D.scaling);
+                        frame.positions[i][2] = Math.round(((frame.positions[i][2] + SourceTV2D.mapsettings.yoffset) / SourceTV2D.mapsettings.scale)); //* SourceTV2D.scaling);
+                        
+                        debug("CANVAS X: " + frame.positions[i][1] + ", CANVAS Y: " + frame.positions[i][2]);
                         
                         // Get the correct team color
                         idx = -1;
@@ -1212,6 +1223,7 @@ function drawMap()
 			
             // There is no coordinate for this player yet
             if(SourceTV2D.players[i].positions.length == 0)
+                //debug("No co-ords for player idx " + i);
                 continue;
             
             SourceTV2D.ctx.save();
@@ -1314,7 +1326,8 @@ function drawMap()
             
             // Display player names above their heads
             var bShowHealthBar = (SourceTV2D.players[i].health > 0 && $("#healthbars").attr('checked'));
-            if($("#names").attr('checked'))
+            //if($("#names").attr('checked'))
+            if (1)
             {
                 SourceTV2D.ctx.save();
                 var nameWidth = SourceTV2D.ctx.measureText(SourceTV2D.players[i].name).width;

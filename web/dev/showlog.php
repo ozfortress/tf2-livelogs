@@ -366,7 +366,7 @@
                 <button class="btn btn-danger" onclick="stv2d_disconnect()">Disconnect</button>
                 <div class="btn-group" data-toggle="buttons-checkbox">
                     <button class="btn btn-info" data-toggle="collapse" data-target="#sourcetv2d">Toggle STV</button>
-                    <button class="btn" onclick="#">Toggle Names</button>
+                    <button class="btn" onclick="stv2d_togglenames()">Toggle Names</button>
                 </div>
             </div>
             
