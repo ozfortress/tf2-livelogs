@@ -84,9 +84,9 @@ function init()
     SourceTV2D.bombDefuseTime = -1;
 }
 
-function connect(ip, port)
+function stv2d_connect(ip, port)
 {
-    disconnect();
+    stv2d_disconnect();
     if(SourceTV2D.canvas != null)
     {
         $(SourceTV2D.canvas).remove();
@@ -1693,7 +1693,7 @@ function sortScoreBoard()
     });
 }
 
-function disconnect()
+function stv2d_disconnect()
 {
     if(SourceTV2D.timer != null)
     {
