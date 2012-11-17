@@ -27,9 +27,13 @@ $(document).keyup(function(e) {
 function stv2d_togglenames()
 {
     if (SourceTV2D.shownames == 1)
+    {
         SourceTV2D.shownames = 0;
+    }
     else
+    {
         SourceTV2D.shownames = 1;
+    }
 }
 
 function init()
