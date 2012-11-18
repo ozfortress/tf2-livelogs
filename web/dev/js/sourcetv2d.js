@@ -30,7 +30,7 @@ function init() {
     SourceTV2D.mapsettingsLoaded = false;
     SourceTV2D.mapsettingsFailed = false;
     SourceTV2D.mapsettings = {};
-    SourceTV2D.scaling = 1.0;
+    SourceTV2D.scaling = 0.6;
     SourceTV2D.playerRadius = 5;
     SourceTV2D.width = 0;
     SourceTV2D.height = 0;
@@ -1656,7 +1656,7 @@ function loadMapImageInfo(game, map) {
           return;
         }
 
-        SourceTV2D.scaling = 1.0;
+        //SourceTV2D.scaling = 1.0;
 
         SourceTV2D.playerRadius = Math.round(5 * SourceTV2D.scaling);
         SourceTV2D.width = SourceTV2D.background.width * SourceTV2D.scaling;
@@ -1699,11 +1699,11 @@ function loadMapImageInfo(game, map) {
           return;
         }
 
-        SourceTV2D.scaling = 1.0;
+        //SourceTV2D.scaling = 1.0;
 
         // Default height
-        SourceTV2D.width = 1024 * SourceTV2D.scaling;
-        SourceTV2D.height = 768 * SourceTV2D.scaling;
+        SourceTV2D.width = 1280 * SourceTV2D.scaling;
+        SourceTV2D.height = 1024 * SourceTV2D.scaling;
         SourceTV2D.canvas.setAttribute('width',SourceTV2D.width);
         SourceTV2D.canvas.setAttribute('height',SourceTV2D.height);
 
