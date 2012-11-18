@@ -1566,7 +1566,7 @@ function drawMap() {
             SourceTV2D.ctx.fillText("Frags", (SourceTV2D.width*0.8)/2 - 28*SourceTV2D.scaling - deathWidth - fragsWidth, 150*SourceTV2D.scaling);
             
             var classWidth = SourceTV2D.ctx.measureText("Class").width;
-            SourceTV2D.ctx.fillText("Class", (SourceTV2D.width*0.8)/2 - 40*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, 150*SourceTV2D.scaling);
+            SourceTV2D.ctx.fillText("Class", (SourceTV2D.width*0.8)/2 - 160*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, 150*SourceTV2D.scaling);
             
             
             // Player list border
@@ -1601,7 +1601,7 @@ function drawMap() {
                 
                 //player classes are a bit diff, since they're numbered and we want them in name
                 var classname = SourceTV2D.classnames[SourceTV2D.players[i].pclass];
-                SourceTV2D.ctx.fillText(classname, (SourceTV2D.width*0.8)/2 - 40*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, iHeight);
+                SourceTV2D.ctx.fillText(classname, (SourceTV2D.width*0.8)/2 - 160*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, iHeight);
                 
                 
                 if (SourceTV2D.players[i].has_intel)
@@ -1649,7 +1649,7 @@ function drawMap() {
             SourceTV2D.ctx.fillText("Frags", (SourceTV2D.width*0.8)/2-38*SourceTV2D.scaling-deathWidth-fragsWidth, 150*SourceTV2D.scaling);
             
             var classWidth = SourceTV2D.ctx.measureText("Class").width;
-            SourceTV2D.ctx.fillText("Class", (SourceTV2D.width*0.8)/2 - 60*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, 150*SourceTV2D.scaling);
+            SourceTV2D.ctx.fillText("Class", (SourceTV2D.width*0.8)/2 - 180*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, 150*SourceTV2D.scaling);
             
             // Player list border
             SourceTV2D.ctx.strokeStyle = "rgba(207, 68, 102, 0.9)";
@@ -1680,7 +1680,7 @@ function drawMap() {
                 SourceTV2D.ctx.fillText(SourceTV2D.players[i].frags, (SourceTV2D.width*0.8)/2 - 28*SourceTV2D.scaling - deathWidth - fragsWidth, iHeight);
                 
                 var classname = SourceTV2D.classnames[SourceTV2D.players[i].pclass];
-                SourceTV2D.ctx.fillText(classname, (SourceTV2D.width*0.8)/2 - 40*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, iHeight);
+                SourceTV2D.ctx.fillText(classname, (SourceTV2D.width*0.8)/2 - 160*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, iHeight);
                 
                 if (SourceTV2D.players[i].has_intel)
                     SourceTV2D.ctx.fillText("F", (SourceTV2D.width*0.8) / 2 - 66*SourceTV2D.scaling - deathWidth - fragsWidth, iHeight);
