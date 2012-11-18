@@ -1152,7 +1152,6 @@ function drawMap() {
         // Show that notice, if the mapconfig wasn't found
         if (SourceTV2D.background == null || SourceTV2D.mapsettingsFailed)
         {
-            debug("ERROR HERE?");
             SourceTV2D.ctx.save();
             SourceTV2D.ctx.fillStyle = "rgb(255,255,255)";
             SourceTV2D.ctx.font = Math.round(20*SourceTV2D.scaling) + "pt Verdana";
@@ -1653,7 +1652,7 @@ function loadMapImageInfo(game, map) {
           return;
         }
 
-        SourceTV2D.scaling = $("#scale :selected").val()/100;
+        SourceTV2D.scaling = 1;
 
         SourceTV2D.playerRadius = Math.round(5 * SourceTV2D.scaling);
         SourceTV2D.width = SourceTV2D.background.width * SourceTV2D.scaling;
