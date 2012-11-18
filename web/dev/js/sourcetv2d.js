@@ -1152,16 +1152,16 @@ function drawMap() {
         // Show that notice, if the mapconfig wasn't found
         if (SourceTV2D.background == null || SourceTV2D.mapsettingsFailed)
         {
+            debug("ERROR HERE?");
             SourceTV2D.ctx.save();
             SourceTV2D.ctx.fillStyle = "rgb(255,255,255)";
             SourceTV2D.ctx.font = Math.round(20*SourceTV2D.scaling) + "pt Verdana";
             var text = "No map image.";
-            if (SourceTV2D.mapsettingsFailed)
-            {
+            if (SourceTV2D.mapsettingsFailed) {
                 text = "Map config failed to load. Player positions can not be shown.";
                 SourceTV2D.ctx.fillStyle = "rgb(255,0,0)";
             }
-            SourceTV2D.ctx.fillText(text, (SourceTV2D.width-SourceTV2D.ctx.measureText(text).width)/2, (SourceTV2D.height/2));
+            SourceTV2D.ctx.fillText(text, (SourceTV2D.width - SourceTV2D.ctx.measureText(text).width)/2, (SourceTV2D.height/2));
             SourceTV2D.ctx.restore();
         }
         
