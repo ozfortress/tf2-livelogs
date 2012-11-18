@@ -74,7 +74,7 @@ class llListener(SocketServer.UDPServer):
 
 
 class llListenerObject():
-    def __init__(self, listenIP, lClientAddr, current_map, log_name=None, timeout=90.0):
+    def __init__(self, listenIP, lClientAddr, current_map, log_name, webtv_port=None, timeout=90.0):
         self.listenIP = listenIP
 
         self.listenAddress = (self.listenIP, 0)
@@ -84,7 +84,7 @@ class llListenerObject():
         
         self.unique_parser_ident = str(self.ip2long(lClientAddr[0])) + "_" + str(lClientAddr[1]) + "_" + str(int(round(time.time())))
         
-        self.listener.parser = parser.parserClass(self.unique_parser_ident, server_address = lClientAddr, current_map = current_map, log_name = log_name, endfunc = self.listener.handle_server_timeout)
+        self.listener.parser = parser.parserClass(self.unique_parser_ident, server_address = lClientAddr, current_map = current_map, log_name = log_name, endfunc = self.listener.handle_server_timeout, webtv_port = webtv_port)
         self.listener.lClientAddr = lClientAddr
 
         self.lip, self.lport = self.listener.server_address

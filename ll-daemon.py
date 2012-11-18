@@ -34,10 +34,10 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
         self.logger.debug('PID %s: Received "%s" from client %s:%s', cur_pid, rcvd, self.cip, self.cport)
 
-        #FORMAT OF LOG REQUEST: LIVELOG!KEY!SIP!SPORT!MAP!MR_IPGNBOOKER(OPTIONAL)
+        #FORMAT OF LOG REQUEST: LIVELOG!KEY!SIP!SPORT!MAP!NAME!WEBTV_PORT(OPTIONAL)
         tokenized = rcvd.split('!')
         tokLen = len(tokenized)
-        if (tokLen >= 5) and (tokenized[0] == "LIVELOG"):
+        if (tokLen >= 6) and (tokenized[0] == "LIVELOG"):
             if (tokenized[1] == self.server.LL_API_KEY):
                 self.logger.debug('LIVELOG key is correct. Establishing listen socket and returning info')
                 #---- THE IP AND PORT SENT BY THE SERVER PLUGIN. USED TO RECOGNISE THE SERVER
@@ -72,11 +72,11 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
                 sip, sport = self.server.server_address
 
-                if (tokLen == 5):
-                    self.newListen = listener.llListenerObject(sip, (self.ll_clientip, self.ll_clientport), tokenized[4])
+                if (tokLen == 6):
+                    self.newListen = listener.llListenerObject(sip, (self.ll_clientip, self.ll_clientport), tokenized[4], tokenized[5])
 
-                elif (tokLen == 6):
-                    self.newListen = listener.llListenerObject(sip, (self.ll_clientip, self.ll_clientport), tokenized[4], log_name = tokenized[5])
+                elif (tokLen == 7):
+                    self.newListen = listener.llListenerObject(sip, (self.ll_clientip, self.ll_clientport), tokenized[4], tokenized[5], webtv_port = tokenized[6])
 
                 lport = self.newListen.lport
                 self.logger.debug("PID %s: Listener port: %s", cur_pid, lport)

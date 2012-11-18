@@ -6,7 +6,7 @@ import re
 from pprint import pprint
 
 class parserClass():
-    def __init__(self, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc = None):
+    def __init__(self, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc = None, webtv_port=None):
         #ALWAYS REQUIRE A UNIQUE IDENT, OTHER PARAMS ARE OPTIONAL
         try:
             self.pgsqlConn = psycopg2.connect(host="localhost", port="5432", database="livelogs", user="livelogs", password="hello")
@@ -34,6 +34,10 @@ class parserClass():
         else:
             self.current_map = current_map
 
+        if (webtv_port == None):
+            webtv_port = 0;
+            
+            
         print "PARSER UNIQUE IDENT: " + self.UNIQUE_IDENT
         
         dbCursor = self.pgsqlConn.cursor()
@@ -45,11 +49,11 @@ class parserClass():
             dbCursor.execute("SELECT create_global_server_table()")
         
             if (self.bNamedLog):
-                dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name, live) VALUES (%s, %s, %s, %s, %s, 'true')", 
-                                        (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map, self.namedLogName,))
+                dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name, live, webtv_port) VALUES (%s, %s, %s, %s, %s, 'true', %s)", 
+                                        (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map, self.namedLogName, webtv_port,))
             else:
-                dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, live) VALUES (%s, %s, %s, 'true')",
-                                        (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map,))
+                dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, live, webtv_port) VALUES (%s, %s, %s, %s, 'true', %s)",
+                                        (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map, webtv_port,))
 
         if (log_uploaded):
             #TODO: Create an indexing method for logs that were manually uploaded and parsed

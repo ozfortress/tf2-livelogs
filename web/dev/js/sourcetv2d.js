@@ -697,17 +697,8 @@ function stv2d_connect(ip, port) {
                     frame.userid = "";
                     
                     var tok = msg.data.split(":");
-                    frame.userclass = parseInt(tok[2]);
-                    //frame.userid = parseInt(tok[1]);
-                    
-                    for(; offset<msg.data.length; offset++)
-                    {
-                        if (msg.data.charAt(offset) == ":") {
-                            break;
-                        }
-                        frame.userid += msg.data.charAt(offset);
-                    }
-                    frame.userid = parseInt(frame.userid);
+                    frame.userclass = tok[2];
+                    frame.userid = tok[1];
                     
                     var idx = -1;
                     for(var i=0;i<SourceTV2D.players.length;i++)

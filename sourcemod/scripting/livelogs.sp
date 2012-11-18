@@ -801,13 +801,15 @@ requestListenerAddress()
     }
     else
     {
-        Format(log_name, sizeof(log_name), "unnamed");
+        Format(log_name, sizeof(log_name), "default");
     }
-    
     GetConVarString(livelogs_daemon_apikey, ll_api_key, sizeof(ll_api_key));
-    
+    #if defined _websocket_included
+    new webtv_port = GetConVarInt(livelogs_webtv_listenport);
+    Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s!%d", ll_api_key, server_ip, server_port, map, log_name, webtv_port);  
+    #else
     Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s", ll_api_key, server_ip, server_port, map, log_name);
-    
+    #endif
     sendSocketData(ll_request);
 }
 
