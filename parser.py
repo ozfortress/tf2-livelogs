@@ -671,7 +671,7 @@ class parserClass():
         return
 
     def escapePlayerString(self, unescaped_string):
-        return unescaped_string.replace("'", "''")
+        return unescaped_string.replace("'", "''").replace("\\", "\\\\");
 
     def executeQuery(self, query):
         curs = self.pgsqlConn.cursor()
