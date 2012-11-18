@@ -475,7 +475,7 @@ public Action:webtv_bufferProcessTimer(Handle:timer, any:data)
 {
     new Float:delay = GetConVarFloat(FindConVar("tv_delay")), Float:current_time = GetEngineTime(), Float:timediff;
     
-    new iBufferSize = GetArraySize(livelogs_webtv_buffer);
+    new iBufferSize = GetArraySize(livelogs_webtv_buffer), iClientSize = GetArraySize(livelogs_webtv_children);
     
     decl String:strbuf[4096], String:tstamp[32], String:bufdata[4096];
     decl String:buf_split_array[3][4096];
@@ -501,6 +501,14 @@ public Action:webtv_bufferProcessTimer(Handle:timer, any:data)
         {
             LogMessage("timestamp is outside of delay range. timediff: %f, sending. send msg: %s", timediff, bufdata);
             //need to see what is being sent in the buffer for certain events, so we may store them in a state for new clients
+            
+            if (iClientSize == 0)
+            {
+                RemoveFromArray(livelogs_webtv_buffer, i);
+                iBufferSize--;
+                continue;
+            }
+            
             switch (bufdata[0])
             {
                 case 'O':
@@ -508,13 +516,13 @@ public Action:webtv_bufferProcessTimer(Handle:timer, any:data)
                     //player position in buffer
                     sendToAllWebChildren(bufdata);
                     
-                    PushArrayString(livelogs_webtv_buffer_past_state, bufdata);
+                    //PushArrayString(livelogs_webtv_buffer_past_state, bufdata);
                 }
                 case 'K':
                 {
                     sendToAllWebChildren(bufdata);
                     
-                    PushArrayString(livelogs_webtv_buffer_past_state, bufdata);
+                    //PushArrayString(livelogs_webtv_buffer_past_state, bufdata);
                 }
                 default:
                 {

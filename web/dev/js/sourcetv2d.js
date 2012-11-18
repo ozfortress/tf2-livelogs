@@ -1671,7 +1671,7 @@ function loadMapImageInfo(game, map) {
         // Get the map config
         $.ajax({
           type: 'GET',
-          url: 'maps/' + SourceTV2D.game + '/' + SourceTV2D.map + '.txt',
+          url: '/maps/' + SourceTV2D.game + '/' + SourceTV2D.map + '.txt',
           dataType: 'json',
           success: function (json) {
               SourceTV2D.mapsettings.xoffset = json.xoffset;
@@ -1708,7 +1708,7 @@ function loadMapImageInfo(game, map) {
 
         SourceTV2D.ctx = SourceTV2D.canvas.getContext('2d');
         SourceTV2D.background = null;
-  }).attr('src', 'maps/' + SourceTV2D.game + '/' + SourceTV2D.map + '.jpg');
+  }).attr('src', '/maps/' + SourceTV2D.game + '/' + SourceTV2D.map + '.jpg');
 }
 
 function sortScoreBoard() {
