@@ -477,8 +477,8 @@ function stv2d_connect(ip, port) {
                         if (SourceTV2D.mapsettings.flipy)
                             frame.positions[i][2] *= -1;
                         
-                        frame.positions[i][1] = Math.round(((frame.positions[i][1] + SourceTV2D.mapsettings.xoffset) / SourceTV2D.mapsettings.scale)); //* SourceTV2D.scaling);
-                        frame.positions[i][2] = Math.round(((frame.positions[i][2] + SourceTV2D.mapsettings.yoffset) / SourceTV2D.mapsettings.scale)); //* SourceTV2D.scaling);
+                        frame.positions[i][1] = Math.round(((frame.positions[i][1] + SourceTV2D.mapsettings.xoffset) / SourceTV2D.mapsettings.scale) * SourceTV2D.scaling);
+                        frame.positions[i][2] = Math.round(((frame.positions[i][2] + SourceTV2D.mapsettings.yoffset) / SourceTV2D.mapsettings.scale) * SourceTV2D.scaling);
                         
                         debug("CANVAS X: " + frame.positions[i][1] + ", CANVAS Y: " + frame.positions[i][2]);
                         
@@ -1032,8 +1032,10 @@ function drawMap() {
     "use strict";
     try
     {
-        if (SourceTV2D.ctx == null)
+        if (SourceTV2D.ctx == null) {
+            debug("No canvas element. ?")
             return;
+        }
         // Clear the canvas.
         SourceTV2D.ctx.clearRect(0,0,SourceTV2D.width,SourceTV2D.height);
         if (SourceTV2D.background != null)
@@ -1156,8 +1158,10 @@ function drawMap() {
             SourceTV2D.ctx.fillStyle = "rgb(255,255,255)";
             SourceTV2D.ctx.font = Math.round(20*SourceTV2D.scaling) + "pt Verdana";
             var text = "No map image.";
+            debug(text);
             if (SourceTV2D.mapsettingsFailed) {
                 text = "Map config failed to load. Player positions can not be shown.";
+                debug(text);
                 SourceTV2D.ctx.fillStyle = "rgb(255,0,0)";
             }
             SourceTV2D.ctx.fillText(text, (SourceTV2D.width - SourceTV2D.ctx.measureText(text).width)/2, (SourceTV2D.height/2));
@@ -1652,7 +1656,7 @@ function loadMapImageInfo(game, map) {
           return;
         }
 
-        SourceTV2D.scaling = 1;
+        SourceTV2D.scaling = 1.0;
 
         SourceTV2D.playerRadius = Math.round(5 * SourceTV2D.scaling);
         SourceTV2D.width = SourceTV2D.background.width * SourceTV2D.scaling;
@@ -1695,7 +1699,7 @@ function loadMapImageInfo(game, map) {
           return;
         }
 
-        SourceTV2D.scaling = $("#scale :selected").val()/100;
+        SourceTV2D.scaling = 1.0;
 
         // Default height
         SourceTV2D.width = 1024 * SourceTV2D.scaling;
