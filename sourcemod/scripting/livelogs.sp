@@ -11,7 +11,7 @@
  * D: Player disconnected
  * E: Round ended
  * F:
- * G: 
+ * G: Player changed class
  * H: Player was hurt
  * I: Initial child socket connect. Sends game and map
  * J:
@@ -25,7 +25,7 @@
  * R: Round start
  * S: Player spawned
  * T: Player changed team
- * U:
+ * U: Player used ubercharge
  * V: ConVar changed
  * W:
  * X: Chat message
@@ -150,6 +150,18 @@ public OnPluginStart()
     livelogs_webtv_children_ip = CreateArray(ByteCountToCells(33));
     livelogs_webtv_buffer = CreateArray(4096);
     livelogs_webtv_buffer_past_state = CreateArray(4096);
+    
+    
+    //add event hooks and shiz for websocket, self explanatory names and event hooks
+    HookEvent("player_team", playerTeamChangeEvent);
+    HookEvent("player_death", playerDeathEvent);
+    HookEvent("player_spawn", playerSpawnEvent);
+    HookEvent("player_changeclass", playerClassChangeEvent);
+    HookEvent("player_chargedeployed", playerUberEvent);
+    HookEvent("teamplay_round_start", roundStartEvent);
+    HookEvent("teamplay_round_win", roundEndEvent);
+    
+    
 #endif
 }
 
@@ -261,10 +273,6 @@ public OnClientPutInServer(client)
 
 public OnClientDisconnect(client)
 {
-    new iClientSize = GetArraySize(livelogs_webtv_children);
-    if (iClientSize == 0)
-        return;
-        
     if (IsClientInGame(client))
     {
         decl String:buffer[12];
@@ -276,10 +284,6 @@ public OnClientDisconnect(client)
 
 public playerTeamChangeEvent(Handle: event, const String:name[], bool:dontBroadcast)
 {
-    new iClientSize = GetArraySize(livelogs_webtv_children);
-    if (iClientSize == 0)
-        return;
-    
     new userid = GetEventInt(event, "userid");
     new team = GetEventInt(event, "team");
     if (team == 0)
@@ -292,11 +296,7 @@ public playerTeamChangeEvent(Handle: event, const String:name[], bool:dontBroadc
 }
 
 public playerDeathEvent(Handle:event, const String:name[], bool:dontBroadcast)
-{
-    new iClientSize = GetArraySize(livelogs_webtv_children);
-    if (iClientSize == 0)
-        return;
-        
+{       
     new v_id = GetEventInt(event, "userid");
     new a_id = GetEventInt(event, "attacker");
     
@@ -309,39 +309,54 @@ public playerDeathEvent(Handle:event, const String:name[], bool:dontBroadcast)
 }
 
 public playerSpawnEvent(Handle:event, const String:name[], bool:dontBroadcast)
-{
-    new iClientSize = GetArraySize(livelogs_webtv_children);
-    if (iClientSize == 0)
-        return;
-        
+{       
     new userid = GetEventInt(event, "userid");
+    new pclass = GetEventInt(event, "class");
     
     decl String:buffer[12];
-    Format(buffer, sizeof(buffer), "S%d", userid);
+    Format(buffer, sizeof(buffer), "S%d:%d", userid, pclass);
+    
+    addToWebBuffer(buffer);
+}
+
+public playerClassChangeEvent(Handle:event, const String:name[], bool:dontBroadcast)
+{
+    new userid = GetEventInt(event, "userid");
+    new pclass = GetEventInt(event, "class");
+    
+    decl String:buffer[12];
+    
+    Format(buffer, sizeof(buffer), "G%d:%d", userid, pclass);
+    
+    addToWebBuffer(buffer);
+}
+
+public playerUberEvent(Handle:event, const String:name[], bool:dontBroadcast)
+{
+    new m_userid = GetEventInt(event, "userid"); //userid of medic
+    new t_userid = GetEventInt(event, "targetid"); //userid of medic's target
+    
+    decl String:buffer[12];
+    Format(buffer, sizeof(buffer), "U%d:%d", m_userid, t_userid);
     
     addToWebBuffer(buffer);
 }
 
 public roundStartEvent(Handle:event, const String:name[], bool:dontBroadcast)
 {
-    new iClientSize = GetArraySize(livelogs_webtv_children);
-    if (iClientSize == 0)
-        return;
         
     webtv_round_time = GetTime();
     
+    new bool:full_restart = GetEventBool(event, "full_reset"); //whether or not this is mp_restartgame or not
+    
     decl String:buffer[64];
-    Format(buffer, sizeof(buffer), "R%d", webtv_round_time);
+    Format(buffer, sizeof(buffer), "R%d:%d", webtv_round_time, full_restart);
     
     addToWebBuffer(buffer);
 }
 
 public roundEndEvent(Handle:event, const String:name[], bool:dontBroadcast)
-{
-    new iClientSize = GetArraySize(livelogs_webtv_children);
-    if (iClientSize == 0)
-        return;
-        
+{       
     webtv_round_time = -1;
     
     new winner = GetEventInt(event, "team");

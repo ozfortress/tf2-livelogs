@@ -30,7 +30,7 @@ function init() {
     SourceTV2D.mapsettingsLoaded = false;
     SourceTV2D.mapsettingsFailed = false;
     SourceTV2D.mapsettings = {};
-    SourceTV2D.scaling = 0.6;
+    SourceTV2D.scaling = 0.8;
     SourceTV2D.playerRadius = 5;
     SourceTV2D.width = 0;
     SourceTV2D.height = 0;
@@ -155,7 +155,9 @@ function stv2d_connect(ip, port) {
             var frame = {}, offset = 0;
             frame.type = msg.data.charAt(offset);
             offset += 1;
-            debug("Received frame type: " + frame.type + " Msg: " + msg.data);
+            if (frame.type != "O") {
+                debug("Received frame type: " + frame.type + " Msg: " + msg.data);
+            }
             switch (frame.type)
             {
                 // Initialisation

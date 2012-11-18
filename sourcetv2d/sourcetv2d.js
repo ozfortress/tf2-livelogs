@@ -30,7 +30,7 @@ function init() {
     SourceTV2D.mapsettingsLoaded = false;
     SourceTV2D.mapsettingsFailed = false;
     SourceTV2D.mapsettings = {};
-    SourceTV2D.scaling = 1.0;
+    SourceTV2D.scaling = 0.8;
     SourceTV2D.playerRadius = 5;
     SourceTV2D.width = 0;
     SourceTV2D.height = 0;
@@ -155,7 +155,9 @@ function stv2d_connect(ip, port) {
             var frame = {}, offset = 0;
             frame.type = msg.data.charAt(offset);
             offset += 1;
-            debug("Received frame type: " + frame.type + " Msg: " + msg.data);
+            if (frame.type != "O") {
+                debug("Received frame type: " + frame.type + " Msg: " + msg.data);
+            }
             switch (frame.type)
             {
                 // Initialisation
@@ -477,8 +479,8 @@ function stv2d_connect(ip, port) {
                         if (SourceTV2D.mapsettings.flipy)
                             frame.positions[i][2] *= -1;
                         
-                        frame.positions[i][1] = Math.round(((frame.positions[i][1] + SourceTV2D.mapsettings.xoffset) / SourceTV2D.mapsettings.scale)); //* SourceTV2D.scaling);
-                        frame.positions[i][2] = Math.round(((frame.positions[i][2] + SourceTV2D.mapsettings.yoffset) / SourceTV2D.mapsettings.scale)); //* SourceTV2D.scaling);
+                        frame.positions[i][1] = Math.round(((frame.positions[i][1] + SourceTV2D.mapsettings.xoffset) / SourceTV2D.mapsettings.scale) * SourceTV2D.scaling);
+                        frame.positions[i][2] = Math.round(((frame.positions[i][2] + SourceTV2D.mapsettings.yoffset) / SourceTV2D.mapsettings.scale) * SourceTV2D.scaling);
                         
                         debug("CANVAS X: " + frame.positions[i][1] + ", CANVAS Y: " + frame.positions[i][2]);
                         
@@ -1032,8 +1034,10 @@ function drawMap() {
     "use strict";
     try
     {
-        if (SourceTV2D.ctx == null)
+        if (SourceTV2D.ctx == null) {
+            debug("No canvas element. ?")
             return;
+        }
         // Clear the canvas.
         SourceTV2D.ctx.clearRect(0,0,SourceTV2D.width,SourceTV2D.height);
         if (SourceTV2D.background != null)
@@ -1156,12 +1160,13 @@ function drawMap() {
             SourceTV2D.ctx.fillStyle = "rgb(255,255,255)";
             SourceTV2D.ctx.font = Math.round(20*SourceTV2D.scaling) + "pt Verdana";
             var text = "No map image.";
-            if (SourceTV2D.mapsettingsFailed)
-            {
+            debug(text);
+            if (SourceTV2D.mapsettingsFailed) {
                 text = "Map config failed to load. Player positions can not be shown.";
+                debug(text);
                 SourceTV2D.ctx.fillStyle = "rgb(255,0,0)";
             }
-            SourceTV2D.ctx.fillText(text, (SourceTV2D.width-SourceTV2D.ctx.measureText(text).width)/2, (SourceTV2D.height/2));
+            SourceTV2D.ctx.fillText(text, (SourceTV2D.width - SourceTV2D.ctx.measureText(text).width)/2, (SourceTV2D.height/2));
             SourceTV2D.ctx.restore();
         }
         
@@ -1653,7 +1658,7 @@ function loadMapImageInfo(game, map) {
           return;
         }
 
-        SourceTV2D.scaling = $("#scale :selected").val()/100;
+        //SourceTV2D.scaling = 1.0;
 
         SourceTV2D.playerRadius = Math.round(5 * SourceTV2D.scaling);
         SourceTV2D.width = SourceTV2D.background.width * SourceTV2D.scaling;
@@ -1671,7 +1676,7 @@ function loadMapImageInfo(game, map) {
         // Get the map config
         $.ajax({
           type: 'GET',
-          url: 'maps/' + SourceTV2D.game + '/' + SourceTV2D.map + '.txt',
+          url: '/maps/' + SourceTV2D.game + '/' + SourceTV2D.map + '.txt',
           dataType: 'json',
           success: function (json) {
               SourceTV2D.mapsettings.xoffset = json.xoffset;
@@ -1696,11 +1701,11 @@ function loadMapImageInfo(game, map) {
           return;
         }
 
-        SourceTV2D.scaling = $("#scale :selected").val()/100;
+        //SourceTV2D.scaling = 1.0;
 
         // Default height
-        SourceTV2D.width = 1024 * SourceTV2D.scaling;
-        SourceTV2D.height = 768 * SourceTV2D.scaling;
+        SourceTV2D.width = 1280 * SourceTV2D.scaling;
+        SourceTV2D.height = 1024 * SourceTV2D.scaling;
         SourceTV2D.canvas.setAttribute('width',SourceTV2D.width);
         SourceTV2D.canvas.setAttribute('height',SourceTV2D.height);
 
@@ -1708,7 +1713,7 @@ function loadMapImageInfo(game, map) {
 
         SourceTV2D.ctx = SourceTV2D.canvas.getContext('2d');
         SourceTV2D.background = null;
-  }).attr('src', 'maps/' + SourceTV2D.game + '/' + SourceTV2D.map + '.jpg');
+  }).attr('src', '/maps/' + SourceTV2D.game + '/' + SourceTV2D.map + '.jpg');
 }
 
 function sortScoreBoard() {
