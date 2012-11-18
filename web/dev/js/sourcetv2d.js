@@ -6,6 +6,18 @@
     
     Credit to Jannik 'Peace-Maker' Hartung @ http://www.wcfan.de/ for the original code
     
+    
+    TF2 class index:
+    CLASS NUMBER:NAME
+    1: Scout
+    3: Soldier
+    7: Pyro
+    4: Demoman
+    6: Heavy
+    9: Engineer
+    5: Medic
+    2: Sniper
+    8: Spy
 
 */
 
@@ -22,6 +34,7 @@ function init() {
     SourceTV2D.game = null;
     SourceTV2D.map = null;
     SourceTV2D.servername = "";
+    SourceTV2D.classnames = ["filler", "Scout", "Sniper", "Soldier", "Demo", "Medic", "Heavy", "Pyro", "Spy", "Engi"]; //corresponding to the indexes of classes
     SourceTV2D.team = ["Unassigned", "Spectator", "", ""];
     SourceTV2D.teamPoints = [0, 0];
     SourceTV2D.teamPlayerAmount = [0, 0, 0];
@@ -482,7 +495,7 @@ function stv2d_connect(ip, port) {
                         frame.positions[i][1] = Math.round(((frame.positions[i][1] + SourceTV2D.mapsettings.xoffset) / SourceTV2D.mapsettings.scale) * SourceTV2D.scaling);
                         frame.positions[i][2] = Math.round(((frame.positions[i][2] + SourceTV2D.mapsettings.yoffset) / SourceTV2D.mapsettings.scale) * SourceTV2D.scaling);
                         
-                        debug("CANVAS X: " + frame.positions[i][1] + ", CANVAS Y: " + frame.positions[i][2]);
+                        //debug("CANVAS X: " + frame.positions[i][1] + ", CANVAS Y: " + frame.positions[i][2]);
                         
                         // Get the correct team color
                         idx = -1;
@@ -508,10 +521,15 @@ function stv2d_connect(ip, port) {
                 // Round start
                 case "R":
                 {
+                    //Rroundtime:full_restart
                     frame.roundstart = "";
-                    for(; offset<msg.data.length; offset++)
+                    var splitresponse = msg.data.split(":");
+                    
+                    var rstarttime = splitresponse[0], full_reset = splitresponse[1];
+                    
+                    for(; offset < rstarttime; offset++)
                     {
-                        frame.roundstart += msg.data.charAt(offset);
+                        frame.roundstart += rstarttime.charAt(offset);
                     }
                     SourceTV2D.roundEnded = -1;
                     SourceTV2D.roundEndTime = -1;
@@ -520,6 +538,14 @@ function stv2d_connect(ip, port) {
                     SourceTV2D.bombPlantTime = -1;
                     SourceTV2D.bombExploded = false;
                     SourceTV2D.bombDefuseTime = -1;
+                    
+                    //full reset, need to clear player stats
+                    if (full_reset == 1) {
+                        for (var i = 0; i < SourceTV2D.players.length; i++) {
+                            SourceTV2D.players[i].frags = 0;
+                            SourceTV2D.players[i].deaths = 0;
+                        }
+                    }
                     
                     break;
                 }
@@ -665,9 +691,19 @@ function stv2d_connect(ip, port) {
                 // Player spawned
                 case "S":
                 {
+                    //S:id:class
+                    frame.userclass = "";
                     frame.userid = "";
+                    
+                    var tok = msg.data.split(":");
+                    frame.userclass = parseInt(tok[2]);
+                    //frame.userid = parseInt(tok[1]);
+                    
                     for(; offset<msg.data.length; offset++)
                     {
+                        if (msg.data.charAt(offset) == ":") {
+                            break;
+                        }
                         frame.userid += msg.data.charAt(offset);
                     }
                     frame.userid = parseInt(frame.userid);
@@ -683,12 +719,15 @@ function stv2d_connect(ip, port) {
                     }
                     if (idx != -1)
                     {
-                        if (!SourceTV2D.players[idx].alive)
+                        if (!SourceTV2D.players[idx].alive) {
                             SourceTV2D.teamPlayersAlive[SourceTV2D.players[idx].team-2]++;
+                        }
+                        
                         SourceTV2D.players[idx].alive = true;
                         SourceTV2D.players[idx].health = 100;
                         SourceTV2D.players[idx].plant_start_time = -1;
                         SourceTV2D.players[idx].defuse_start_time = -1;
+                        SourceTV2D.players[idx].pclass = frame.userclass;
                     }
                     break;
                 }
@@ -1000,6 +1039,11 @@ function stv2d_connect(ip, port) {
                         }
                       }
                     }
+                    break;
+                }
+                case "U":
+                {
+                    
                     break;
                 }
             }
@@ -1483,7 +1527,7 @@ function drawMap() {
             // Map and servername
             SourceTV2D.ctx.font = Math.round(12*SourceTV2D.scaling) + "pt Verdana";
             SourceTV2D.ctx.fillStyle = "rgba(255,165,0,0.9)";
-            SourceTV2D.ctx.fillText(SourceTV2D.map + "  Server: " + SourceTV2D.servername, 0, 30*SourceTV2D.scaling);
+            SourceTV2D.ctx.fillText("Server: " + SourceTV2D.servername + " (" + SourceTV2D.map + ")", 0, 30*SourceTV2D.scaling);
             
             // Blue team header box
             SourceTV2D.ctx.beginPath();
@@ -1511,11 +1555,19 @@ function drawMap() {
             // Table header
             SourceTV2D.ctx.fillStyle = "rgba(69, 171, 255, 0.9)";
             SourceTV2D.ctx.font = Math.round(10*SourceTV2D.scaling) + "pt Verdana";
-            SourceTV2D.ctx.fillText("Player", 10*SourceTV2D.scaling, 150*SourceTV2D.scaling);
+            SourceTV2D.ctx.fillText("Player", 10*SourceTV2D.scaling, 150*SourceTV2D.scaling);       
+            
+            //to position these, get the centre line of the scoreboard (sourcetv.width*0.8/2) and then substract the width of the other columns preceding 
+            //the one you want placed. all headers have the same Y positions (150*scaling)
             var deathWidth = SourceTV2D.ctx.measureText("Deaths").width;
-            SourceTV2D.ctx.fillText("Deaths", (SourceTV2D.width*0.8)/2-20*SourceTV2D.scaling-deathWidth, 150*SourceTV2D.scaling);
+            SourceTV2D.ctx.fillText("Deaths", (SourceTV2D.width*0.8)/2 - 20*SourceTV2D.scaling - deathWidth, 150*SourceTV2D.scaling);
+            
             var fragsWidth = SourceTV2D.ctx.measureText("Frags").width;
-            SourceTV2D.ctx.fillText("Frags", (SourceTV2D.width*0.8)/2-28*SourceTV2D.scaling-deathWidth-fragsWidth, 150*SourceTV2D.scaling);
+            SourceTV2D.ctx.fillText("Frags", (SourceTV2D.width*0.8)/2 - 28*SourceTV2D.scaling - deathWidth - fragsWidth, 150*SourceTV2D.scaling);
+            
+            var classWidth = SourceTV2D.ctx.measureText("Class").width;
+            SourceTV2D.ctx.fillText("Class", (SourceTV2D.width*0.8)/2 - 40*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, 150*SourceTV2D.scaling);
+            
             
             // Player list border
             SourceTV2D.ctx.strokeStyle = "rgba(69, 171, 255, 0.9)";
@@ -1541,11 +1593,19 @@ function drawMap() {
                 else
                   SourceTV2D.ctx.fillStyle = "rgba(69, 171, 255, 0.6)";
                 
+                //likewise for the headers, get centre pos and subtract
+                
                 SourceTV2D.ctx.fillText(SourceTV2D.players[i].name, 10*SourceTV2D.scaling, iHeight);
-                SourceTV2D.ctx.fillText(SourceTV2D.players[i].deaths, (SourceTV2D.width*0.8)/2-20*SourceTV2D.scaling-deathWidth, iHeight);
-                SourceTV2D.ctx.fillText(SourceTV2D.players[i].frags, (SourceTV2D.width*0.8)/2-28*SourceTV2D.scaling-deathWidth-fragsWidth, iHeight);
-                if (SourceTV2D.players[i].got_defuser)
-                    SourceTV2D.ctx.fillText("D", (SourceTV2D.width*0.8)/2-66*SourceTV2D.scaling-deathWidth-fragsWidth, iHeight);
+                SourceTV2D.ctx.fillText(SourceTV2D.players[i].deaths, (SourceTV2D.width*0.8)/2 - 20*SourceTV2D.scaling - deathWidth, iHeight);
+                SourceTV2D.ctx.fillText(SourceTV2D.players[i].frags, (SourceTV2D.width*0.8)/2 - 28*SourceTV2D.scaling - deathWidth - fragsWidth, iHeight);
+                
+                //player classes are a bit diff, since they're numbered and we want them in name
+                var classname = SourceTV2D.classnames[SourceTV2D.players[i].pclass];
+                SourceTV2D.ctx.fillText(classname, (SourceTV2D.width*0.8)/2 - 40*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, iHeight);
+                
+                
+                if (SourceTV2D.players[i].has_intel)
+                    SourceTV2D.ctx.fillText("F", (SourceTV2D.width*0.8)/2 - 66*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, iHeight);
                 iOffset++;
             }
             
@@ -1581,10 +1641,15 @@ function drawMap() {
             SourceTV2D.ctx.fillStyle = "rgba(207, 68, 102, 0.9)";
             SourceTV2D.ctx.font = Math.round(10*SourceTV2D.scaling) + "pt Verdana";
             SourceTV2D.ctx.fillText("Player", 10*SourceTV2D.scaling, 150*SourceTV2D.scaling);
+            
             var deathWidth = SourceTV2D.ctx.measureText("Deaths").width;
             SourceTV2D.ctx.fillText("Deaths", (SourceTV2D.width*0.8)/2-30*SourceTV2D.scaling-deathWidth, 150*SourceTV2D.scaling);
+            
             var fragsWidth = SourceTV2D.ctx.measureText("Frags").width;
             SourceTV2D.ctx.fillText("Frags", (SourceTV2D.width*0.8)/2-38*SourceTV2D.scaling-deathWidth-fragsWidth, 150*SourceTV2D.scaling);
+            
+            var classWidth = SourceTV2D.ctx.measureText("Class").width;
+            SourceTV2D.ctx.fillText("Class", (SourceTV2D.width*0.8)/2 - 60*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, 150*SourceTV2D.scaling);
             
             // Player list border
             SourceTV2D.ctx.strokeStyle = "rgba(207, 68, 102, 0.9)";
@@ -1611,10 +1676,14 @@ function drawMap() {
                   SourceTV2D.ctx.fillStyle = "rgba(207, 68, 102, 0.6)";
                 
                 SourceTV2D.ctx.fillText(SourceTV2D.players[i].name, 10*SourceTV2D.scaling, iHeight);
-                SourceTV2D.ctx.fillText(SourceTV2D.players[i].deaths, (SourceTV2D.width*0.8)/2-20*SourceTV2D.scaling-deathWidth, iHeight);
-                SourceTV2D.ctx.fillText(SourceTV2D.players[i].frags, (SourceTV2D.width*0.8)/2-28*SourceTV2D.scaling-deathWidth-fragsWidth, iHeight);
-                if (SourceTV2D.players[i].got_the_bomb)
-                    SourceTV2D.ctx.fillText("B", (SourceTV2D.width*0.8)/2-66*SourceTV2D.scaling-deathWidth-fragsWidth, iHeight);
+                SourceTV2D.ctx.fillText(SourceTV2D.players[i].deaths, (SourceTV2D.width*0.8)/2 - 20*SourceTV2D.scaling - deathWidth, iHeight);
+                SourceTV2D.ctx.fillText(SourceTV2D.players[i].frags, (SourceTV2D.width*0.8)/2 - 28*SourceTV2D.scaling - deathWidth - fragsWidth, iHeight);
+                
+                var classname = SourceTV2D.classnames[SourceTV2D.players[i].pclass];
+                SourceTV2D.ctx.fillText(classname, (SourceTV2D.width*0.8)/2 - 40*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, iHeight);
+                
+                if (SourceTV2D.players[i].has_intel)
+                    SourceTV2D.ctx.fillText("F", (SourceTV2D.width*0.8) / 2 - 66*SourceTV2D.scaling - deathWidth - fragsWidth, iHeight);
                 iOffset++;
             }
             

@@ -168,14 +168,14 @@ public OnPluginStart()
 #if defined _websocket_included
 public OnAllPluginsLoaded()
 {
-    LogMessage("all plugins loaded");
+    if (DEBUG) { LogMessage("all plugins loaded"); }
     if (LibraryExists("websocket"))
     {
         if (livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE)
         {
             new webtv_lport = GetConVarInt(livelogs_webtv_listenport);
             
-            LogMessage("websocket is present. initialising socket. Address: %s:%d", server_ip, webtv_lport);
+            if (DEBUG) { LogMessage("websocket is present. initialising socket. Address: %s:%d", server_ip, webtv_lport); }
             
             livelogs_webtv_listen_socket = Websocket_Open(server_ip, webtv_lport, onWebSocketConnection, onWebSocketListenError, onWebSocketListenClose);
         }
@@ -314,7 +314,7 @@ public playerSpawnEvent(Handle:event, const String:name[], bool:dontBroadcast)
     new pclass = GetEventInt(event, "class");
     
     decl String:buffer[12];
-    Format(buffer, sizeof(buffer), "S%d:%d", userid, pclass);
+    Format(buffer, sizeof(buffer), "S:%d:%d", userid, pclass);
     
     addToWebBuffer(buffer);
 }
@@ -392,7 +392,7 @@ public nameChangeEvent(Handle:event, const String:name[], bool:dontBroadcast)
 
 public Action:onWebSocketConnection(WebsocketHandle:listen_sock, WebsocketHandle:child_sock, const String:remoteIP[], remotePort, String:protocols[256])
 {
-    LogMessage("Incoming connection from %s:%d", remoteIP, remotePort);
+    if (DEBUG) { LogMessage("Incoming connection from %s:%d", remoteIP, remotePort); }
     Websocket_HookChild(child_sock, onWebSocketChildReceive, onWebSocketChildDisconnect, onWebSocketChildError);
     Websocket_HookReadyStateChange(child_sock, onWebSocketReadyStateChange);
     
@@ -404,7 +404,7 @@ public Action:onWebSocketConnection(WebsocketHandle:listen_sock, WebsocketHandle
 
 public onWebSocketReadyStateChange(WebsocketHandle:sock, WebsocketReadyState:readystate)
 {
-    LogMessage("r state change");
+    if (DEBUG) { LogMessage("r state change"); }
 
     new child_index = FindValueInArray(livelogs_webtv_children, sock);
     if (child_index == -1)
@@ -500,7 +500,7 @@ public Action:webtv_bufferProcessTimer(Handle:timer, any:data)
         //contains strings like timestamp%O3:blah:blah:blah
         GetArrayString(livelogs_webtv_buffer, i, strbuf, sizeof(strbuf)); //string with timestamp%buffer
         
-        LogMessage("Processing buffer. Buf string: %s @ idx %d", strbuf, i);
+        if (DEBUG) { LogMessage("Processing buffer. Buf string: %s @ idx %d", strbuf, i); }
         
         ExplodeString(strbuf, "@", buf_split_array, 3, 4096); //now we have the timestamp and buffered data split
         
@@ -514,7 +514,7 @@ public Action:webtv_bufferProcessTimer(Handle:timer, any:data)
         
         if (timediff > delay) //i.e. delay seconds has past, time to send data
         {
-            LogMessage("timestamp is outside of delay range. timediff: %f, sending. send msg: %s", timediff, bufdata);
+            if (DEBUG) { LogMessage("timestamp is outside of delay range. timediff: %f, sending. send msg: %s", timediff, bufdata); }
             //need to see what is being sent in the buffer for certain events, so we may store them in a state for new clients
             
             if (iClientSize == 0)
@@ -565,7 +565,7 @@ public onWebSocketChildReceive(WebsocketHandle:sock, WebsocketSendType:send_type
     if (send_type != SendType_Text)
         return;
         
-    LogMessage("Child %d received msg %s (len: %d)", _:sock, rcvd, dataSize);
+    if (DEBUG) { LogMessage("Child %d received msg %s (len: %d)", _:sock, rcvd, dataSize); }
     
     return;
         
@@ -578,7 +578,7 @@ public onWebSocketChildDisconnect(WebsocketHandle:sock)
     if (client_index < 0)
         return;
     
-    LogMessage("child disconnect. client_index: %d", client_index);
+    if (DEBUG) { LogMessage("child disconnect. client_index: %d", client_index); }
     
     RemoveFromArray(livelogs_webtv_children, client_index);
     RemoveFromArray(livelogs_webtv_children_ip, client_index);
@@ -610,7 +610,7 @@ public OnMapEnd()
 #if defined _websocket_included
 public onWebSocketListenClose(WebsocketHandle:listen_sock)
 {
-    LogMessage("listen sock close");
+    if (DEBUG) { LogMessage("listen sock close"); }
     livelogs_webtv_listen_socket = INVALID_WEBSOCKET_HANDLE;
     
     /*new iClientSize = GetArraySize(livelogs_webtv_children)
@@ -680,7 +680,7 @@ public onSocketConnected(Handle:socket, any:arg)
 public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
 {
     //Livelogs response packet: LIVELOG!api_key!listener_address!listener_port!UNIQUE_IDENT OR REUSE
-    LogMessage("Data received: %s", rcvd);
+    if (DEBUG) { LogMessage("Data received: %s", rcvd); }
 
     decl String:ll_api_key[64];
 
@@ -693,21 +693,20 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
     
     if (response_len == 5)
     {
-        LogMessage("Have tokenized response with len > 1. APIKEY: %s, SPECIFIED: %s", ll_api_key, split_buffer[1]);
+        if (DEBUG) { LogMessage("Have tokenized response with len > 1. APIKEY: %s, SPECIFIED: %s", ll_api_key, split_buffer[1]); }
 
         if ((StrEqual("LIVELOG", split_buffer[0])) && (StrEqual(ll_api_key, split_buffer[1])))
         {            
-            LogMessage("API keys match");
             Format(ll_listener_address, sizeof(ll_listener_address), "%s:%s", split_buffer[2], split_buffer[3]);
             
             if (!StrEqual(split_buffer[4], "REUSE"))
             {
-                LogMessage("LL LOG_UNIQUE_IDENT: %s", split_buffer[4]);
+                if (DEBUG) { LogMessage("LL LOG_UNIQUE_IDENT: %s", split_buffer[4]); }
                 strcopy(log_unique_ident, sizeof(log_unique_ident), split_buffer[4]);
             }
             
             ServerCommand("logaddress_add %s", ll_listener_address);
-            LogMessage("Added address %s to logaddress list", ll_listener_address);
+            if (DEBUG) { LogMessage("Added address %s to logaddress list", ll_listener_address); }
         }
     }
     
@@ -849,7 +848,7 @@ sendToAllWebChildren(const String:data[])
     {
         send_sock = WebsocketHandle:GetArrayCell(livelogs_webtv_children, i);
         
-        LogMessage("data to be sent: %s", data);
+        if (DEBUG) { LogMessage("data to be sent: %s", data); }
         
         if (Websocket_GetReadyState(send_sock) == State_Open)
             Websocket_Send(send_sock, SendType_Text, data);
