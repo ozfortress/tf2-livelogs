@@ -91,6 +91,7 @@ new Handle:livelogs_daemon_apikey = INVALID_HANDLE; //the key that must be speci
 //if websocket is included, let's define the websocket stuff!
 #if defined _websocket_included
 new webtv_round_time;
+new bool:webtv_library_present = false;
 
 new WebsocketHandle:livelogs_webtv_listen_socket = INVALID_WEBSOCKET_HANDLE;
 new Handle:livelogs_webtv_listenport = INVALID_HANDLE;
@@ -173,7 +174,8 @@ public OnAllPluginsLoaded()
     if (DEBUG) { LogMessage("all plugins loaded"); }
     if (LibraryExists("websocket"))
     {
-        if (livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE)
+        webtv_library_present = true;
+        /*if (livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE)
         {
             new webtv_lport = GetConVarInt(livelogs_webtv_listenport);
             
@@ -181,7 +183,7 @@ public OnAllPluginsLoaded()
             
             livelogs_webtv_listen_socket = Websocket_Open(server_ip, webtv_lport, onWebSocketConnection, onWebSocketListenError, onWebSocketListenClose);
         }
-        
+        */
     }
 }
 
@@ -720,6 +722,15 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
             
             ServerCommand("logaddress_add %s", ll_listener_address);
             if (DEBUG) { LogMessage("Added address %s to logaddress list", ll_listener_address); }
+            
+            //now open websocket too
+            if ((livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE) && (webtv_library_present))
+            {
+                new webtv_lport = GetConVarInt(livelogs_webtv_listenport);
+                if (DEBUG) { LogMessage("websocket is present. initialising socket. Address: %s:%d", server_ip, webtv_lport); }
+            
+                livelogs_webtv_listen_socket = Websocket_Open(server_ip, webtv_lport, onWebSocketConnection, onWebSocketListenError, onWebSocketListenClose);
+            }
         }
     }
     
@@ -821,6 +832,13 @@ endLogging()
 
         ServerCommand("logaddress_del %s", ll_listener_address);
     }
+    
+    #if defined _websocket_included
+    if ((webtv_library_present) && (livelogs_webtv_listen_socket != INVALID_WEBSOCKET_HANDLE))
+    {
+        CreateTimer(GetConVarFloat(FindConVar("tv_delay")) + 10.0, cleanUpWebSocket);
+    }
+    #endif
 }
 
 stock ConVarExists(const String:cvar_name[])
@@ -868,5 +886,10 @@ sendToAllWebChildren(const String:data[])
         if (Websocket_GetReadyState(send_sock) == State_Open)
             Websocket_Send(send_sock, SendType_Text, data);
     }
+}
+
+public Action:cleanUpWebSocket(Handle:timer, any:data)
+{
+    Websocket_Close(livelogs_webtv_listen_socket);
 }
 #endif
