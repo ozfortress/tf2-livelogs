@@ -10,7 +10,7 @@
  * C: Player connected
  * D: Player disconnected
  * E: Round ended
- * F:
+ * F: FLAG ACTION - intel pickup, capture, defend, drop
  * G: Player changed class
  * H: Player was hurt
  * I: Initial child socket connect. Sends game and map
@@ -43,6 +43,7 @@
 
 #if defined _websocket_included
 #include <halflife>
+#include <tf2_stocks>
 #endif
 
 #define REQUIRE_EXTENSIONS
@@ -158,6 +159,7 @@ public OnPluginStart()
     HookEvent("player_spawn", playerSpawnEvent);
     HookEvent("player_changeclass", playerClassChangeEvent);
     HookEvent("player_chargedeployed", playerUberEvent);
+    HookEvent("teamplay_flag_event", playerFlagEvent);
     HookEvent("teamplay_round_start", roundStartEvent);
     HookEvent("teamplay_round_win", roundEndEvent);
     
@@ -337,7 +339,18 @@ public playerUberEvent(Handle:event, const String:name[], bool:dontBroadcast)
     new t_userid = GetEventInt(event, "targetid"); //userid of medic's target
     
     decl String:buffer[12];
-    Format(buffer, sizeof(buffer), "U%d:%d", m_userid, t_userid);
+    Format(buffer, sizeof(buffer), "U:%d:%d", m_userid, t_userid);
+    
+    addToWebBuffer(buffer);
+}
+
+public playerFlagEvent(Handle:event, const String:name[], bool:dontBroadcast)
+{
+    new userid = GetEventInt(event, "player");
+    new etype = GetEventInt(event, "eventtype");
+    
+    decl String:buffer[12];
+    Format(buffer, sizeof(buffer), "F:%d:%d", userid, etype);
     
     addToWebBuffer(buffer);
 }
@@ -435,9 +448,9 @@ public onWebSocketReadyStateChange(WebsocketHandle:sock, WebsocketReadyState:rea
     {
         if (IsClientInGame(i) && !IsFakeClient(i))
         {
-            //CUSERID:IP:TEAM:ALIVE:FRAGS:DEATHS:HEALTH:BOMB:DEFUSER:NAME
+            //CUSERID:IP:TEAM:ALIVE:FRAGS:DEATHS:HEALTH:CLASS:INTEL:NAME
             Format(buffer, sizeof(buffer), "C%d:%s:%d:%d:%d:%d:%d:%d:%d:%N", GetClientUserId(i), "0.0.0.0", 
-                    GetClientTeam(i), IsPlayerAlive(i), GetClientFrags(i), GetClientDeaths(i), 100, 0, 0, i);
+                    GetClientTeam(i), IsPlayerAlive(i), GetClientFrags(i), GetClientDeaths(i), 100, TF2_GetPlayerClass(i), 0, i);
                     
             Websocket_Send(sock, SendType_Text, buffer);
         }

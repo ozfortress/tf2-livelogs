@@ -34,7 +34,7 @@ function init() {
     SourceTV2D.game = null;
     SourceTV2D.map = null;
     SourceTV2D.servername = "";
-    SourceTV2D.classnames = ["filler", "Scout", "Sniper", "Soldier", "Demo", "Medic", "Heavy", "Pyro", "Spy", "Engi"]; //corresponding to the indexes of classes
+    SourceTV2D.classnames = ["????", "Scout", "Sniper", "Soldier", "Demo", "Medic", "Heavy", "Pyro", "Spy", "Engi"]; //corresponding to the indexes of classes
     SourceTV2D.team = ["Unassigned", "Spectator", "", ""];
     SourceTV2D.teamPoints = [0, 0];
     SourceTV2D.teamPlayerAmount = [0, 0, 0];
@@ -249,6 +249,7 @@ function stv2d_connect(ip, port) {
                 // Player connected.
                 case "C":
                 {
+                    //CUSERID:IP:TEAM:ALIVE:FRAGS:DEATHS:HEALTH:CLASS:INTEL:NAME
                     var info = 0;
                     frame.userid = "";
                     frame.ip = "";
@@ -257,8 +258,8 @@ function stv2d_connect(ip, port) {
                     frame.frags = "";
                     frame.deaths = "";
                     frame.health = "";
-                    frame.bomb = "";
-                    frame.defuser = "";
+                    frame.pclass = "";
+                    frame.has_intel = "";
                     frame.name = "";
                     for(; offset<msg.data.length; offset++)
                     {
@@ -282,16 +283,16 @@ function stv2d_connect(ip, port) {
                         else if (info == 6)
                             frame.health += msg.data.charAt(offset);
                         else if (info == 7)
-                            frame.bomb += msg.data.charAt(offset);
+                            frame.pclass += msg.data.charAt(offset);
                         else if (info == 8)
-                            frame.defuser += msg.data.charAt(offset);
+                            frame.has_intel += msg.data.charAt(offset);
                         else
                             frame.name += msg.data.charAt(offset);
                     }
                     
                     frame.team = parseInt(frame.team);
-                    frame.bomb = parseInt(frame.bomb);
-                    frame.defuser = parseInt(frame.defuser);
+                    frame.pclass = parseInt(frame.pclass);
+                    frame.has_intel = parseInt(frame.has_intel);
                     
                     if (frame.team < 2)
                         SourceTV2D.teamPlayerAmount[0]++;
@@ -316,7 +317,7 @@ function stv2d_connect(ip, port) {
                     
                     var idx = SourceTV2D.players.length;
                     var d = new Date();
-                    SourceTV2D.players[idx] = {'userid': parseInt(frame.userid), 'ip': frame.ip, 'name': frame.name, 'team': frame.team, 'positions': [], 'alive': (frame.alive==1), 'health': frame.health, 'hovered': false, 'selected': false, 'frags': frags, 'deaths': deaths, 'got_the_bomb': (frame.bomb==1), 'got_defuser': (frame.defuser==1), 'plant_start_time': -1, 'defuse_start_time': -1};
+                    SourceTV2D.players[idx] = {'userid': parseInt(frame.userid), 'ip': frame.ip, 'name': frame.name, 'team': frame.team, 'positions': [], 'alive': (frame.alive==1), 'health': frame.health, 'hovered': false, 'selected': false, 'frags': frags, 'deaths': deaths, 'pclass': frame.pclass, 'has_intel': (frame.has_intel==1), 'plant_start_time': -1, 'defuse_start_time': -1};
                     // Only show the connect message, if he's newly joined -> no team yet.
                     if (SourceTV2D.players[idx].team == 0)
                         SourceTV2D.infos[SourceTV2D.infos.length] = {'msg': frame.name + " has joined the server", 'time': d.getTime()/1000};
