@@ -663,9 +663,21 @@ class parserClass():
         update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE steamid = E'%s'" % (self.STAT_TABLE, column, column, value, steamid)
 
         curs = self.pgsqlConn.cursor()
-        curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
         
-        self.pgsqlConn.commit()
+        try:
+            curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
+            self.pgsqlConn.commit()
+        except psycopg2.DataError, e:
+            print "DB DATA ERROR INSERTING DATA %s" % query
+            print e.pgerror
+            
+            self.pgsqlConn.rollback()
+        except Exception, e:
+            print "DB ERROR"
+            print e.pgerror
+            
+            self.pgsqlConn.rollback()
+            
         curs.close()
         
         return
@@ -675,9 +687,20 @@ class parserClass():
 
     def executeQuery(self, query):
         curs = self.pgsqlConn.cursor()
-        curs.execute(query)
+        try:
+            curs.execute(query)
+            self.pgsqlConn.commit()
+        except psycopg2.DataError, e:
+            print "DB DATA ERROR INSERTING DATA %s" % query
+            print e.pgerror
+            
+            self.pgsqlConn.rollback()
+        except Exception, e:
+            print "DB ERROR"
+            print e.pgerror
+            
+            self.pgsqlConn.rollback()
 
-        self.pgsqlConn.commit()
         curs.close()
 
     def endLogParsing(self, game_over=False):
