@@ -544,7 +544,7 @@ public Action:webtv_bufferProcessTimer(Handle:timer, any:data)
                 continue;
             }
             
-            sendToAllWebChildren(buf_split_array[1]);
+            sendToAllWebChildren(buf_split_array[1], num_web_clients);
             
             RemoveFromArray(livelogs_webtv_buffer, i);
             i--; //push our i down, because we removed an array element and hence shifted the index by << 1
@@ -709,14 +709,14 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
             if (DEBUG) { LogMessage("Added address %s to logaddress list", ll_listener_address); }
             
             //now open websocket too
-            /*if ((livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE) && (webtv_library_present))
+            if ((livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE) && (webtv_library_present))
             {
-                webtv_delay = GetConVarFloat(FindConVar("tv_delay"))
+                webtv_delay = GetConVarFloat(FindConVar("tv_delay"));
                 new webtv_lport = GetConVarInt(livelogs_webtv_listenport);
                 if (DEBUG) { LogMessage("websocket is present. initialising socket. Address: %s:%d", server_ip, webtv_lport); }
             
                 livelogs_webtv_listen_socket = Websocket_Open(server_ip, webtv_lport, onWebSocketConnection, onWebSocketListenError, onWebSocketListenClose);
-            }*/
+            }
         }
     }
     
@@ -855,12 +855,14 @@ addToWebBuffer(const String:msg[])
         
 }
 
-sendToAllWebChildren(const String:data[])
+sendToAllWebChildren(const String:data[], num_web_clients = -1)
 {
-    new num_web_clients = GetArraySize(livelogs_webtv_children);
+    if (num_web_clients == -1)
+        num_web_clients = GetArraySize(livelogs_webtv_children);
+    
     if (num_web_clients == 0)
         return;
-        
+    
     new WebsocketHandle:send_sock;
     
     for (new i = 0; i < num_web_clients; i++)
