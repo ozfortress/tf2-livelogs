@@ -54,7 +54,7 @@
 #define TEAM_OFFSET 2
 #define DEBUG true
 
-#define MAX_BUFFER_ELEMENTS 500 //MATH: (1/WEBTV_POSITION_UPDATE_RATE)*(MAX_TV_DELAY) + MAX_POSSIBLE_ADDITIONAL_EVENTS
+#define MAX_BUFFER_ELEMENTS 600 //MATH: (1/WEBTV_POSITION_UPDATE_RATE)*(MAX_TV_DELAY) + MAX_POSSIBLE_ADDITIONAL_EVENTS
                                 //the maximum possible additional events is an (overly generous) educated guess at the number of events that could occur
 
 #if defined _websocket_included
@@ -849,7 +849,14 @@ addToWebBuffer(const String:msg[])
 {
     if (strlen(msg) < 1)
         return;
-        
+    
+    
+    if (livelogs_webtv_buffer_length >= MAX_BUFFER_ELEMENTS)
+    {
+        LogMessage("number of buffer items (%d) is >= the max buffer elements", livelogs_webtv_buffer_length);
+        return;
+    }
+    
     new Float:time = GetEngineTime();
     
     decl String:newbuffer[4096];
