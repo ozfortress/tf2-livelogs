@@ -54,6 +54,9 @@
 #define TEAM_OFFSET 2
 #define DEBUG true
 
+#define MAX_BUFFER_ELEMENTS 500 //MATH: (1/WEBTV_POSITION_UPDATE_RATE)*(MAX_TV_DELAY) + MAX_POSSIBLE_ADDITIONAL_EVENTS
+                                //the maximum possible additional events is an (overly generous) educated guess at the number of events that could occur
+
 #if defined _websocket_included
 #define WEBTV_POSITION_UPDATE_RATE 0.3
 #define WEBTV_BUFFER_PROCESS_RATE 0.1
@@ -104,7 +107,9 @@ new Handle:livelogs_webtv_children;
 new Handle:livelogs_webtv_children_ip;
 new Handle:livelogs_webtv_positions_timer = INVALID_HANDLE;
 
-new Handle:livelogs_webtv_buffer = INVALID_HANDLE; //buffer all data, to be sent on a delay equal to that of tv_delay
+new String:livelogs_webtv_buffer[MAX_BUFFER_ELEMENTS][4096]; //string array buffer, possibly faster than dynamic arrays
+new livelogs_webtv_buffer_length = 0;
+//new Handle:livelogs_webtv_buffer = INVALID_HANDLE; //buffer all data, to be sent on a delay equal to that of tv_delay
 new Handle:livelogs_webtv_buffer_timer = INVALID_HANDLE; //timer to process the buffer every WEBTV_UPDATE_RATE seconds, only sends events that have time >= tv_delay
 #endif
 
@@ -157,7 +162,7 @@ public OnPluginStart()
 
     livelogs_webtv_children = CreateArray();
     livelogs_webtv_children_ip = CreateArray(ByteCountToCells(33));
-    livelogs_webtv_buffer = CreateArray(4096);
+    //livelogs_webtv_buffer = CreateArray(4096);
     
     
     //add event hooks and shiz for websocket, self explanatory names and event hooks
@@ -521,18 +526,20 @@ public Action:webtv_bufferProcessTimer(Handle:timer, any:data)
 {
     new Float:current_time = GetEngineTime(), Float:timediff;
     
-    new iBufferSize = GetArraySize(livelogs_webtv_buffer), num_web_clients = GetArraySize(livelogs_webtv_children);
+    //new iBufferSize = GetArraySize(livelogs_webtv_buffer);
+    new num_web_clients = GetArraySize(livelogs_webtv_children);
     
-    decl String:buf_split_array[3][4096], String:strbuf[4096];
+    decl String:buf_split_array[3][4096];// String:strbuf[4096];
     
-    for (new i = 0; i < iBufferSize; i++)
+    for (new i = 0; i < livelogs_webtv_buffer_length; i++)
     {
         //contains strings like timestamp%O3:blah:blah:blah
-        GetArrayString(livelogs_webtv_buffer, i, strbuf, sizeof(strbuf)); //string with timestamp%buffer
+        //GetArrayString(livelogs_webtv_buffer, i, strbuf, sizeof(strbuf)); //string with timestamp%buffer
+        //strcopy(strbuf, sizeof(strbuf), livelogs_webtv_buffer[i]);
         
-        //if (DEBUG) { LogMessage("Processing buffer. Buf string: %s @ idx %d", strbuf, i); }
+        //if (DEBUG) { LogMessage("Processing buffer. Buf string: %s @ idx %d", livelogs_webtv_buffer[i], i); }
         
-        ExplodeString(strbuf, "@", buf_split_array, 3, 4096); //now we have the timestamp and buffered data split
+        ExplodeString(livelogs_webtv_buffer[i], "@", buf_split_array, 3, 4096); //now we have the timestamp and buffered data split
         
         //compare timestamps to see if tv_delay has passed
         timediff = current_time - StringToFloat(buf_split_array[0]);
@@ -541,18 +548,17 @@ public Action:webtv_bufferProcessTimer(Handle:timer, any:data)
         {
             //if (DEBUG) { LogMessage("timestamp is outside of delay range. timediff: %f, sending. send msg: %s", timediff, buf_split_array[1]); }
             
-            if (num_web_clients == 0)
+            if (num_web_clients > 0)
             {
-                RemoveFromArray(livelogs_webtv_buffer, i);
-                iBufferSize--;
-                continue;
+                //RemoveFromArray(livelogs_webtv_buffer, i);
+                //iBufferSize--;
+                sendToAllWebChildren(buf_split_array[1], num_web_clients);
             }
             
-            sendToAllWebChildren(buf_split_array[1], num_web_clients);
-            
-            RemoveFromArray(livelogs_webtv_buffer, i);
             i--; //push our i down, because we removed an array element and hence shifted the index by << 1
-            iBufferSize--; //also move the buffer back 1 to prevent an infinite loop
+            shiftBufferLeft();
+            //iBufferSize--; //also move the buffer back 1 to prevent an infinite loop
+            //RemoveFromArray(livelogs_webtv_buffer, i);
         }
         else {
         //our timestamp is beyond the delay. therefore, everything following it will be as well
@@ -850,11 +856,13 @@ addToWebBuffer(const String:msg[])
     Format(newbuffer, sizeof(newbuffer), "%f@%s", time, msg); //append the timestamp to the msg
     
     //new bufindex = PushArrayString(livelogs_webtv_buffer, newbuffer);
+    strcopy(livelogs_webtv_buffer[livelogs_webtv_buffer_length], sizeof(livelogs_webtv_buffer[]), newbuffer);
+    livelogs_webtv_buffer_length++;
     
     //decl String:tmp[4096];
     //GetArrayString(livelogs_webtv_buffer, bufindex, tmp, sizeof(tmp));
     
-    //LogMessage("Added %s to send buffer. IN BUFFER: %s, INDEX: %d", newbuffer, tmp, bufindex);
+    //LogMessage("Added %s to send buffer. IN BUFFER: %s, INDEX: %d", newbuffer, livelogs_webtv_buffer[livelogs_webtv_buffer_length-1], livelogs_webtv_buffer_length-1);
     
     if (livelogs_webtv_buffer_timer == INVALID_HANDLE)
         livelogs_webtv_buffer_timer = CreateTimer(WEBTV_BUFFER_PROCESS_RATE, webtv_bufferProcessTimer, _, TIMER_REPEAT);
@@ -875,11 +883,20 @@ sendToAllWebChildren(const String:data[], num_web_clients = -1)
     {
         send_sock = WebsocketHandle:GetArrayCell(livelogs_webtv_children, i);
         
-        if (DEBUG) { LogMessage("data to be sent: %s", data); }
+        //if (DEBUG) { LogMessage("data to be sent: %s", data); }
         
         if (Websocket_GetReadyState(send_sock) == State_Open)
             Websocket_Send(send_sock, SendType_Text, data);
     }
+}
+
+shiftBufferLeft()
+{
+    for (new i = 0; i < livelogs_webtv_buffer_length; i++)
+    {
+        strcopy(livelogs_webtv_buffer[i], sizeof(livelogs_webtv_buffer[]), livelogs_webtv_buffer[i+1]);
+    }
+    livelogs_webtv_buffer_length--;
 }
 
 public Action:cleanUpWebSocket(Handle:timer, any:data)
