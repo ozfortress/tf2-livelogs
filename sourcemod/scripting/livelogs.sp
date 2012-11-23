@@ -38,6 +38,7 @@
 #include <socket>
 
 #undef REQUIRE_EXTENSIONS
+#undef REQUIRE_PLUGIN
 #tryinclude <websocket>
 
 #if defined _websocket_included
@@ -180,6 +181,7 @@ public OnAllPluginsLoaded()
     if (LibraryExists("websocket"))
     {
         webtv_library_present = true;
+        LogMessage("websocket.smx present. Using SourceTV2D");
         /*if (livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE)
         {
             new webtv_lport = GetConVarInt(livelogs_webtv_listenport);
@@ -190,6 +192,8 @@ public OnAllPluginsLoaded()
         }
         */
     }
+    else
+        LogMessage("websocket.smx is not present. Not using SourceTV2D");
 }
 
 #endif
@@ -535,7 +539,7 @@ public Action:webtv_bufferProcessTimer(Handle:timer, any:data)
         
         if (timediff > webtv_delay) //i.e. delay seconds has past, time to send data
         {
-            //if (DEBUG) { LogMessage("timestamp is outside of delay range. timediff: %f, sending. send msg: %s", timediff, bufdata); }
+            //if (DEBUG) { LogMessage("timestamp is outside of delay range. timediff: %f, sending. send msg: %s", timediff, buf_split_array[1]); }
             
             if (num_web_clients == 0)
             {
@@ -845,9 +849,9 @@ addToWebBuffer(const String:msg[])
     decl String:newbuffer[4096];
     Format(newbuffer, sizeof(newbuffer), "%f@%s", time, msg); //append the timestamp to the msg
     
-    new bufindex = PushArrayString(livelogs_webtv_buffer, newbuffer);
+    //new bufindex = PushArrayString(livelogs_webtv_buffer, newbuffer);
     
-   // decl String:tmp[4096];
+    //decl String:tmp[4096];
     //GetArrayString(livelogs_webtv_buffer, bufindex, tmp, sizeof(tmp));
     
     //LogMessage("Added %s to send buffer. IN BUFFER: %s, INDEX: %d", newbuffer, tmp, bufindex);
@@ -871,7 +875,7 @@ sendToAllWebChildren(const String:data[], num_web_clients = -1)
     {
         send_sock = WebsocketHandle:GetArrayCell(livelogs_webtv_children, i);
         
-        //if (DEBUG) { LogMessage("data to be sent: %s", data); }
+        if (DEBUG) { LogMessage("data to be sent: %s", data); }
         
         if (Websocket_GetReadyState(send_sock) == State_Open)
             Websocket_Send(send_sock, SendType_Text, data);

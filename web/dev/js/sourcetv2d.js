@@ -168,9 +168,9 @@ function stv2d_connect(ip, port) {
             var frame = {}, offset = 0;
             frame.type = msg.data.charAt(offset);
             offset += 1;
-            if (frame.type != "O") {
+            //if (frame.type != "O") {
                 debug("Received frame type: " + frame.type + " Msg: " + msg.data);
-            }
+            //}
             switch (frame.type)
             {
                 // Initialisation
