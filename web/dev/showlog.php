@@ -166,8 +166,8 @@
             <?php
             }
             ?>
-                <span class="red_score_tag">RED </span><span class="red_score" id="red_score_value"><?=$red_score?></span>
-                <span class="blue_score_tag">BLUE </span><span class="blue_score" id="blue_score_value"><?=$blue_score?></span>
+                <span class="red_score_tag">RED </span><span class="red_score" id="red_score_value"><?=(($red_score) ? $red_score : 0)?></span>
+                <span class="blue_score_tag">BLUE </span><span class="blue_score" id="blue_score_value"><?=(($blue_score) ? $blue_score : 0?></span>
             </div>
         </div>
         

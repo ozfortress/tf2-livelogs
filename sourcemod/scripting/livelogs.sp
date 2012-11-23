@@ -708,6 +708,7 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
             ServerCommand("logaddress_add %s", ll_listener_address);
             if (DEBUG) { LogMessage("Added address %s to logaddress list", ll_listener_address); }
             
+            #if defined _websocket_included
             //now open websocket too
             if ((livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE) && (webtv_library_present))
             {
@@ -717,6 +718,7 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
             
                 livelogs_webtv_listen_socket = Websocket_Open(server_ip, webtv_lport, onWebSocketConnection, onWebSocketListenError, onWebSocketListenClose);
             }
+            #endif
         }
     }
     
