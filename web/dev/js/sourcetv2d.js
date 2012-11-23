@@ -1199,11 +1199,13 @@ function drawMap() {
             debug(text);
             if (SourceTV2D.mapsettingsFailed) {
                 text = "Map config failed to load. Player positions can not be shown.";
-                debug(text);
+                //debug(text);
                 SourceTV2D.ctx.fillStyle = "rgb(255,0,0)";
             }
             SourceTV2D.ctx.fillText(text, (SourceTV2D.width - SourceTV2D.ctx.measureText(text).width)/2, (SourceTV2D.height/2));
             SourceTV2D.ctx.restore();
+            stv2d_disconnect();
+            return;
         }
         
         // Draw dropped bomb on map
