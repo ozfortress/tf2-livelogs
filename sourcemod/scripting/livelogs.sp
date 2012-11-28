@@ -58,9 +58,11 @@
                                 //the maximum possible additional events is an (overly generous) educated guess at the number of events that could occur
 
 #if defined _websocket_included
-#define WEBTV_POSITION_UPDATE_RATE 0.3
-#define WEBTV_BUFFER_PROCESS_RATE 0.1
-#endif
+#define WEBTV_POSITION_UPDATE_RATE 0.2 /*rate at which position packets are added to the buffer. MAKE SURE TO BE SLOWER THAN THE PROCESS TIMER,
+                                       ELSE YOU WILL GET MULTIPLE POSITION UPDATES IN THE SAME PROCESSING FRAME (BAD)*/
+#define WEBTV_BUFFER_PROCESS_RATE 0.075 /*tf2 tickrate process time is 66.66 updates/sec = update every 15 ms. 
+                                        we process the buffer 5 times slower (75ms), as we don't really need instant updates, and can interpolate */
+#endif                                  
 
 public Plugin:myinfo =
 {
@@ -107,10 +109,12 @@ new Handle:livelogs_webtv_children;
 new Handle:livelogs_webtv_children_ip;
 new Handle:livelogs_webtv_positions_timer = INVALID_HANDLE;
 
-new String:livelogs_webtv_buffer[MAX_BUFFER_ELEMENTS][4096]; //string array buffer, possibly faster than dynamic arrays
+new String:livelogs_webtv_buffer[MAX_BUFFER_ELEMENTS][4096]; //string array buffer, MUCH faster than dynamic arrays
 new livelogs_webtv_buffer_length = 0;
 //new Handle:livelogs_webtv_buffer = INVALID_HANDLE; //buffer all data, to be sent on a delay equal to that of tv_delay
 new Handle:livelogs_webtv_buffer_timer = INVALID_HANDLE; //timer to process the buffer every WEBTV_UPDATE_RATE seconds, only sends events that have time >= tv_delay
+
+new Handle:livelogs_webtv_cleanup_timer = INVALID_HANDLE;
 #endif
 
 //------------------------------------------------------------------------------
@@ -217,7 +221,7 @@ public OnMapStart()
     
     Format(buffer, sizeof(buffer), "M%s", buffer);
     
-    sendToAllWebChildren(buffer);
+    addToWebBuffer(buffer);
 #endif
 }
 
@@ -487,10 +491,10 @@ public onWebSocketReadyStateChange(WebsocketHandle:sock, WebsocketReadyState:rea
 
 public Action:updatePlayerPositionTimer(Handle:timer, any:data)
 {
-    new num_web_clients = GetArraySize(livelogs_webtv_children);
+    /*new num_web_clients = GetArraySize(livelogs_webtv_children);
     if (num_web_clients == 0)
         return Plugin_Continue;
- 
+    */
     //LogMessage("update player pos");
  
     decl String:buffer[4096];
@@ -533,12 +537,10 @@ public Action:webtv_bufferProcessTimer(Handle:timer, any:data)
     
     for (new i = 0; i < livelogs_webtv_buffer_length; i++)
     {
-        //contains strings like timestamp%O3:blah:blah:blah
-        //GetArrayString(livelogs_webtv_buffer, i, strbuf, sizeof(strbuf)); //string with timestamp%buffer
-        //strcopy(strbuf, sizeof(strbuf), livelogs_webtv_buffer[i]);
         
         //if (DEBUG) { LogMessage("Processing buffer. Buf string: %s @ idx %d", livelogs_webtv_buffer[i], i); }
         
+        //contains strings like timestamp@O3:blah:blah:blah
         ExplodeString(livelogs_webtv_buffer[i], "@", buf_split_array, 3, 4096); //now we have the timestamp and buffered data split
         
         //compare timestamps to see if tv_delay has passed
@@ -550,15 +552,11 @@ public Action:webtv_bufferProcessTimer(Handle:timer, any:data)
             
             if (num_web_clients > 0)
             {
-                //RemoveFromArray(livelogs_webtv_buffer, i);
-                //iBufferSize--;
                 sendToAllWebChildren(buf_split_array[1], num_web_clients);
             }
             
             i--; //push our i down, because we removed an array element and hence shifted the index by << 1
-            shiftBufferLeft();
-            //iBufferSize--; //also move the buffer back 1 to prevent an infinite loop
-            //RemoveFromArray(livelogs_webtv_buffer, i);
+            shiftBufferLeft(); //remove array element, also decrements buffer_length
         }
         else {
         //our timestamp is beyond the delay. therefore, everything following it will be as well
@@ -719,6 +717,13 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
             if (DEBUG) { LogMessage("Added address %s to logaddress list", ll_listener_address); }
             
             #if defined _websocket_included
+            
+            //if the previous websocket is yet to be cleaned up, clean it up now
+            if (livelogs_webtv_cleanup_timer != INVALID_HANDLE)
+            {
+                TriggerTimer(livelogs_webtv_cleanup_timer);
+            }
+            
             //now open websocket too
             if ((livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE) && (webtv_library_present))
             {
@@ -727,6 +732,9 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
                 if (DEBUG) { LogMessage("websocket is present. initialising socket. Address: %s:%d", server_ip, webtv_lport); }
             
                 livelogs_webtv_listen_socket = Websocket_Open(server_ip, webtv_lport, onWebSocketConnection, onWebSocketListenError, onWebSocketListenClose);
+                
+                if (livelogs_webtv_positions_timer == INVALID_HANDLE)
+                    livelogs_webtv_positions_timer = CreateTimer(WEBTV_POSITION_UPDATE_RATE, updatePlayerPositionTimer, _, TIMER_REPEAT);
             }
             #endif
         }
@@ -812,7 +820,9 @@ requestListenerAddress()
     {
         Format(log_name, sizeof(log_name), "default");
     }
+    
     GetConVarString(livelogs_daemon_apikey, ll_api_key, sizeof(ll_api_key));
+    
     #if defined _websocket_included
     new webtv_port = GetConVarInt(livelogs_webtv_listenport);
     Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s!%d", ll_api_key, server_ip, server_port, map, log_name, webtv_port);  
@@ -834,7 +844,7 @@ endLogging()
     #if defined _websocket_included
     if ((webtv_library_present) && (livelogs_webtv_listen_socket != INVALID_WEBSOCKET_HANDLE))
     {
-        CreateTimer(GetConVarFloat(FindConVar("tv_delay")) + 10.0, cleanUpWebSocket);
+        livelogs_webtv_cleanup_timer = CreateTimer(GetConVarFloat(FindConVar("tv_delay")) + 10.0, cleanUpWebSocket);
     }
     #endif
 }
@@ -904,10 +914,36 @@ shiftBufferLeft()
         strcopy(livelogs_webtv_buffer[i], sizeof(livelogs_webtv_buffer[]), livelogs_webtv_buffer[i+1]);
     }
     livelogs_webtv_buffer_length--;
+    LogMessage("left shift. buffer length: %d", livelogs_webtv_buffer_length);
+}
+
+emptyWebBuffer()
+{
+    for (new i = 0; i < livelogs_webtv_buffer_length; i++)
+    {
+        strcopy(livelogs_webtv_buffer[i], sizeof(livelogs_webtv_buffer[]), "\0");
+    }
+    livelogs_webtv_buffer_length = 0;
+    LogMessage("cleared buffer");
 }
 
 public Action:cleanUpWebSocket(Handle:timer, any:data)
 {
-    Websocket_Close(livelogs_webtv_listen_socket);
+    if (livelogs_webtv_listen_socket != INVALID_WEBSOCKET_HANDLE)
+        Websocket_Close(livelogs_webtv_listen_socket);
+        
+        
+    emptyWebBuffer();
+    
+    if (livelogs_webtv_buffer_timer != INVALID_HANDLE)
+        KillTimer(livelogs_webtv_buffer_timer);
+    if (livelogs_webtv_positions_timer != INVALID_HANDLE)
+        KillTimer(livelogs_webtv_positions_timer);
+        
+    livelogs_webtv_cleanup_timer = INVALID_HANDLE;
+    
+    return Plugin_Continue;
 }
+
+
 #endif
