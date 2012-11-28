@@ -541,27 +541,27 @@ public Action:webtv_bufferProcessTimer(Handle:timer, any:data)
         //if (DEBUG) { LogMessage("Processing buffer. Buf string: %s @ idx %d", livelogs_webtv_buffer[i], i); }
         
         //contains strings like timestamp@O3:blah:blah:blah
-        ExplodeString(livelogs_webtv_buffer[i], "@", buf_split_array, 3, 4096); //now we have the timestamp and buffered data split
+        new num_tok = ExplodeString(livelogs_webtv_buffer[i], "@", buf_split_array, 3, 4096); //now we have the timestamp and buffered data split
         
-        //compare timestamps to see if tv_delay has passed
-        timediff = current_time - StringToFloat(buf_split_array[0]);
-        
-        if (timediff > webtv_delay) //i.e. delay seconds has past, time to send data
-        {
-            //if (DEBUG) { LogMessage("timestamp is outside of delay range. timediff: %f, sending. send msg: %s", timediff, buf_split_array[1]); }
+        //if we get 2 strings out of splitting, we have our timestap@msg
+        if (num_tok > 2)
+        {        
+            //compare timestamps to see if tv_delay has passed
+            timediff = current_time - StringToFloat(buf_split_array[0]);
             
-            if (num_web_clients > 0)
+            if ((timediff > webtv_delay) && (num_web_clients > 0)) //i.e. delay seconds has past, time to send data
             {
+                //if (DEBUG) { LogMessage("timestamp is outside of delay range. timediff: %f, sending. send msg: %s", timediff, buf_split_array[1]); }
                 sendToAllWebChildren(buf_split_array[1], num_web_clients);
             }
-            
-            i--; //push our i down, because we removed an array element and hence shifted the index by << 1
-            shiftBufferLeft(); //remove array element, also decrements buffer_length
+            else {
+            //our timestamp is beyond the delay. therefore, everything following it will be as well
+                return Plugin_Continue;
+            }
         }
-        else {
-        //our timestamp is beyond the delay. therefore, everything following it will be as well
-            return Plugin_Continue;
-        }
+        
+        i--; //push our i down, because we removed an array element and hence shifted the index by << 1
+        shiftBufferLeft(); //remove array element, also decrements buffer_length
     }
 
     return Plugin_Continue;
