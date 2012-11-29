@@ -719,10 +719,7 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
             #if defined _websocket_included
             
             //if the previous websocket is yet to be cleaned up, clean it up now
-            if (livelogs_webtv_cleanup_timer != INVALID_HANDLE)
-            {
-                TriggerTimer(livelogs_webtv_cleanup_timer);
-            }
+            cleanUpWebSocket();
             
             //now open websocket too
             if ((livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE) && (webtv_library_present))
@@ -844,7 +841,7 @@ endLogging()
     #if defined _websocket_included
     if ((webtv_library_present) && (livelogs_webtv_listen_socket != INVALID_WEBSOCKET_HANDLE))
     {
-        livelogs_webtv_cleanup_timer = CreateTimer(GetConVarFloat(FindConVar("tv_delay")) + 10.0, cleanUpWebSocket);
+        livelogs_webtv_cleanup_timer = CreateTimer(GetConVarFloat(FindConVar("tv_delay")) + 10.0, cleanUpWebSocketTimer);
     }
     #endif
 }
@@ -927,7 +924,7 @@ emptyWebBuffer()
     LogMessage("cleared buffer");
 }
 
-public Action:cleanUpWebSocket(Handle:timer, any:data)
+cleanUpWebSocket()
 {
     if (livelogs_webtv_listen_socket != INVALID_WEBSOCKET_HANDLE)
         Websocket_Close(livelogs_webtv_listen_socket);
@@ -939,10 +936,15 @@ public Action:cleanUpWebSocket(Handle:timer, any:data)
         KillTimer(livelogs_webtv_buffer_timer);
     if (livelogs_webtv_positions_timer != INVALID_HANDLE)
         KillTimer(livelogs_webtv_positions_timer);
+}
+
+public Action:cleanUpWebSocketTimer(Handle:timer, any:data)
+{
+    cleanUpWebSocket();
         
-    livelogs_webtv_cleanup_timer = INVALID_HANDLE;
+    //livelogs_webtv_cleanup_timer = INVALID_HANDLE;
     
-    return Plugin_Continue;
+    return Plugin_Stop;
 }
 
 
