@@ -42,7 +42,6 @@
 #tryinclude <websocket>
 
 #if defined _websocket_included
-#include <halflife>
 #include <sdktools>
 #include <tf2_stocks>
 #endif
@@ -55,7 +54,7 @@
 #define DEBUG true
 
 #define MAX_BUFFER_ELEMENTS 600 //MATH: (1/WEBTV_POSITION_UPDATE_RATE)*(MAX_TV_DELAY) + MAX_POSSIBLE_ADDITIONAL_EVENTS
-                                //the maximum possible additional events is an (overly generous) educated guess at the number of events that could occur
+                                //the maximum possible additional events is an (overly generous) educated guess at the number of events that could occur @ max tv_delay (90s)
 
 #if defined _websocket_included
 #define WEBTV_POSITION_UPDATE_RATE 0.2 /*rate at which position packets are added to the buffer. MAKE SURE TO BE SLOWER THAN THE PROCESS TIMER,
@@ -731,7 +730,7 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
                 livelogs_webtv_listen_socket = Websocket_Open(server_ip, webtv_lport, onWebSocketConnection, onWebSocketListenError, onWebSocketListenClose);
                 
                 if (livelogs_webtv_positions_timer == INVALID_HANDLE)
-                    livelogs_webtv_positions_timer = CreateTimer(WEBTV_POSITION_UPDATE_RATE, updatePlayerPositionTimer, _, TIMER_REPEAT);
+                    livelogs_webtv_positions_timer = CreateTimer(WEBTV_POSITION_UPDATE_RATE, updatePlayerPositionTimer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
             }
             #endif
         }
