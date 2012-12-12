@@ -592,7 +592,7 @@ public onWebSocketChildDisconnect(WebsocketHandle:sock)
     
     if (GetArraySize(livelogs_webtv_children) == 0 && livelogs_webtv_positions_timer != INVALID_HANDLE)
     {
-        KillTimer(livelogs_webtv_positions_timer);
+        CloseHandle(livelogs_webtv_positions_timer);
         livelogs_webtv_positions_timer = INVALID_HANDLE;
     }
 }
@@ -636,8 +636,8 @@ public onWebSocketListenClose(WebsocketHandle:listen_sock)
         RemoveFromArray(livelogs_webtv_children_ip, i);
     }*/
     
-    KillTimer(livelogs_webtv_positions_timer);
-    KillTimer(livelogs_webtv_buffer_timer);
+    CloseHandle(livelogs_webtv_positions_timer);
+    CloseHandle(livelogs_webtv_buffer_timer);
     //ClearArray(livelogs_webtv_children);
     //ClearArray(livelogs_webtv_children_ip);
 }
@@ -663,7 +663,7 @@ public onWebSocketChildError(WebsocketHandle:sock, const errorType, const errorN
     
     if (GetArraySize(livelogs_webtv_children) == 0 && livelogs_webtv_positions_timer != INVALID_HANDLE)
     {
-        KillTimer(livelogs_webtv_positions_timer);
+        CloseHandle(livelogs_webtv_positions_timer);
         livelogs_webtv_positions_timer = INVALID_HANDLE;
     }
 }
@@ -932,9 +932,9 @@ cleanUpWebSocket()
     emptyWebBuffer();
     
     if (livelogs_webtv_buffer_timer != INVALID_HANDLE)
-        KillTimer(livelogs_webtv_buffer_timer);
+        CloseHandle(livelogs_webtv_buffer_timer);
     if (livelogs_webtv_positions_timer != INVALID_HANDLE)
-        KillTimer(livelogs_webtv_positions_timer);
+        CloseHandle(livelogs_webtv_positions_timer);
 }
 
 public Action:cleanUpWebSocketTimer(Handle:timer, any:data)
