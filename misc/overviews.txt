@@ -1,0 +1,38 @@
+OVERVIEW TAKING.
+GRANARY:
+Overview: scale 13.40, pos_x -11660, pos_y 6836
+PLAYER @ -1392, 6528
+
+Want player @ 700, 40
+
+THEREFORE:
+
+(-1392 + x)/13.4 = 700
+-1392 + x = 9380
+x = 10772... almost 11660??
+
+-6528 + y / 13.4 = 40
+-6528 +y = 536
+y = 7064
+
+4578 + y /13.4 = 250
+4578 + y = 3350
+y = 
+
+
+
+
+BADLANDS: Overview: scale 9.60, pos_x -5733, pos_y 4895
+
+
+___________________
+CLASS NUMBER:NAME
+1: Scout
+3: Soldier
+7: Pyro
+4: Demoman
+6: Heavy
+9: Engineer
+5: Medic
+2: Sniper
+8: Spy

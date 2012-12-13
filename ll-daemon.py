@@ -61,7 +61,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 self.ll_clientport = tokenized[3]
 
                 if (self.server.clientExists(self.ll_clientip, self.ll_clientport)):
-                    self.logger.debug("PID %s: Client %s:%s already has a listener ?", cur_pid, self.ll_clientip, self.ll_clientport)
+                    self.logger.debug("PID %s: Client %s:%s already has a listener", cur_pid, self.ll_clientip, self.ll_clientport)
                     dict_key = "c" + self.ll_clientip + self.ll_clientport
                     listen_ip, listen_port = self.server.clientDict[dict_key]
                     
@@ -100,9 +100,6 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
     def finish(self):
         self.logger.debug('Finished handling request from %s:%s', self.cip, self.cport)
 
-        #self.newListen.listener.server_close()
-        #self.server.removeClient(self.ll_clientip, self.ll_clientport)
-
         return SocketServer.BaseRequestHandler.finish(self)
         
 class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
@@ -129,8 +126,6 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         return
 
     def clientExists(self, ip, port):
-        #self.addClient(ip, port)
-
         print "Keys in self.clientDict: "
         pprint(self.clientDict.keys())
 
@@ -167,6 +162,5 @@ if __name__ == '__main__':
     sthread = threading.Thread(target = llServer.serve_forever())
     sthread.daemon = True
     sthread.start()
-    #llServer.serve_forever()
 
-    #wat do?
+    #now in threaded serving

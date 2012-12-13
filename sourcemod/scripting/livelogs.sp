@@ -13,7 +13,7 @@
  * F: FLAG ACTION - intel pickup, capture, defend, drop
  * G: Player changed class
  * H: Player was hurt
- * I: Initial child socket connect. Sends game and map
+ * I: Initial child socket connect. Sends game and map, and current scores
  * J:
  * K: Player died
  * L:
@@ -39,6 +39,7 @@
 
 #undef REQUIRE_EXTENSIONS
 #undef REQUIRE_PLUGIN
+
 #tryinclude <websocket>
 
 #if defined _websocket_included
@@ -53,10 +54,11 @@
 #define TEAM_OFFSET 2
 #define DEBUG true
 
+#if defined _websocket_included
+
 #define MAX_BUFFER_SIZE 750 //MATH: (1/WEBTV_POSITION_UPDATE_RATE)*(MAX_TV_DELAY) + MAX_POSSIBLE_ADDITIONAL_EVENTS
                                 //the maximum possible additional events is an (overly generous) educated guess at the number of events that could occur @ max tv_delay (90s)
 
-#if defined _websocket_included
 #define WEBTV_POSITION_UPDATE_RATE 0.25 /*rate at which position packets are added to the buffer. MAKE SURE TO BE SLOWER THAN THE PROCESS TIMER,
                                        ELSE YOU WILL GET MULTIPLE POSITION UPDATES IN THE SAME PROCESSING FRAME (BAD) AND WASTE RESOURCES*/
 #define WEBTV_BUFFER_PROCESS_RATE 0.12 /*tf2 tickrate process time is 66.66 updates/sec = update every 15 ms. 
@@ -591,12 +593,10 @@ public OnMapEnd()
 {
 	endLogging();
     
-/*#if defined _websocket_included
-    if (livelogs_webtv_listen_socket != INVALID_WEBSOCKET_HANDLE)
-    {
-        Websocket_Close(livelogs_webtv_listen_socket);
-    }
-#endif*/
+    #if defined _websocket_included
+    //notify connected clients of map end
+    sendToAllWebChildren("MAP_END");
+    #endif
 }
 
 #if defined _websocket_included
