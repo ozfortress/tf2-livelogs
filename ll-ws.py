@@ -32,8 +32,11 @@ class llWSApplication(tornado.web.Application):
 class logUpdateHandler(tornado.websocket.WebSocketHandler):
     #inherits request (which is a HTTPRequest object defined in tornado.httpserver) from tornado.web.RequestHandler
 
-    clients = set()
-    log_idents = set()
+    clients = set() #set of ALL connected clients
+    ordered_clients = { "none" : set() } #ordered clients dict will have data in the form of: [ "log ident": (client, client, client) ], where the clients are in a set corresponding to
+                                         #the log ident sent by the client. new clients are added to "none" upon connection, and moved when a log ident is received
+    
+    #log_idents = set()
     cache = []
     cache_size = 200
     
@@ -56,11 +59,25 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         logger.info("Client connected. IP: %s", self.request.remote_ip)
         
         logUpdateHandler.clients.add(self)
+        logUpdateHandler.ordered_clients["none"].add(self)
         
     def on_close(self):
         #client disconnects
         logger.info("Client disconnected. IP: %s", self.request.remote_ip)
         logUpdateHandler.clients.remove(self)
+        
+        if self in logUpdateHandler.ordered_clients["none"]: #if client hasn't sent a log ident yet, and connection closes remove the object
+            logUpdateHandler.ordered_clients["none"].remove(self) 
+        else: #client has sent log ident and been assigned. need to search for the object
+            for key, set in logUpdateHandler.ordered_clients:
+                if self in set:
+                    set.remove(self)
+                    if len(set) == 0:
+                        del logUpdateHandler.ordered_clients[key]
+                        
+                        break
+                        
+        return
         
     def on_message(self, msg):
         #client will send the log ident upon successful connection
