@@ -38,8 +38,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     ordered_clients = { "none" : set() } #ordered clients dict will have data in the form of: [ "log ident": (client, client, client) ], where the clients are in a set corresponding to
                                          #the log ident sent by the client. new clients are added to "none" upon connection, and moved when a log ident is received
     
-    #log_idents = set()
-    cache = [] #holds a set of tuples containing log idents, the last time they were updated, and the status (live/not live)
+    cache = [] #holds a set of tuples containing log idents, the last time they were updated, and the status (live/not live) | [(cache_time, log_ident, status<t/f>), (cache_time, log_ident, status<t/f>)]
     cache_size = 200 #max number of logs holdable
     
     logger = logging.getLogger("LIVE LOG UPDATE")
@@ -119,12 +118,12 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                     time_ctime = int(round(time.time()))
                     
                     if ((time_ctime - cache_info[0]) > 20): #20 seconds have passed since last log check, so we need to refresh the cache
-                        live = getLogStatus(log_id)
+                        live = logUpdateHandler.getLogStatus(log_id)
                         if (live):
                             #add the client to the ordered_clients dict with correct log ident
                             self.write_message("LOG_IS_LIVE") #notify client the log is live
                             
-                            addToOrderedClients(self)
+                            logUpdateHandler.addToOrderedClients(log_id, self)
                         else:
                             self.write_message("LOG_NOT_LIVE")
                             self.close()
@@ -134,22 +133,24 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                         #add the client to the ordered_clients dict with correct log ident
                         self.write_message("LOG_IS_LIVE") #notify client the log is live
                         
-                        addToOrderedClients(self)
+                        logUpdateHandler.addToOrderedClients(log_id, self)
                 else:
                     #notify client the log is inactive, and close connection
                     
                     #TODO: Add something to prevent repeat connections from same IP
                     self.write_message("LOG_NOT_LIVE")
                     self.close()
+                
+                break
         
         #couldn't find the log in the cache, so it's either fresh or invalid
         if not log_cached:
-            live = getLogStatus(log_id) #getLogStatus adds the ident to the cache if it is valid
+            live = logUpdateHandler.getLogStatus(log_id) #getLogStatus adds the ident to the cache if it is valid
             if (live):
                 #add the client to the ordered_clients dict with correct log ident
                 self.write_message("LOG_IS_LIVE") #notify client the log is live
                 
-                addToOrderedClients(self)
+                logUpdateHandler.addToOrderedClients(log_id, self)
             else:
                 self.write_message("LOG_NOT_LIVE")
                 self.close()
@@ -159,7 +160,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         pass
         
     @classmethod
-    def addToOrderedClients(cls, client):
+    def addToOrderedClients(cls, log_id, client):
         if cls.ordered_clients[log_id]:
             #log_id key exists, just need client to add to set
             cls.ordered_clients[log_id].add(client)
@@ -205,4 +206,11 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         pass
         
         
-        
+if __name__ == '__main__':
+    tornado.options.parse_command_line()
+    
+    llWebSocketServer = llWSApplication():
+    
+    llWebSocketServer.listen(options.port)
+    
+    tornado.ioloop.IOLoop.instance().start()
