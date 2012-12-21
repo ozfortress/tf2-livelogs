@@ -85,6 +85,7 @@ class llListenerObject():
         self.unique_parser_ident = str(self.ip2long(lClientAddr[0])) + "_" + str(lClientAddr[1]) + "_" + str(int(round(time.time())))
         
         self.listener.parser = parser.parserClass(self.unique_parser_ident, server_address = lClientAddr, current_map = current_map, log_name = log_name, endfunc = self.listener.handle_server_timeout, webtv_port = webtv_port)
+        
         self.listener.lClientAddr = lClientAddr
 
         self.lip, self.lport = self.listener.server_address

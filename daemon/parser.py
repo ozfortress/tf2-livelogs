@@ -9,25 +9,25 @@ class parserClass():
     def __init__(self, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc = None, webtv_port=None):
         #ALWAYS REQUIRE A UNIQUE IDENT, OTHER PARAMS ARE OPTIONAL
         self.HAD_ERROR = False
-        try:
-            import ConfigParser
-            cfg_parser = ConfigParser.SafeConfigParser()
-            if cfg_parser.read(r'll-config.ini'):
-                try:
-                    db_host = cfg_parser.get('database', 'db_host')
-                    db_port = cfg_parser.getint('database', 'db_port')
-                    db_user = cfg_parser.get('database', 'db_user')
-                    db_pass = cfg_parser.get('database', 'db_user')
-                    db_name = cfg_parser.get('database', 'db_name')
-                    
-                except:
-                    print "Unable to read database section in config file"
-                    return
-            else:
-                print "Error reading config file"
+        
+        import ConfigParser
+        cfg_parser = ConfigParser.SafeConfigParser()
+        if cfg_parser.read(r'll-config.ini'):
+            try:
+                db_host = cfg_parser.get('database', 'db_host')
+                db_port = cfg_parser.getint('database', 'db_port')
+                db_user = cfg_parser.get('database', 'db_user')
+                db_pass = cfg_parser.get('database', 'db_user')
+                db_name = cfg_parser.get('database', 'db_name')
+                
+            except:
+                print "Unable to read database section in config file"
                 return
+        else:
+            print "Error reading config file"
+            return
             
-            
+        try:
             self.pgsqlConn = psycopg2.connect(host=db_host, port=db_port, database=db_name, user=db_user, password=db_pass)
 
         except Exception, e:
