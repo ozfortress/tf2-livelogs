@@ -7,7 +7,6 @@ import threading
 import ConfigParser
 from pprint import pprint
 
-import llwebsocket
 import listener
 
 logging.basicConfig(level=logging.DEBUG, format='%(name)s: %(message)s')
@@ -210,24 +209,12 @@ if __name__ == '__main__':
     logger.info("Server on %s:%s under PID %s", sip, sport, os.getpid())
     
     try:
-        """
-        The websocket is a normal thread, it will start and then continue in the background. The log daemon thread is a daemon thread, and is the keep-alive for the application
-        
-        """
-        
-        websocket = llwebsocket.llWebSocket()
-        webthread = threading.Thread(target = websocket.websocket_start())
-        webthread.start()
-    
         sthread = threading.Thread(target = llServer.serve_forever())
         sthread.daemon = True
         sthread.start()
         
     except KeyboardInterrupt:
-        logger.info("Keyboard interrupt. Shutting down server")
-        llServer.shutdown()
-        
-        logger.info("Exiting")
+        logger.info("Keyboard interrupt. Closing daemon")
         quit()
      
         

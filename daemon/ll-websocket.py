@@ -18,10 +18,6 @@ import ConfigParser
 
 logging.basicConfig(level=logging.DEBUG, format='%(name)s: %(message)s')
 
-#tornado.options.define("ip", default="127.0.0.1", help="Address the websocket server will listen on", type=str)
-#tornado.options.define("port", default=61224, help="Port the websocket server will listen on", type=int)
-#tornado.options.define("update_rate", default=20.0, help="The rate at which updates are pushed (seconds)", type=float)
-
 class llWSApplication(tornado.web.Application):
     def __init__(self):
         handlers = [
@@ -33,7 +29,7 @@ class llWSApplication(tornado.web.Application):
             cookie_secret = "12345",
         )
         
-        tornado.web.Applcation.__init__(self, handlers, **settings)
+        tornado.web.Application.__init__(self, handlers, **settings)
         
 class webtvRelayHandler(tornado.websocket.WebSocketHandler):
     pass
@@ -213,47 +209,46 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         pass
         
         
-class llWebSocket():
-    def __init__(self):  
-        cfg_parser = ConfigParser.SafeConfigParser()
-        cfg_parser = ConfigParser.SafeConfigParser()
-        if cfg_parser.read(r'll-config.ini'):
-            try:
-                db_host = cfg_parser.get('database', 'db_host')
-                db_port = cfg_parser.getint('database', 'db_port')
-                db_user = cfg_parser.get('database', 'db_user')
-                db_pass = cfg_parser.get('database', 'db_user')
-                db_name = cfg_parser.get('database', 'db_name')
-                
-                server_ip = cfg_parser.get('websocket-server', 'server_ip')
-                server_port = cfg_parser.getint('websocket-server', 'server_port')
-                update_rate = cfg_parser.getfloat('websocket-server', 'update_rate')
-                
-            except:
-                print "Unable to read websocket and or database section in config file"
-                return
-        else:
-            print "Error reading config file"
-            return
-        
-        db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
-                    db_name, db_user, db_pass, db_host, db_port)
-        
-        #tornado.options.parse_command_line()
-        
-        llWebSocketServer = llWSApplication()
+if __name__ == "__main__": 
+    cfg_parser = ConfigParser.SafeConfigParser()
+    if cfg_parser.read(r'll-config.ini'):
+        try:
+            db_host = cfg_parser.get('database', 'db_host')
+            db_port = cfg_parser.getint('database', 'db_port')
+            db_user = cfg_parser.get('database', 'db_user')
+            db_pass = cfg_parser.get('database', 'db_user')
+            db_name = cfg_parser.get('database', 'db_name')
             
-        llWebSocketServer.db = momoko.Pool(
-            dsn = db_details,
-            minconn = 1,
-            maxconn = 50,
-            cleanup_timeout = 10,
-        )
+            server_ip = cfg_parser.get('websocket-server', 'server_ip')
+            server_port = cfg_parser.getint('websocket-server', 'server_port')
+            update_rate = cfg_parser.getfloat('websocket-server', 'update_rate')
+            
+        except:
+            print "Unable to read websocket and or database section in config file"
+            return
+    else:
+        print "Error reading config file"
+        return
+    
+    db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
+                db_name, db_user, db_pass, db_host, db_port)
+    
+    tornado.options.define("ip", default=server_ip, help="Address the websocket server will listen on", type=str)
+    tornado.options.define("port", default=server_port, help="Port the websocket server will listen on", type=int)
+    tornado.options.define("update_rate", default=update_rate, help="The rate at which updates are pushed (seconds)", type=float)
+    
+    tornado.options.parse_command_line()
+    
+    llWebSocketServer = llWSApplication()
         
-        llWebSocketServer.listen(server_port, server_ip)
+    llWebSocketServer.db = momoko.Pool(
+        dsn = db_details,
+        minconn = 1,
+        maxconn = 50,
+        cleanup_timeout = 10,
+    )
+    
+    llWebSocketServer.listen(tornado.options.options.port, tornado.options.options.ip)
+    
+    tornado.ioloop.IOLoop.instance().start()
         
-    def websocket_start(self):
-        tornado.ioloop.IOLoop.instance().start()
-        
-    def websocket_stop(self):
-        tornado.ioloop.IOLoop.instanse().stop()
