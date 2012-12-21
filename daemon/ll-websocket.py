@@ -225,10 +225,10 @@ if __name__ == "__main__":
             
         except:
             print "Unable to read websocket and or database section in config file"
-            return
+            quit()
     else:
         print "Error reading config file"
-        return
+        quit()
     
     db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
                 db_name, db_user, db_pass, db_host, db_port)
