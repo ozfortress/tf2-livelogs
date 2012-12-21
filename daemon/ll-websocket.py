@@ -9,6 +9,7 @@ import tornado.websocket
 import tornado.web
 import tornado.ioloop
 import tornado.escape
+from tornado import gen
 
 import logging
 import time
@@ -180,30 +181,44 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         pass
         
     @classmethod    
-    def addToCache(cls, log_ident):
-        pass
+    def addToCache(cls, log_ident, status):
+        #cache_info = (cache_time, log_ident, status<t/f>)
+        cls.cache.append((int(round(time.time())), log_ident, status))
         
     @classmethod
     def removeFromCache(cls, log_ident):
         pass
     
     @classmethod
+    @tornado.web.asynchronous
+    @gen.engine
     def getLogStatus(cls, log_ident):
         """
         Gets the status of a log ident, and if the log is valid adds it to the cache
         
         @return True if log is live and valid. False if log is not live or is invalid
         
-        
-        
         """
+        
         #"SELECT live FROM livelogs_servers WHERE log_ident = %s" % log_id
         #if live is NOT NULL, then the log exists
         #live == t means the log is live, and live == f means it's not live
         
-        #add to cache (or update cache)
-        pass
+        self.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (log_ident,), callback = (yield gen.Callback('status_query')))
         
+        res_cursor = yield momoko.WaitOp('status_query')
+        live = res_cursor.fetchone()
+        if live == "t":
+            addToCache(log_ident, True)
+            return True
+            
+        else if live == "f":
+            addToCache(log_ident, False)
+            return False
+            
+        else:
+            return False
+       
     @classmethod
     def sendLogUpdates(cls):
         pass
@@ -230,6 +245,9 @@ if __name__ == "__main__":
         print "Error reading config file"
         quit()
     
+    logger = logging.getLogger('WS MAIN')
+    logger.info("Successfully read config")
+    
     db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
                 db_name, db_user, db_pass, db_host, db_port)
     
@@ -248,7 +266,13 @@ if __name__ == "__main__":
         cleanup_timeout = 10,
     )
     
-    llWebSocketServer.listen(tornado.options.options.port, tornado.options.options.ip)
     
-    tornado.ioloop.IOLoop.instance().start()
+    llWebSocketServer.listen(tornado.options.options.port, tornado.options.options.ip)
+    logger.info("Successfully listening on %s:%s", tornado.options.options.ip, tornado.options.options.port)
+    
+    try:
+        tornado.ioloop.IOLoop.instance().start()
+    except KeyboardInterrupt:
+        tornado.ioloop.IOLoop.instance().stop()
+        logger.info("Keyboard interrupt. Exiting")
         
