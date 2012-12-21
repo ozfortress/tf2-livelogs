@@ -8,6 +8,7 @@ from pprint import pprint
 class parserClass():
     def __init__(self, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc = None, webtv_port=None):
         #ALWAYS REQUIRE A UNIQUE IDENT, OTHER PARAMS ARE OPTIONAL
+        self.HAD_ERROR = False
         try:
             import ConfigParser
             cfg_parser = ConfigParser.SafeConfigParser()
@@ -30,7 +31,10 @@ class parserClass():
             self.pgsqlConn = psycopg2.connect(host=db_host, port=db_port, database=db_name, user=db_user, password=db_pass)
 
         except Exception, e:
-            print "Had exception while trying to connect to psql database: " + e.pgerror
+            print "Had exception while trying to connect to psql database:"
+            print e.pgerror
+            
+            self.HAD_ERROR = True
             return
         
         print "Parser params: Map: " + current_map + " Log name: " + log_name
