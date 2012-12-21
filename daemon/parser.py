@@ -104,7 +104,7 @@ class parserClass():
 
 
     def parse(self, logdata):
-        if not logdata or not self.pgsqlConn or self.GAME_OVER:
+        if not logdata or not self.pgsqlConn or self.GAME_OVER or self.HAD_ERROR:
             return
 
         print "PARSING LOG: %s" % logdata

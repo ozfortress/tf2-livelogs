@@ -88,11 +88,12 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
                 self.server.addClient(self.ll_clientip, self.ll_clientport, (sip, lport)) 
 
-                if not self.newListen.parser.HAD_ERROR:
+                if not self.newListen.listener.parser.HAD_ERROR:
                     self.newListen.startListening()
                 else:
                     self.logger.debug("PID %s: Parser had error trying to initialise. Closing connection")
-                
+                    self.newListen.error_cleanup()
+                    
                 self.logger.debug("PID %s: Stopped listening for logs", cur_pid)
 
                 self.server.removeClient(self.ll_clientip, self.ll_clientport)

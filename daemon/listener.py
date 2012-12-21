@@ -13,9 +13,9 @@ class llListenerHandler(SocketServer.BaseRequestHandler):
         data = self.request[0].strip()
         sock = self.request[1]
 
-        print "LOG: %s" % data
-
-        self.server.parser.parse(data)
+        #print "LOG: %s" % data
+        if not self.parser.HAD_ERROR:
+            self.server.parser.parse(data)
 
 
 class llListener(SocketServer.UDPServer):
@@ -65,7 +65,8 @@ class llListener(SocketServer.UDPServer):
             print "Server timeout (no logs received in 90 seconds). Exiting"
             
             #toggle log's status and stop recording
-            self.parser.endLogParsing()
+            if not self.parser.HAD_ERROR:
+                self.parser.endLogParsing()
             
             self.shutdown()
        
@@ -108,3 +109,7 @@ class llListenerObject():
 
     def ip2long(self, ip):
         return struct.unpack('!L', socket.inet_aton(ip))[0]
+
+    def error_cleanup(self):
+        self.listener.timeoutTimer.cancel()
+        self.listener.shutdown()
