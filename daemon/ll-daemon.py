@@ -4,9 +4,10 @@ import logging
 import sys
 import os
 import threading
+import ConfigParser
 from pprint import pprint
 
-
+import llwebsocket
 import listener
 
 logging.basicConfig(level=logging.DEBUG, format='%(name)s: %(message)s')
@@ -40,8 +41,9 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         if (tokLen >= 6) and (tokenized[0] == "LIVELOG"):
             if (tokenized[1] == self.server.LL_API_KEY):
                 self.logger.debug('LIVELOG key is correct. Establishing listen socket and returning info')
-                #---- THE IP AND PORT SENT BY THE SERVER PLUGIN. USED TO RECOGNISE THE SERVER
-                #---- client_address cannot be used, because that is the ip:port of the plugin's socket sending the livelogs request
+                """ THE IP AND PORT SENT BY THE SERVER PLUGIN. USED TO RECOGNISE THE SERVER
+                    client_address cannot be used, because that is the ip:port of the plugin's socket sending the livelogs request
+                """
                 
                 try:
                     socket.inet_pton(socket.AF_INET, tokenized[2]) #if we can do this, it is a valid ipv4 address
@@ -148,10 +150,53 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 
 if __name__ == '__main__':
-    serverAddr = ('192.168.35.128', 61222)
+    cfg_parser = ConfigParser.SafeConfigParser()
+    if cfg_parser.read(r'll-config.ini'):
+        server_ip = cfg_parser.get('log-listener', 'server_ip')
+        if server_ip == None:
+            #config file has not been edited. need to exit
+            print "You need to edit the server_ip in ll-config.ini"
+            quit()
+            
+        serverAddr = (server_ip, cfg_parser.getint(section, 'server_port'))
+        
+        api_key = cfg_parser.get('log-listener', 'api_key')
+                
+    else:
+        #first run time, no config file present. create with default values and exit
+        print "No configuration file present. A new one will be generated"
+        try:
+            cfg_file = open(r'll-config.ini', 'w+')
+        except:
+            print "Unable to open ll-config.ini for writing. Check your permissions"
+            quit()
+            
+        cfg_file.close() #file is now created. close file handle
+        cfg_parser.read(r'll-config.ini')
+        
+        cfg_parser.add_section('log-listener')
+        cfg_parser.set('log-listener', 'server_ip', None)
+        cfg_parser.set('log-listener', 'server_port', 61222)
+        cfg_parser.set('log-listener', 'listener_timeout', 90.0)
+        cfg_parser.set('log-listener', 'api_key', '123test')
+        
+        cfg_parser.add_section('websocket-server')
+        cfg_parser.set('websocket-server', 'server_ip', None)
+        cfg_parset.set('websocket-server', 'server_port', 61224)
+        cfg_parset.set('websocket-server', 'update_rate', 20)
+        
+        cfg_parser.add_section('database')
+        cfg_parser.set('database', 'db_user', 'livelogs')
+        cfg_parser.set('database', 'db_password', 'hello')
+        cfg_parser.set('database', 'db_name', 'livelogs')
+        cfg_parser.set('database', 'db_host', '127.0.0.1')
+        cfg_parser.set('database', 'db_port', 5432)
+        
+        print "Configuration file generated. Please edit it before running the daemon again"
+        quit()
     
     llServer = llDaemon(serverAddr, llDaemonHandler)
-    llServer.LL_API_KEY = "123test"    
+    llServer.LL_API_KEY = api_key   
     llServer.clientDict = dict()
 
     sip, sport = llServer.server_address   
@@ -159,8 +204,26 @@ if __name__ == '__main__':
     logger = logging.getLogger('MAIN')
     logger.info("Server on %s:%s under PID %s", sip, sport, os.getpid())
     
-    sthread = threading.Thread(target = llServer.serve_forever())
-    sthread.daemon = True
-    sthread.start()
-
+    try:
+        """
+        The websocket is a normal thread, it will start and then continue in the background. The log daemon thread is a daemon thread, and is the keep-alive for the application
+        
+        """
+        
+        websocket = llWebSocket()
+        webthread = threading.Thread(target = websocket.websocket_start())
+        webthread.start()
+    
+        sthread = threading.Thread(target = llServer.serve_forever())
+        sthread.daemon = True
+        sthread.start()
+        
+    except KeyboardInterrupt:
+        logger.info("Keyboard interrupt. Shutting down server")
+        llServer.shutdown()
+        
+        logger.info("Exiting")
+        quit()
+     
+        
     #now in threaded serving

@@ -13,10 +13,14 @@ import tornado.escape
 import logging
 import time
 import threading
+import momoko
+import ConfigParser
 
 logging.basicConfig(level=logging.DEBUG, format='%(name)s: %(message)s')
 
-tornado.options.define("port", default=61224, help="Port the websocket server will run on", type=int)
+tornado.options.define("ip", default="127.0.0.1" help="Address the websocket server will listen on", type=string)
+tornado.options.define("port", default=61224, help="Port the websocket server will listen on", type=int)
+tornado.options.define("update_rate", default=20.0, help="The rate at which updates are pushed (seconds)", type=float)
 
 class llWSApplication(tornado.web.Application):
     def __init__(self):
@@ -206,11 +210,37 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         pass
         
         
-if __name__ == '__main__':
-    tornado.options.parse_command_line()
-    
-    llWebSocketServer = llWSApplication():
-    
-    llWebSocketServer.listen(options.port)
-    
-    tornado.ioloop.IOLoop.instance().start()
+class llWebSocket():
+    def __init__(self):  
+        cfg_parser = ConfigParser.SafeConfigParser()
+        if cfg_parser.read(r'll-config.ini'):
+            db_host = cfg_parser.get('database', 'db_host')
+            db_port = cfg_parser.get('database', 'db_port')
+            db_user = cfg_parser.get('database', 'db_user')
+            db_pass = cfg_parser.get('database', 'db_user')
+            db_name = cfg_parser.get('database', 'db_name')
+            
+            db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
+                        db_name, db_user, db_pass, db_host, db_port)
+        else:
+            print "ERROR: No configuration file present"
+            return
+        
+        tornado.options.parse_command_line()
+        
+        llWebSocketServer = llWSApplication()
+            
+        llWebSocketServer.db = momoko.Pool(
+            dsn = db_details,
+            minconn = 1,
+            maxconn = 50,
+            cleanup_timeout = 10,
+        )
+        
+        llWebSocketServer.listen(options.port)
+        
+    def websocket_start(self):
+        tornado.ioloop.IOLoop.instance().start()
+        
+    def websocket_stop(self):
+        tornado.ioloop.IOLoop.instanse().stop()

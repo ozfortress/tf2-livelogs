@@ -9,7 +9,21 @@ class parserClass():
     def __init__(self, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc = None, webtv_port=None):
         #ALWAYS REQUIRE A UNIQUE IDENT, OTHER PARAMS ARE OPTIONAL
         try:
-            self.pgsqlConn = psycopg2.connect(host="localhost", port="5432", database="livelogs", user="livelogs", password="hello")
+            import ConfigParser
+            cfg_parser = ConfigParser.SafeConfigParser()
+            if cfg_parser.read(r'll-config.ini'):
+                db_host = cfg_parser.get('database', 'db_host')
+                db_port = cfg_parser.get('database', 'db_port')
+                db_user = cfg_parser.get('database', 'db_user')
+                db_pass = cfg_parser.get('database', 'db_user')
+                db_name = cfg_parser.get('database', 'db_name')
+                
+            else:
+                print "Error reading config file"
+                return
+            
+            
+            self.pgsqlConn = psycopg2.connect(host=db_host, port=db_port, database=db_name, user=db_user, password=db_pass)
 
         except Exception, e:
             print "Had exception while trying to connect to psql database: " + e.pgerror
