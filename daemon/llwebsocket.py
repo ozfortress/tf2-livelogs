@@ -18,9 +18,9 @@ import ConfigParser
 
 logging.basicConfig(level=logging.DEBUG, format='%(name)s: %(message)s')
 
-tornado.options.define("ip", default="127.0.0.1", help="Address the websocket server will listen on", type=str)
-tornado.options.define("port", default=61224, help="Port the websocket server will listen on", type=int)
-tornado.options.define("update_rate", default=20.0, help="The rate at which updates are pushed (seconds)", type=float)
+#tornado.options.define("ip", default="127.0.0.1", help="Address the websocket server will listen on", type=str)
+#tornado.options.define("port", default=61224, help="Port the websocket server will listen on", type=int)
+#tornado.options.define("update_rate", default=20.0, help="The rate at which updates are pushed (seconds)", type=float)
 
 class llWSApplication(tornado.web.Application):
     def __init__(self):
@@ -34,6 +34,9 @@ class llWSApplication(tornado.web.Application):
         )
         
         tornado.web.Applcation.__init__(self, handlers, **settings)
+        
+class webtvRelayHandler(tornado.websocket.WebSocketHandler):
+    pass
         
 class logUpdateHandler(tornado.websocket.WebSocketHandler):
     #inherits object "request" (which is a HTTPRequest object defined in tornado.httpserver) from tornado.web.RequestHandler
@@ -222,14 +225,21 @@ class llWebSocket():
                 db_pass = cfg_parser.get('database', 'db_user')
                 db_name = cfg_parser.get('database', 'db_name')
                 
+                server_ip = cfg_parser.get('websocket-server', 'server_ip')
+                server_port = cfg_parser.getint('websocket-server', 'server_port')
+                update_rate = cfg_parser.getfloat('websocket-server', 'update_rate')
+                
             except:
-                print "Unable to read database section in config file"
+                print "Unable to read websocket and or database section in config file"
                 return
         else:
             print "Error reading config file"
             return
         
-        tornado.options.parse_command_line()
+        db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
+                    db_name, db_user, db_pass, db_host, db_port)
+        
+        #tornado.options.parse_command_line()
         
         llWebSocketServer = llWSApplication()
             
@@ -240,7 +250,7 @@ class llWebSocket():
             cleanup_timeout = 10,
         )
         
-        llWebSocketServer.listen(options.port)
+        llWebSocketServer.listen(server_port, server_ip)
         
     def websocket_start(self):
         tornado.ioloop.IOLoop.instance().start()

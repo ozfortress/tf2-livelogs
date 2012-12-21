@@ -159,7 +159,7 @@ if __name__ == '__main__':
                 print "You need to edit the server_ip in ll-config.ini"
                 quit()
                 
-            serverAddr = (server_ip, cfg_parser.getint(section, 'server_port'))
+            serverAddr = (server_ip, cfg_parser.getint('log-listener', 'server_port'))
             api_key = cfg_parser.get('log-listener', 'api_key')
             l_timeout = cfg_parser.getfloat('log-listener', 'listener_timeout')
             
@@ -185,7 +185,7 @@ if __name__ == '__main__':
         cfg_parser.add_section('websocket-server')
         cfg_parser.set('websocket-server', 'server_ip', '')
         cfg_parser.set('websocket-server', 'server_port', '61224')
-        cfg_parser.set('websocket-server', 'update_rate', '20')
+        cfg_parser.set('websocket-server', 'update_rate', '20.0')
         
         cfg_parser.add_section('database')
         cfg_parser.set('database', 'db_user', 'livelogs')
@@ -215,7 +215,7 @@ if __name__ == '__main__':
         
         """
         
-        websocket = llWebSocket()
+        websocket = llwebsocket.llWebSocket()
         webthread = threading.Thread(target = websocket.websocket_start())
         webthread.start()
     
