@@ -213,17 +213,20 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
 class llWebSocket():
     def __init__(self):  
         cfg_parser = ConfigParser.SafeConfigParser()
+        cfg_parser = ConfigParser.SafeConfigParser()
         if cfg_parser.read(r'll-config.ini'):
-            db_host = cfg_parser.get('database', 'db_host')
-            db_port = cfg_parser.get('database', 'db_port')
-            db_user = cfg_parser.get('database', 'db_user')
-            db_pass = cfg_parser.get('database', 'db_user')
-            db_name = cfg_parser.get('database', 'db_name')
-            
-            db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
-                        db_name, db_user, db_pass, db_host, db_port)
+            try:
+                db_host = cfg_parser.get('database', 'db_host')
+                db_port = cfg_parser.getint('database', 'db_port')
+                db_user = cfg_parser.get('database', 'db_user')
+                db_pass = cfg_parser.get('database', 'db_user')
+                db_name = cfg_parser.get('database', 'db_name')
+                
+            except NoSectionError:
+                print "Unable to read database section in config file"
+                return
         else:
-            print "ERROR: No configuration file present"
+            print "Error reading config file"
             return
         
         tornado.options.parse_command_line()

@@ -75,10 +75,10 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 sip, sport = self.server.server_address
 
                 if (tokLen == 6):
-                    self.newListen = listener.llListenerObject(sip, (self.ll_clientip, self.ll_clientport), tokenized[4], tokenized[5])
+                    self.newListen = listener.llListenerObject(sip, (self.ll_clientip, self.ll_clientport), tokenized[4], tokenized[5], timeout=self.server.listener_timeout)
 
                 elif (tokLen == 7):
-                    self.newListen = listener.llListenerObject(sip, (self.ll_clientip, self.ll_clientport), tokenized[4], tokenized[5], webtv_port = tokenized[6])
+                    self.newListen = listener.llListenerObject(sip, (self.ll_clientip, self.ll_clientport), tokenized[4], tokenized[5], timeout=self.server.listener_timeout, webtv_port = tokenized[6])
 
                 lport = self.newListen.lport
                 self.logger.debug("PID %s: Listener port: %s", cur_pid, lport)
@@ -152,15 +152,20 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 if __name__ == '__main__':
     cfg_parser = ConfigParser.SafeConfigParser()
     if cfg_parser.read(r'll-config.ini'):
-        server_ip = cfg_parser.get('log-listener', 'server_ip')
-        if server_ip == None:
-            #config file has not been edited. need to exit
-            print "You need to edit the server_ip in ll-config.ini"
-            quit()
+        try:
+            server_ip = cfg_parser.get('log-listener', 'server_ip')
+            if server_ip == None:
+                #config file has not been edited. need to exit
+                print "You need to edit the server_ip in ll-config.ini"
+                quit()
+                
+            serverAddr = (server_ip, cfg_parser.getint(section, 'server_port'))
+            api_key = cfg_parser.get('log-listener', 'api_key')
+            l_timeout = cfg_parser.getfloat('log-listener', 'listener_timeout')
             
-        serverAddr = (server_ip, cfg_parser.getint(section, 'server_port'))
-        
-        api_key = cfg_parser.get('log-listener', 'api_key')
+        except NoSectionError, e:
+            print "Unable to read log-listener section in config file"
+            quit()
                 
     else:
         #first run time, no config file present. create with default values and exit
@@ -198,6 +203,7 @@ if __name__ == '__main__':
     llServer = llDaemon(serverAddr, llDaemonHandler)
     llServer.LL_API_KEY = api_key   
     llServer.clientDict = dict()
+    llServer.listener_timeout = l_timeout
 
     sip, sport = llServer.server_address   
 
