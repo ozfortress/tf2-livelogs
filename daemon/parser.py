@@ -19,7 +19,7 @@ class parserClass():
                     db_pass = cfg_parser.get('database', 'db_user')
                     db_name = cfg_parser.get('database', 'db_name')
                     
-                except NoSectionError:
+                except:
                     print "Unable to read database section in config file"
                     return
             else:

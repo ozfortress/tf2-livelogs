@@ -163,7 +163,7 @@ if __name__ == '__main__':
             api_key = cfg_parser.get('log-listener', 'api_key')
             l_timeout = cfg_parser.getfloat('log-listener', 'listener_timeout')
             
-        except NoSectionError, e:
+        except:
             print "Unable to read log-listener section in config file"
             quit()
                 
@@ -175,9 +175,6 @@ if __name__ == '__main__':
         except:
             print "Unable to open ll-config.ini for writing. Check your permissions"
             quit()
-            
-        cfg_file.close() #file is now created. close file handle
-        cfg_parser.read(r'll-config.ini')
         
         cfg_parser.add_section('log-listener')
         cfg_parser.set('log-listener', 'server_ip', '')
@@ -187,8 +184,8 @@ if __name__ == '__main__':
         
         cfg_parser.add_section('websocket-server')
         cfg_parser.set('websocket-server', 'server_ip', '')
-        cfg_parset.set('websocket-server', 'server_port', '61224')
-        cfg_parset.set('websocket-server', 'update_rate', '20')
+        cfg_parser.set('websocket-server', 'server_port', '61224')
+        cfg_parser.set('websocket-server', 'update_rate', '20')
         
         cfg_parser.add_section('database')
         cfg_parser.set('database', 'db_user', 'livelogs')
@@ -196,6 +193,8 @@ if __name__ == '__main__':
         cfg_parser.set('database', 'db_name', 'livelogs')
         cfg_parser.set('database', 'db_host', '127.0.0.1')
         cfg_parser.set('database', 'db_port', '5432')
+        
+        cfg_parser.write(cfg_file)
         
         print "Configuration file generated. Please edit it before running the daemon again"
         quit()
