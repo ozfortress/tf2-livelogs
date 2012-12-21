@@ -18,7 +18,7 @@ import ConfigParser
 
 logging.basicConfig(level=logging.DEBUG, format='%(name)s: %(message)s')
 
-tornado.options.define("ip", default="127.0.0.1" help="Address the websocket server will listen on", type=string)
+tornado.options.define("ip", default="127.0.0.1", help="Address the websocket server will listen on", type=str)
 tornado.options.define("port", default=61224, help="Port the websocket server will listen on", type=int)
 tornado.options.define("update_rate", default=20.0, help="The rate at which updates are pushed (seconds)", type=float)
 

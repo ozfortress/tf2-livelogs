@@ -13,7 +13,7 @@ class parserClass():
             cfg_parser = ConfigParser.SafeConfigParser()
             if cfg_parser.read(r'll-config.ini'):
                 db_host = cfg_parser.get('database', 'db_host')
-                db_port = cfg_parser.get('database', 'db_port')
+                db_port = cfg_parser.getint('database', 'db_port')
                 db_user = cfg_parser.get('database', 'db_user')
                 db_pass = cfg_parser.get('database', 'db_user')
                 db_name = cfg_parser.get('database', 'db_name')
