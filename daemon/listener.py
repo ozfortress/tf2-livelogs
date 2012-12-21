@@ -14,7 +14,7 @@ class llListenerHandler(SocketServer.BaseRequestHandler):
         sock = self.request[1]
 
         #print "LOG: %s" % data
-        if not self.parser.HAD_ERROR:
+        if not self.server.parser.HAD_ERROR:
             self.server.parser.parse(data)
 
 

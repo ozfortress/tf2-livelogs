@@ -17,7 +17,7 @@ class parserClass():
                 db_host = cfg_parser.get('database', 'db_host')
                 db_port = cfg_parser.getint('database', 'db_port')
                 db_user = cfg_parser.get('database', 'db_user')
-                db_pass = cfg_parser.get('database', 'db_user')
+                db_pass = cfg_parser.get('database', 'db_password')
                 db_name = cfg_parser.get('database', 'db_name')
                 
             except:
