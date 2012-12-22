@@ -205,7 +205,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         #if live is NOT NULL, then the log exists
         #live == t means the log is live, and live == f means it's not live
         
-        res_cursor = self.application.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = E'%s'", (log_ident,), callback=_logStatusCallback)
+        res_cursor = self.application.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (log_ident,), callback=self._logStatusCallback)
         
         """
         This is now done in _statusCallback
@@ -226,6 +226,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         if error:
             self.write_message("LOG_ERROR")
             logger.info("Error querying database for log status")
+            return
         
         live = cursor.fetchone()
         
@@ -251,11 +252,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             #invalid log ident
             logger.info("Invalid log ident specified (live is null)")
             self.write_message("LOG_NOT_LIVE")
-            
-        
-    @classmethod
-    def singleMomokoQuery(self, query):
-        pass
+            self.close()
     
     @classmethod
     def sendLogUpdates(cls):
