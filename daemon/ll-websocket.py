@@ -67,7 +67,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         A new object is created for every new client
         """
         
-        self.logger.info("Client connected. IP: %s", self.request.remote_ip)
+        logger.info("Client connected. IP: %s", self.request.remote_ip)
         
         logUpdateHandler.clients.add(self)
         logUpdateHandler.ordered_clients["none"].add(self)
@@ -77,7 +77,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
     def on_close(self):
         #client disconnects
-        self.logger.info("Client disconnected. IP: %s", self.request.remote_ip)
+        logger.info("Client disconnected. IP: %s", self.request.remote_ip)
         logUpdateHandler.clients.remove(self)
         
         if self in logUpdateHandler.ordered_clients["none"]: #if client hasn't sent a log ident yet, and connection closes remove the object
@@ -95,10 +95,10 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
     def on_message(self, msg):
         #client will send the log ident upon successful connection
-        self.logger.info("Client %s sent msg: %s", self.request.remote_ip, msg)
+        logger.info("Client %s sent msg: %s", self.request.remote_ip, msg)
         
         if (self.LOG_IDENT_RECEIVED):
-            self.logger.info("Client %s has already sent log ident \"%s\"", self.request.remote_ip, self.LOG_IDENT)
+            logger.info("Client %s has already sent log ident \"%s\"", self.request.remote_ip, self.LOG_IDENT)
             return
         
         #a standard message will be a json encoded message, with key "ident", and the value of the log ident i.e [ "ident" : 2315363_121212_1234567 ]
@@ -125,25 +125,25 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             #cache_info = (cache_time, log_ident, status<t/f>)
             #check for ident first
             if cache_info[1] == log_id:
-                self.logger.info("Log ident is in the cache")
+                logger.info("Log ident is in the cache")
                 log_cached = True
                 #was the log live @ last cache? (logs will never go live again after ending)
                 if (cache_info[2] == True):
                     #need to check if the cache is outdated
                     time_ctime = int(round(time.time()))
-                    self.logger.info("Log is cached as live")
+                    logger.info("Log is cached as live")
                     if ((time_ctime - cache_info[0]) > 20): #20 seconds have passed since last log check, so we need to refresh the cache
-                        self.logger.info("Cache has expired. Getting status")
+                        logger.info("Cache has expired. Getting status")
                         live = logUpdateHandler.getLogStatus(log_id)
                         if (live):
                             #add the client to the ordered_clients dict with correct log ident
-                            self.logger.info("Log is live on refreshed status")
+                            logger.info("Log is live on refreshed status")
                             self.write_message("LOG_IS_LIVE") #notify client the log is live
                             
                             logUpdateHandler.addToOrderedClients(log_id, self)
                         else:
                             self.write_message("LOG_NOT_LIVE")
-                            self.logger.info("Log is no longer live")
+                            logger.info("Log is no longer live")
                             self.close()
                             
                     else:
