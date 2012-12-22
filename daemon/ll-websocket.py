@@ -129,27 +129,20 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         for cache_info in logUpdateHandler.cache:
             #cache_info = (cache_time, log_ident, status<t/f>)
             #check for ident first
+            
             if cache_info[1] == log_id:
                 logger.info("Log ident is in the cache")
                 log_cached = True
                 #was the log live @ last cache? (logs will never go live again after ending)
+                
                 if (cache_info[2] == True):
                     #need to check if the cache is outdated
                     time_ctime = int(round(time.time()))
                     logger.info("Log is cached as live")
+                    
                     if ((time_ctime - cache_info[0]) > 20): #20 seconds have passed since last log check, so we need to refresh the cache
                         logger.info("Cache has expired. Getting status")
-                        live = self.getLogStatus(log_id)
-                        if (live):
-                            #add the client to the ordered_clients dict with correct log ident
-                            logger.info("Log is live on refreshed status")
-                            self.write_message("LOG_IS_LIVE") #notify client the log is live
-                            
-                            logUpdateHandler.addToOrderedClients(log_id, self)
-                        else:
-                            self.write_message("LOG_NOT_LIVE")
-                            logger.info("Log is no longer live")
-                            self.close()
+                        self.getLogStatus(log_id)
                             
                     else:
                         #cached status is accurate enough
@@ -157,6 +150,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                         self.write_message("LOG_IS_LIVE") #notify client the log is live
                         
                         logUpdateHandler.addToOrderedClients(log_id, self)
+                        
                 else:
                     #notify client the log is inactive, and close connection
                     
@@ -168,16 +162,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         #couldn't find the log in the cache, so it's either fresh or invalid
         if not log_cached:
-            live = self.getLogStatus(log_id) #getLogStatus adds the ident to the cache if it is valid
-            if (live):
-                #add the client to the ordered_clients dict with correct log ident
-                self.write_message("LOG_IS_LIVE") #notify client the log is live
-                
-                logUpdateHandler.addToOrderedClients(log_id, self)
-            else:
-                self.write_message("LOG_NOT_LIVE")
-                self.close()
-            
+            self.getLogStatus(log_id) #getLogStatus adds the ident to the cache if it is valid
         
     def validClient(self):
         pass
@@ -220,8 +205,10 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         #if live is NOT NULL, then the log exists
         #live == t means the log is live, and live == f means it's not live
         
-        res_cursor = self.application.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = E'%s'", (log_ident,))
+        res_cursor = self.application.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = E'%s'", (log_ident,), callback=_logStatusCallback)
         
+        """
+        This is now done in _statusCallback
         live = res_cursor.fetchone()
         if live == "t":
             logUpdateHandler.addToCache(log_ident, True)
@@ -232,8 +219,40 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             return False
             
         else:
-            return False
+            return 
+        """
     
+    def _logStatusCallback(self, cursor, error):
+        if error:
+            self.write_message("LOG_ERROR")
+            logger.info("Error querying database for log status")
+        
+        live = cursor.fetchone()
+        
+        if live == "t":
+            #add the client to the ordered_clients dict with correct log ident
+            logger.info("Log is live on refreshed status")
+            self.write_message("LOG_IS_LIVE") #notify client the log is live
+            
+            logUpdateHandler.addToCache(self.LOG_IDENT, True)
+            logUpdateHandler.addToOrderedClients(self.LOG_IDENT, self)
+            
+        elif live == "f":
+
+            self.write_message("LOG_NOT_LIVE")
+            
+            logger.info("Log is no longer live")
+            
+            logUpdateHandler.addToCache(self.LOG_IDENT, False)
+            
+            self.close()
+                            
+        else:                    
+            #invalid log ident
+            logger.info("Invalid log ident specified (live is null)")
+            self.write_message("LOG_NOT_LIVE")
+            
+        
     @classmethod
     def singleMomokoQuery(self, query):
         pass
