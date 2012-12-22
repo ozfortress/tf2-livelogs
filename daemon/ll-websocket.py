@@ -45,7 +45,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     cache = [] #holds a set of tuples containing log idents, the last time they were updated, and the status (live/not live) | [(cache_time, log_ident, status<t/f>), (cache_time, log_ident, status<t/f>)]
     cache_size = 200 #max number of logs holdable
     
-    self.logger = logging.getLogger("CLIENTUPDATE")
+    logger = logging.getLogger("CLIENTUPDATE")
     
     #def allow_draft76(self):
         #allow old versions of the websocket protocol, for legacy support. LESS SECURE
@@ -107,6 +107,9 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             
         except ValueError:
             logger.info("ValueError trying to decode message")
+            
+            logUpdateHandler.clients.removed(self)
+            logUpdateHandler.ordered_clients["none"].discard(self)
             return
             
         log_id = parsed_msg["ident"]
@@ -121,7 +124,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         #now we check if the log id exists, and if the game is still live
         #first, check the cache. invalid log idents will never be in the cache
-        for cache_info in cache:
+        for cache_info in logUpdateHandler.cache:
             #cache_info = (cache_time, log_ident, status<t/f>)
             #check for ident first
             if cache_info[1] == log_id:
