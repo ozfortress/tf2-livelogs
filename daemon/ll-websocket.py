@@ -80,16 +80,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         logger.info("Client disconnected. IP: %s", self.request.remote_ip)
         logUpdateHandler.clients.remove(self)
         
-        for key, set in logUpdateHandler.ordered_clients.iteritems():
-            if self in set:
-                logger.info("Client has key %s. Removing", key)
-                
-                set.remove(self)
-                if (len(set) == 0) and (key != "none"):
-                    logger.info("key %s has empty set. deleting key", key)
-                    del logUpdateHandler.ordered_clients[key]
-                    
-                    break
+        logUpdateHandler.removeFromOrderedClients(self)
                         
         return
         
@@ -187,7 +178,16 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
     @classmethod
     def removeFromOrderedClients(cls, client):
-        pass
+        for key, set in cls.ordered_clients.iteritems():
+            if client in set:
+                logger.info("Client has key %s. Removing", key)
+                
+                set.remove(client)
+                if (len(set) == 0) and (key != "none"):
+                    logger.info("key %s has empty set. deleting key", key)
+                    del cls.ordered_clients[key]
+                    
+                break
         
     @classmethod    
     def addToCache(cls, log_ident, status):
@@ -213,7 +213,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         res_cursor = self.application.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (log_ident,), callback=self._logStatusCallback)
         
         """
-        This is now done in _statusCallback
+        This is now done in _logStatusCallback
         live = res_cursor.fetchone()
         if live == "t":
             logUpdateHandler.addToCache(log_ident, True)
@@ -300,6 +300,7 @@ if __name__ == "__main__":
     db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
                 db_name, db_user, db_pass, db_host, db_port)
     
+    #support command line options, which will override whatever is set in the config
     tornado.options.define("ip", default=server_ip, help="Address the websocket server will listen on", type=str)
     tornado.options.define("port", default=server_port, help="Port the websocket server will listen on", type=int)
     tornado.options.define("update_rate", default=update_rate, help="The rate at which updates are pushed (seconds)", type=float)
@@ -315,9 +316,10 @@ if __name__ == "__main__":
         cleanup_timeout = 10,
     )
     
+    llWebSocketServer.update_rate = tornado.options.options.update_rate
     
     llWebSocketServer.listen(tornado.options.options.port, tornado.options.options.ip)
-    logger.info("Successfully listening on %s:%s", tornado.options.options.ip, tornado.options.options.port)
+    logger.info("Websocket server listening on %s:%s", tornado.options.options.ip, tornado.options.options.port)
     
     try:
         tornado.ioloop.IOLoop.instance().start()
