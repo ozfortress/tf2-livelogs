@@ -730,6 +730,8 @@ class parserClass():
         live_end_query = "UPDATE livelogs_servers SET live='false' WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT)
         self.executeQuery(live_end_query)
         
+        self.pgsqlConn.close()
+        
         #begin ending timer
         if ((self.closeListenerCallback != None) and (game_over)):
             self.closeListenerCallback(game_over);

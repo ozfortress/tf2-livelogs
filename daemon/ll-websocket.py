@@ -120,7 +120,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         log_cached = False
         
         self.LOG_IDENT_RECEIVED = True
-        self.LOG_IDENT = log_id
+        self.LOG_IDENT = str(log_id)
         
         logger.info("Received log ident '%s'", log_id)
         
@@ -169,16 +169,21 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
     @classmethod
     def addToOrderedClients(cls, log_id, client):
-        if cls.ordered_clients[log_id]:
+        if log_id in cls.ordered_clients:
             #log_id key exists, just need client to add to set
+            logger.info("log_id key exists. Adding client to list")
             cls.ordered_clients[log_id].add(client)
             
         else:
             #key doesn't exist with a set, so create the set and add the client to it
+            logger.info("log_id key doesn't exist. Creating")
             cls.ordered_clients[log_id] = set()
             cls.ordered_clients[log_id].add(client)
             
+            
         cls.ordered_clients["none"].discard(client) #remove from unallocated set
+        
+        cls.sendLogUpdates()
         
     @classmethod
     def removeFromOrderedClients(cls, client):
@@ -256,7 +261,13 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     
     @classmethod
     def sendLogUpdates(cls):
-        pass
+        for log_id in cls.ordered_clients:
+            if log_id != "none":
+                #the key will correspond to a set of client objects which are listening for updates on this log id
+                
+                for client in cls.ordered_clients[log_id]:
+                    #client is a websocket client object, which data can be sent to using client.write_message, etc
+                    client.write_message("HELLO!")
         
         
 if __name__ == "__main__": 
