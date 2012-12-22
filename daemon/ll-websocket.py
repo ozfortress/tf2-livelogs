@@ -308,6 +308,7 @@ if __name__ == "__main__":
     try:
         tornado.ioloop.IOLoop.instance().start()
     except KeyboardInterrupt:
+        llWebSocketServer.db.close()
         tornado.ioloop.IOLoop.instance().stop()
         logger.info("Keyboard interrupt. Exiting")
         
