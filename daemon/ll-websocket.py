@@ -228,9 +228,9 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             logger.info("Error querying database for log status")
             return
         
-        live = cursor.fetchone()
+        live = cursor.fetchone()[0] #fetchone returns a list, we only have 1 element and it'll be the first (idx 0)
         
-        if live == "t":
+        if live == True:
             #add the client to the ordered_clients dict with correct log ident
             logger.info("Log is live on refreshed status")
             self.write_message("LOG_IS_LIVE") #notify client the log is live
@@ -238,7 +238,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             logUpdateHandler.addToCache(self.LOG_IDENT, True)
             logUpdateHandler.addToOrderedClients(self.LOG_IDENT, self)
             
-        elif live == "f":
+        elif live == False:
 
             self.write_message("LOG_NOT_LIVE")
             
@@ -250,7 +250,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                             
         else:                    
             #invalid log ident
-            logger.info("Invalid log ident specified (live is null)")
+            logger.info("Invalid log ident specified (live did not match true or false")
             self.write_message("LOG_NOT_LIVE")
             self.close()
     
