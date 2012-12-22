@@ -80,16 +80,16 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         logger.info("Client disconnected. IP: %s", self.request.remote_ip)
         logUpdateHandler.clients.remove(self)
         
-        if self in logUpdateHandler.ordered_clients["none"]: #if client hasn't sent a log ident yet, and connection closes remove the object
-            logUpdateHandler.ordered_clients["none"].remove(self) 
-        else: #client has sent log ident and been assigned. need to search for the object
-            for key, set in logUpdateHandler.ordered_clients:
-                if self in set:
-                    set.remove(self)
-                    if len(set) == 0:
-                        del logUpdateHandler.ordered_clients[key]
-                        
-                        break
+        for key, set in logUpdateHandler.ordered_clients.iteritems():
+            if self in set:
+                logger.info("Client has key %s. Removing", key)
+                
+                set.remove(self)
+                if (len(set) == 0) and (key != "none"):
+                    logger.info("key %s has empty set. deleting key", key)
+                    del logUpdateHandler.ordered_clients[key]
+                    
+                    break
                         
         return
         
@@ -268,6 +268,9 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                 for client in cls.ordered_clients[log_id]:
                     #client is a websocket client object, which data can be sent to using client.write_message, etc
                     client.write_message("HELLO!")
+                    
+                    #for the sake of testing at the time being
+                    client.close()
         
         
 if __name__ == "__main__": 
