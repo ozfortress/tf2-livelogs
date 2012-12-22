@@ -28,7 +28,7 @@ if (len(tokenized) <= 5):
         client = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         client.connect((tokenized[2], int(tokenized[3])))
 
-        log_file = open(r'E:\Git\livelogs\test_log.log')
+        log_file = open(r'E:\Git\livelogs\test\test_log.log')
 
         for logline in log_file:
             print logline
