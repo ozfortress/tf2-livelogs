@@ -50,7 +50,12 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     #def allow_draft76(self):
         #allow old versions of the websocket protocol, for legacy support. LESS SECURE
     #    return True
+    def __init__(self, application, request, **kwargs):
+        self.LOG_IDENT_RECEIVED = False
+        self.LOG_IDENT = None
         
+        tornado.websocket.WebSocketHandler.__init__(self, application, request, **kwargs)
+    
     def open(self):
         #client connects
         """
@@ -97,8 +102,13 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             return
         
         #a standard message will be a json encoded message, with key "ident", and the value of the log ident i.e [ "ident" : 2315363_121212_1234567 ]
-        parsed_msg = tornado.escape.json_decode(msg) 
-        
+        try:
+            parsed_msg = tornado.escape.json_decode(msg) 
+            
+        except ValueError:
+            logger.info("ValueError trying to decode message")
+            return
+            
         log_id = parsed_msg["ident"]
         if not log_id:
             #invalid message received. IGNORE
