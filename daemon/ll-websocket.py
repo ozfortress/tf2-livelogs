@@ -122,6 +122,8 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         self.LOG_IDENT_RECEIVED = True
         self.LOG_IDENT = log_id
         
+        logger.info("Received log ident '%s'", log_id)
+        
         #now we check if the log id exists, and if the game is still live
         #first, check the cache. invalid log idents will never be in the cache
         for cache_info in logUpdateHandler.cache:
@@ -137,7 +139,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                     logger.info("Log is cached as live")
                     if ((time_ctime - cache_info[0]) > 20): #20 seconds have passed since last log check, so we need to refresh the cache
                         logger.info("Cache has expired. Getting status")
-                        live = logUpdateHandler.getLogStatus(log_id)
+                        live = self.getLogStatus(log_id)
                         if (live):
                             #add the client to the ordered_clients dict with correct log ident
                             logger.info("Log is live on refreshed status")
@@ -166,7 +168,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         #couldn't find the log in the cache, so it's either fresh or invalid
         if not log_cached:
-            live = logUpdateHandler.getLogStatus(log_id) #getLogStatus adds the ident to the cache if it is valid
+            live = self.getLogStatus(log_id) #getLogStatus adds the ident to the cache if it is valid
             if (live):
                 #add the client to the ordered_clients dict with correct log ident
                 self.write_message("LOG_IS_LIVE") #notify client the log is live
@@ -206,9 +208,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     def removeFromCache(cls, log_ident):
         pass
     
-    @classmethod
-    @tornado.web.asynchronous
-    def getLogStatus(cls, log_ident):
+    def getLogStatus(self, log_ident):
         """
         Gets the status of a log ident, and if the log is valid adds it to the cache
         
@@ -220,20 +220,24 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         #if live is NOT NULL, then the log exists
         #live == t means the log is live, and live == f means it's not live
         
-        res_cursor = momoko.Op(self.db.execute, "SELECT live FROM livelogs_servers WHERE log_ident = E'%s'", (log_ident,))
+        res_cursor = self.application.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = E'%s'", (log_ident,))
         
         live = res_cursor.fetchone()
         if live == "t":
-            addToCache(log_ident, True)
+            logUpdateHandler.addToCache(log_ident, True)
             return True
             
         elif live == "f":
-            addToCache(log_ident, False)
+            logUpdateHandler.addToCache(log_ident, False)
             return False
             
         else:
             return False
-       
+    
+    @classmethod
+    def singleMomokoQuery(self, query):
+        pass
+    
     @classmethod
     def sendLogUpdates(cls):
         pass
