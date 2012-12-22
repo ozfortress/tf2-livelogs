@@ -157,10 +157,6 @@ if __name__ == '__main__':
     if cfg_parser.read(r'll-config.ini'):
         try:
             server_ip = cfg_parser.get('log-listener', 'server_ip')
-            if server_ip == None:
-                #config file has not been edited. need to exit
-                print "You need to edit the server_ip in ll-config.ini"
-                quit()
                 
             serverAddr = (server_ip, cfg_parser.getint('log-listener', 'server_port'))
             api_key = cfg_parser.get('log-listener', 'api_key')

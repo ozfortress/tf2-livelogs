@@ -1,4 +1,11 @@
-import psycopg2
+try:
+    import psycopg2
+except ImportError:
+    print """You are missing psycopg2.
+    Install using `pip install psycopg2` or visit http://initd.org/psycopg/d
+    """
+    quit()
+    
 import time
 import struct
 import socket

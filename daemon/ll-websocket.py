@@ -2,21 +2,31 @@
 Websocket stuff, for dynamic updating of stats and sourcetv 2d relay
 
 """
-
-import tornado
-import tornado.options
-import tornado.websocket
-import tornado.web
-import tornado.ioloop
-import tornado.escape
-from tornado import gen
-
+try:
+    import tornado
+    import tornado.options
+    import tornado.websocket
+    import tornado.web
+    import tornado.ioloop
+    import tornado.escape
+    from tornado import gen
+except ImportError:
+    print """You are missing tornado. 
+    Install tornado using `pip install tornado`, or visit http://www.tornadoweb.org/
+    """
+    quit()
+    
 import logging
 import time
 import threading
-import momoko
 import ConfigParser
-
+try:
+    import momoko
+except ImportError:
+    print """Momoko is missing from the daemon directory, or is not installed in the python library
+    Visit https://github.com/FSX/momoko to obtain the latest revision
+    """
+    
 logging.basicConfig(level=logging.DEBUG, format='%(name)s: %(message)s')
 
 class llWSApplication(tornado.web.Application):
@@ -165,6 +175,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         #couldn't find the log in the cache, so it's either fresh or invalid
         if not log_cached:
+            logger.info("Log id %s is not cached. Getting status", log_id)
             self.getLogStatus(log_id) #getLogStatus adds the ident to the cache if it is valid
         
     def validClient(self):
@@ -179,7 +190,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             
         else:
             #key doesn't exist with a set, so create the set and add the client to it
-            logger.info("log_id key doesn't exist. Creating")
+            logger.info("log_id key doesn't exist in ordered_clients. Creating")
             cls.ordered_clients[log_id] = set()
             cls.ordered_clients[log_id].add(client)
             
