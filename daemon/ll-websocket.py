@@ -113,13 +113,17 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         self.LOG_IDENT_RECEIVED = True
         self.LOG_IDENT = str(log_id)
         
-        logger.info("Received log ident '%s'", log_id)
+        log_id = str(log_id)
+        
+        logger.info("Received log ident '%s'. Checking cache", log_id)
         
         #now we check if the log id exists, and if the game is still live
         #first, check the cache. invalid log idents will never be in the cache
         for cache_info in logUpdateHandler.cache:
             #cache_info = (cache_time, log_ident, status<t/f>)
             #check for ident first
+            logger.info("Cache info:")
+            print cache_info
             
             if cache_info[1] == log_id:
                 logger.info("Log ident is in the cache")
@@ -247,7 +251,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
 
             self.write_message("LOG_NOT_LIVE")
             
-            logger.info("Log is no longer live")
+            logger.info("Log is not live")
             
             logUpdateHandler.addToCache(self.LOG_IDENT, False)
             
