@@ -19,10 +19,10 @@
             die("Unable to connect to database");
         }
     
-        $live_query = "SELECT * FROM livelogs_servers WHERE live='true' ORDER BY numeric_id DESC";
+        $live_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='true' ORDER BY numeric_id DESC";
         $live_res = pg_query($ll_db, $live_query);
     
-        $past_query = "SELECT * FROM livelogs_servers WHERE live='false' ORDER BY numeric_id DESC LIMIT 10";
+        $past_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='false' ORDER BY numeric_id DESC LIMIT 10";
         $past_res = pg_query($ll_db, $past_query);
     ?>
 
@@ -160,14 +160,17 @@
                 <?php
                     while ($past = pg_fetch_array($past_res, NULL, PGSQL_BOTH))
                     {
-                    //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
+                        //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
+                        $log_ctime = explode($log_ident, "_")[2]; //3232244481_27015_1356076576
+                        
+                    
                     ?>
                         <tr>
                             <td class="server_ip"><?=long2ip($past["server_ip"])?></td>
                             <td class="server_port"><?=$past["server_port"]?></td>
                             <td class="log_map"><?=$past["map"]?></td>
                             <td class="log_name"><a href="/view/<?=$past["log_ident"]?>"><?=$past["log_name"]?></a></td>
-                            <td class="log_date">0</td>
+                            <td class="log_date"><?=date("d/m/Y H:i:s", $log_ctime)?></td>
                         </tr>
                     <?php
                     }

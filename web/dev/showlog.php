@@ -161,7 +161,7 @@
             else
             {
             ?>
-                <span class="log_status text-error">Not live</span><br>
+                <span class="log_status text-error">Complete</span><br>
                 <span class="time_elapsed_id">Total Time: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
             <?php
             }
