@@ -5,7 +5,7 @@
     
     <title>Livelogs DEV - SHOWLOG</title>
     <?php
-        require "conf/ll_database.php";
+        require "../conf/ll_database.php";
         
         $UNIQUE_IDENT = $_GET["ident"];
         $escaped_ident = pg_escape_string($UNIQUE_IDENT);

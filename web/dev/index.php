@@ -12,7 +12,7 @@
     <link rel="stylesheet" type="text/css" href="/css/viewlog.css">
 
     <?php
-        require "conf/ll_database.php";
+        require "../conf/ll_database.php";
         
         if (!$ll_db)
         {
@@ -161,7 +161,7 @@
                     while ($past = pg_fetch_array($past_res, NULL, PGSQL_BOTH))
                     {
                         //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
-                        $log_ctime = explode($log_ident, "_")[2]; //3232244481_27015_1356076576
+                        $log_split = explode($log_ident, "_"); //3232244481_27015_1356076576
                         
                     
                     ?>
@@ -170,7 +170,7 @@
                             <td class="server_port"><?=$past["server_port"]?></td>
                             <td class="log_map"><?=$past["map"]?></td>
                             <td class="log_name"><a href="/view/<?=$past["log_ident"]?>"><?=$past["log_name"]?></a></td>
-                            <td class="log_date"><?=date("d/m/Y H:i:s", $log_ctime)?></td>
+                            <td class="log_date"><?=date("d/m/Y H:i:s", $log_split[2])?></td>
                         </tr>
                     <?php
                     }
