@@ -1,5 +1,5 @@
 .ll_navbar {
-    margin-bottom: 1em;
+    margin-bottom: 0.5em;
     padding: 6px;
 }
 
@@ -37,17 +37,10 @@
     border-bottom: 2px solid #dddddd;
 }
 
-/*.stat_table li, .stat_table ul {
-    display: inline;
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}*/
-
 .stat_table_container {
     width: 55%;
     margin-bottom: 5px;
-    margin-left: 5px;
+    margin-left: 10px;
     /*border-radius: 10px;
     border: solid 1px black;*/
 }
@@ -67,7 +60,7 @@
             border-radius: 4px;
             
     margin-bottom: 5px;
-    margin-left: 5px;
+    margin-left: 10px;
 }
 
 .log_name_id, .server_details_id, .log_map_id, .live_id, .log_id_tag, .time_elapsed_id, .score_id {
@@ -136,7 +129,7 @@
     float: left;
     width: 40%;
     margin-bottom: 5px;
-    margin-left: 5px;
+    margin-left: 10px;
     overflow-x: hidden;
     overflow-y: scroll;
     height: 400px;
@@ -167,6 +160,6 @@
     text-align: center;
 }
 
-.pastlogs_search {
+.pastlogs_searchfield {
     margin-bottom: 5px;
 }

@@ -7,7 +7,7 @@
         $('#general_stats').dataTable( {
             "aaSorting": [[1, 'dt-numeric-html-desc']],
             "aoColumnDefs": [
-                { "sType": "html", "bSearchable": true, "aTargets": [0] },
+                { "sType": "html", "bSearchable": false, "aTargets": [0] },
                 { "sType": "dt-numeric-html", "bSearchable": false, "aTargets": ["_all"] },
             ],
             "bPaginate": false,
