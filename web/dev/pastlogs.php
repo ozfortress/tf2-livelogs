@@ -19,8 +19,48 @@
             die("Unable to connect to database");
         }
     
-        $past_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='false' AND numeric_id <= ((SELECT MAX(numeric_id) FROM livelogs_servers) - 10)
-                        ORDER BY numeric_id DESC LIMIT 40";
+        $filter = $_GET["filter"];
+        
+        if ($filter)
+        {
+            $split_filter = explode(":", $filter);
+            
+            if (sizeof($split_filter) == 2)
+            {
+                //we most likely have an ip:port search
+                $escaped_address = pg_escape_string(ip2long($split_filter[0]));
+                $escaped_port = pg_escape_string((int)$split_filter[1]);
+                
+                $past_query = "SELECT server_ip, server_port, log_ident, log_name, map 
+                                FROM livelogs_servers 
+                                WHERE (server_ip = '{$escaped_address}' AND server_port = CAST('{$escaped_port}' AS INT))
+                                ORDER BY numeric_id DESC LIMIT 40";
+            }
+            else
+            {
+                $longip = ip2long($filter);
+        
+                if ($longip)
+                {
+                    $escaped_filter = pg_escape_string($longip);
+                }
+                else
+                {
+                    $escaped_filter = pg_escape_string($filter);
+                }
+            
+                $past_query = "SELECT server_ip, server_port, log_ident, log_name, map 
+                                FROM livelogs_servers 
+                                WHERE (server_ip ~* '{$escaped_filter}' OR log_name ~* '{$escaped_filter}' OR map ~* '{$escaped_filter}')
+                                ORDER BY numeric_id DESC LIMIT 40";
+            }
+        }
+        else
+        {
+            $past_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='false' AND numeric_id <= ((SELECT MAX(numeric_id) FROM livelogs_servers) - 10)
+                            ORDER BY numeric_id DESC LIMIT 40";
+        }
+        
         $past_res = pg_query($ll_db, $past_query);
     ?>
 

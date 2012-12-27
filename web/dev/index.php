@@ -177,9 +177,9 @@
                     }
                     ?>
                     </tbody>
-                    <caption>Past 10 Logs (<a href="pastlogs.php">See more</a>)</caption>
+                    <caption>Past 10 Logs (<a href="/past/">See more</a>)</caption>
                 </table>
-                <p align="right"><a href="pastlogs.php">See more</a></p>
+                <p align="right"><a href="/past/">See more</a></p>
             </div>
         <?php
             }

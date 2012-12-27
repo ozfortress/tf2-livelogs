@@ -9,18 +9,6 @@
     $search_term = $_GET["term"];
     $result = "";
     
-    //did the user enter an IP?
-    $longip = ip2long($search_term);
-    
-    if ($longip)
-    {
-        $escaped_search_term = pg_escape_string($longip);
-    }
-    else
-    {
-        $escaped_search_term = pg_escape_string($search_term);
-    }
-    
     $split_search_term = explode(":", $search_term);
     if (sizeof($split_search_term) == 2)
     {
@@ -30,14 +18,26 @@
         
         $search_query = "SELECT server_ip, server_port, log_ident, log_name, map 
                         FROM livelogs_servers 
-                        WHERE (server_ip = '{$escaped_address}' AND server_port = CAST('{$escaped_port}' AS INT))
+                        WHERE (server_ip = '{$escaped_address}' AND server_port = CAST('{$escaped_port}' AS INT)) AND live='false'
                         ORDER BY numeric_id DESC LIMIT 40";
     }
     else
     {
+        //did the user enter an IP?
+        $longip = ip2long($search_term);
+        
+        if ($longip)
+        {
+            $escaped_search_term = pg_escape_string($longip);
+        }
+        else
+        {
+            $escaped_search_term = pg_escape_string($search_term);
+        }
+    
         $search_query = "SELECT server_ip, server_port, log_ident, log_name, map 
                         FROM livelogs_servers 
-                        WHERE (server_ip ~* '{$escaped_search_term}' OR log_name ~* '{$escaped_search_term}' OR map ~* '{$escaped_search_term}')
+                        WHERE (server_ip ~* '{$escaped_search_term}' OR log_name ~* '{$escaped_search_term}' OR map ~* '{$escaped_search_term}') AND live='false'
                         ORDER BY numeric_id DESC LIMIT 40";
     }
     
