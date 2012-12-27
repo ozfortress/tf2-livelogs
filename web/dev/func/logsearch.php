@@ -7,7 +7,7 @@
     }
     
     $search_term = $_GET["term"];
-    $result = "No results available";
+    $result = "<tr>No results available</tr>";
     
     $split_search_term = explode(":", $search_term);
     if (sizeof($split_search_term) == 2)
@@ -65,7 +65,7 @@
     }
     else //what if the user entered a date? or a year? TODO: deal with this. there is currently no method of doing so, as dates are not indexed
     {
-        echo $result;
+        //echo $result;
     }
     
     pg_close($ll_db);
