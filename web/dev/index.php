@@ -105,6 +105,7 @@
                     {
                     //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
                     ?>
+                       
                         <tr>
                             <td class="server_ip"><?=long2ip($live["server_ip"])?></td>
                             <td class="server_port"><?=$live["server_port"]?></td>
@@ -164,6 +165,7 @@
                         $log_split = explode("_", $past["log_ident"]); //3232244481_27015_1356076576
                         
                     ?>
+                        
                         <tr>
                             <td class="server_ip"><?=long2ip($past["server_ip"])?></td>
                             <td class="server_port"><?=$past["server_port"]?></td>

@@ -259,6 +259,7 @@
                                 $mstats[sizeof($mstats)] = $pstat;
                             }
                     ?>
+                        
                         <tr>
                             <td><a class="player_community_id_link" href="/player/<?=$community_id?>"><?=$pstat["name"]?></a></td>
                             <td><span id="<?=$community_id . ".kills"?>"><?=$pstat["kills"]?></span></td>
@@ -316,6 +317,7 @@
                             {
                                 $community_id = steamid_to_bigint($mstats[$i]["steamid"]);
                             ?>
+                            
                             <tr>
                                 <td><a class="player_community_id_link" href="/player/<?=$community_id?>"><?=$mstats[$i]["name"]?></a></td>
                                 <td><span id="<?=$community_id . ".heal_done"?>"><?=$mstats[$i]["healing_done"]?></span></td>

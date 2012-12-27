@@ -7,6 +7,7 @@
     }
     
     $search_term = $_GET["term"];
+    $result = "";
     
     //did the user enter an IP?
     $longip = ip2long($search_term);
@@ -25,7 +26,7 @@
     {
         //we most likely have an ip:port search
         $escaped_address = pg_escape_string(ip2long($split_search_term[0]));
-        $escaped_port = pg_escape_string(int($split_search_term[1]));
+        $escaped_port = pg_escape_string((int)$split_search_term[1]);
         
         $search_query = "SELECT server_ip, server_port, log_ident, log_name, map 
                         FROM livelogs_servers 
@@ -63,7 +64,7 @@
     }
     else //what if the user entered a date? or a year? TODO: deal with this. there is currently no method of doing so, as dates are not indexed
     {
-        $result = "";
+        echo $result;
     }
     
     pg_close($ll_db);

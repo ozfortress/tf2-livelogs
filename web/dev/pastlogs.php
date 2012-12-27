@@ -93,6 +93,7 @@
                     {
                         $log_split = explode("_", $log["log_ident"]); //3232244481_27015_1356076576
                     ?>
+                        
                         <tr>
                             <td class="server_ip"><?=long2ip($log["server_ip"])?></td>
                             <td class="server_port"><?=$log["server_port"]?></td>
