@@ -7,7 +7,7 @@
     }
     
     $search_term = $_GET["term"];
-    $result = "";
+    $result = "No results available";
     
     $split_search_term = explode(":", $search_term);
     if (sizeof($split_search_term) == 2)
@@ -50,6 +50,7 @@
     
     if (pg_num_rows($search_result) > 0) //we have results, so we can assume our query was just the generic one
     {
+        $result = "";
         while ($log = pg_fetch_array($search_result, NULL, PGSQL_ASSOC))
         {
             $log_split = explode("_", $log["log_ident"]);

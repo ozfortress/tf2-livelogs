@@ -18,8 +18,10 @@
         {
             die("Unable to connect to database");
         }
-    
-        $filter = $_GET["filter"];
+        if (empty($_GET["filter"]))
+            $filter = false;
+        else
+            $filter = $_GET["filter"];
         
         if ($filter)
         {
@@ -106,7 +108,7 @@
         
         <div class="log_list_container">
             <div class="log_list">
-                <input type="text" class="input-medium search-query pastlogs_searchfield" placeholder="Enter search term" id="searchField">
+                <input type="text" class="pastlogs_searchfield" placeholder="Enter search term" id="searchField">
                 <table class="table table-bordered table-hover ll_table">
                     <thead>
                         <tr class="stat_summary_title_bar info">
