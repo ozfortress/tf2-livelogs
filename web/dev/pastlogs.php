@@ -19,7 +19,7 @@
             die("Unable to connect to database");
         }
     
-        $past_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='false' AND numeric_id < ((SELECT MAX(numeric_id) FROM livelogs_servers) - 10)
+        $past_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='false' AND numeric_id <= ((SELECT MAX(numeric_id) FROM livelogs_servers) - 10)
                         ORDER BY numeric_id DESC LIMIT 40";
         $past_res = pg_query($ll_db, $past_query);
     ?>
@@ -66,7 +66,7 @@
         
         <div class="log_list_container">
             <div class="log_list">
-                <input type="text" class="input-medium search-query" placeholder="Enter search term" id="searchField">
+                <input type="text" class="input-medium search-query pastlogs_search" placeholder="Enter search term" id="searchField">
                 <table class="table table-bordered table-hover ll_table">
                     <thead>
                         <tr class="stat_summary_title_bar info">
