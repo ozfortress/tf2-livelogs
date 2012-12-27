@@ -13,21 +13,41 @@
     
     if ($longip)
     {
-        $escaped_search_term = pg_escape_string($longip)
+        $escaped_search_term = pg_escape_string($longip);
     }
     else
     {
-        $escaped_search_term = pg_escape_string($search_term)
+        $escaped_search_term = pg_escape_string($search_term);
     }
     
-    $search_query = "SELECT server_ip, server_port, log_ident, log_name, map 
-                    FROM livelogs_servers 
-                    WHERE LOWER({$escaped_search_term}) SIMILAR TO '%(server_ip|server_port|log_name|map)%'
-                    ORDER BY numeric_id DESC LIMIT 40";
+    $split_search_term = explode(":", $search_term);
+    if (sizeof($split_search_term) == 2)
+    {
+        //we most likely have an ip:port search
+        $escaped_address = pg_escape_string(ip2long($split_search_term[0]));
+        $escaped_port = pg_escape_string(int($split_search_term[1]));
+        
+        $search_query = "SELECT server_ip, server_port, log_ident, log_name, map 
+                        FROM livelogs_servers 
+                        WHERE (server_ip = '{$escaped_address}' AND server_port = CAST('{$escaped_port}' AS INT))
+                        ORDER BY numeric_id DESC LIMIT 40";
+    }
+    else
+    {
+        $search_query = "SELECT server_ip, server_port, log_ident, log_name, map 
+                        FROM livelogs_servers 
+                        WHERE (server_ip ~* '{$escaped_search_term}' OR log_name ~* '{$escaped_search_term}' OR map ~* '{$escaped_search_term}')
+                        ORDER BY numeric_id DESC LIMIT 40";
+    }
     
     $search_result = pg_query($ll_db, $search_query);
     
-    if (pg_num_rows($search_result)) //we have results, so we can assume our query was the expected one
+    if (!$search_result)
+    {
+        die("Unable to retrieve search results");
+    }
+    
+    if (pg_num_rows($search_result) > 0) //we have results, so we can assume our query was just the generic one
     {
         while ($log = pg_fetch_array($search_result, NULL, PGSQL_ASSOC))
         {
@@ -46,7 +66,7 @@
         $result = "";
     }
     
-    pg_close($ll_db)
+    pg_close($ll_db);
     
     echo $result;
 ?>
