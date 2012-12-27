@@ -34,7 +34,7 @@
 
 .ll_table thead {
     color: #339933;
-    border-bottom: 2px solid #dddddd;
+    /*border-bottom: 2px solid #dddddd;*/
 }
 
 .stat_table_container {
@@ -162,4 +162,14 @@
 
 .pastlogs_searchfield {
     margin-bottom: 5px;
+}
+
+
+/*overwrite datatables thead*/
+table.dataTable thead th {
+    padding: 3px 18px 3px 10px;
+	/*border-bottom: 1px solid black;*/
+	font-weight: bold;
+	cursor: pointer;
+	*cursor: hand;
 }

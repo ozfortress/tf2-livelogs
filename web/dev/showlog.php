@@ -182,7 +182,7 @@
             <div class="general_stat_summary">
                 <table class="table table-bordered table-striped table-hover ll_table" id="general_stats">
                     <thead>
-                        <tr class="stat_summary_title_bar info">
+                        <tr class="stat_summary_title_bar">
                             <th class="stat_summary_col_title">
                                 <abbr title="Player Name">Name</abbr>
                             </th>
@@ -299,7 +299,7 @@
                 <div class="medic_stat_summary">
                     <table class="table table-bordered table-striped table-hover ll_table" id="medic_stats">
                         <thead>
-                            <tr class="stat_summary_title_bar info">
+                            <tr class="stat_summary_title_bar">
                                 <th class="stat_summary_col_title">
                                     <abbr title="Player Name">Name</abbr>
                                 </th>
