@@ -13,7 +13,7 @@
             "bPaginate": false,
             "bAutoWidth": false,
             "bSortClasses": false,
-//            "bSearchable": false,
+            "bSearchable": false,
             "bInfo": false,
             "bJQueryUI": true,
             "bUseRendered": true,

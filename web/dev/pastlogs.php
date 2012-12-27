@@ -3,7 +3,7 @@
 <head>
     <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
     
-    <title>Livelogs DEV - INDEX</title>
+    <title>Livelogs DEV - PASTLOGS</title>
 
     <!--<link href="/favicon.ico" rel="shortcut icon">-->
     <!--<link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">-->
@@ -19,10 +19,8 @@
             die("Unable to connect to database");
         }
     
-        $live_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='true' ORDER BY numeric_id DESC";
-        $live_res = pg_query($ll_db, $live_query);
-    
-        $past_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='false' ORDER BY numeric_id DESC LIMIT 10";
+        $past_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='false' AND numeric_id < ((SELECT MAX(numeric_id) FROM livelogs_servers) - 10)
+                        ORDER BY numeric_id DESC LIMIT 40";
         $past_res = pg_query($ll_db, $past_query);
     ?>
 
@@ -65,77 +63,10 @@
                 </li>
             </ul>
         </div>
-        <div class="index_welcome">
-            <p>Welcome to Livelogs! Below you will find a list of logs that are currently live, and a list of past logs that you may view.</p>
-        </div>
-
+        
         <div class="log_list_container">
-        <?php
-            if (!$live_res)
-            {
-            ?>
-                <p class="text-error">Unable to retrieve live status</p>
-            <?php
-            }
-            else
-            {
-            
-            ?>
             <div class="log_list">
-                <table class="table table-bordered table-hover ll_table">
-                    <thead>
-                        <tr class="stat_summary_title_bar info">
-                            <th class="log_list_col_title">
-                                Server IP
-                            </th>
-                            <th class="log_list_col_title">
-                                Server Port
-                            </th>
-                            <th class="log_list_col_title">
-                                Map
-                            </th>
-                            <th class="log_list_col_title">
-                                Log Name
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php
-                    while ($live = pg_fetch_array($live_res, NULL, PGSQL_ASSOC))
-                    {
-                    //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
-                    ?>
-                        <tr>
-                            <td class="server_ip"><?=long2ip($live["server_ip"])?></td>
-                            <td class="server_port"><?=$live["server_port"]?></td>
-                            <td class="log_map"><?=$live["map"]?></td>
-                            <td class="log_name"><a href="/view/<?=$live["log_ident"]?>"><?=$live["log_name"]?></a></td>
-
-                        </tr>
-                    <?php
-                    }
-                    ?>
-                    </tbody>
-                    <caption>Logs that are currently live</caption>
-                </table>
-            </div>
-        <?php
-            }
-        ?>
-        </div>
-        <div class="log_list_container">
-        <?php
-            if (!$past_res)
-            {
-            ?>
-                <p class="text-error">Unable to retrieve past logs</p>
-            <?php
-            }
-            else
-            {
-            
-            ?>
-            <div class="log_list">
+                <input type="text" class="input-medium search-query" placeholder="Enter search term" id="searchField">
                 <table class="table table-bordered table-hover ll_table">
                     <thead>
                         <tr class="stat_summary_title_bar info">
@@ -156,39 +87,27 @@
                             </th>
                         </tr>
                     </thead>
-                    <tbody>
-                <?php
-                    while ($past = pg_fetch_array($past_res, NULL, PGSQL_ASSOC))
+                    <tbody id="pastLogs">
+                    <?php
+                    while ($log = pg_fetch_array($past_res, NULL, PGSQL_ASSOC))
                     {
-                        //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
-                        $log_split = explode("_", $past["log_ident"]); //3232244481_27015_1356076576
-                        
+                        $log_split = explode("_", $log["log_ident"]); //3232244481_27015_1356076576
                     ?>
                         <tr>
-                            <td class="server_ip"><?=long2ip($past["server_ip"])?></td>
-                            <td class="server_port"><?=$past["server_port"]?></td>
-                            <td class="log_map"><?=$past["map"]?></td>
-                            <td class="log_name"><a href="/view/<?=$past["log_ident"]?>"><?=$past["log_name"]?></a></td>
+                            <td class="server_ip"><?=long2ip($log["server_ip"])?></td>
+                            <td class="server_port"><?=$log["server_port"]?></td>
+                            <td class="log_map"><?=$log["map"]?></td>
+                            <td class="log_name"><a href="/view/<?=$log["log_ident"]?>"><?=$log["log_name"]?></a></td>
                             <td class="log_date"><?=date("d/m/Y H:i:s", $log_split[2])?></td>
                         </tr>
                     <?php
                     }
                     ?>
                     </tbody>
-                    <caption>Past 10 Logs (<a href="pastlogs.php">See more</a>)</caption>
                 </table>
-                <p align="right"><a href="pastlogs.php">See more</a></p>
             </div>
-        <?php
-            }
-        ?>
         </div>
-        <div class="uploaded_logs">
-        
-        </div>
-        
     </div>
-
     <!-- LOAD SCRIPTS AT THE BOTOM FOR PERFORMANCE ++ -->
     <!-- use locally hosted scripts for dev 
     <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
@@ -199,7 +118,7 @@
     <script src="/js/jquery-ui.min.js"></script>
     <script src="/js/jquery.dataTables.min.js"></script>
     <script src="/js/bootstrap/bootstrap.js" type="text/javascript"></script>
-    
+    <script src="/js/logsearch.js" type="text/javascript"></script>
 </body>
 
 </html>

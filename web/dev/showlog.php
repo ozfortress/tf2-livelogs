@@ -14,7 +14,7 @@
         $log_detail_res = pg_query($ll_db, $log_detail_query);
 
         ////server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
-        $log_details = pg_fetch_array($log_detail_res, 0, PGSQL_BOTH);
+        $log_details = pg_fetch_array($log_detail_res, 0, PGSQL_ASSOC);
         
         if (!$log_details["log_name"])
         {
@@ -71,6 +71,7 @@
             $time_elapsed_sec = $time_last_ctime - $time_start_ctime;
             $time_elapsed = sprintf("%02d minute(s) and %02d second(s)", ($time_elapsed_sec/60)%60, $time_elapsed_sec%60);
             
+            $invalid_log_ident = false;
             /*
             $time_query = "SELECT event_time as start_last_time FROM {$escaped_event_table} WHERE eventid = '1' UNION SELECT event_time FROM {$escaped_event_table} WHERE eventid = (SELECT MAX(eventid) FROM {$escaped_event_table})";
             $time_result = pg_query($ll_db, $time_query);
@@ -92,7 +93,7 @@
     <!--<link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">-->
     <link rel="stylesheet" type="text/css" href="/css/jquery.dataTables.css">
     <link rel="stylesheet" type="text/css" href="/css/bootstrap/bootstrap.css">
-    <link rel="stylesheet" type="text/css" href="/css/viewlog.css">
+    <link rel="stylesheet" type="text/css" href="/css/livelogs.css">
     
 </head>
 <body class="ll_body">
@@ -244,7 +245,7 @@
                          
                         $mstats = Array();
                         //NAME:K:D:A:P:DMG:HEAL:HS:BS:PC:PB:DMN:TDMN:R:KPD:DPD:DPR
-                        while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_BOTH))
+                        while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC))
                         {
                             $community_id = steamid_to_bigint($pstat["steamid"]);
                             $p_kpd = round($pstat["kills"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); // kills/death
