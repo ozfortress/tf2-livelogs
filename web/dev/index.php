@@ -171,7 +171,7 @@
                             <td class="server_port"><?=$past["server_port"]?></td>
                             <td class="log_map"><?=$past["map"]?></td>
                             <td class="log_name"><a href="/view/<?=$past["log_ident"]?>"><?=$past["log_name"]?></a></td>
-                            <td class="log_date"><?=date("d/m/Y H:i:s", $log_split[2])?></td>
+                            <td class="log_date"><?=date("d/m/Y   H:i:s", $log_split[2])?></td>
                         </tr>
                     <?php
                     }

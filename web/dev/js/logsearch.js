@@ -12,7 +12,7 @@
             if (search !== "") //user wasn't clearing the field, but entering something
             {
                 //use jquery.get to call logsearch.php with the search term
-                $.get("func/logsearch.php?term="+search, function(result)
+                $.get("/func/logsearch.php?term="+search, function(result)
                 {
                     if (result) //result is not empty
                     {

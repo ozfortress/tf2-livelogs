@@ -141,7 +141,7 @@
                             <td class="server_port"><?=$log["server_port"]?></td>
                             <td class="log_map"><?=$log["map"]?></td>
                             <td class="log_name"><a href="/view/<?=$log["log_ident"]?>"><?=$log["log_name"]?></a></td>
-                            <td class="log_date"><?=date("d/m/Y H:i:s", $log_split[2])?></td>
+                            <td class="log_date"><?=date("d/m/Y   H:i:s", $log_split[2])?></td>
                         </tr>
                     <?php
                     }
