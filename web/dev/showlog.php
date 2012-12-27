@@ -55,11 +55,17 @@
                             ORDER BY eventid DESC LIMIT 1";
                             
             $score_result = pg_query($ll_db, $score_query);
-            
-            $score_array = pg_fetch_array($score_result, 0);
-            $red_score = $score_array["red_score"];
-            $blue_score = $score_array["blue_score"];
-            
+            if ($score_result && pg_num_rows($score_result) > 0)
+            {
+                $score_array = pg_fetch_array($score_result, 0);
+                $red_score = $score_array["red_score"];
+                $blue_score = $score_array["blue_score"];
+            }
+            else
+            {
+                $red_score = 0;
+                $blue_score = 0;
+            }
             $event_array = pg_fetch_all($event_result);
             $time_start = $event_array[0]["event_time"];
             $time_last = $event_array[(sizeof($event_array) - 1)]["event_time"];
