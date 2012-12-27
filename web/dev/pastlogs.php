@@ -21,7 +21,7 @@
         if (empty($_GET["filter"]))
             $filter = null;
         else
-            $filter = str_replace("/", "", $_GET["filter"];
+            $filter = str_replace("/", "", $_GET["filter"]);
         
         if ($filter)
         {
