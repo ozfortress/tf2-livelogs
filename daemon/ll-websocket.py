@@ -21,6 +21,8 @@ import time
 import threading
 import ConfigParser
 
+from pprint import pprint
+
 try:
     import momoko
 except ImportError:
@@ -387,6 +389,7 @@ class dbManager(object):
         
         stat_dict = {}
         
+        print "Update callback for log id %s" % self.LOG_IDENT
         #iterate over the cursor
         for row in cursor:
             #each row is a player's data as a tuple in the format of:
@@ -394,7 +397,16 @@ class dbManager(object):
             sid = row[0] #player's steamid
             stat_dict[sid] = row[1:] #splice the rest of the data and store it under the player's steamid
             
+            print "steamid %s has data:" % sid
+            print row[1:]
+            
         self.DB_LATEST_TABLE = stat_dict
+        
+        #debug: run fullUpdate and print the dict
+        
+        print "Full update data:"
+        pprint(self.fullUpdate())
+        
         
             
 if __name__ == "__main__": 
