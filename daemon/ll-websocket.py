@@ -67,6 +67,8 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         self.LOG_IDENT_RECEIVED = False
         self.LOG_IDENT = None
         
+        self.HAD_FIRST_UPDATE = False
+        
         tornado.websocket.WebSocketHandler.__init__(self, application, request, **kwargs)
     
     def open(self):
@@ -228,7 +230,8 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     def addDBManager(cls, log_ident, database):
         if not log_id in cls.db_managers:
             logger.info("Adding %s to dbManager dict", log_ident)
-            #now we need to create a new dbManager for this log id
+            #now we need to create a new dbManager for this log id. the database handle is the momoko pool created @ startup
+            #and is the same for all clients
             cls.db_managers[log_ident] = dbManager(log_ident, database)
             
     
@@ -238,9 +241,15 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             if log_id != "none":
                 #the key will correspond to a set of client objects which are listening for updates on this log id
                 
+                
                 for client in cls.ordered_clients[log_id]:
                     #client is a websocket client object, which data can be sent to using client.write_message, etc
                     client.write_message("HELLO!")
+                    
+                    if not client.HAD_FIRST_UPDATE:
+                        if cls.db_managers[log_id].DB_LATEST_TABLE: #if we have a complete update available yet
+                            #send a complete update to the client
+                            client.write_message(cls.db_managers[log_id].fullUpdate())
                     
                     #for the sake of testing at the time being
                     client.close()
@@ -289,17 +298,105 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             self.write_message("LOG_NOT_LIVE")
             self.close()
             
-
+        cursor.close()
+        
 """
 The database manager class holds a version of a log id's stat table. It provides functions to calculate the difference between
 currently stored data and new data (delta compression) which will be sent to the clients.
 """
 class dbManager(object):
     def __init__(self, log_id, db_conn):
+        self.LOG_IDENT = log_id
+        self.db = db_conn
+        
+        self.STAT_TABLE = "log_stat_" + log_id
+        
+        self.DB_DIFFERENCE_TABLE = None #a dict containing the difference between the stored data and 
+        self.DB_LATEST_TABLE = None #a dict containing the most recently retrieved data
+        
+        self.getDatabaseUpdate()
+    
+    def statTupleToDict(self, stat_tuple):
+        #takes a tuple in the form:
+        #NAME:K:D:A:P:HD:HR:UU:UL:HS:BS:DMG:APsm:APmed:APlrg:MKsm:MKmed:MKlrg:CAP:CAPB:DOM:TDOM:REV:SUICD:BLD_DEST:EXTNG:KILL_STRK
+        #and converts it to a simple dictionary
+        
+        #shortened names for extra network optimisation!
+        dict = {
+                "name": stat_tuple[0],
+                "k": stat_tuple[1],
+                "d": stat_tuple[2],
+                "a": stat_tuple[3],
+                "p": stat_tuple[4]
+                "heald": stat_tuple[5],
+                "healr": stat_tuple[6],
+                "uu": stat_tuple[7],
+                "ul": stat_tuple[8],
+                "hs": stat_tuple[9],
+                "bs": stat_tuple[10],
+                "dmg": stat_tuple[11],
+                "aps": stat_tuple[12],
+                "apm": stat_tuple[13],
+                "apl": stat_tuple[14],
+                "mks": stat_tuple[15],
+                "mkm": stat_tuple[16],
+                "mkl": stat_tuple[17],
+                "cp": stat_tuple[18],
+                "cpb": stat_tuple[19],
+                "dmn": stat_tuple[20],
+                "tdmn": stat_tuple[21],
+                "rvng": stat_tuple[22],
+                "suicd": stat_tuple[23],
+                "bdest": stat_tuple[24],
+                "extng": stat_tuple[25],
+                "kstrk": stat_tuple[26],
+            }
+        
+        return dict
+    
+    def fullUpdate(self):
+        #constructs and returns a dictionary for a complete update to the client
+        
+        #DB_LATEST_TABLE has keys consisting of player's steamids, corresponding to their stats as a tuple in the form:
+        #NAME:K:D:A:P:HD:HR:UU:UL:HS:BS:DMG:APsm:APmed:APlrg:MKsm:MKmed:MKlrg:CAP:CAPB:DOM:TDOM:REV:SUICD:BLD_DEST:EXTNG:KILL_STRK
+        #we need to convert this to a dictionary, so it can be encoded as json by write_message, and then easily decoded by the client
+        
+        update_dict = {}
+        
+        if self.DB_LATEST_TABLE:
+            for steam_id, stat in self.DB_LATEST_TABLE:
+                update_dict[steam_id] = self.statTupleToDict(stat)
+        
+        return update_dict
+        
+    def getTableDifference(self):
+        #calculates the difference between the currently stored data and an update
         pass
         
+    def getDatabaseUpdate(self):
+        #executes the query to obtain an update. called on init and periodically
         
+        query = "SELECT * FROM %s" % self.STAT_TABLE
+        self.db.execute(query, callback = self._databaseUpdateCallback)
         
+    def _databaseUpdateCallback(self, cursor, error):
+        #the callback for database update queries
+        if error:
+            print "Error querying database for stat data on log id %s" % self.LOG_IDENT
+            return
+        
+        stat_dict = {}
+        
+        #iterate over the cursor
+        for row in cursor:
+            #each row is a player's data as a tuple in the format of:
+            #SID:NAME:K:D:A:P:HD:HR:UU:UL:HS:BS:DMG:APsm:APmed:APlrg:MKsm:MKmed:MKlrg:CAP:CAPB:DOM:TDOM:REV:SUICD:BLD_DEST:EXTNG:KILL_STRK
+            sid = row[0] #player's steamid
+            stat_dict[sid] = row[1:] #splice the rest of the data and store it under the player's steamid
+            
+        self.DB_LATEST_TABLE = stat_dict
+        
+            
 if __name__ == "__main__": 
     cfg_parser = ConfigParser.SafeConfigParser()
     if cfg_parser.read(r'll-config.ini'):
