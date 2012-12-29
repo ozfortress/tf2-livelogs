@@ -93,6 +93,10 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         print "Clients without ID:"
         print logUpdateHandler.ordered_clients["none"]
         
+        if not logUpdateHandler.logUpdateTimer:
+            logUpdateHandler.logUpdateTimer = threading.Timer(self.application.update_rate, logUpdateHandler.sendLogUpdates)
+            logUpdateHandler.logUpdateTimer.start()
+        
     def on_close(self):
         #client disconnects
         logger.info("Client disconnected. IP: %s", self.request.remote_ip)
@@ -230,7 +234,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     
     @classmethod
     def addDBManager(cls, log_ident, database):
-        if not log_id in cls.db_managers:
+        if not log_ident in cls.db_managers:
             logger.info("Adding %s to dbManager dict", log_ident)
             #now we need to create a new dbManager for this log id. the database handle is the momoko pool created @ startup
             #and is the same for all clients
@@ -252,9 +256,10 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                         if cls.db_managers[log_id].DB_LATEST_TABLE: #if we have a complete update available yet
                             #send a complete update to the client
                             client.write_message(cls.db_managers[log_id].fullUpdate())
+                            
+                            #for the sake of testing at the time being
+                            client.close()
                     
-                    #for the sake of testing at the time being
-                    client.close()
     
     def getLogStatus(self, log_ident):
         """
@@ -280,9 +285,8 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             self.write_message("LOG_IS_LIVE") #notify client the log is live
             
             logUpdateHandler.addToCache(self.LOG_IDENT, True)
-            logUpdateHandler.addToOrderedClients(self.LOG_IDENT, self)
-            
             logUpdateHandler.addDBManager(self.LOG_IDENT, self.application.db)
+            logUpdateHandler.addToOrderedClients(self.LOG_IDENT, self)
             
         elif live == False:
 
@@ -299,8 +303,6 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             logger.info("Invalid log ident specified (live did not match true or false")
             self.write_message("LOG_NOT_LIVE")
             self.close()
-            
-        cursor.close()
         
 """
 The database manager class holds a version of a log id's stat table. It provides functions to calculate the difference between
@@ -329,7 +331,7 @@ class dbManager(object):
                 "k": stat_tuple[1],
                 "d": stat_tuple[2],
                 "a": stat_tuple[3],
-                "p": stat_tuple[4]
+                "p": stat_tuple[4],
                 "heald": stat_tuple[5],
                 "healr": stat_tuple[6],
                 "uu": stat_tuple[7],
@@ -366,8 +368,8 @@ class dbManager(object):
         update_dict = {}
         
         if self.DB_LATEST_TABLE:
-            for steam_id, stat in self.DB_LATEST_TABLE:
-                update_dict[steam_id] = self.statTupleToDict(stat)
+            for steam_id in self.DB_LATEST_TABLE:
+                update_dict[steam_id] = self.statTupleToDict(self.DB_LATEST_TABLE[steam_id])
         
         return update_dict
         
@@ -378,6 +380,7 @@ class dbManager(object):
     def getDatabaseUpdate(self):
         #executes the query to obtain an update. called on init and periodically
         
+        print "Getting database update on table %s" % self.STAT_TABLE
         query = "SELECT * FROM %s" % self.STAT_TABLE
         self.db.execute(query, callback = self._databaseUpdateCallback)
         
