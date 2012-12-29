@@ -56,9 +56,10 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                                          #the log ident sent by the client. new clients are added to "none" upon connection, and moved when a log ident is received
     
     cache = [] #holds a set of tuples containing log idents, the last time they were updated, and the status (live/not live) | [(cache_time, log_ident, status<t/f>), (cache_time, log_ident, status<t/f>)]
-    cache_size = 200 #max number of logs holdable
     
     db_managers = {} #a dictionary containing dbManager objects corresponding to log ids
+    
+    logUpdateTimer = None
     
     logger = logging.getLogger("CLIENTUPDATE")
     
@@ -331,7 +332,7 @@ class dbManager(object):
                 "k": stat_tuple[1],
                 "d": stat_tuple[2],
                 "a": stat_tuple[3],
-                "p": stat_tuple[4],
+                "p": float(stat_tuple[4]), #points are auto converted to Decimal, which aren't handled by the json encoder
                 "heald": stat_tuple[5],
                 "healr": stat_tuple[6],
                 "uu": stat_tuple[7],
@@ -373,7 +374,7 @@ class dbManager(object):
         
         return update_dict
         
-    def getTableDifference(self):
+    def updateTableDifference(self, old, new):
         #calculates the difference between the currently stored data and an update
         pass
         
@@ -402,11 +403,15 @@ class dbManager(object):
             
             print "steamid %s has data:" % sid
             print row[1:]
-            
-        self.DB_LATEST_TABLE = stat_dict
+        
+        if not self.DB_LATEST_TABLE:
+            self.DB_LATEST_TABLE = stat_dict
+        else:
+            #we need to get the table difference before we update to the latest data
+            self.DB_DIFFERENCE_TABLE = self.updateTableDifference(self.DB_LATEST_TABLE, stat_dict)
+            self.DB_LATEST_TABLE = stat_dict
         
         #debug: run fullUpdate and print the dict
-        
         print "Full update data:"
         pprint(self.fullUpdate())
         
