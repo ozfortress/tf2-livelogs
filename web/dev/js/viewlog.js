@@ -46,6 +46,8 @@ var llWSClient = llWSClient || (function() {
         init : function(ip, port, log_id) {
             var ws = "ws://" + ip + ":" + port + "/logupdate";
             
+            debug("WS URI: " + ws);
+            
             connect_msg.ident = log_id;
             
             try {
@@ -57,6 +59,7 @@ var llWSClient = llWSClient || (function() {
                         client.onclose = function(event) { llWSClient.onClose(event); };
                         client.onerror = function(event) { llWSClient.onError(event); };
                     } else {
+                        debug("Websockets not supported");
                         return;
                     }
                 } else {
@@ -68,18 +71,19 @@ var llWSClient = llWSClient || (function() {
                 }
             }
             catch (error) {
+                debug("Had error trying to establish websocket: " + error);
                 return;
             }
             
         },
         
         onOpen : function(event) {
-            document.write("Client websock opened");
+            debug("Client websock opened");
             client.send(JSON.stringify(connect_msg));
         },
         
         onClose : function(event) {
-            document.write("Client websocket closed");
+            debug("Client websocket closed");
         },
         
         onError : function(event) {
