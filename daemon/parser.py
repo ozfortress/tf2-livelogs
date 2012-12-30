@@ -2,7 +2,7 @@ try:
     import psycopg2
 except ImportError:
     print """You are missing psycopg2.
-    Install using `pip install psycopg2` or visit http://initd.org/psycopg/d
+    Install using `pip install psycopg2` or visit http://initd.org/psycopg/
     """
     quit()
     
@@ -51,6 +51,7 @@ class parserClass():
         self.UNIQUE_IDENT = unique_ident
         self.GAME_OVER = False
         self.ROUND_PAUSE = False
+        self.LOG_PARSING_ENDED = False
         
         self.bNamedLog = False
         if (log_name != None):
@@ -733,13 +734,16 @@ class parserClass():
         curs.close()
 
     def endLogParsing(self, game_over=False):
-        print "Ending log parsing"
-        live_end_query = "UPDATE livelogs_servers SET live='false' WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT)
-        self.executeQuery(live_end_query)
-        
-        self.pgsqlConn.close()
-        
-        #begin ending timer
-        if ((self.closeListenerCallback != None) and (game_over)):
-            self.closeListenerCallback(game_over);
+        if not self.LOG_PARSING_ENDED:
+            print "Ending log parsing"
+            live_end_query = "UPDATE livelogs_servers SET live='false' WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT)
+            self.executeQuery(live_end_query)
+            
+            self.pgsqlConn.close()
+            
+            #begin ending timer
+            if ((self.closeListenerCallback != None) and (game_over)):
+                self.closeListenerCallback(game_over);
+                
+            self.LOG_PARSING_ENDED = True
     
