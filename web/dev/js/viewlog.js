@@ -145,9 +145,9 @@ var llWSClient = llWSClient || (function() {
                             console.log("Got element %s, VALUE: %s", element, element.innerHTML);
                             
                             if (HAD_FIRST_UPDATE) {                    
-                                element.innerHTML += value;
+                                element.innerHTML = Number(element.innerHTML) + Number(value);
                             } else {
-                                element.innerHTML = value;
+                                element.innerHTML = Number(value);
                             }
                             
                             console.log("Element new value: %s", element.innerHTML);

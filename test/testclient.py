@@ -11,7 +11,7 @@ except:
     quit()
  
 #testm = "LIVELOG!123test!124.148.180.174!27015!cp_granary!John"
-testm = "LIVELOG!123test!192.168.0.4!27015!cp_granary!Yani"
+testm = "LIVELOG!123test!192.168.35.1!27015!cp_granary!Yani"
 slen = client.send(testm)
 
 rsp = client.recv(1024)
