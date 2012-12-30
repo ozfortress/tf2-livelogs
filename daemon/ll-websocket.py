@@ -350,8 +350,8 @@ class dbManager(object):
         
         steam_id_tok = steam_id.split(':')
         
-        auth_server = steam_id_tok[1]
-        auth_id = steam_id_tok[2]
+        auth_server = int(steam_id_tok[1])
+        auth_id = int(steam_id_tok[2])
         
         community_id = auth_id * 2 #multiply auth id by 2
         community_id += 76561197960265728 #abitrary number chosen by valve

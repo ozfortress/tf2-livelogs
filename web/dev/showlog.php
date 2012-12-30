@@ -408,7 +408,7 @@
     ?>
     
     <script type="text/javascript">
-        llWSClient.init(<?=$ll_websock["server_ip"]?>, <?=$ll_websock["server_port"]?>, <?=$UNIQUE_IDENT?>)
+        llWSClient.init("<?=$ll_websock["server_ip"]?>", <?=$ll_websock["server_port"]?>, "<?=$UNIQUE_IDENT?>")
     </script>
     <?php
     }

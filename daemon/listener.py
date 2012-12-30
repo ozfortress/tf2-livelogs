@@ -77,6 +77,8 @@ class llListener(SocketServer.UDPServer):
         if not self.parser.pgsqlConn.closed:
             self.parser.pgsqlConn.cancel()
             self.parser.endLogParsing()
+            
+        SocketServer.UDPServer.shutdown(self)
 
 
 class llListenerObject():

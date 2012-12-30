@@ -46,7 +46,7 @@ var llWSClient = llWSClient || (function() {
         init : function(ip, port, log_id) {
             var ws = "ws://" + ip + ":" + port + "/logupdate";
             
-            this.debug("WS URI: " + ws);
+            console.log("WS URI: " + ws);
             
             connect_msg.ident = log_id;
             
@@ -59,7 +59,7 @@ var llWSClient = llWSClient || (function() {
                         client.onclose = function(event) { llWSClient.onClose(event); };
                         client.onerror = function(event) { llWSClient.onError(event); };
                     } else {
-                        this.debug("Websockets not supported");
+                        console.log("Websockets not supported");
                         return;
                     }
                 } else {
@@ -71,31 +71,31 @@ var llWSClient = llWSClient || (function() {
                 }
             }
             catch (error) {
-                this.debug("Had error trying to establish websocket: " + error);
+                console.log("Had error trying to establish websocket: " + error);
                 return;
             }
             
         },
         
         onOpen : function(event) {
-            this.debug("Client websock opened");
+            console.log("Client websock opened");
             client.send(JSON.stringify(connect_msg));
         },
         
         onClose : function(event) {
-            this.debug("Client websocket closed");
+            console.log("Client websocket closed");
         },
         
         onError : function(event) {
-            this.debug("Had WS error: " + event.data);
+            console.log("Had WS error: " + event.data);
         },
         
         onMessage : function(msg) {
             var msg_data = msg.data, full_update = null, delta_update = null;
-            this.debug("MESSAGE: " + msg_data);
+            console.log("MESSAGE: " + msg_data);
             
             if (msg_data === "LOG_NOT_LIVE") {
-                this.debug("Log not live. Closing connection");
+                console.log("Log not live. Closing connection");
                 client.close(400);
                 
                 client = null;
@@ -110,7 +110,7 @@ var llWSClient = llWSClient || (function() {
                         full_update = jQuery.parseJSON(msg_data);
                     }
                     catch (exception) {
-                        this.debug("Error trying to decode or parse json. Message: %s, ERROR: %s", msg_data, exception);
+                        console.log("Error trying to decode or parse json. Message: %s, ERROR: %s", msg_data, exception);
                         return;
                     }
                     
@@ -123,7 +123,7 @@ var llWSClient = llWSClient || (function() {
                         delta_update = jQuery.parseJSON(msg_data);
                     }
                     catch (exception) {
-                        this.debug("Error trying to decode or parse json. Message: %s, ERROR: %s", msg_data, exception);
+                        console.log("Error trying to decode or parse json. Message: %s, ERROR: %s", msg_data, exception);
                         return;
                     }
                     
@@ -138,11 +138,11 @@ var llWSClient = llWSClient || (function() {
                     $.each(stats, function(stat, value) {
                         var element_id = sid + "." + stat;
                         
-                        this.debug("SID: %s, STAT: %s, VALUE: %s, HTML ELEMENT: %s", sid, stat, value, element_id);
+                        console.log("SID: %s, STAT: %s, VALUE: %s, HTML ELEMENT: %s", sid, stat, value, element_id);
                         
                         var element = document.getElementById(element_id);
                         if (element) {
-                            this.debug("Got element %s, VALUE: %s", element, element.innerHTML);
+                            console.log("Got element %s, VALUE: %s", element, element.innerHTML);
                             
                             if (HAD_FIRST_UPDATE) {                    
                                 element.innerHTML += value;
@@ -150,19 +150,15 @@ var llWSClient = llWSClient || (function() {
                                 element.innerHTML = value;
                             }
                             
-                            this.debug("Element new value: %s", element.innerHTML);
+                            console.log("Element new value: %s", element.innerHTML);
                         }
                     });
                 
                 });
             }
             catch (exception) {
-                this.debug("Exception trying to parse stat update. Error: %s", exception);
+                console.log("Exception trying to parse stat update. Error: %s", exception);
             }
-        },
-        
-        debug : function(msg) {
-            console.log(msg);
         }
     };
 }());
