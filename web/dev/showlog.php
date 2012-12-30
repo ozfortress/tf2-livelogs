@@ -6,6 +6,7 @@
     <title>Livelogs DEV - SHOWLOG</title>
     <?php
         require "../conf/ll_database.php";
+        require "../conf/ll_websocket.php";
         
         $UNIQUE_IDENT = $_GET["ident"];
         $escaped_ident = pg_escape_string($UNIQUE_IDENT);
@@ -401,6 +402,16 @@
     <script src="/js/bootstrap/bootstrap.js" type="text/javascript"></script>
     
     <script src="/js/viewlog.js" type="text/javascript"></script>
+    <?php
+    if ($log_live)
+    {
+    ?>
+    <script type="text/javascript">
+        llWSClient.init(<?=$ll_websock["server_ip"]?>, <?=$ll_websock["server_port"]?>, <?=$UNIQUE_IDENT?>)
+    </script>
+    <?php
+    }
+    ?>
     <script src="/js/sourcetv2d.js" type="text/javascript"></script>
 </body>
 </html>

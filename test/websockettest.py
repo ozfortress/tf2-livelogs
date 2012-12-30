@@ -2,8 +2,13 @@ import websocket
 import json
 
 def on_message(sock, message):
-    print "RECEIVED: %s" % message
-
+    try:
+        print "\n\n\n\n"
+        print json.loads(message)
+    except:
+        print "RECEIVED: %s" % message
+        print "error decoding json message"
+        
 def on_error(sock, error):
     print "ERROR: %s" % error
 
@@ -12,7 +17,7 @@ def on_close(sock):
 
 def on_open(sock):
     print "Websocket opened. Let's send a log ident!"
-    sock.send(json.dumps({"ident" : "3232244481_27015_1356076576"}))
+    sock.send(json.dumps({"ident" : "3232244481_27015_1356849374"}))
 
 if __name__ == "__main__":
     websocket.enableTrace(True)
