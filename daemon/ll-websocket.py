@@ -385,9 +385,6 @@ class dbManager(object):
             for steam_id in self.DB_LATEST_TABLE:
                 update_dict[steam_id] = self.statTupleToDict(self.DB_LATEST_TABLE[steam_id])
         
-        #get another update, for debugging
-        self.getDatabaseUpdate()
-        
         return update_dict
     
     def compressedUpdate(self):
@@ -473,6 +470,9 @@ class dbManager(object):
         #debug: run fullUpdate and print the dict
         print "Full update data:"
         pprint(self.fullUpdate())
+        
+        print "table diff test data:"
+        pprint(self.updateTableDifference(stat_dict, stat_dict))
         
         
             
