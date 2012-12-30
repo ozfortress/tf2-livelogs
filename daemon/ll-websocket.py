@@ -385,6 +385,9 @@ class dbManager(object):
             for steam_id in self.DB_LATEST_TABLE:
                 update_dict[steam_id] = self.statTupleToDict(self.DB_LATEST_TABLE[steam_id])
         
+        #get another update, for debugging
+        self.getDatabaseUpdate()
+        
         return update_dict
     
     def compressedUpdate(self):
@@ -401,15 +404,19 @@ class dbManager(object):
             new_stat_tuple = new_table[steam_id]
             
             if steam_id in old_table:
-                print "%s is in new and old table" % steam_id
+                print "%s is in new and old table. new tuple:" % steam_id
+                print new_stat_tuple
                 #steam_id is in the old table, so now we need to find the difference between the old and new tuples
                 old_stat_tuple = old_table[steam_id]
+                
+                print "old tuple:"
+                print old_stat_tuple
                 
                 temp_tuple = () #temp tuple that will be populated with all the stat differences
                 
                 #now we have two tuples with identical lengths, and possibly identical values
                 for idx, val in enumerate(new_stat_tuple):
-                    diff = val - old_stat_tuple[idx] #we have the difference between two values of the same index in the tuples
+                    diff = float(val) - float(old_stat_tuple[idx]) #we have the difference between two values of the same index in the tuples
                     
                     temp_tuple[idx] = diff #store the new value in the temp tuple
                 
