@@ -239,7 +239,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             logger.info("Adding %s to dbManager dict", log_ident)
             #now we need to create a new dbManager for this log id. the database handle is the momoko pool created @ startup
             #and is the same for all clients
-            cls.db_managers[log_ident] = dbManager(log_ident, database)
+            cls.db_managers[log_ident] = dbManager(log_ident, database, self.application.update_rate)
             
     
     @classmethod
@@ -257,7 +257,10 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                         if cls.db_managers[log_id].DB_LATEST_TABLE: #if we have a complete update available yet
                             #send a complete update to the client
                             client.write_message(cls.db_managers[log_id].fullUpdate())
-                    
+                            
+                    else:
+                        if cls.db_managers[log_id].DB_DIFFERENCE_TABLE:
+                            client.write_message(cls.db_managers[log_id].compressedUpdate())
     
     def getLogStatus(self, log_ident):
         """
@@ -307,9 +310,12 @@ The database manager class holds a version of a log id's stat table. It provides
 currently stored data and new data (delta compression) which will be sent to the clients.
 """
 class dbManager(object):
-    def __init__(self, log_id, db_conn):
+    def __init__(self, log_id, db_conn, update_rate):
         self.LOG_IDENT = log_id
         self.db = db_conn
+        self.update_rate = update_rate
+        
+        self.updateTimer = None
         
         self.STAT_TABLE = "log_stat_" + log_id
         
@@ -389,7 +395,13 @@ class dbManager(object):
     
     def compressedUpdate(self):
         #returns a dictionary for a delta compressed update to the client
-        pass
+        update_dict = {}
+        
+        if self.DB_DIFFERENCE_TABLE:
+            for steam_id in self.DB_DIFFERENCE_TABLE:
+                update_dict[steam_id] = self.statTupleToDict(self.DB_DIFFERENCE_TABLE[steam_id])
+                
+        return update_dict
     
     def updateTableDifference(self, old_table, new_table):
         #calculates the difference between the currently stored data and an update
@@ -467,13 +479,17 @@ class dbManager(object):
             self.DB_DIFFERENCE_TABLE = self.updateTableDifference(self.DB_LATEST_TABLE, stat_dict)
             self.DB_LATEST_TABLE = stat_dict
         
+        if not self.updateTimer:
+            self.updateTimer = threading.Timer(self.update_rate, self.getDatabaseUpdate)
+            self.updateTimer.start()
+        
         #debug: run fullUpdate and print the dict
-        print "Full update data:"
+        """print "Full update data:"
         pprint(self.fullUpdate())
         
         print "table diff test data:"
         pprint(self.updateTableDifference(stat_dict, stat_dict))
-        
+        """
         
             
 if __name__ == "__main__": 
