@@ -359,45 +359,16 @@ class dbManager(object):
         #NAME:K:D:A:P:HD:HR:UU:UL:HS:BS:DMG:APsm:APmed:APlrg:MKsm:MKmed:MKlrg:CAP:CAPB:DOM:TDOM:REV:SUICD:BLD_DEST:EXTNG:KILL_STRK
         #and converts it to a simple dictionary
         
-        #shortened names for extra network optimisation!
-        dict = {
-                "k": stat_tuple[1],
-                "d": stat_tuple[2],
-                "a": stat_tuple[3],
-                "p": float(stat_tuple[4]), #points are auto converted to Decimal, which aren't handled by the json encoder
-                "heald": stat_tuple[5],
-                "healr": stat_tuple[6],
-                "uu": stat_tuple[7],
-                "ul": stat_tuple[8],
-                "hs": stat_tuple[9],
-                "bs": stat_tuple[10],
-                "dmg": stat_tuple[11],
-                "aps": stat_tuple[12],
-                "apm": stat_tuple[13],
-                "apl": stat_tuple[14],
-                "mks": stat_tuple[15],
-                "mkm": stat_tuple[16],
-                "mkl": stat_tuple[17],
-                "cp": stat_tuple[18],
-                "cpb": stat_tuple[19],
-                "dmn": stat_tuple[20],
-                "tdmn": stat_tuple[21],
-                "rvng": stat_tuple[22],
-                "suicd": stat_tuple[23],
-                "bdest": stat_tuple[24],
-                "extng": stat_tuple[25],
-                "kstrk": stat_tuple[26],
-            }
-        
         stat_dict = {}
         
         for idx, val in enumerate(stat_tuple):
             if idx >= 1: #skip stat_tuple[0], which is the player's name
-                idx_name = statIdxToName(idx)
-                if idx == 4: #catch the points, which are auto converted Decimal, and aren't handled by tornado's json encoder
-                    stat_dict[idx_name] = float(val)
-                else:
-                    stat_dict[idx_name] = val
+                if val > 0: #ignore zero values when sending updates
+                    idx_name = self.statIdxToName(idx)
+                    if idx == 4: #catch the points, which are auto converted Decimal, and aren't handled by tornado's json encoder
+                        stat_dict[idx_name] = float(val)
+                    else:
+                        stat_dict[idx_name] = val
                     
         return stat_dict
     
