@@ -40,13 +40,13 @@ jQuery.fn.dataTableExt.oSort['dt-numeric-html-desc'] = function(a,b) {
 
 var llWSClient = llWSClient || (function() {
     "use strict";
-    var client = {}, connect_msg = {}; //our client socket and message that will be sent on connect, containing the log id
+    var client = null, connect_msg = {}, HAD_FIRST_UPDATE = false; //our client socket and message that will be sent on connect, containing the log id
 
     return {
         init : function(ip, port, log_id) {
             var ws = "ws://" + ip + ":" + port + "/logupdate";
             
-            debug("WS URI: " + ws);
+            this.debug("WS URI: " + ws);
             
             connect_msg.ident = log_id;
             
@@ -59,7 +59,7 @@ var llWSClient = llWSClient || (function() {
                         client.onclose = function(event) { llWSClient.onClose(event); };
                         client.onerror = function(event) { llWSClient.onError(event); };
                     } else {
-                        debug("Websockets not supported");
+                        this.debug("Websockets not supported");
                         return;
                     }
                 } else {
@@ -71,28 +71,99 @@ var llWSClient = llWSClient || (function() {
                 }
             }
             catch (error) {
-                debug("Had error trying to establish websocket: " + error);
+                this.debug("Had error trying to establish websocket: " + error);
                 return;
             }
             
         },
         
         onOpen : function(event) {
-            debug("Client websock opened");
+            this.debug("Client websock opened");
             client.send(JSON.stringify(connect_msg));
         },
         
         onClose : function(event) {
-            debug("Client websocket closed");
+            this.debug("Client websocket closed");
         },
         
         onError : function(event) {
-        
+            this.debug("Had WS error: " + event.data);
         },
         
         onMessage : function(msg) {
+            var msg_data = msg.data, full_update = null, delta_update = null;
+            this.debug("MESSAGE: " + msg_data);
             
+            if (msg_data === "LOG_NOT_LIVE") {
+                this.debug("Log not live. Closing connection");
+                client.close(400);
+                
+                client = null;
+            } else if (msg_data === "LOG_IS_LIVE") {
+                HAD_FIRST_UPDATE = false;
+                
+            } else {
+                //all other messages are json encoded packets
+                if (!HAD_FIRST_UPDATE) {
+                    //the first message sent is a full update, so the client and server are in sync
+                    try {
+                        full_update = jQuery.parseJSON(msg_data);
+                    }
+                    catch (exception) {
+                        this.debug("Error trying to decode or parse json. Message: %s, ERROR: %s", msg_data, exception);
+                        return;
+                    }
+                    
+                    this.parseStatUpdate(full_update);
+                        
+                    HAD_FIRST_UPDATE = true;
+                    
+                } else {
+                    try {
+                        delta_update = jQuery.parseJSON(msg_data);
+                    }
+                    catch (exception) {
+                        this.debug("Error trying to decode or parse json. Message: %s, ERROR: %s", msg_data, exception);
+                        return;
+                    }
+                    
+                    this.parseStatUpdate(delta_update);
+                }
+            }
+        },
+        
+        parseStatUpdate : function(stat_obj) {
+            try {
+                $.each(stat_obj, function(sid, stats) {
+                    $.each(stats, function(stat, value) {
+                        var element_id = sid + "." + stat;
+                        
+                        this.debug("SID: %s, STAT: %s, VALUE: %s, HTML ELEMENT: %s", sid, stat, value, element_id);
+                        
+                        var element = document.getElementById(element_id);
+                        if (element) {
+                            this.debug("Got element %s, VALUE: %s", element, element.innerHTML);
+                            
+                            if (HAD_FIRST_UPDATE) {                    
+                                element.innerHTML += value;
+                            } else {
+                                element.innerHTML = value;
+                            }
+                            
+                            this.debug("Element new value: %s", element.innerHTML);
+                        }
+                    });
+                
+                });
+            }
+            catch (exception) {
+                this.debug("Exception trying to parse stat update. Error: %s", exception);
+            }
+        },
+        
+        debug : function(msg) {
+            console.log(msg);
         }
     };
-});
+}());
     

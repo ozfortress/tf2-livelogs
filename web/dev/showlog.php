@@ -406,6 +406,7 @@
     if ($log_live)
     {
     ?>
+    
     <script type="text/javascript">
         llWSClient.init(<?=$ll_websock["server_ip"]?>, <?=$ll_websock["server_port"]?>, <?=$UNIQUE_IDENT?>)
     </script>
