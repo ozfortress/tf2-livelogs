@@ -268,6 +268,9 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                             delta_update_dict = cls.db_managers[log_id].compressedUpdate()
                             if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
                                 client.write_message(delta_update_dict)
+                                
+                                
+        #TODO: Close connection when game is no longer live
 
     def getLogStatus(self, log_ident):
         """
@@ -338,6 +341,23 @@ class dbManager(object):
         self.DB_LATEST_TABLE = None #a dict containing the most recently retrieved data
         
         self.getDatabaseUpdate()
+    
+    def steamCommunityID(self, steam_id):
+        #takes a steamid in the format STEAM_x:x:xxxxx and converts it to a 64bit community id
+        
+        auth_server = 0;
+        auth_id = 0;
+        
+        steam_id_tok = steam_id.split(':')
+        
+        auth_server = steam_id_tok[1]
+        auth_id = steam_id_tok[2]
+        
+        community_id = auth_id * 2 #multiply auth id by 2
+        community_id += 76561197960265728 #abitrary number chosen by valve
+        community_id += auth_server #add the auth server. even ids are on server 0, odds on server 1
+        
+        return community_id
     
     def statIdxToName(self, index):
         #converts an index in the stat tuple to a name for use in dictionary keys
@@ -489,7 +509,7 @@ class dbManager(object):
         for row in cursor:
             #each row is a player's data as a tuple in the format of:
             #SID:NAME:K:D:A:P:HD:HR:UU:UL:HS:BS:DMG:APsm:APmed:APlrg:MKsm:MKmed:MKlrg:CAP:CAPB:DOM:TDOM:REV:SUICD:BLD_DEST:EXTNG:KILL_STRK
-            sid = row[0] #player's steamid
+            sid = self.steamCommunityID(row[0]) #player's steamid as a community id
             stat_dict[sid] = row[1:] #splice the rest of the data and store it under the player's steamid
             
             print "steamid %s has data:" % sid
