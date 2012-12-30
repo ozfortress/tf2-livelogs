@@ -73,8 +73,6 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         self.HAD_FIRST_UPDATE = False
         
-        logUpdateHandler.update_rate = self.application.update_rate
-        
         tornado.websocket.WebSocketHandler.__init__(self, application, request, **kwargs)
     
     def open(self):
@@ -98,6 +96,8 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         print logUpdateHandler.ordered_clients["none"]
         
         if not logUpdateHandler.logUpdateTimer:
+            logUpdateHandler.update_rate = self.application.update_rate
+            
             logUpdateHandler.logUpdateTimer = threading.Timer(self.application.update_rate, logUpdateHandler.sendLogUpdates)
             logUpdateHandler.logUpdateTimer.start()
         
@@ -260,6 +260,8 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                         if cls.db_managers[log_id].DB_LATEST_TABLE: #if we have a complete update available yet
                             #send a complete update to the client
                             client.write_message(cls.db_managers[log_id].fullUpdate())
+                            
+                            client.HAD_FIRST_UPDATE = True
                             
                     else:
                         if cls.db_managers[log_id].DB_DIFFERENCE_TABLE:
@@ -493,15 +495,8 @@ class dbManager(object):
             self.updateTimer.cancel()
         
         self.updateTimer = threading.Timer(self.update_rate, self.getDatabaseUpdate)
+        self.updateTimer.daemon = True
         self.updateTimer.start()
-        
-        #debug: run fullUpdate and print the dict
-        """print "Full update data:"
-        pprint(self.fullUpdate())
-        
-        print "table diff test data:"
-        pprint(self.updateTableDifference(stat_dict, stat_dict))
-        """
         
             
 if __name__ == "__main__": 
