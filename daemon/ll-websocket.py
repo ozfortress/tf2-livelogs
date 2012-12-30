@@ -257,9 +257,6 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                         if cls.db_managers[log_id].DB_LATEST_TABLE: #if we have a complete update available yet
                             #send a complete update to the client
                             client.write_message(cls.db_managers[log_id].fullUpdate())
-                            
-                            #for the sake of testing at the time being
-                            client.close()
                     
     
     def getLogStatus(self, log_ident):
@@ -321,6 +318,42 @@ class dbManager(object):
         
         self.getDatabaseUpdate()
     
+    def statIdxToName(self, index):
+        #converts an index in the stat tuple to a name for use in dictionary keys
+        stat_keys = {
+                1: "kills",
+                2: "deaths",
+                3: "assists",
+                4: "points",
+                5: "heal_done",
+                6: "heal_rcvd",
+                7: "ubers_used",
+                8: "ubers_lost",
+                9: "headshots",
+                10: "backstabs",
+                11: "damage",
+                12: "aps",
+                13: "apm",
+                14: "apl",
+                15: "mks",
+                16: "mkm",
+                17: "mkl",
+                18: "pointcaps",
+                19: "pointblocks",
+                20: "dominations",
+                21: "t_dominated",
+                22: "revenges",
+                23: "suicides",
+                24: "build_dest",
+                25: "extinguish",
+                26: "kill_streak",
+            }
+        
+        index_name = stat_keys[index]
+        print "NAME FOR INDEX %d: %s" % (index, index_name)
+        
+        return index_name
+    
     def statTupleToDict(self, stat_tuple):
         #takes a tuple in the form:
         #NAME:K:D:A:P:HD:HR:UU:UL:HS:BS:DMG:APsm:APmed:APlrg:MKsm:MKmed:MKlrg:CAP:CAPB:DOM:TDOM:REV:SUICD:BLD_DEST:EXTNG:KILL_STRK
@@ -328,7 +361,6 @@ class dbManager(object):
         
         #shortened names for extra network optimisation!
         dict = {
-                "name": stat_tuple[0],
                 "k": stat_tuple[1],
                 "d": stat_tuple[2],
                 "a": stat_tuple[3],
@@ -357,7 +389,17 @@ class dbManager(object):
                 "kstrk": stat_tuple[26],
             }
         
-        return dict
+        stat_dict = {}
+        
+        for idx, val in enumerate(stat_tuple):
+            if idx >= 1: #skip stat_tuple[0], which is the player's name
+                idx_name = statIdxToName(idx)
+                if idx == 4: #catch the points, which are auto converted Decimal, and aren't handled by tornado's json encoder
+                    stat_dict[idx_name] = float(val)
+                else:
+                    stat_dict[idx_name] = val
+                    
+        return stat_dict
     
     def fullUpdate(self):
         #constructs and returns a dictionary for a complete update to the client
