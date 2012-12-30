@@ -59,8 +59,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     
     db_managers = {} #a dictionary containing dbManager objects corresponding to log ids
     
-    logUpdateTimer = None
-    update_rate = 0
+    logUpdateThread = None
     
     logger = logging.getLogger("CLIENTUPDATE")
     
@@ -72,6 +71,8 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         self.LOG_IDENT = None
         
         self.HAD_FIRST_UPDATE = False
+        
+        logUpdateHandler.update_rate = application.update_rate
         
         tornado.websocket.WebSocketHandler.__init__(self, application, request, **kwargs)
     
@@ -95,11 +96,10 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         print "Clients without ID:"
         print logUpdateHandler.ordered_clients["none"]
         
-        if not logUpdateHandler.logUpdateTimer:
-            logUpdateHandler.update_rate = self.application.update_rate
-            
-            logUpdateHandler.logUpdateTimer = threading.Timer(self.application.update_rate, logUpdateHandler.sendLogUpdates)
-            logUpdateHandler.logUpdateTimer.start()
+        if not logUpdateHandler.logUpdateThread:
+            logUpdateHandler.logUpdateThread = threading.Thread(target = logUpdateHandler._sendUpdateThread)
+            logUpdateHandler.logUpdateThread.daemon = True
+            logUpdateHandler.logUpdateThread.start()
         
     def on_close(self):
         #client disconnects
@@ -266,14 +266,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                     else:
                         if cls.db_managers[log_id].DB_DIFFERENCE_TABLE:
                             client.write_message(cls.db_managers[log_id].compressedUpdate())
-        
-        
-        if cls.logUpdateTimer:
-            cls.logUpdateTimer.cancel()
-            
-        cls.logUpdateTimer = threading.Timer(cls.update_rate, cls.sendLogUpdates)
-        cls.logUpdateTimer.start()
-        
+
     def getLogStatus(self, log_ident):
         """
         Executes the query to obtain the log status
@@ -316,7 +309,15 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             logger.info("Invalid log ident specified (live did not match true or false")
             self.write_message("LOG_NOT_LIVE")
             self.close()
-        
+    
+    @classmethod
+    def _sendUpdateThread(cls):
+        #this method is run in a thread, and acts as a timer. key thing is that it is a daemon thread, and will exit cleanly with the main thread
+        #unlike a threading.Timer
+        while (True):
+            cls.sendLogUpdates()
+            time.sleep(cls.update_rate)
+    
 """
 The database manager class holds a version of a log id's stat table. It provides functions to calculate the difference between
 currently stored data and new data (delta compression) which will be sent to the clients.
@@ -327,7 +328,7 @@ class dbManager(object):
         self.db = db_conn
         self.update_rate = update_rate
         
-        self.updateTimer = None
+        self.updateThread = None
         
         self.STAT_TABLE = "log_stat_" + log_id
         
@@ -461,6 +462,11 @@ class dbManager(object):
     def getDatabaseUpdate(self):
         #executes the query to obtain an update. called on init and periodically
         
+        if not self.updateThread:
+            self.updateThread = threading.Thread(target = self._updateThread)
+            self.updateThread.daemon = True
+            self.updateThread.start()
+        
         print "Getting database update on table %s" % self.STAT_TABLE
         query = "SELECT * FROM %s" % self.STAT_TABLE
         self.db.execute(query, callback = self._databaseUpdateCallback)
@@ -491,13 +497,12 @@ class dbManager(object):
             self.DB_DIFFERENCE_TABLE = self.updateTableDifference(self.DB_LATEST_TABLE, stat_dict)
             self.DB_LATEST_TABLE = stat_dict
         
-        if self.updateTimer:
-            self.updateTimer.cancel()
-        
-        self.updateTimer = threading.Timer(self.update_rate, self.getDatabaseUpdate)
-        self.updateTimer.daemon = True
-        self.updateTimer.start()
-        
+    def _updateThread(self):
+        #this method is run in a thread, and acts as a timer. key thing is that it is a daemon thread, and will exit cleanly with the main thread
+        #unlike a threading.Timer
+        while (True):
+            self.getDatabaseUpdate()
+            time.sleep(self.update_rate)
             
 if __name__ == "__main__": 
     cfg_parser = ConfigParser.SafeConfigParser()
