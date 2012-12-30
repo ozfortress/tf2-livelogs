@@ -416,10 +416,12 @@ class dbManager(object):
                 
                 #now we have two tuples with identical lengths, and possibly identical values
                 for idx, val in enumerate(new_stat_tuple):
-                    diff = float(val) - float(old_stat_tuple[idx]) #we have the difference between two values of the same index in the tuples
-                    
-                    temp_tuple[idx] = diff #store the new value in the temp tuple
-                
+                    if idx >= 1:
+                        diff = val - old_stat_tuple[idx] #we have the difference between two values of the same index in the tuples
+                        
+                        temp_tuple[idx] = diff #store the new value in the temp tuple
+                    else:
+                        temp_tuple[idx] = val #idx 0 is the name, don't need the difference between this as it won't change throughout
                 
                 print "DIFFERENCE FOR STEAM_ID %s: " % steam_id
                 print temp_tuple
