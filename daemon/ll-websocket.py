@@ -359,18 +359,18 @@ class dbManager(object):
         #NAME:K:D:A:P:HD:HR:UU:UL:HS:BS:DMG:APsm:APmed:APlrg:MKsm:MKmed:MKlrg:CAP:CAPB:DOM:TDOM:REV:SUICD:BLD_DEST:EXTNG:KILL_STRK
         #and converts it to a simple dictionary
         
-        stat_dict = {}
+        dict = {}
         
         for idx, val in enumerate(stat_tuple):
             if idx >= 1: #skip stat_tuple[0], which is the player's name
                 if val > 0: #ignore zero values when sending updates
                     idx_name = self.statIdxToName(idx)
                     if idx == 4: #catch the points, which are auto converted Decimal, and aren't handled by tornado's json encoder
-                        stat_dict[idx_name] = float(val)
+                        dict[idx_name] = float(val)
                     else:
-                        stat_dict[idx_name] = val
+                        dict[idx_name] = val
                     
-        return stat_dict
+        return dict
     
     def fullUpdate(self):
         #constructs and returns a dictionary for a complete update to the client
@@ -386,10 +386,43 @@ class dbManager(object):
                 update_dict[steam_id] = self.statTupleToDict(self.DB_LATEST_TABLE[steam_id])
         
         return update_dict
-        
-    def updateTableDifference(self, old, new):
-        #calculates the difference between the currently stored data and an update
+    
+    def compressedUpdate(self):
+        #returns a dictionary for a delta compressed update to the client
         pass
+    
+    def updateTableDifference(self, old_table, new_table):
+        #calculates the difference between the currently stored data and an update
+        #tables in the form of dict[sid] = tuple of stats
+        
+        stat_dict_updated = {}
+        
+        for steam_id in new_table:
+            new_stat_tuple = new_table[steam_id]
+            
+            if steam_id in old_table:
+                print "%s is in new and old table" % steam_id
+                #steam_id is in the old table, so now we need to find the difference between the old and new tuples
+                old_stat_tuple = old_table[steam_id]
+                
+                temp_tuple = () #temp tuple that will be populated with all the stat differences
+                
+                #now we have two tuples with identical lengths, and possibly identical values
+                for idx, val in enumerate(new_stat_tuple):
+                    diff = val - old_stat_tuple[idx] #we have the difference between two values of the same index in the tuples
+                    
+                    temp_tuple[idx] = diff #store the new value in the temp tuple
+                
+                
+                print "DIFFERENCE FOR STEAM_ID %s: " % steam_id
+                print temp_tuple
+                
+                stat_dict_updated[steam_id] = temp_tuple #add the diff'd stat tuple to the stat dict
+                
+            else: #steam_id is present in the new table, but not old. therefore it is new and doesn't need to have the difference found
+                stat_dict_updated[steam_id] = new_stat_tuple
+                
+        return stat_dict_updated
         
     def getDatabaseUpdate(self):
         #executes the query to obtain an update. called on init and periodically
