@@ -60,6 +60,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     db_managers = {} #a dictionary containing dbManager objects corresponding to log ids
     
     logUpdateTimer = None
+    update_rate = 0
     
     logger = logging.getLogger("CLIENTUPDATE")
     
@@ -71,6 +72,8 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         self.LOG_IDENT = None
         
         self.HAD_FIRST_UPDATE = False
+        
+        logUpdateHandler.update_rate = self.application.update_rate
         
         tornado.websocket.WebSocketHandler.__init__(self, application, request, **kwargs)
     
@@ -263,11 +266,11 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                             client.write_message(cls.db_managers[log_id].compressedUpdate())
         
         
-        if logUpdateHandler.logUpdateTimer:
-            logUpdateHandler.logUpdateTimer.cancel()
+        if cls.logUpdateTimer:
+            cls.logUpdateTimer.cancel()
             
-        logUpdateHandler.logUpdateTimer = threading.Timer(self.application.update_rate, logUpdateHandler.sendLogUpdates)
-        logUpdateHandler.logUpdateTimer.start()
+        cls.logUpdateTimer = threading.Timer(cls.update_rate, cls.sendLogUpdates)
+        cls.logUpdateTimer.start()
         
     def getLogStatus(self, log_ident):
         """
@@ -489,7 +492,6 @@ class dbManager(object):
         if self.updateTimer:
             self.updateTimer.cancel()
         
-        print "Initialising update timer"
         self.updateTimer = threading.Timer(self.update_rate, self.getDatabaseUpdate)
         self.updateTimer.start()
         
