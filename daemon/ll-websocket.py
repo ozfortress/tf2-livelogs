@@ -234,12 +234,12 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         logger.info("Removed cache item (%s, %s, %s)", cache_item[0], cache_item[1], cache_item[2])
     
     @classmethod
-    def addDBManager(cls, log_ident, database):
+    def addDBManager(cls, log_ident, database, update_rate):
         if not log_ident in cls.db_managers:
             logger.info("Adding %s to dbManager dict", log_ident)
             #now we need to create a new dbManager for this log id. the database handle is the momoko pool created @ startup
             #and is the same for all clients
-            cls.db_managers[log_ident] = dbManager(log_ident, database, self.application.update_rate)
+            cls.db_managers[log_ident] = dbManager(log_ident, database, update_rate)
             
     
     @classmethod
@@ -286,7 +286,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             self.write_message("LOG_IS_LIVE") #notify client the log is live
             
             logUpdateHandler.addToCache(self.LOG_IDENT, True)
-            logUpdateHandler.addDBManager(self.LOG_IDENT, self.application.db)
+            logUpdateHandler.addDBManager(self.LOG_IDENT, self.application.db, self.application.update_rate)
             logUpdateHandler.addToOrderedClients(self.LOG_IDENT, self)
             
         elif live == False:
@@ -356,7 +356,7 @@ class dbManager(object):
             }
         
         index_name = stat_keys[index]
-        print "NAME FOR INDEX %d: %s" % (index, index_name)
+        #print "NAME FOR INDEX %d: %s" % (index, index_name)
         
         return index_name
     
