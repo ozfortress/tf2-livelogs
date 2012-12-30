@@ -261,7 +261,12 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                     else:
                         if cls.db_managers[log_id].DB_DIFFERENCE_TABLE:
                             client.write_message(cls.db_managers[log_id].compressedUpdate())
-    
+        
+        
+        if not logUpdateHandler.logUpdateTimer:
+            logUpdateHandler.logUpdateTimer = threading.Timer(self.application.update_rate, logUpdateHandler.sendLogUpdates)
+            logUpdateHandler.logUpdateTimer.start()
+        
     def getLogStatus(self, log_ident):
         """
         Executes the query to obtain the log status
@@ -480,6 +485,7 @@ class dbManager(object):
             self.DB_LATEST_TABLE = stat_dict
         
         if not self.updateTimer:
+            print "Initialising update timer"
             self.updateTimer = threading.Timer(self.update_rate, self.getDatabaseUpdate)
             self.updateTimer.start()
         
