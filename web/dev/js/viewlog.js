@@ -46,7 +46,7 @@ var llWSClient = llWSClient || (function() {
         init : function(ip, port, log_id) {
             var ws = "ws://" + ip + ":" + port + "/logupdate";
             
-            console.log("WS URI: " + ws);
+            console.log("WS URI: %s", ws);
             
             connect_msg.ident = log_id;
             
@@ -134,13 +134,16 @@ var llWSClient = llWSClient || (function() {
         
         parseStatUpdate : function(stat_obj) {
             try {
+                var element, element_id, special_element_tags = ["kpd", "dpd", "dpr"], i, tmp, num_rounds, deaths, damage, kills;
+                num_rounds = Number(document.getElementById("red_score_value").innerHTML) + Number(document.getElementById("blue_score_value").innerHTML);
+                
                 $.each(stat_obj, function(sid, stats) {
                     $.each(stats, function(stat, value) {
-                        var element_id = sid + "." + stat;
+                        element_id = sid + "." + stat;
                         
                         console.log("SID: %s, STAT: %s, VALUE: %s, HTML ELEMENT: %s", sid, stat, value, element_id);
                         
-                        var element = document.getElementById(element_id);
+                        element = document.getElementById(element_id);
                         if (element) {
                             console.log("Got element %s, VALUE: %s", element, element.innerHTML);
                             
@@ -153,7 +156,32 @@ var llWSClient = llWSClient || (function() {
                             console.log("Element new value: %s", element.innerHTML);
                         }
                     });
-                
+                    
+                    /*now that we've looped through all the stats, we need to edit the combo columns like kpd, dpd and dpr*/
+                    for (i = 0; i < special_element_tags.length; i++) {
+                        tmp = special_element_tags[i];
+                        element_id = sid + "." + tmp;
+                        element = document.getElementById(element_id);
+                        
+                        console.log("SID: %s, HTML ELEMENT: %s", sid, element_id);
+                        
+                        
+                        deaths = Number(document.getElementById(sid + ".deaths").innerHTML);
+                        damage = Number(document.getElementById(sid + ".damage").innerHTML);
+                        
+                        if (element) {
+                            if (tmp === "kpd") {
+                                kills = Number(document.getElementById(sid + ".kills").innerHTML);
+                                element.innerHTML = Math.round(kills / (deaths || 1) * 100) / 100; //multiply by 100 and div by 100 for 2 dec places rounding
+                            } else if (tmp === "dpd") {
+                                element.innerHTML = Math.round(damage / (deaths || 1) * 100) / 100;
+                            } else if (tmp === "dpr") {
+                                element.innerHTML = Math.round(damage / (num_rounds || 1) * 100) / 100;
+                            } else {
+                                console.log("Invalid element %s in special element array", tmp);
+                            }
+                        }
+                    }
                 });
             }
             catch (exception) {
