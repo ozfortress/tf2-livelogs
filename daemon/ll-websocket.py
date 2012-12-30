@@ -263,9 +263,11 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                             client.write_message(cls.db_managers[log_id].compressedUpdate())
         
         
-        if not logUpdateHandler.logUpdateTimer:
-            logUpdateHandler.logUpdateTimer = threading.Timer(self.application.update_rate, logUpdateHandler.sendLogUpdates)
-            logUpdateHandler.logUpdateTimer.start()
+        if logUpdateHandler.logUpdateTimer:
+            logUpdateHandler.logUpdateTimer.cancel()
+            
+        logUpdateHandler.logUpdateTimer = threading.Timer(self.application.update_rate, logUpdateHandler.sendLogUpdates)
+        logUpdateHandler.logUpdateTimer.start()
         
     def getLogStatus(self, log_ident):
         """
@@ -484,10 +486,12 @@ class dbManager(object):
             self.DB_DIFFERENCE_TABLE = self.updateTableDifference(self.DB_LATEST_TABLE, stat_dict)
             self.DB_LATEST_TABLE = stat_dict
         
-        if not self.updateTimer:
-            print "Initialising update timer"
-            self.updateTimer = threading.Timer(self.update_rate, self.getDatabaseUpdate)
-            self.updateTimer.start()
+        if self.updateTimer:
+            self.updateTimer.cancel()
+        
+        print "Initialising update timer"
+        self.updateTimer = threading.Timer(self.update_rate, self.getDatabaseUpdate)
+        self.updateTimer.start()
         
         #debug: run fullUpdate and print the dict
         """print "Full update data:"
