@@ -412,21 +412,25 @@ class dbManager(object):
                 print "old tuple:"
                 print old_stat_tuple
                 
-                temp_tuple = () #temp tuple that will be populated with all the stat differences
+                temp_list = [] #temp list that will be populated with all the stat differences, and then converted to a tuple
+                
+                #first we need to initialise the temp_list so we can access it by index
+                for i in range(len(new_stat_tuple)):
+                    temp_list.append(0)
                 
                 #now we have two tuples with identical lengths, and possibly identical values
                 for idx, val in enumerate(new_stat_tuple):
                     if idx >= 1:
                         diff = val - old_stat_tuple[idx] #we have the difference between two values of the same index in the tuples
                         
-                        temp_tuple[idx] = diff #store the new value in the temp tuple
+                        temp_list[idx] = diff #store the new value in the temp tuple
                     else:
-                        temp_tuple[idx] = val #idx 0 is the name, don't need the difference between this as it won't change throughout
+                        temp_list[idx] = val #idx 0 is the name, don't need the difference between this as it won't change throughout
                 
                 print "DIFFERENCE FOR STEAM_ID %s: " % steam_id
-                print temp_tuple
+                print temp_list
                 
-                stat_dict_updated[steam_id] = temp_tuple #add the diff'd stat tuple to the stat dict
+                stat_dict_updated[steam_id] = tuple(temp_list) #add the diff'd stat tuple to the stat dict
                 
             else: #steam_id is present in the new table, but not old. therefore it is new and doesn't need to have the difference found
                 stat_dict_updated[steam_id] = new_stat_tuple
