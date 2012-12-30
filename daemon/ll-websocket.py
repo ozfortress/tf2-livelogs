@@ -265,7 +265,9 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                             
                     else:
                         if cls.db_managers[log_id].DB_DIFFERENCE_TABLE:
-                            client.write_message(cls.db_managers[log_id].compressedUpdate())
+                            delta_update_dict = cls.db_managers[log_id].compressedUpdate()
+                            if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
+                                client.write_message(delta_update_dict)
 
     def getLogStatus(self, log_ident):
         """
@@ -412,7 +414,10 @@ class dbManager(object):
         
         if self.DB_DIFFERENCE_TABLE:
             for steam_id in self.DB_DIFFERENCE_TABLE:
-                update_dict[steam_id] = self.statTupleToDict(self.DB_DIFFERENCE_TABLE[steam_id])
+                tuple_as_dict = self.statTupleToDict(self.DB_DIFFERENCE_TABLE[steam_id])
+                
+                if tuple_as_dict: #if the dict is not empty
+                    update_dict[steam_id] = tuple_as_dict
                 
         return update_dict
     
