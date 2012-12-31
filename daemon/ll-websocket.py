@@ -110,7 +110,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         logUpdateHandler.removeFromOrderedClients(self)
         
-        if len(clients) == 0:
+        if (len(logUpdateHandler.clients) == 0) and logUpdateHandler.logUpdateThread.isAlive():
             #no clients are connected. stop the update thread
             logUpdateHandler.logUpdateThreadEvent.set()
             
@@ -119,7 +119,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                 
             logUpdateHandler.logUpdateThread = None
             
-            logger.info("Ended update thread. No clients connected")
+            logger.info("Ended sending update thread. No clients connected")
         
         return
         
@@ -567,7 +567,7 @@ class dbManager(object):
             while self.updateThread.isAlive(): 
                 self.updateThread.join(5)
                 
-            print "Update thread for log id %s successfully closed" % self.LOG_IDENT
+            print "Database update thread for log id %s successfully closed" % self.LOG_IDENT
             
     def __del__(self):
         #make sure cleanup is run if the class is deconstructed randomly. update thread is a daemon thread, so it will exit on close
