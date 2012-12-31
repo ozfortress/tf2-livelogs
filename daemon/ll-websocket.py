@@ -215,6 +215,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     @classmethod
     def removeFromOrderedClients(cls, client):
         for key, set in cls.ordered_clients.iteritems():
+            #key is a log ident, and set is the set of clients listening for this log ident
             if client in set:
                 logger.info("Client has key %s. Removing", key)
                 
@@ -222,6 +223,9 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                 if (len(set) == 0) and (key != "none"):
                     logger.info("key %s has empty set. deleting key", key)
                     del cls.ordered_clients[key]
+                    
+                    #we know the set is now empty of clients, so we don't need the dbManager for this log id anymore
+                    cls.delDBManager(key)
                     
                 break
         
@@ -243,14 +247,19 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             #now we need to create a new dbManager for this log id. the database handle is the momoko pool created @ startup
             #and is the same for all clients
             cls.db_managers[log_ident] = dbManager(log_ident, database, update_rate)
-            
+    
+    @classmethod
+    def delDBManager(cls, log_ident):
+        if log_ident in cls.db_managers:
+            #log_ident key in db_managers corresponds to a dbManager object
+            cls.db_managers[log_ident].cleanup() #run the cleanup method, which ends the update thread. everything else is garbage collected
+            del cls.db_managers[log_ident]
     
     @classmethod
     def sendLogUpdates(cls):
         for log_id in cls.ordered_clients:
             if log_id != "none":
                 #the key will correspond to a set of client objects which are listening for updates on this log id
-                
                 
                 for client in cls.ordered_clients[log_id]:
                     #client is a websocket client object, which data can be sent to using client.write_message, etc
@@ -488,7 +497,9 @@ class dbManager(object):
         #executes the query to obtain an update. called on init and periodically
         
         if not self.updateThread:
-            self.updateThread = threading.Thread(target = self._updateThread)
+            self.updateThreadEvent = threading.Event()
+        
+            self.updateThread = threading.Thread(target = self._updateThread, args=(self.updateThreadEvent,))
             self.updateThread.daemon = True
             self.updateThread.start()
         
@@ -522,12 +533,31 @@ class dbManager(object):
             self.DB_DIFFERENCE_TABLE = self.updateTableDifference(self.DB_LATEST_TABLE, stat_dict)
             self.DB_LATEST_TABLE = stat_dict
         
-    def _updateThread(self):
-        #this method is run in a thread, and acts as a timer. key thing is that it is a daemon thread, and will exit cleanly with the main thread
-        #unlike a threading.Timer
-        while (True):
+    def _updateThread(self, event):
+        #this method is run in a thread, and acts as a timer. 
+        #key thing is that it is a daemon thread, and will exit cleanly with the main thread unlike a threading.Timer. 
+        #it is also repeating, unlike a timer
+        
+        while not event.is_set():
             self.getDatabaseUpdate()
-            time.sleep(self.update_rate)
+            
+            event.wait(self.update_rate)
+            
+    def cleanup(self):
+        #the only cleanup we need to do is releasing the update thread
+        
+        #NOTE: WE DO ____NOT____ CLOSE THE DATABASE. IT IS THE MOMOKO POOL, AND IS RETAINED THROUGHOUT THE APPLICATION
+        if self.updateThread.isAlive():
+            self.updateThreadEvent.set()
+            
+            while self.updateThread.isAlive(): 
+                self.updateThread.join(5)
+                
+            print "Update thread successfully closed"
+            
+    def __del__(self):
+        #make sure cleanup is run if the class is deconstructed randomly. update thread is a daemon thread, so it will exit on close
+        self.cleanup()
             
 if __name__ == "__main__": 
     cfg_parser = ConfigParser.SafeConfigParser()
