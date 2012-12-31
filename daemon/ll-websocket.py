@@ -97,7 +97,9 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         print logUpdateHandler.ordered_clients["none"]
         
         if not logUpdateHandler.logUpdateThread:
-            logUpdateHandler.logUpdateThread = threading.Thread(target = logUpdateHandler._sendUpdateThread)
+            logUpdateHandler.logUpdateThreadEvent = threading.Event()
+        
+            logUpdateHandler.logUpdateThread = threading.Thread(target = logUpdateHandler._sendUpdateThread, args=(logUpdateHandler.logUpdateThreadEvent,))
             logUpdateHandler.logUpdateThread.daemon = True
             logUpdateHandler.logUpdateThread.start()
         
@@ -107,7 +109,18 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         logUpdateHandler.clients.remove(self)
         
         logUpdateHandler.removeFromOrderedClients(self)
-                        
+        
+        if len(clients) == 0:
+            #no clients are connected. stop the update thread
+            logUpdateHandler.logUpdateThreadEvent.set()
+            
+            while logUpdateHandler.logUpdateThread.isAlive():
+                logUpdateHandler.logUpdateThread.join(5)
+                
+            logUpdateHandler.logUpdateThread = None
+            
+            logger.info("Ended update thread. No clients connected")
+        
         return
         
     def on_message(self, msg):
@@ -325,16 +338,12 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             self.close()
     
     @classmethod
-    def _sendUpdateThread(cls):
+    def _sendUpdateThread(cls, event):
         #this method is run in a thread, and acts as a timer
-        try:
-        while (True):
+        while not event.is_set():
             cls.sendLogUpdates()
-            time.sleep(cls.update_rate)
             
-        except KeyboardInterrupt:
-            print "Keyboard interrupt closing updateThread"
-            self.join()
+            event.wait(cls.update_rate)
         
         
 """
