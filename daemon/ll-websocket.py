@@ -326,12 +326,17 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     
     @classmethod
     def _sendUpdateThread(cls):
-        #this method is run in a thread, and acts as a timer. key thing is that it is a daemon thread, and will exit cleanly with the main thread
-        #unlike a threading.Timer
+        #this method is run in a thread, and acts as a timer
+        try:
         while (True):
             cls.sendLogUpdates()
             time.sleep(cls.update_rate)
-    
+            
+        except KeyboardInterrupt:
+            print "Keyboard interrupt closing updateThread"
+            self.join()
+        
+        
 """
 The database manager class holds a version of a log id's stat table. It provides functions to calculate the difference between
 currently stored data and new data (delta compression) which will be sent to the clients.
@@ -553,7 +558,7 @@ class dbManager(object):
             while self.updateThread.isAlive(): 
                 self.updateThread.join(5)
                 
-            print "Update thread successfully closed"
+            print "Update thread for log id %s successfully closed" % self.LOG_IDENT
             
     def __del__(self):
         #make sure cleanup is run if the class is deconstructed randomly. update thread is a daemon thread, so it will exit on close
