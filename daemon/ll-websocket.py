@@ -279,17 +279,19 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                     client.write_message("HELLO!")
                     
                     if not client.HAD_FIRST_UPDATE:
-                        if cls.db_managers[log_id].DB_LATEST_TABLE: #if we have a complete update available yet
-                            #send a complete update to the client
-                            client.write_message(cls.db_managers[log_id].fullUpdate())
-                            
-                            client.HAD_FIRST_UPDATE = True
+                        if log_id in cls.db_managers:
+                            if cls.db_managers[log_id].DB_LATEST_TABLE: #if we have a complete update available yet
+                                #send a complete update to the client
+                                client.write_message(cls.db_managers[log_id].fullUpdate())
+                                
+                                client.HAD_FIRST_UPDATE = True
                             
                     else:
-                        if cls.db_managers[log_id].DB_DIFFERENCE_TABLE:
-                            delta_update_dict = cls.db_managers[log_id].compressedUpdate()
-                            if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
-                                client.write_message(delta_update_dict)
+                        if log_id in cls.db_managers:
+                            if cls.db_managers[log_id].DB_DIFFERENCE_TABLE:
+                                delta_update_dict = cls.db_managers[log_id].compressedUpdate()
+                                if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
+                                    client.write_message(delta_update_dict)
                                 
                                 
         #TODO: Close connection when game is no longer live
@@ -474,13 +476,13 @@ class dbManager(object):
             new_stat_tuple = new_table[steam_id]
             
             if steam_id in old_table:
-                print "%s is in new and old table. new tuple:" % steam_id
-                print new_stat_tuple
+                #print "%s is in new and old table. new tuple:" % steam_id
+                #print new_stat_tuple
                 #steam_id is in the old table, so now we need to find the difference between the old and new tuples
                 old_stat_tuple = old_table[steam_id]
                 
-                print "old tuple:"
-                print old_stat_tuple
+                #print "old tuple:"
+                #print old_stat_tuple
                 
                 temp_list = [] #temp list that will be populated with all the stat differences, and then converted to a tuple
                 
@@ -497,8 +499,8 @@ class dbManager(object):
                     else:
                         temp_list[idx] = val #idx 0 is the name, don't need the difference between this as it won't change throughout
                 
-                print "DIFFERENCE FOR STEAM_ID %s: " % steam_id
-                print temp_list
+                #print "DIFFERENCE FOR STEAM_ID %s: " % steam_id
+                #print temp_list
                 
                 stat_dict_updated[steam_id] = tuple(temp_list) #add the diff'd stat tuple to the stat dict
                 
@@ -506,7 +508,8 @@ class dbManager(object):
                 stat_dict_updated[steam_id] = new_stat_tuple
                 
         return stat_dict_updated
-        
+    
+    @tornado.web.asynchronous
     def getDatabaseUpdate(self):
         #executes the query to obtain an update. called on init and periodically
         
@@ -521,6 +524,7 @@ class dbManager(object):
         query = "SELECT * FROM %s" % self.STAT_TABLE
         self.db.execute(query, callback = self._databaseUpdateCallback)
         
+    @tornado.web.asynchronous
     def _databaseUpdateCallback(self, cursor, error):
         #the callback for database update queries
         if error:
@@ -537,8 +541,8 @@ class dbManager(object):
             sid = self.steamCommunityID(row[0]) #player's steamid as a community id
             stat_dict[sid] = row[1:] #splice the rest of the data and store it under the player's steamid
             
-            print "steamid %s has data:" % sid
-            print row[1:]
+            #print "steamid %s has data:" % sid
+            #print row[1:]
         
         if not self.DB_LATEST_TABLE:
             self.DB_LATEST_TABLE = stat_dict
