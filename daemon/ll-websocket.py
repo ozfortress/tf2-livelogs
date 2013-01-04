@@ -296,6 +296,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                                 
         #TODO: Close connection when game is no longer live
 
+    @tornado.web.asynchronous
     def getLogStatus(self, log_ident):
         """
         Executes the query to obtain the log status
@@ -303,6 +304,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         res_cursor = self.application.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (log_ident,), callback=self._logStatusCallback)
     
+    @tornado.web.asynchronous
     def _logStatusCallback(self, cursor, error):
         if error:
             self.write_message("LOG_ERROR")
@@ -509,7 +511,6 @@ class dbManager(object):
                 
         return stat_dict_updated
     
-    @tornado.web.asynchronous
     def getDatabaseUpdate(self):
         #executes the query to obtain an update. called on init and periodically
         
@@ -524,7 +525,6 @@ class dbManager(object):
         query = "SELECT * FROM %s" % self.STAT_TABLE
         self.db.execute(query, callback = self._databaseUpdateCallback)
         
-    @tornado.web.asynchronous
     def _databaseUpdateCallback(self, cursor, error):
         #the callback for database update queries
         if error:
