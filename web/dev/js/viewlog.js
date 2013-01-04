@@ -6,7 +6,7 @@ $(document).ready(function()
 {
     "use strict";
     $('#general_stats').dataTable( {
-        "aaSorting": [[1, 'dt-numeric-html-asc']],
+        "aaSorting": [[1, 'desc']],
         "aoColumnDefs": [
             { "sType": "html", "bSearchable": false, "aTargets": [0] },
             { "sType": "dt-numeric-html", "bSearchable": false, "aTargets": ["_all"] }
@@ -71,7 +71,7 @@ var llWSClient = llWSClient || (function() {
                 }
             }
             catch (error) {
-                console.log("Had error trying to establish websocket: " + error);
+                console.log("Had error trying to establish websocket: %s", error);
                 return;
             }
             
@@ -83,11 +83,11 @@ var llWSClient = llWSClient || (function() {
         },
         
         onClose : function(event) {
-            console.log("Client websocket closed");
+            console.log("Client websocket closed: %s", event);
         },
         
         onError : function(event) {
-            console.log("Had WS error: " + event.data);
+            console.log("Had WS error: " + event);
         },
         
         onMessage : function(msg) {
