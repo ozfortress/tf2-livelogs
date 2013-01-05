@@ -40,7 +40,7 @@ jQuery.fn.dataTableExt.oSort['dt-numeric-html-desc'] = function(a,b) {
 
 var llWSClient = llWSClient || (function() {
     "use strict";
-    var client = null, connect_msg = {}, HAD_FIRST_UPDATE = false; //our client socket and message that will be sent on connect, containing the log id
+    var client = null, connect_msg = {}, HAD_FIRST_UPDATE = false, auto_update = true; //our client socket and message that will be sent on connect, containing the log id
 
     return {
         init : function(ip, port, log_id) {
@@ -99,6 +99,9 @@ var llWSClient = llWSClient || (function() {
                 client.close(400);
                 
                 client = null;
+            } else if (!auto_update) {
+                return;
+                
             } else if (msg_data === "LOG_IS_LIVE") {
                 HAD_FIRST_UPDATE = false;
                 
@@ -186,6 +189,14 @@ var llWSClient = llWSClient || (function() {
             }
             catch (exception) {
                 console.log("Exception trying to parse stat update. Error: %s", exception);
+            }
+        },
+        
+        toggleUpdate : function() {
+            if (auto_update) {
+                auto_update = false;
+            } else {
+                auto_update = true;
             }
         }
     };

@@ -125,8 +125,8 @@
                         <li<?if ((!$log_live) || (!$log_details["webtv_port"])) echo ' class="disabled"'?>>
                             <a href="#" data-toggle="collapse" data-target="#sourcetv2d">Show SourceTV 2D</a>
                         </li>
-                        <li class="disabled">
-                            <a href="#">Auto Update Stats</a>
+                        <li<?if ($log_live) echo ' class="disabled"'?>>
+                            <a href="llWSClient.toggleUpdate()">Auto Update Stats</a>
                         </li>
                     </ul>
                 </li>
