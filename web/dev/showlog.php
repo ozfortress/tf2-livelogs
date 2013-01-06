@@ -120,14 +120,29 @@
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#">View Settings <b class="caret"></b></a>
                     <ul class="dropdown-menu">
                         <li>
-                            <a href="#">Show Chat</a>
+                            <a href="#" data-toggle="collapse" data-target="#chat_event_feed">Show Chat</a>
                         </li>
-                        <li<?if ((!$log_live) || (!$log_details["webtv_port"])) echo ' class="disabled"'?>>
+                        <?php 
+                        if (($log_live) && ($log_details["webtv_port"]))
+                        {
+                        ?>
+                        
+                        <li>
                             <a href="#" data-toggle="collapse" data-target="#sourcetv2d">Show SourceTV 2D</a>
                         </li>
-                        <li<?if ($log_live) echo ' class="disabled"'?>>
-                            <a href="llWSClient.toggleUpdate()">Auto Update Stats</a>
+                        <?php
+                        }
+                        
+                        if ($log_live) && (!empty($ll_websock["server_ip"]))
+                        {
+                        ?>
+                        
+                        <li>
+                            <a href="javascript:llWSClient.toggleUpdate()">Auto Update Stats</a>
                         </li>
+                        <?php
+                        }
+                        ?>
                     </ul>
                 </li>
                 <li class="dropdown">
@@ -341,7 +356,7 @@
                 </div>
             </div>
             
-            <div class="live_feed_container">
+            <div class="live_feed_container collapse in" id="chat_event_feed">
                 chat/event feed<br>
                 chat/event feed<br>
                 chat/event feed<br>
