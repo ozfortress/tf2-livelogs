@@ -74,6 +74,11 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         logUpdateHandler.update_rate = application.update_rate
         
+        logUpdateHandler.logUpdateThreadEvent = threading.Event()
+        
+        logUpdateHandler.logUpdateThread = threading.Thread(target = logUpdateHandler._sendUpdateThread, args=(logUpdateHandler.logUpdateThreadEvent,))
+        logUpdateHandler.logUpdateThread.daemon = True
+        
         tornado.websocket.WebSocketHandler.__init__(self, application, request, **kwargs)
     
     def open(self):
@@ -96,11 +101,9 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         print "Clients without ID:"
         print logUpdateHandler.ordered_clients["none"]
         
-        if not logUpdateHandler.logUpdateThread:
-            logUpdateHandler.logUpdateThreadEvent = threading.Event()
-        
-            logUpdateHandler.logUpdateThread = threading.Thread(target = logUpdateHandler._sendUpdateThread, args=(logUpdateHandler.logUpdateThreadEvent,))
-            logUpdateHandler.logUpdateThread.daemon = True
+        if not logUpdateHandler.logUpdateThread.isAlive():
+            logger.info("Starting send update thread")
+            
             logUpdateHandler.logUpdateThread.start()
         
     def on_close(self):
@@ -313,33 +316,40 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         #if live is NOT NULL, then the log exists
         #live == t means the log is live, and live == f means it's not live
-        
-        live = cursor.fetchone()[0] #fetchone returns a list, we only have 1 element and it'll be the first (idx 0)
-        
-        if live == True:
-            #add the client to the ordered_clients dict with correct log ident
-            logger.info("Log is live on refreshed status")
-            self.write_message("LOG_IS_LIVE") #notify client the log is live
+        try:
             
-            logUpdateHandler.addToCache(self.LOG_IDENT, True)
-            logUpdateHandler.addDBManager(self.LOG_IDENT, self.application.db, self.application.update_rate)
-            logUpdateHandler.addToOrderedClients(self.LOG_IDENT, self)
+            results = cursor.fetchone()[0] #fetchone returns a list, we only have 1 element and it'll be the first (idx 0)
             
-        elif live == False:
-
-            self.write_message("LOG_NOT_LIVE")
+            if len(results) > 0:
+                live = results[0]
             
-            logger.info("Log is not live")
-            
-            logUpdateHandler.addToCache(self.LOG_IDENT, False)
-            
-            self.close()
-                            
-        else:                    
-            #invalid log ident
+                if live == True:
+                    #add the client to the ordered_clients dict with correct log ident
+                    logger.info("Log is live on refreshed status")
+                    self.write_message("LOG_IS_LIVE") #notify client the log is live
+                    
+                    logUpdateHandler.addToCache(self.LOG_IDENT, True)
+                    logUpdateHandler.addDBManager(self.LOG_IDENT, self.application.db, self.application.update_rate)
+                    logUpdateHandler.addToOrderedClients(self.LOG_IDENT, self)
+                    
+                elif live == False:                    
+                    logger.info("Log is not live")
+                    logUpdateHandler.addToCache(self.LOG_IDENT, False)
+                    
+                    self.closeLogUpdate()
+                    
+                else:
+                    self.closeLogUpdate()
+        except: 
+            #we'll get a type error trying to access cusor.fetchone if it returned no results, so we know it's invalid
             logger.info("Invalid log ident specified (live did not match true or false")
-            self.write_message("LOG_NOT_LIVE")
-            self.close()
+            
+            self.closeLogUpdate()
+    
+    def closeLogUpdate(self):
+        self.write_message("LOG_NOT_LIVE")
+        
+        self.close()
     
     @classmethod
     def _sendUpdateThread(cls, event):
