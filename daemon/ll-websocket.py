@@ -318,7 +318,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         #live == t means the log is live, and live == f means it's not live
         try:
             
-            results = cursor.fetchone()[0] #fetchone returns a list, we only have 1 element and it'll be the first (idx 0)
+            results = cursor.fetchone() #fetchone returns a list, we only have 1 element and it'll be the first (idx 0)
             
             if len(results) > 0:
                 live = results[0]
