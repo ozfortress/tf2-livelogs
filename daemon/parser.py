@@ -256,13 +256,13 @@ class parserClass():
                 
                     team_insert_list.append((v_sid, v_team))
                 
-                curs = self.pgsqlConn.cursor()
-                
-                team_insert_args = ','.join(curs.mogrify("(E'%s', E'%s')", team_tuple) for team_tuple in tuple(team_insert_list))
-                
-                
-                team_insert_query = "INSERT INTO %s (steamid, team) VALUES %s" % (self.TEAM_TABLE, team_insert_args)
-                self.executeQuery(team_insert_query, curs)
+                if len(team_insert_list) > 0:
+                    curs = self.pgsqlConn.cursor()
+                    team_insert_args = ','.join(curs.mogrify("(E'%s', E'%s')", team_tuple) for team_tuple in team_insert_list)
+                    
+                    
+                    team_insert_query = "INSERT INTO %s (steamid, team) VALUES %s" % (self.TEAM_TABLE, team_insert_args)
+                    self.executeQuery(team_insert_query, curs)
                 
                 return
 
