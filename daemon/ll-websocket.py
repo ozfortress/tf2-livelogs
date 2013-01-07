@@ -268,11 +268,14 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     def delDBManager(cls, log_ident):
         if log_ident in cls.db_managers:
             #log_ident key in db_managers corresponds to a dbManager object
+            logger.info("Removing dbManager object for log id %s", log_ident)
+            
             cls.db_managers[log_ident].cleanup() #run the cleanup method, which ends the update thread. everything else is garbage collected
             del cls.db_managers[log_ident]
     
     @classmethod
     def sendLogUpdates(cls):
+        logger.info("Sending updates")
         for log_id in cls.ordered_clients:
             if log_id != "none":
                 #the key will correspond to a set of client objects which are listening for updates on this log id
@@ -320,29 +323,32 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             
             results = cursor.fetchone() #fetchone returns a list, we only have 1 element and it'll be the first (idx 0)
             
-            if len(results) > 0:
+            if results and len(results) > 0:
                 live = results[0]
             
                 if live == True:
                     #add the client to the ordered_clients dict with correct log ident
-                    logger.info("Log is live on refreshed status")
+                    logger.info("Log %s is live on refreshed status", self.LOG_IDENT)
                     self.write_message("LOG_IS_LIVE") #notify client the log is live
                     
                     logUpdateHandler.addToCache(self.LOG_IDENT, True)
                     logUpdateHandler.addDBManager(self.LOG_IDENT, self.application.db, self.application.update_rate)
                     logUpdateHandler.addToOrderedClients(self.LOG_IDENT, self)
                     
-                elif live == False:                    
-                    logger.info("Log is not live")
+                elif live == False:
+                    logger.info("Log %s is not live", self.LOG_IDENT)
                     logUpdateHandler.addToCache(self.LOG_IDENT, False)
                     
                     self.closeLogUpdate()
                     
                 else:
                     self.closeLogUpdate()
-        except: 
+            else:
+                self.closeLogUpdate()
+                
+        except Exception as e: 
             #we'll get a type error trying to access cusor.fetchone if it returned no results, so we know it's invalid
-            logger.info("Invalid log ident specified (live did not match true or false")
+            logger.info("Exception %s while trying to get status for log id %s", type(e), self.LOG_IDENT)
             
             self.closeLogUpdate()
     
@@ -361,7 +367,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         
 """
-The database manager class holds a version of a log id's stat table. It provides functions to calculate the difference between
+The database manager class holds a copy of a log id's stat table. It provides functions to calculate the difference between
 currently stored data and new data (delta compression) which will be sent to the clients.
 """
 class dbManager(object):
@@ -377,28 +383,8 @@ class dbManager(object):
         self.DB_DIFFERENCE_TABLE = None #a dict containing the difference between the stored data and 
         self.DB_LATEST_TABLE = None #a dict containing the most recently retrieved data
         
-        self.getDatabaseUpdate()
-    
-    def steamCommunityID(self, steam_id):
-        #takes a steamid in the format STEAM_x:x:xxxxx and converts it to a 64bit community id
-        
-        auth_server = 0;
-        auth_id = 0;
-        
-        steam_id_tok = steam_id.split(':')
-        
-        auth_server = int(steam_id_tok[1])
-        auth_id = int(steam_id_tok[2])
-        
-        community_id = auth_id * 2 #multiply auth id by 2
-        community_id += 76561197960265728 #abitrary number chosen by valve
-        community_id += auth_server #add the auth server. even ids are on server 0, odds on server 1
-        
-        return community_id
-    
-    def statIdxToName(self, index):
-        #converts an index in the stat tuple to a name for use in dictionary keys
-        stat_keys = {
+        self.STAT_KEYS = {
+                0: "name",
                 1: "kills",
                 2: "deaths",
                 3: "assists",
@@ -426,8 +412,35 @@ class dbManager(object):
                 25: "extinguish",
                 26: "kill_streak",
             }
+
+        self.updateThreadEvent = threading.Event()
         
-        index_name = stat_keys[index]
+        self.updateThread = threading.Thread(target = self._updateThread, args=(self.updateThreadEvent,))
+        self.updateThread.daemon = True
+        
+        self.getDatabaseUpdate()
+    
+    def steamCommunityID(self, steam_id):
+        #takes a steamid in the format STEAM_x:x:xxxxx and converts it to a 64bit community id
+        
+        auth_server = 0;
+        auth_id = 0;
+        
+        steam_id_tok = steam_id.split(':')
+        
+        auth_server = int(steam_id_tok[1])
+        auth_id = int(steam_id_tok[2])
+        
+        community_id = auth_id * 2 #multiply auth id by 2
+        community_id += 76561197960265728 #add arbitrary number chosen by valve
+        community_id += auth_server #add the auth server. even ids are on server 0, odds on server 1
+        
+        return community_id
+    
+    def statIdxToName(self, index):
+        #converts an index in the stat tuple to a name for use in dictionary keys
+        
+        index_name = self.STAT_KEYS[index]
         #print "NAME FOR INDEX %d: %s" % (index, index_name)
         
         return index_name
@@ -509,7 +522,7 @@ class dbManager(object):
                         
                         temp_list[idx] = diff #store the new value in the temp tuple
                     else:
-                        temp_list[idx] = val #idx 0 is the name, don't need the difference between this as it won't change throughout
+                        temp_list[idx] = val #idx 0 is the name, you can't get the difference, but you can simply assign the name regardless of if it's different
                 
                 #print "DIFFERENCE FOR STEAM_ID %s: " % steam_id
                 #print temp_list
@@ -524,11 +537,7 @@ class dbManager(object):
     def getDatabaseUpdate(self):
         #executes the query to obtain an update. called on init and periodically
         
-        if not self.updateThread:
-            self.updateThreadEvent = threading.Event()
-        
-            self.updateThread = threading.Thread(target = self._updateThread, args=(self.updateThreadEvent,))
-            self.updateThread.daemon = True
+        if not self.updateThread.isAlive():
             self.updateThread.start()
         
         print "Getting database update on table %s" % self.STAT_TABLE
@@ -563,10 +572,10 @@ class dbManager(object):
         
     def _updateThread(self, event):
         #this method is run in a thread, and acts as a timer. 
-        #key thing is that it is a daemon thread, and will exit cleanly with the main thread unlike a threading.Timer. 
+        #it is a daemon thread, and will exit cleanly with the main thread unlike a threading.Timer. 
         #it is also repeating, unlike a timer
         
-        while not event.is_set():
+        while not event.is_set(): #support signaling via an event to end the thread
             self.getDatabaseUpdate()
             
             event.wait(self.update_rate)

@@ -96,7 +96,10 @@ var llWSClient = llWSClient || (function() {
             
             if (msg_data === "LOG_NOT_LIVE") {
                 console.log("Log not live. Closing connection");
-                client.close(400);
+                //the server may have closed the connection before us, so it needs to be checked
+                if (client) {
+                    client.close(400);
+                }
                 
                 client = null;
             } else if (!auto_update) {
