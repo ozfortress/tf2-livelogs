@@ -133,7 +133,7 @@
                         <?php
                         }
                         
-                        if ($log_live) && (!empty($ll_websock["server_ip"]))
+                        if (($log_live) && (!empty($ll_websock["server_ip"])))
                         {
                         ?>
                         
@@ -409,6 +409,7 @@
         <?php
         }
         ?>
+        
     </div>
         
     <!-- LOAD SCRIPTS AT THE BOTOM FOR PERFORMANCE ++ -->
