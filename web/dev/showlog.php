@@ -196,8 +196,8 @@
             <?php
             }
             ?>
-                <span class="red_score_tag">RED </span><span class="red_score" id="red_score_value"><?=(($red_score) ? $red_score : 0)?></span>
-                <span class="blue_score_tag">BLUE </span><span class="blue_score" id="blue_score_value"><?=(($blue_score) ? $blue_score : 0)?></span>
+                <span class="red_tag">RED </span><span class="red_score" id="red_score_value"><?=(($red_score) ? $red_score : 0)?></span>
+                <span class="blue_tag">BLUE </span><span class="blue_score" id="blue_score_value"><?=(($blue_score) ? $blue_score : 0)?></span>
             </div>
         </div>
         
@@ -283,19 +283,18 @@
                             $p_dpd = round($pstat["damage_dealt"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); //damage/death
                             $p_dpr = round($pstat["damage_dealt"] / (($red_score) ? ($red_score + $blue_score) : 1), 2); //num rounds are red score + blue score, damage/round
                             
-                            
-                            $team = get_player_team($pstat["steamid"]);
+                            $team = get_player_team($team_array, $pstat["steamid"]);
                             if ($team == "blue")
                             {
-                                $team_colour = "#0088cc";
+                                $team_class = "blue_tag";
                             }
                             else if ($team == "red")
                             {
-                                $team_colour = "#E62E00";
+                                $team_class = "red_tag";
                             }
                             else
                             {
-                                $team_colour = "#0088cc";
+                                $team_colour = "";
                             }
                             
                             if (($pstat["healing_done"] > 0) || ($pstat["ubers_used"]) || ($pstat["ubers_lost"]))
@@ -305,7 +304,7 @@
                     ?>
                         
                         <tr>
-                            <td><a color="<?=$team_colour?>" id="<?=$community_id . ".name"?>" class="player_community_id_link" href="/player/<?=$community_id?>"><?=$pstat["name"]?></a></td>
+                            <td><a id="<?=$community_id . ".name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=$pstat["name"]?></a></td>
                             <td><span id="<?=$community_id . ".kills"?>"><?=$pstat["kills"]?></span></td>
                             <td><span id="<?=$community_id . ".deaths"?>"><?=$pstat["deaths"]?></span></td>
                             <td><span id="<?=$community_id . ".assists"?>"><?=$pstat["assists"]?></span></td>
@@ -495,12 +494,14 @@
         return $i64friendID;
     }
 
-    function get_player_team($steamid)
+    function get_player_team($team_array, $steamid)
     {
         foreach ($team_array as $pteam)
         {
             if ($steamid === $pteam["steamid"])
+            {
                 return $pteam["team"];
+            }
         }
         
         return 0;

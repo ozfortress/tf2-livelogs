@@ -78,14 +78,20 @@
     font-size: 16px;
 }
 
-.red_score_tag {
+.red_tag {
     font-size: 18px;
-    color: #CC0000;
+    color: #E62E00;
+}
+.red_tag:hover {
+    color: #B82500;
 }
 
-.blue_score_tag {
+.blue_tag {
     font-size: 18px;
     color: #3366FF;
+}
+.blue_tag:hover {
+    color: #2952CC;
 }
 
 .blue_score, .red_score {
