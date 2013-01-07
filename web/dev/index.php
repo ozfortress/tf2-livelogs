@@ -57,19 +57,18 @@
         <div class="index_welcome">
             <p>Welcome to Livelogs! Below you will find a list of logs that are currently live, and a list of past logs that you may view.</p>
         </div>
-
-        <div class="log_list_container">
         <?php
-            if (!$live_res)
-            {
-            ?>
-            
-            <p class="text-error">Unable to retrieve live status</p>
-            <?php
-            }
-            else if (pg_num_rows($live_res) > 0)
-            {
-            ?>
+        if (!$live_res)
+        {
+        ?>
+        <p class="text-error">Unable to retrieve live status</p>
+        <?php
+        }
+        else if (pg_num_rows($live_res) > 0)
+        {
+        ?>
+        
+        <div class="log_list_container">
             
             <div class="log_list">
                 <table class="table table-bordered table-hover ll_table">
@@ -111,8 +110,9 @@
                 </table>
             </div>
         <?php
-            }
+        }
         ?>
+        
         </div>
         <div class="log_list_container">
         <?php
