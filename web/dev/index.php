@@ -109,11 +109,11 @@
                     <caption>Logs that are currently live</caption>
                 </table>
             </div>
+        </div>
         <?php
         }
         ?>
         
-        </div>
         <div class="log_list_container">
         <?php
             if (!$past_res)
