@@ -78,20 +78,14 @@
     font-size: 16px;
 }
 
-.red_tag {
+.red_score_tag {
     font-size: 18px;
     color: #E62E00;
 }
-.red_tag:hover {
-    color: #B82500;
-}
 
-.blue_tag {
+.blue_score_tag {
     font-size: 18px;
     color: #3366FF;
-}
-.blue_tag:hover {
-    color: #2952CC;
 }
 
 .blue_score, .red_score {
@@ -99,8 +93,19 @@
     font-size: 22px;
 }
 
-.stat_summary_col_title {
+.red_player {
+    color: #E62E00;
+}
+.red_player:hover {
+    color: #B82500;
+}
 
+.blue_player {
+    color: #3366FF;
+}
+
+.blue_player:hover {
+    color: #2952CC;
 }
 
 .stat_summary_col_title_secondary {

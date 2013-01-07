@@ -196,8 +196,8 @@
             <?php
             }
             ?>
-                <span class="red_tag">RED </span><span class="red_score" id="red_score_value"><?=(($red_score) ? $red_score : 0)?></span>
-                <span class="blue_tag">BLUE </span><span class="blue_score" id="blue_score_value"><?=(($blue_score) ? $blue_score : 0)?></span>
+                <span class="red_score_tag">RED </span><span class="red_score" id="red_score_value"><?=(($red_score) ? $red_score : 0)?></span>
+                <span class="blue_score_tag">BLUE </span><span class="blue_score" id="blue_score_value"><?=(($blue_score) ? $blue_score : 0)?></span>
             </div>
         </div>
         
@@ -286,11 +286,11 @@
                             $team = get_player_team($team_array, $pstat["steamid"]);
                             if ($team == "blue")
                             {
-                                $team_class = "blue_tag";
+                                $team_class = "blue_player";
                             }
                             else if ($team == "red")
                             {
-                                $team_class = "red_tag";
+                                $team_class = "red_player";
                             }
                             else
                             {
