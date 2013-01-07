@@ -29,12 +29,14 @@
                 $escaped_stat_table = pg_escape_identifier("log_stat_" . $UNIQUE_IDENT);
                 $escaped_event_table = pg_escape_identifier("log_event_" . $UNIQUE_IDENT);
                 $escaped_chat_table = pg_escape_identifier("log_chat_" . $UNIQUE_IDENT);
+                $escaped_team_table = pg_escape_identifier("log_team_" . $UNIQUE_IDENT);
             }
             else
             {
                 $escaped_stat_table = pg_escape_string("log_stat_" . $UNIQUE_IDENT);
                 $escaped_event_table = pg_escape_string("log_event_" . $UNIQUE_IDENT);
                 $escaped_chat_table = pg_escape_string("log_chat_" . $UNIQUE_IDENT);
+                $escaped_team_table = pg_escape_string("log_team_" . $UNIQUE_IDENT);
             }
             
             $stat_query = "SELECT * FROM {$escaped_stat_table}";
@@ -45,6 +47,10 @@
             
             $chat_query = "SELECT * FROM {$escaped_chat_table}";
             $chat_result = pg_query($ll_db, $chat_query);
+            
+            $team_query = "SELECT * FROM {$escaped_team_table}";
+            $team_result = pg_query($ll_db, $team_query);
+            $team_array = pg_fetch_all($team_result);
             
             if ((!$stat_result) || (!$event_result) || (!$chat_result))
             {
@@ -67,6 +73,7 @@
                 $red_score = 0;
                 $blue_score = 0;
             }
+            
             $event_array = pg_fetch_all($event_result);
             $time_start = $event_array[0]["event_time"];
             $time_last = $event_array[(sizeof($event_array) - 1)]["event_time"];
@@ -276,6 +283,21 @@
                             $p_dpd = round($pstat["damage_dealt"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); //damage/death
                             $p_dpr = round($pstat["damage_dealt"] / (($red_score) ? ($red_score + $blue_score) : 1), 2); //num rounds are red score + blue score, damage/round
                             
+                            
+                            $team = get_player_team($pstat["steamid"]);
+                            if ($team == "blue")
+                            {
+                                $team_colour = "#0088cc";
+                            }
+                            else if ($team == "red")
+                            {
+                                $team_colour = "#E62E00";
+                            }
+                            else
+                            {
+                                $team_colour = "#0088cc";
+                            }
+                            
                             if (($pstat["healing_done"] > 0) || ($pstat["ubers_used"]) || ($pstat["ubers_lost"]))
                             {
                                 $mstats[sizeof($mstats)] = $pstat;
@@ -283,7 +305,7 @@
                     ?>
                         
                         <tr>
-                            <td><a id="<?=$community_id . ".name"?>" class="player_community_id_link" href="/player/<?=$community_id?>"><?=$pstat["name"]?></a></td>
+                            <td><a color="<?=$team_colour?>" id="<?=$community_id . ".name"?>" class="player_community_id_link" href="/player/<?=$community_id?>"><?=$pstat["name"]?></a></td>
                             <td><span id="<?=$community_id . ".kills"?>"><?=$pstat["kills"]?></span></td>
                             <td><span id="<?=$community_id . ".deaths"?>"><?=$pstat["deaths"]?></span></td>
                             <td><span id="<?=$community_id . ".assists"?>"><?=$pstat["assists"]?></span></td>
@@ -473,5 +495,16 @@
         return $i64friendID;
     }
 
+    function get_player_team($steamid)
+    {
+        foreach ($team_array as $pteam)
+        {
+            if ($steamid === $pteam["steamid"])
+                return $pteam["team"];
+        }
+        
+        return 0;
+    }
+    
     pg_close($ll_db)
 ?>
