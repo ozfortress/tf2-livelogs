@@ -108,6 +108,9 @@
     color: #2952CC;
 }
 
+.no_team_player {
+    color: #000000;
+}
 .stat_summary_col_title_secondary {
     border-left: solid 4px black;
 }

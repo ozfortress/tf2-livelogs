@@ -294,7 +294,7 @@
                             }
                             else
                             {
-                                $team_colour = "";
+                                $team_class = "no_team_player";
                             }
                             
                             if (($pstat["healing_done"] > 0) || ($pstat["ubers_used"]) || ($pstat["ubers_lost"]))
@@ -359,10 +359,25 @@
                             while ($i < $num_med)
                             {
                                 $community_id = steamid_to_bigint($mstats[$i]["steamid"]);
+                                
+                                $team = get_player_team($team_array, $mstats[$i]["steamid"]);
+                                if ($team == "blue")
+                                {
+                                    $team_class = "blue_player";
+                                }
+                                else if ($team == "red")
+                                {
+                                    $team_class = "red_player";
+                                }
+                                else
+                                {
+                                    $team_class = "no_team_player";
+                                }
+                                
                             ?>
                             
                             <tr>
-                                <td><a class="player_community_id_link" href="/player/<?=$community_id?>"><?=$mstats[$i]["name"]?></a></td>
+                                <td><a class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=$mstats[$i]["name"]?></a></td>
                                 <td><span id="<?=$community_id . ".heal_done"?>"><?=$mstats[$i]["healing_done"]?></span></td>
                                 <td><span id="<?=$community_id . ".ubers_used"?>"><?=$mstats[$i]["ubers_used"]?></span></td>
                                 <td><span id="<?=$community_id . ".ubers_lost"?>"><?=$mstats[$i]["ubers_lost"]?></span></td>
