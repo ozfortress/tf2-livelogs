@@ -319,39 +319,39 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         #if live is NOT NULL, then the log exists
         #live == t means the log is live, and live == f means it's not live
-        try:
+        #try:
             
-            results = cursor.fetchone() #fetchone returns a list, we only have 1 element and it'll be the first (idx 0)
-            
-            if results and len(results) > 0:
-                live = results[0]
-            
-                if live == True:
-                    #add the client to the ordered_clients dict with correct log ident
-                    logger.info("Log %s is live on refreshed status", self.LOG_IDENT)
-                    self.write_message("LOG_IS_LIVE") #notify client the log is live
-                    
-                    logUpdateHandler.addToCache(self.LOG_IDENT, True)
-                    logUpdateHandler.addDBManager(self.LOG_IDENT, self.application.db, self.application.update_rate)
-                    logUpdateHandler.addToOrderedClients(self.LOG_IDENT, self)
-                    
-                elif live == False:
-                    logger.info("Log %s is not live", self.LOG_IDENT)
-                    logUpdateHandler.addToCache(self.LOG_IDENT, False)
-                    
-                    self.closeLogUpdate()
-                    
-                else:
-                    self.closeLogUpdate()
-            else:
+        results = cursor.fetchone() #fetchone returns a list, we only have 1 element and it'll be the first (idx 0)
+        
+        if results and len(results) > 0:
+            live = results[0]
+        
+            if live == True:
+                #add the client to the ordered_clients dict with correct log ident
+                logger.info("Log %s is live on refreshed status", self.LOG_IDENT)
+                self.write_message("LOG_IS_LIVE") #notify client the log is live
+                
+                logUpdateHandler.addToCache(self.LOG_IDENT, True)
+                logUpdateHandler.addDBManager(self.LOG_IDENT, self.application.db, self.application.update_rate)
+                logUpdateHandler.addToOrderedClients(self.LOG_IDENT, self)
+                
+            elif live == False:
+                logger.info("Log %s is not live", self.LOG_IDENT)
+                logUpdateHandler.addToCache(self.LOG_IDENT, False)
+                
                 self.closeLogUpdate()
                 
-        except Exception as e: 
+            else:
+                self.closeLogUpdate()
+        else:
+            self.closeLogUpdate()
+                
+        """except Exception as e: 
             #we'll get a type error trying to access cusor.fetchone if it returned no results, so we know it's invalid
             logger.info("Exception %s while trying to get status for log id %s", type(e), self.LOG_IDENT)
             
             self.closeLogUpdate()
-    
+        """
     def closeLogUpdate(self):
         self.write_message("LOG_NOT_LIVE")
         
@@ -382,6 +382,8 @@ class dbManager(object):
         
         self.DB_DIFFERENCE_TABLE = None #a dict containing the difference between the stored data and 
         self.DB_LATEST_TABLE = None #a dict containing the most recently retrieved data
+        
+        self.UPDATE_NO_DIFF = 0
         
         self.STAT_KEYS = {
                 0: "name",
