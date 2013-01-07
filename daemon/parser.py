@@ -29,6 +29,7 @@ class parserClass():
                 
             except:
                 print "Unable to read database section in config file"
+                self.HAD_ERROR = True
                 return
         else:
             print "Error reading config file"
@@ -94,12 +95,21 @@ class parserClass():
         self.EVENT_TABLE = "log_event_" + self.UNIQUE_IDENT
         self.STAT_TABLE = "log_stat_" + self.UNIQUE_IDENT
         self.CHAT_TABLE = "log_chat_" + self.UNIQUE_IDENT
+        self.TEAM_TABLE = "log_team_" + self.UNIQUE_IDENT
 
         dbCursor.close()
-        #self.psqlConn.close()
 
-        self.itemDict = dict([['ammopack_small', 'ap_small'], ['ammopack_medium', 'ap_medium'], ['tf_ammo_pack', 'ap_large'], ['medkit_small', 'mk_small'], ['medkit_medium', 'mk_medium'], ['medkit_large', 'mk_large']])
-
+        self.ITEM_DICT = {
+            'ammopack_small': 'ap_small',
+            'ammopack_medium': 'ap_medium', 
+            'tf_ammo_pack': 'ap_large', 
+            'medkit_small': 'mk_small', 
+            'medkit_medium': 'mk_medium', 
+            'medkit_large': 'mk_large'
+            }
+            
+        self.PLAYER_TEAMS = {}
+        
         print "Parser initialised"
 
     
@@ -131,7 +141,7 @@ class parserClass():
         if (res):
             print "Log file started"
             pprint(res.groups())
-            ##do shit with log file name?
+            #do shit with log file name?
             
             return
 
@@ -158,7 +168,10 @@ class parserClass():
 
                 #pg_statupsert(self, table, column, steamid, name, value)
                 self.pg_statupsert(self.STAT_TABLE, "damage_dealt", sid, name, dmg)        
-
+                
+                
+                
+                
                 return
 
             #healing done
@@ -228,6 +241,29 @@ class parserClass():
                                                         event_time, "kill", k_sid, k_pos, v_sid, v_pos) #creates a new, unique eventid with details of the event
                 self.executeQuery(event_insert_query)
 
+                
+                team_insert_list = []
+                
+                if k_sid not in self.PLAYER_TEAMS:
+                    k_team = regml(res, 4).lower()
+                    self.PLAYER_TEAMS[k_sid] = k_team
+                    
+                    team_insert_list.append((k_sid, k_team))
+                    
+                if v_sid not in self.PLAYER_TEAMS:
+                    v_team = regml(res, 8).lower()
+                    self.PLAYER_TEAMS[v_sid] = v_team
+                
+                    team_insert_list.append((v_sid, v_team))
+                
+                curs = self.pgsqlConn.cursor()
+                
+                team_insert_args = ','.join(curs.mogrify("(E'%s', E'%s')", team_tuple) for team_tuple in tuple(team_insert_list))
+                
+                
+                team_insert_query = "INSERT INTO %s (steamid, team) VALUES %s" % (self.TEAM_TABLE, team_insert_args)
+                self.executeQuery(team_insert_query, curs)
+                
                 return
 
             #player killed (special kill) 
@@ -684,8 +720,8 @@ class parserClass():
         return retuple.group(index)
 
     def selectItemName(self, item_name):
-        if item_name in self.itemDict:
-            return self.itemDict[item_name]
+        if item_name in self.ITEM_DICT:
+            return self.ITEM_DICT[item_name]
 
     def pg_statupsert(self, table, column, steamid, name, value):
         #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
@@ -715,8 +751,10 @@ class parserClass():
     def escapePlayerString(self, unescaped_string):
         return unescaped_string.replace("'", "''").replace("\\", "\\\\");
 
-    def executeQuery(self, query):
-        curs = self.pgsqlConn.cursor()
+    def executeQuery(self, query, curs=None):
+        if not curs:
+            curs = self.pgsqlConn.cursor()
+            
         try:
             curs.execute(query)
             self.pgsqlConn.commit()
