@@ -536,13 +536,38 @@ class dbManager(object):
     
     def getDatabaseUpdate(self):
         #executes the query to obtain an update. called on init and periodically
+        if self.checkingLogStatus:
+            return
         
         if not self.updateThread.isAlive():
             self.updateThread.start()
         
-        print "Getting database update on table %s" % self.STAT_TABLE
-        query = "SELECT * FROM %s" % self.STAT_TABLE
-        self.db.execute(query, callback = self._databaseUpdateCallback)
+        if self.UPDATE_NO_DIFF > 10:
+            query = "SELECT live FROM livelogs_servers WHERE log_ident = %s" % self.LOG_IDENT
+            self.db.execute(query, callback = self._databaseStatusCallback)
+            self.checkingLogStatus = True
+            
+        else:    
+            print "Getting database update on table %s" % self.STAT_TABLE
+            query = "SELECT * FROM %s" % self.STAT_TABLE
+            self.db.execute(query, callback = self._databaseUpdateCallback)
+            
+    def _databaseStatusCallback(self, cursor, error):
+        if error:
+            print "Error quering database for log status on log id %s" % self.LOG_IDENT
+            return
+            
+        result = cursor.fetchone()
+        
+        if result and len(result) > 0:
+            live = result[0]
+            
+            if (live == True):
+                self.UPDATE_NO_DIFF = 0 #reset the increment, because the log is actually still live
+                self.checkingLogStatus = False
+            else:
+                #the log is no longer live
+                self.cleanup()
         
     def _databaseUpdateCallback(self, cursor, error):
         #the callback for database update queries
@@ -567,7 +592,11 @@ class dbManager(object):
             self.DB_LATEST_TABLE = stat_dict
         else:
             #we need to get the table difference before we update to the latest data
-            self.DB_DIFFERENCE_TABLE = self.updateTableDifference(self.DB_LATEST_TABLE, stat_dict)
+            temp_table = self.updateTableDifference(self.DB_LATEST_TABLE, stat_dict)
+            if temp_table == self.DB_DIFFERENCE_TABLE:
+                self.UPDATE_NO_DIFF += 1 #increment number of times there's been an update with no difference
+                
+            self.DB_DIFFERENCE_TABLE = temp_table
             self.DB_LATEST_TABLE = stat_dict
         
     def _updateThread(self, event):
