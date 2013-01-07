@@ -384,6 +384,7 @@ class dbManager(object):
         self.DB_LATEST_TABLE = None #a dict containing the most recently retrieved data
         
         self.UPDATE_NO_DIFF = 0
+        self.CHECKING_LOG_STATUS = False
         
         self.STAT_KEYS = {
                 0: "name",
@@ -538,7 +539,7 @@ class dbManager(object):
     
     def getDatabaseUpdate(self):
         #executes the query to obtain an update. called on init and periodically
-        if self.checkingLogStatus:
+        if self.CHECKING_LOG_STATUS:
             return
         
         if not self.updateThread.isAlive():
@@ -547,7 +548,7 @@ class dbManager(object):
         if self.UPDATE_NO_DIFF > 10:
             query = "SELECT live FROM livelogs_servers WHERE log_ident = %s" % self.LOG_IDENT
             self.db.execute(query, callback = self._databaseStatusCallback)
-            self.checkingLogStatus = True
+            self.CHECKING_LOG_STATUS = True
             
         else:    
             print "Getting database update on table %s" % self.STAT_TABLE
@@ -566,7 +567,7 @@ class dbManager(object):
             
             if (live == True):
                 self.UPDATE_NO_DIFF = 0 #reset the increment, because the log is actually still live
-                self.checkingLogStatus = False
+                self.CHECKING_LOG_STATUS = False
             else:
                 #the log is no longer live
                 self.cleanup()
