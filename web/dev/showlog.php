@@ -156,7 +156,7 @@
                             <a href="#">FAQ</a>
                         </li>
                         <li class="disabled">
-                            <a href="#">Source @ github</a>
+                            <a href="#">Source</a>
                         </li>
                     </ul>
                 </li>
@@ -283,7 +283,7 @@
                     ?>
                         
                         <tr>
-                            <td><a class="player_community_id_link" href="/player/<?=$community_id?>"><?=$pstat["name"]?></a></td>
+                            <td><a id="<?=$community_id . ".name"?>" class="player_community_id_link" href="/player/<?=$community_id?>"><?=$pstat["name"]?></a></td>
                             <td><span id="<?=$community_id . ".kills"?>"><?=$pstat["kills"]?></span></td>
                             <td><span id="<?=$community_id . ".deaths"?>"><?=$pstat["deaths"]?></span></td>
                             <td><span id="<?=$community_id . ".assists"?>"><?=$pstat["assists"]?></span></td>
@@ -383,8 +383,11 @@
                 chat/event feed<br>
             </div>
         </div>
-        
-        <div class="left_float_sourcetv_container collapse in"<?if ((!$log_live) || (!$log_details["webtv_port"])) echo ' style="display: none;"'?>>
+        <?php
+        if (($log_live) && ($log_details["webtv_port"]))
+        {
+        ?>
+        <div class="left_float_sourcetv_container collapse in">
             <div class="sourcetv_controls">
                 <p class="text-info">STV 2D</p>
                 <button class="btn btn-success" onclick="stv2d_connect('<?=long2ip($log_details["server_ip"])?>', <?=$log_details["webtv_port"]?>)">Connect</button>
@@ -403,6 +406,9 @@
             
             </div>
         </div>
+        <?php
+        }
+        ?>
     </div>
         
     <!-- LOAD SCRIPTS AT THE BOTOM FOR PERFORMANCE ++ -->

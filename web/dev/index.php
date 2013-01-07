@@ -35,17 +35,6 @@
                     <a href="/">Home</a>
                 </li>
                 <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">View Settings <b class="caret"></b></a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a href="#">asdf</a>
-                        </li>
-                        <li class="disabled">
-                            <a href="#">ghjk</a>
-                        </li>
-                    </ul>
-                </li>
-                <li class="dropdown">
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
                     <ul class="dropdown-menu">
                         <li>
@@ -74,13 +63,15 @@
             if (!$live_res)
             {
             ?>
-                <p class="text-error">Unable to retrieve live status</p>
+            
+            <p class="text-error">Unable to retrieve live status</p>
             <?php
             }
             else
             {
             
             ?>
+            
             <div class="log_list">
                 <table class="table table-bordered table-hover ll_table">
                     <thead>
@@ -101,8 +92,10 @@
                     </thead>
                     <tbody>
                     <?php
-                    while ($live = pg_fetch_array($live_res, NULL, PGSQL_ASSOC))
+                    if (pg_num_rows($live_res) > 0)
                     {
+                        while ($live = pg_fetch_array($live_res, NULL, PGSQL_ASSOC))
+                        {
                     //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
                     ?>
                        
@@ -112,6 +105,16 @@
                             <td class="log_map"><?=$live["map"]?></td>
                             <td class="log_name"><a href="/view/<?=$live["log_ident"]?>"><?=$live["log_name"]?></a></td>
 
+                        </tr>
+                    <?php
+                        }
+                    }
+                    else
+                    {
+                    ?>
+                    
+                        <tr>
+                            No logs are currently live
                         </tr>
                     <?php
                     }
@@ -129,7 +132,8 @@
             if (!$past_res)
             {
             ?>
-                <p class="text-error">Unable to retrieve past logs</p>
+            
+            <p class="text-error">Unable to retrieve past logs</p>
             <?php
             }
             else
