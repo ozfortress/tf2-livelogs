@@ -40,20 +40,24 @@ jQuery.fn.dataTableExt.oSort['dt-numeric-html-desc'] = function(a,b) {
 
 var llWSClient = llWSClient || (function() {
     "use strict";
-    var client = null, connect_msg = {}, HAD_FIRST_UPDATE = false, auto_update = true; //our client socket and message that will be sent on connect, containing the log id
+    var client = null, ws = null, connect_msg = {}, HAD_FIRST_UPDATE = false, auto_update = true; //our client socket and message that will be sent on connect, containing the log id
 
     return {
         init : function(ip, port, log_id) {
-            var ws = "ws://" + ip + ":" + port + "/logupdate";
+            ws = "ws://" + ip + ":" + port + "/logupdate";
             
             console.log("WS URI: %s", ws);
             
             connect_msg.ident = log_id;
             
+            this.clientConnect(ws);
+        },
+        
+        clientConnect : function(ws_uri) {
             try {
                 if (!window.WebSocket) {
                     if (window.MozWebSocket) {
-                        client = new MozWebSocket(ws);
+                        client = new MozWebSocket(ws_uri);
                         client.onmessage = function(msg) { llWSClient.onMessage(msg); };
                         client.onopen = function(event) { llWSClient.onOpen(event); };
                         client.onclose = function(event) { llWSClient.onClose(event); };
@@ -63,7 +67,7 @@ var llWSClient = llWSClient || (function() {
                         return;
                     }
                 } else {
-                    client = new WebSocket(ws);
+                    client = new WebSocket(ws_uri);
                     client.onmessage = function(msg) { llWSClient.onMessage(msg); };
                     client.onopen = function(event) { llWSClient.onOpen(event); };
                     client.onclose = function(event) { llWSClient.onClose(event); };
@@ -74,7 +78,6 @@ var llWSClient = llWSClient || (function() {
                 console.log("Had error trying to establish websocket: %s", error);
                 return;
             }
-            
         },
         
         onOpen : function(event) {
@@ -198,8 +201,14 @@ var llWSClient = llWSClient || (function() {
         toggleUpdate : function() {
             if (auto_update) {
                 auto_update = false;
+                
+                if (client) {
+                    client.close(200);
+                }
+                
             } else {
                 auto_update = true;
+                this.clientConnect(ws);
             }
         }
     };
