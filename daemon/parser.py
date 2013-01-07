@@ -169,8 +169,7 @@ class parserClass():
                 #pg_statupsert(self, table, column, steamid, name, value)
                 self.pg_statupsert(self.STAT_TABLE, "damage_dealt", sid, name, dmg)        
                 
-                
-                
+                self.insertPlayerTeam(sid, regml(res, 4).lower())
                 
                 return
 
@@ -193,6 +192,8 @@ class parserClass():
                 self.pg_statupsert(self.STAT_TABLE, "points", medic_sid, medic_name, medic_points)
                 self.pg_statupsert(self.STAT_TABLE, "healing_received", healt_sid, healt_name, medic_healing)
 
+                self.insertPlayerTeam(medic_sid, regml(res, 4).lower(), healt_sid, regml(res, 8).lower())
+                
                 return
 
             #item picked up
@@ -241,28 +242,7 @@ class parserClass():
                                                         event_time, "kill", k_sid, k_pos, v_sid, v_pos) #creates a new, unique eventid with details of the event
                 self.executeQuery(event_insert_query)
 
-                
-                team_insert_list = []
-                
-                if k_sid not in self.PLAYER_TEAMS:
-                    k_team = regml(res, 4).lower()
-                    self.PLAYER_TEAMS[k_sid] = k_team
-                    
-                    team_insert_list.append((k_sid, k_team))
-                    
-                if v_sid not in self.PLAYER_TEAMS:
-                    v_team = regml(res, 8).lower()
-                    self.PLAYER_TEAMS[v_sid] = v_team
-                
-                    team_insert_list.append((v_sid, v_team))
-                
-                if len(team_insert_list) > 0:
-                    curs = self.pgsqlConn.cursor()
-                    team_insert_args = ','.join(curs.mogrify("(E'%s', E'%s')", team_tuple) for team_tuple in team_insert_list)
-                    
-                    
-                    team_insert_query = "INSERT INTO %s (steamid, team) VALUES %s" % (self.TEAM_TABLE, team_insert_args)
-                    self.executeQuery(team_insert_query, curs)
+                self.insertPlayerTeam(k_sid, regml(res, 4).lower(), v_sid, regml(res, 8).lower())
                 
                 return
 
@@ -745,12 +725,33 @@ class parserClass():
             self.pgsqlConn.rollback()
             
         curs.close()
-        
-        return
 
     def escapePlayerString(self, unescaped_string):
         return unescaped_string.replace("'", "''").replace("\\", "\\\\");
 
+    #this method can take up to two players and insert their teams into the database
+    def insertPlayerTeam(self, a_sid, a_team, b_sid = None, b_team = None):
+        team_insert_list = []
+                
+        if a_sid not in self.PLAYER_TEAMS:
+            self.PLAYER_TEAMS[a_sid] = a_team
+            
+            team_insert_list.append((a_sid, a_team))
+        
+        if b_sid and b_team:
+            if b_sid not in self.PLAYER_TEAMS:
+                self.PLAYER_TEAMS[b_sid] = b_team
+            
+                team_insert_list.append((b_sid, b_team))
+        
+        if len(team_insert_list) > 0:
+            curs = self.pgsqlConn.cursor()
+            team_insert_args = ','.join(curs.mogrify("(%s, %s)", team_tuple) for team_tuple in team_insert_list)
+            
+            
+            team_insert_query = "INSERT INTO %s (steamid, team) VALUES %s" % (self.TEAM_TABLE, team_insert_args)
+            self.executeQuery(team_insert_query, curs)
+                    
     def executeQuery(self, query, curs=None):
         if not curs:
             curs = self.pgsqlConn.cursor()

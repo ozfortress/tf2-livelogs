@@ -75,17 +75,6 @@
                     <a href="/">Home</a>
                 </li>
                 <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">View Settings <b class="caret"></b></a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a href="#">asdf</a>
-                        </li>
-                        <li class="disabled">
-                            <a href="#">ghjk</a>
-                        </li>
-                    </ul>
-                </li>
-                <li class="dropdown">
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
                     <ul class="dropdown-menu">
                         <li>

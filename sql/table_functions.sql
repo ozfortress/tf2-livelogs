@@ -49,11 +49,22 @@ BEGIN
 END;
 $_$ LANGUAGE 'plpgsql';
 
+CREATE OR REPLACE FUNCTION create_game_team_table (unique_id text) RETURNS void AS $_$
+DECLARE
+	table_name varchar(128);
+BEGIN
+	table_name := 'log_team_' || unique_id;
+	
+	EXECUTE 'CREATE TABLE ' || table_name || ' (steamid varchar(64) PRIMARY KEY, team text)';
+END;
+$_$ LANGUAGE 'plpgsql';
+
 CREATE OR REPLACE FUNCTION setup_log_tables (unique_id text) RETURNS void AS $_$
 BEGIN
 	PERFORM create_game_event_table(unique_id);
 	PERFORM create_game_stat_table(unique_id);
 	PERFORM create_game_chat_table(unique_id);
+	PERFORM create_game_team_table(unique_id);
 END;
 $_$ LANGUAGE 'plpgsql';
 
