@@ -69,7 +69,6 @@
         ?>
         
         <div class="log_list_container">
-            
             <div class="log_list">
                 <table class="table table-bordered table-hover ll_table">
                     <thead>
@@ -110,12 +109,22 @@
                 </table>
             </div>
         </div>
-        <?php
+    <?php
         }
-        ?>
-        
+        if (pg_num_rows($live_res) <= 0)
+        {
+    ?>
+    
+        <div class="log_list_container" align="center">
+    <?php
+        }
+        else 
+        {
+    ?>
+    
         <div class="log_list_container">
         <?php
+        }
             if (!$past_res)
             {
             ?>
