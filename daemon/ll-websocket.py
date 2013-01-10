@@ -520,13 +520,13 @@ class dbManager(object):
             new_stat_tuple = new_table[steam_id]
             
             if steam_id in old_table:
-                #self.log("%s is in new and old table. new tuple:", steam_id)
-                #self.log(new_stat_tuple)
+                #self.log.info("%s is in new and old table. new tuple:", steam_id)
+                #self.log.info(new_stat_tuple)
                 #steam_id is in the old table, so now we need to find the difference between the old and new tuples
                 old_stat_tuple = old_table[steam_id]
                 
-                #self.log("old tuple:")
-                #self.log(old_stat_tuple)
+                #self.log.info("old tuple:")
+                #self.log.info(old_stat_tuple)
                 
                 temp_list = [] #temp list that will be populated with all the stat differences, and then converted to a tuple
                 
@@ -541,11 +541,11 @@ class dbManager(object):
                         
                         temp_list[idx] = diff #store the new value in the temp tuple
                     else:
-                        if val !== old_stat_tuple[0]:
+                        if val != old_stat_tuple[0]:
                             temp_list[idx] = val #idx 0 is the name, you can't get the difference, but you can simply assign the name regardless of if it's different
                 
                 #print ("DIFFERENCE FOR STEAM_ID %s: ", steam_id)
-                #self.log(temp_list)
+                #self.log.info(temp_list)
                 
                 stat_dict_updated[steam_id] = tuple(temp_list) #add the diff'd stat tuple to the stat dict
                 
@@ -567,25 +567,25 @@ class dbManager(object):
             if not conn.busy():
                 i += 1
             
-        self.log("Number of non-busy pSQL connections: %d", i)
+        self.log.info("Number of non-busy pSQL connections: %d", i)
             
         if self.UPDATE_NO_DIFF > 10:
-            self.log("Had 10 updates since there's been a difference. Checking log status for log id %s", self.LOG_IDENT)
+            self.log.info("Had 10 updates since there's been a difference. Checking log status")
             query = "SELECT live FROM livelogs_servers WHERE log_ident = %s" % self.LOG_IDENT
             self.db.execute(query, callback = self._databaseStatusCallback)
             self.CHECKING_LOG_STATUS = True
             
         else:    
-            self.log("Getting database update on table %s", self.STAT_TABLE)
+            self.log.info("Getting database update on table %s", self.STAT_TABLE)
             query = "SELECT * FROM %s" % self.STAT_TABLE
             self.db.execute(query, callback = self._databaseUpdateCallback)
                
     def _databaseStatusCallback(self, cursor, error):
         if error:
-            self.log("Error quering database for log status on log id %s", self.LOG_IDENT)
+            self.log.info("Error quering database for log status")
             return
             
-        self.log("databaseStatusCallback")   
+        self.log.info("databaseStatusCallback")   
          
         if cursor:
             result = cursor.fetchone()
@@ -598,7 +598,7 @@ class dbManager(object):
                     self.CHECKING_LOG_STATUS = False
                 else:
                     #the log is no longer live
-                    self.log("Log id %s is no longer live", self.LOG_IDENT)
+                    self.log.info("Log is no longer live")
                     self.cleanup()
                     
                     self.end_callback(self.LOG_IDENT)
@@ -606,12 +606,12 @@ class dbManager(object):
     def _databaseUpdateCallback(self, cursor, error):
         #the callback for database update queries
         if error:
-            self.log("Error querying database for stat data on log id %s", self.LOG_IDENT)
+            self.log.info("Error querying database for stat data")
             return
         
         stat_dict = {}
         
-        self.log("Update callback for log id %s", self.LOG_IDENT)
+        self.log.info("Update callback")
         #iterate over the cursor
         for row in cursor:
             #each row is a player's data as a tuple in the format of:
@@ -619,8 +619,8 @@ class dbManager(object):
             sid = self.steamCommunityID(row[0]) #player's steamid as a community id
             stat_dict[sid] = row[1:] #splice the rest of the data and store it under the player's steamid
             
-            #self.log("steamid %s has data:" % sid
-            #self.log(row[1:]
+            #self.log.info("steamid %s has data:" % sid
+            #self.log.info(row[1:]
         
         if not self.DB_LATEST_TABLE:
             self.DB_LATEST_TABLE = stat_dict
@@ -653,7 +653,7 @@ class dbManager(object):
             while self.updateThread.isAlive(): 
                 self.updateThread.join(5)
                 
-            self.log("Database update thread for log id %s successfully closed", self.LOG_IDENT)
+            self.log.info("Database update thread successfully closed")
             
     def __del__(self):
         #make sure cleanup is run if the class is deconstructed randomly. update thread is a daemon thread, so it will exit on close
