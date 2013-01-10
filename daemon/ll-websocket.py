@@ -571,8 +571,7 @@ class dbManager(object):
             
         if self.UPDATE_NO_DIFF > 10:
             self.log.info("Had 10 updates since there's been a difference. Checking log status")
-            query = "SELECT live FROM livelogs_servers WHERE log_ident = %s" % self.LOG_IDENT
-            self.db.execute(query, callback = self._databaseStatusCallback)
+            self.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (self.LOG_IDENT,), callback = self._databaseStatusCallback)
             self.CHECKING_LOG_STATUS = True
             
         else:    
@@ -582,7 +581,7 @@ class dbManager(object):
                
     def _databaseStatusCallback(self, cursor, error):
         if error:
-            self.log.info("Error quering database for log status")
+            self.log.info("Error querying database for log status: %s", error)
             return
             
         self.log.info("databaseStatusCallback")   
