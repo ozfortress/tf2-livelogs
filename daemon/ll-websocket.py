@@ -319,12 +319,13 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         if error:
             self.write_message("LOG_ERROR")
             logger.info("Error querying database for log status")
+            
+            self.close()
             return
         
         #if live is NOT NULL, then the log exists
         #live == t means the log is live, and live == f means it's not live
-        #try:
-            
+        
         results = cursor.fetchone() #fetchone returns a list, we only have 1 element and it'll be the first (idx 0)
         
         if results and len(results) > 0:
@@ -350,12 +351,6 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         else:
             self.closeLogUpdate()
                 
-        """except Exception as e: 
-            #we'll get a type error trying to access cusor.fetchone if it returned no results, so we know it's invalid
-            logger.info("Exception %s while trying to get status for log id %s", type(e), self.LOG_IDENT)
-            
-            self.closeLogUpdate()
-        """
     def closeLogUpdate(self):
         self.write_message("LOG_NOT_LIVE")
         
@@ -558,7 +553,7 @@ class dbManager(object):
     
     def getDatabaseUpdate(self):
         #executes the query to obtain an update. called on init and periodically
-        if self.CHECKING_LOG_STATUS:
+        if self.CHECKING_LOG_STATUS == True:
             self.log.info("Currently checking log status. Waiting before more updates")
             return
         
@@ -574,11 +569,13 @@ class dbManager(object):
             
         if self.UPDATE_NO_DIFF > 10:
             self.log.info("Had 10 updates since there's been a difference. Checking log status")
-            self.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (self.LOG_IDENT,), callback = self._databaseStatusCallback)
+
             self.CHECKING_LOG_STATUS = True
             
+            self.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (self.LOG_IDENT,), callback = self._databaseStatusCallback)
         else:    
             self.log.info("Getting database update on table %s", self.STAT_TABLE)
+            
             query = "SELECT * FROM %s" % self.STAT_TABLE
             self.db.execute(query, callback = self._databaseUpdateCallback)
                
@@ -597,10 +594,9 @@ class dbManager(object):
                 
                 if (live == True):
                     self.UPDATE_NO_DIFF = 0 #reset the increment, because the log is actually still live
+                    self.CHECKING_LOG_STATUS = False
                     
                     self.log.info("Log is still live. Continuing to update")
-                    
-                    self.CHECKING_LOG_STATUS = False
                 else:
                     #the log is no longer live
                     self.log.info("Log is no longer live")
