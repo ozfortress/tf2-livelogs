@@ -260,7 +260,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             logger.info("Adding %s to dbManager dict", log_ident)
             #now we need to create a new dbManager for this log id. the database handle is the momoko pool created @ startup
             #and is the same for all clients
-            cls.db_managers[log_ident] = dbManager(log_ident, database, update_rate)
+            cls.db_managers[log_ident] = dbManager(log_ident, database, update_rate, end_callback = cls._logFinishedCallback)
     
     @classmethod
     def delDBManager(cls, log_ident):
@@ -300,11 +300,17 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                                 
         #TODO: Close connection when game is no longer live
 
-    @tornado.web.asynchronous
     def getLogStatus(self, log_ident):
         """
         Executes the query to obtain the log status
         """
+        
+        i = 0
+        for conn in self.application.db._pool:
+            if not conn.busy():
+                i += 1
+        
+        logger.info("Number of non-busy pSQL conns @ getLogStatus: %d", i)
         
         res_cursor = self.application.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (log_ident,), callback=self._logStatusCallback)
     
@@ -363,13 +369,23 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             
             event.wait(cls.update_rate)
         
-        
+    @classmethod
+    def _logFinishedCallback(cls, log_ident):
+        logger.info("Log id %s is over. Closing connections", log_ident)
+        if log_ident in cls.ordered_clients:
+            for client in cls.ordered_clients[log_ident]:
+                client.write_message("END_LOG")
+                
+                client.close()
 """
 The database manager class holds a copy of a log id's stat table. It provides functions to calculate the difference between
 currently stored data and new data (delta compression) which will be sent to the clients.
 """
 class dbManager(object):
-    def __init__(self, log_id, db_conn, update_rate):
+    def __init__(self, log_id, db_conn, update_rate, end_callback = None):
+        #end_callback is the function to be called when the log is no longer live
+        
+        self.end_callback = end_callback
         self.LOG_IDENT = log_id
         self.db = db_conn
         self.update_rate = update_rate
@@ -419,6 +435,8 @@ class dbManager(object):
         self.updateThread = threading.Thread(target = self._updateThread, args=(self.updateThreadEvent,))
         self.updateThread.daemon = True
         
+        self.log = logging.getLogger("dbManager #%s" % log_id)
+        
         self.getDatabaseUpdate()
     
     def steamCommunityID(self, steam_id):
@@ -442,7 +460,7 @@ class dbManager(object):
         #converts an index in the stat tuple to a name for use in dictionary keys
         
         index_name = self.STAT_KEYS[index]
-        #print "NAME FOR INDEX %d: %s" % (index, index_name)
+        #self.log "NAME FOR INDEX %d: %s" % (index, index_name)
         
         return index_name
     
@@ -502,13 +520,13 @@ class dbManager(object):
             new_stat_tuple = new_table[steam_id]
             
             if steam_id in old_table:
-                #print "%s is in new and old table. new tuple:" % steam_id
-                #print new_stat_tuple
+                #self.log("%s is in new and old table. new tuple:", steam_id)
+                #self.log(new_stat_tuple)
                 #steam_id is in the old table, so now we need to find the difference between the old and new tuples
                 old_stat_tuple = old_table[steam_id]
                 
-                #print "old tuple:"
-                #print old_stat_tuple
+                #self.log("old tuple:")
+                #self.log(old_stat_tuple)
                 
                 temp_list = [] #temp list that will be populated with all the stat differences, and then converted to a tuple
                 
@@ -523,10 +541,11 @@ class dbManager(object):
                         
                         temp_list[idx] = diff #store the new value in the temp tuple
                     else:
-                        temp_list[idx] = val #idx 0 is the name, you can't get the difference, but you can simply assign the name regardless of if it's different
+                        if val !== old_stat_tuple[0]:
+                            temp_list[idx] = val #idx 0 is the name, you can't get the difference, but you can simply assign the name regardless of if it's different
                 
-                #print "DIFFERENCE FOR STEAM_ID %s: " % steam_id
-                #print temp_list
+                #print ("DIFFERENCE FOR STEAM_ID %s: ", steam_id)
+                #self.log(temp_list)
                 
                 stat_dict_updated[steam_id] = tuple(temp_list) #add the diff'd stat tuple to the stat dict
                 
@@ -542,52 +561,57 @@ class dbManager(object):
         
         if not self.updateThread.isAlive():
             self.updateThread.start()
-        
-        if self.UPDATE_NO_DIFF > 10:
-            print "Had 10 updates since there's been a difference. Checking log status for log id %s" % self.LOG_IDENT
-            query = "SELECT live FROM livelogs_servers WHERE log_ident = %s" % self.LOG_IDENT
-            self.db.execute(query, callback = self._databaseStatusCallback)
-            self.CHECKING_LOG_STATUS = True
-            
-        else:    
-            print "Getting database update on table %s" % self.STAT_TABLE
-            query = "SELECT * FROM %s" % self.STAT_TABLE
-            self.db.execute(query, callback = self._databaseUpdateCallback)
-            
             
         i = 0
         for conn in self.db._pool:
             if not conn.busy():
                 i += 1
             
-        print "Number of non-busy pSQL connections: %d" % i
+        self.log("Number of non-busy pSQL connections: %d", i)
             
+        if self.UPDATE_NO_DIFF > 10:
+            self.log("Had 10 updates since there's been a difference. Checking log status for log id %s", self.LOG_IDENT)
+            query = "SELECT live FROM livelogs_servers WHERE log_ident = %s" % self.LOG_IDENT
+            self.db.execute(query, callback = self._databaseStatusCallback)
+            self.CHECKING_LOG_STATUS = True
+            
+        else:    
+            self.log("Getting database update on table %s", self.STAT_TABLE)
+            query = "SELECT * FROM %s" % self.STAT_TABLE
+            self.db.execute(query, callback = self._databaseUpdateCallback)
+               
     def _databaseStatusCallback(self, cursor, error):
         if error:
-            print "Error quering database for log status on log id %s" % self.LOG_IDENT
+            self.log("Error quering database for log status on log id %s", self.LOG_IDENT)
             return
             
-        result = cursor.fetchone()
-        
-        if result and len(result) > 0:
-            live = result[0]
+        self.log("databaseStatusCallback")   
+         
+        if cursor:
+            result = cursor.fetchone()
             
-            if (live == True):
-                self.UPDATE_NO_DIFF = 0 #reset the increment, because the log is actually still live
-                self.CHECKING_LOG_STATUS = False
-            else:
-                #the log is no longer live
-                self.cleanup()
+            if result and len(result) > 0:
+                live = result[0]
+                
+                if (live == True):
+                    self.UPDATE_NO_DIFF = 0 #reset the increment, because the log is actually still live
+                    self.CHECKING_LOG_STATUS = False
+                else:
+                    #the log is no longer live
+                    self.log("Log id %s is no longer live", self.LOG_IDENT)
+                    self.cleanup()
+                    
+                    self.end_callback(self.LOG_IDENT)
         
     def _databaseUpdateCallback(self, cursor, error):
         #the callback for database update queries
         if error:
-            print "Error querying database for stat data on log id %s" % self.LOG_IDENT
+            self.log("Error querying database for stat data on log id %s", self.LOG_IDENT)
             return
         
         stat_dict = {}
         
-        print "Update callback for log id %s" % self.LOG_IDENT
+        self.log("Update callback for log id %s", self.LOG_IDENT)
         #iterate over the cursor
         for row in cursor:
             #each row is a player's data as a tuple in the format of:
@@ -595,8 +619,8 @@ class dbManager(object):
             sid = self.steamCommunityID(row[0]) #player's steamid as a community id
             stat_dict[sid] = row[1:] #splice the rest of the data and store it under the player's steamid
             
-            #print "steamid %s has data:" % sid
-            #print row[1:]
+            #self.log("steamid %s has data:" % sid
+            #self.log(row[1:]
         
         if not self.DB_LATEST_TABLE:
             self.DB_LATEST_TABLE = stat_dict
@@ -629,7 +653,7 @@ class dbManager(object):
             while self.updateThread.isAlive(): 
                 self.updateThread.join(5)
                 
-            print "Database update thread for log id %s successfully closed" % self.LOG_IDENT
+            self.log("Database update thread for log id %s successfully closed", self.LOG_IDENT)
             
     def __del__(self):
         #make sure cleanup is run if the class is deconstructed randomly. update thread is a daemon thread, so it will exit on close
@@ -650,10 +674,10 @@ if __name__ == "__main__":
             update_rate = cfg_parser.getfloat('websocket-server', 'update_rate')
             
         except:
-            print "Unable to read websocket and or database section in config file"
+            "Unable to read websocket and or database section in config file"
             quit()
     else:
-        print "Error reading config file"
+        "Error reading config file"
         quit()
     
     logger = logging.getLogger('WS MAIN')
@@ -673,9 +697,9 @@ if __name__ == "__main__":
         
     llWebSocketServer.db = momoko.Pool(
         dsn = db_details,
-        minconn = 1,
-        maxconn = 50,
-        cleanup_timeout = 10,
+        minconn = 2, #minimum number of connections for the momoko pool to maintain
+        maxconn = 50, #max number of conns that will be opened
+        cleanup_timeout = 10, #how often (in seconds) connections are closed (cleaned up) when number of connections > minconn
     )
     
     llWebSocketServer.update_rate = tornado.options.options.update_rate
