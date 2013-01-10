@@ -66,6 +66,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     #def allow_draft76(self):
         #allow old versions of the websocket protocol, for legacy support. LESS SECURE
     #    return True
+    
     def __init__(self, application, request, **kwargs):
         self.LOG_IDENT_RECEIVED = False
         self.LOG_IDENT = None
@@ -97,9 +98,6 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         logUpdateHandler.clients.add(self)
         logUpdateHandler.ordered_clients["none"].add(self)
-        
-        print "Clients without ID:"
-        print logUpdateHandler.ordered_clients["none"]
         
         if not logUpdateHandler.logUpdateThread.isAlive():
             logger.info("Starting send update thread")
@@ -546,6 +544,7 @@ class dbManager(object):
             self.updateThread.start()
         
         if self.UPDATE_NO_DIFF > 10:
+            print "Had 10 updates since there's been a difference. Checking log status for log id %s" % self.LOG_IDENT
             query = "SELECT live FROM livelogs_servers WHERE log_ident = %s" % self.LOG_IDENT
             self.db.execute(query, callback = self._databaseStatusCallback)
             self.CHECKING_LOG_STATUS = True
@@ -554,6 +553,14 @@ class dbManager(object):
             print "Getting database update on table %s" % self.STAT_TABLE
             query = "SELECT * FROM %s" % self.STAT_TABLE
             self.db.execute(query, callback = self._databaseUpdateCallback)
+            
+            
+        i = 0
+        for conn in self.db._pool:
+            if not conn.busy():
+                i += 1
+            
+        print "Number of non-busy pSQL connections: %d" % i
             
     def _databaseStatusCallback(self, cursor, error):
         if error:
