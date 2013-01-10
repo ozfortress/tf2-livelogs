@@ -376,7 +376,9 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             for client in cls.ordered_clients[log_ident]:
                 client.write_message("END_LOG")
                 
-                client.close()
+                client.close() #on_close will take care of empty sets and what not!
+                
+                cls.delDBManager(log_ident)
 """
 The database manager class holds a copy of a log id's stat table. It provides functions to calculate the difference between
 currently stored data and new data (delta compression) which will be sent to the clients.
@@ -557,6 +559,7 @@ class dbManager(object):
     def getDatabaseUpdate(self):
         #executes the query to obtain an update. called on init and periodically
         if self.CHECKING_LOG_STATUS:
+            self.log.info("Currently checking log status. Waiting before more updates")
             return
         
         if not self.updateThread.isAlive():
@@ -594,6 +597,9 @@ class dbManager(object):
                 
                 if (live == True):
                     self.UPDATE_NO_DIFF = 0 #reset the increment, because the log is actually still live
+                    
+                    self.log.info("Log is still live. Continuing to update")
+                    
                     self.CHECKING_LOG_STATUS = False
                 else:
                     #the log is no longer live
