@@ -10,6 +10,7 @@ import time
 import struct
 import socket
 import re
+import os
 from pprint import pprint
 
 class parserClass():
@@ -27,12 +28,16 @@ class parserClass():
                 db_pass = cfg_parser.get('database', 'db_password')
                 db_name = cfg_parser.get('database', 'db_name')
                 
+                log_dir = cfg_parser.get('log-listener', 'log_directory')
+                
             except:
-                print "Unable to read database section in config file"
+                print "Unable to read options from config file"
                 self.HAD_ERROR = True
                 return
         else:
             print "Error reading config file"
+            
+            self.HAD_ERROR = True
             return
             
         try:
@@ -45,6 +50,22 @@ class parserClass():
             self.HAD_ERROR = True
             return
         
+        try:
+            if not os.path.exists(log_dir):
+                #need to make the directory
+                os.makedirs(log_dir, "744")
+                
+            log_file_name = "%s.log" % unique_ident    
+            log_file = os.path.normpath(os.path.join(log_dir, log_file_name))
+            
+            self.LOG_FILE_HANDLE = open(log_file, 'w')
+            
+        except error:
+            print "Error opening new log file for writing, or creating log directory: %s" % error
+            
+            self.HAD_ERROR = True
+            return
+        
         print "Parser params: Map: " + current_map + " Log name: " + log_name
         
         self.closeListenerCallback = endfunc
@@ -53,11 +74,6 @@ class parserClass():
         self.GAME_OVER = False
         self.ROUND_PAUSE = False
         self.LOG_PARSING_ENDED = False
-        
-        self.bNamedLog = False
-        if (log_name != None):
-            self.bNamedLog = True
-            self.namedLogName = log_name
 
         #if no map is specified (auto detect), set map to 0
         if (current_map == None):
@@ -79,12 +95,11 @@ class parserClass():
         if (server_address != None):
             dbCursor.execute("SELECT create_global_server_table()")
         
-            if (self.bNamedLog):
-                dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name, live, webtv_port) VALUES (%s, %s, %s, %s, %s, 'true', %s)", 
-                                        (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map, self.namedLogName, webtv_port,))
-            else:
-                dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, live, webtv_port) VALUES (%s, %s, %s, %s, 'true', %s)",
-                                        (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map, webtv_port,))
+            if not log_name:
+                log_name = "log-%s" % time.strftime("%Y-%m-%d-%H-%M") #log-year-month-day-hour-minute
+            
+            dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name, live, webtv_port) VALUES (%s, %s, %s, %s, %s, 'true', %s)", 
+                                        (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map, log_name, webtv_port,))
 
         if (log_uploaded):
             #TODO: Create an indexing method for logs that were manually uploaded and parsed
@@ -112,8 +127,6 @@ class parserClass():
         
         print "Parser initialised"
 
-    
-
     def ip2long(self, ip):
         return struct.unpack('!L', socket.inet_aton(ip))[0]
 
@@ -130,6 +143,7 @@ class parserClass():
         regex = self.regex #avoid having to use fucking self.regex every time (ANNOYING++++)
         regml = self.regml #local def for regml ^^^
 
+        self.LOG_FILE_HANDLE.write(logdata)
 
         #if (res):
         #    print "Matching regex:"
@@ -564,7 +578,7 @@ class parserClass():
             final_score_query = "UPDATE %s SET round_%s_score = '%s' WHERE event_type = 'game_over'" % (self.EVENT_TABLE, fs_team.lower(), fs_score)
             self.executeQuery(final_score_query)
 
-            if (fs_team == "Blue"):
+            if (fs_team == "Blue"): #red's final score is shown before blue's
                 self.GAME_OVER = True
                 self.endLogParsing(True)
             
@@ -785,4 +799,12 @@ class parserClass():
                 self.closeListenerCallback(game_over);
                 
             self.LOG_PARSING_ENDED = True
+            
+            self.LOG_FILE_HANDLE.close()
     
+    def __del__(self):
+        if not self.LOG_FILE_HANDLE.closed:
+            self.LOG_FILE_HANDLE.close()
+            
+        if not self.pgsqlConn.closed:
+            self.pgsqlConn.close()

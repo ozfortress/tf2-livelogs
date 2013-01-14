@@ -208,6 +208,7 @@ if __name__ == '__main__':
         cfg_parser.set('log-listener', 'server_port', '61222')
         cfg_parser.set('log-listener', 'listener_timeout', '90.0')
         cfg_parser.set('log-listener', 'api_key', '123test')
+        cfg_parser.set('log-listener', 'log_directory', 'logs')
         
         cfg_parser.add_section('websocket-server')
         cfg_parser.set('websocket-server', 'server_ip', '')
