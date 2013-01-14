@@ -148,7 +148,7 @@ class parserClass():
         regex = self.regex #avoid having to use fucking self.regex every time (ANNOYING++++)
         regml = self.regml #local def for regml ^^^
 
-        self.LOG_FILE_HANDLE.write(logdata)
+        self.LOG_FILE_HANDLE.write(logdata + "\n")
 
         #if (res):
         #    print "Matching regex:"
