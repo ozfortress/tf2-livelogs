@@ -102,8 +102,6 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 else:
                     self.logger.debug("THREAD %s: Parser had error trying to initialise. Closing connection", t_name)
                     self.newListen.error_cleanup() #shutdown the listener
-                    
-                self.logger.debug("THREAD %s: Stopped listening for logs", t_name)
         else:
             self.logger.debug("THREAD %s: Invalid data received. Exiting", t_name)
 
@@ -166,9 +164,9 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def addListenerObject(self, listener_object):
         #add the listener object to a set
         if listener_object in self.listen_set:
-            self.logger.info("Listen object %s is already in the listen set. wat & why?", l_object)
+            self.logger.info("Listen object %s is already in the listen set. wat & why?", listener_object)
         else:    
-            self.listen_set.add(l_object)
+            self.listen_set.add(listener_object)
         
     def removeListenerObject(self, listener_object):
         #removes the object from the set
@@ -178,7 +176,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         
             self.removeClient(client_ip, client_server_port)
             
-            self.listen_set.discard(l_object)
+            self.listen_set.discard(listener_object)
             
             
 

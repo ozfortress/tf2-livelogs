@@ -61,7 +61,7 @@ class llListener(SocketServer.UDPServer):
             self.gameOverTimer.start()
             
         else:
-            print "Server timeout (no logs received in 90 seconds). Exiting"
+            print "Server timeout (no logs received in %0.2f seconds). Exiting" % self.timeout
             
             #toggle log's status and stop recording
             if not self.parser.HAD_ERROR:
@@ -80,7 +80,7 @@ class llListener(SocketServer.UDPServer):
         SocketServer.UDPServer.shutdown(self)
         
         #should no longer be listening or anything now, so we can call close_object, which will join the thread and remove llListenerObject from the daemon's set
-        listener_object.close_object()
+        self.listener_object.close_object()
 
 class llListenerObject(object):
     def __init__(self, listenIP, client_address, current_map, log_name, end_function, webtv_port=None, timeout=90.0):
@@ -127,5 +127,7 @@ class llListenerObject(object):
     def close_object(self): #only ever called by listener.shutdown()
         while self.lthread.isAlive(): #attempt to join the thread
             self.lthread.join(5)
+        
+        print "Listener thread joined. Removing listener object from set"
         
         self.end_function(self) #self _should_ be the same as the newListen object added by the daemon
