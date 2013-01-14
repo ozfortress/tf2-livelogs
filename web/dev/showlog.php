@@ -174,7 +174,21 @@
         </div>
 
         <div class="log_details_container">
+            <?php
+            if ($log_live) {
+            ?>
+            
+            <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="#"><?=$UNIQUE_IDENT?></a></span><br>
+            <?php
+            }
+            else
+            {
+            ?>
+            
             <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="/download/<?=$UNIQUE_IDENT?>"><?=$UNIQUE_IDENT?></a></span><br>
+            <?php
+            }
+            ?>
             <span class="log_name_id">Name: </span><span class="log_detail"><?=$log_details["log_name"]?></span><br>
             <span class="server_details_id">Server: </span><span class="log_detail"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span><br>
             <span class="log_map_id">Map: </span><span class="log_detail"><?=$log_details["map"]?></span><br>

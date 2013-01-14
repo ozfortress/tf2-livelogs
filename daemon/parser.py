@@ -17,6 +17,8 @@ class parserClass():
     def __init__(self, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc = None, webtv_port=None):
         #ALWAYS REQUIRE A UNIQUE IDENT, OTHER PARAMS ARE OPTIONAL
         self.HAD_ERROR = False
+        self.LOG_FILE_HANDLE = None
+        self.pgsqlConn = None
         
         import ConfigParser
         cfg_parser = ConfigParser.SafeConfigParser()
@@ -41,8 +43,6 @@ class parserClass():
             return
             
         #try open the file before opening the sql connection, so if the file errors out we won't have to close the sql connection as well
-        self.LOG_FILE_HANDLE = None
-        
         try:
             if not os.path.exists(log_dir):
                 #need to make the directory
@@ -815,6 +815,7 @@ class parserClass():
         if self.LOG_FILE_HANDLE:
             if not self.LOG_FILE_HANDLE.closed:
                 self.LOG_FILE_HANDLE.close()
-            
-        if not self.pgsqlConn.closed:
-            self.pgsqlConn.close()
+        
+        if self.pgsqlConn:    
+            if not self.pgsqlConn.closed:
+                self.pgsqlConn.close()
