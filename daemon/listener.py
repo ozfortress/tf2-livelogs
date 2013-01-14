@@ -19,7 +19,7 @@ class llListenerHandler(SocketServer.BaseRequestHandler):
 
 
 class llListener(SocketServer.UDPServer):
-    def __init__(self, listener_address, timeout, handler_class=llListenerHandler):
+    def __init__(self, listener_address, timeout, listener_object, handler_class=llListenerHandler):
         SocketServer.UDPServer.__init__(self, listener_address, handler_class)
         print "Initialised log listener. Waiting for logs"
 
@@ -28,20 +28,20 @@ class llListener(SocketServer.UDPServer):
         self.timeoutTimer = threading.Timer(timeout, self.handle_server_timeout)
         self.timeoutTimer.start()
 
-        return
+        self.listener_object = listener_object #llListenerObject address, which holds this listener. needed to end the listening thread, and remove the object from the daemon's set
 
     def verify_request(self, request, client_address):
         """
         Verify the request to make sure it's coming from the expected client
-        Won't be from the same port every time, so we'll just check by IP
+        Likely won't be from the same port every time, so we'll just check by IP
         """
-        #print "Current client addr: " + client_address[0] + ". Expected addr: " + self.lClientAddr[0]
-        if (client_address[0] == self.lClientAddr[0]):
+        #print "Current client addr: " + client_address[0] + ". Expected addr: " + self.client_address[0]
+        if (client_address[0] == self.client_server_address[0]):
             #print "Client address is same as initial client. Accepting log"
             #reset the timeout timer
             self.timeoutTimer.cancel()
 
-            #restart!
+            #restart the timeout timer, so it doesn't prematurely timeout the listener
             self.timeoutTimer = threading.Timer(self.timeout, self.handle_server_timeout)
             self.timeoutTimer.start()
 
@@ -57,9 +57,8 @@ class llListener(SocketServer.UDPServer):
             
             self.timeoutTimer.cancel()
             
-            self.gameOverTimer = threading.Timer(5.0, self.shutdown)
+            self.gameOverTimer = threading.Timer(8.0, self.shutdown)
             self.gameOverTimer.start()
-            
             
         else:
             print "Server timeout (no logs received in 90 seconds). Exiting"
@@ -74,45 +73,49 @@ class llListener(SocketServer.UDPServer):
 
     def shutdown(self):
         #need to close the parser's database connection
-        if not self.parser.pgsqlConn.closed:
+        if not self.parser.pgsqlConn.closed: #cancel current operations and end the log
             self.parser.pgsqlConn.cancel()
             self.parser.endLogParsing()
-            
+                  
         SocketServer.UDPServer.shutdown(self)
+        
+        #should no longer be listening or anything now, so we can call close_object, which will join the thread and remove llListenerObject from the daemon's set
+        listener_object.close_object()
 
-
-class llListenerObject():
-    def __init__(self, listenIP, lClientAddr, current_map, log_name, webtv_port=None, timeout=90.0):
+class llListenerObject(object):
+    def __init__(self, listenIP, client_address, current_map, log_name, end_function, webtv_port=None, timeout=90.0):
         self.listenIP = listenIP
 
         self.listenAddress = (self.listenIP, 0)
-        self.listener = llListener(self.listenAddress, timeout, handler_class=llListenerHandler)
+        self.listener = llListener(self.listenAddress, timeout, self, handler_class=llListenerHandler)
 
         print "Initialising parser"
         
-        self.unique_parser_ident = "%s_%s_%s" % (self.ip2long(lClientAddr[0]), lClientAddr[1], int(round(time.time())))
+        self.unique_parser_ident = "%s_%s_%s" % (self.ip2long(client_address[0]), client_address[1], int(round(time.time())))
         
-        self.listener.parser = parser.parserClass(self.unique_parser_ident, server_address = lClientAddr, current_map = current_map, log_name = log_name, endfunc = self.listener.handle_server_timeout, webtv_port = webtv_port)
+        self.listener.parser = parser.parserClass(self.unique_parser_ident, server_address = client_address, current_map = current_map, log_name = log_name, endfunc = self.listener.handle_server_timeout, webtv_port = webtv_port)
         
-        self.listener.lClientAddr = lClientAddr
+        self.listener.client_server_address = client_address #tuple containing the client's server IP and PORT
+        
+        self.lip, self.lport = self.listener.server_address #get the listener's address, so it can be sent to the client
 
-        self.lip, self.lport = self.listener.server_address
-
-        self.lClientAddr = lClientAddr
-
-        return
+        self.client_address = client_address
+        
+        self.end_function = end_function
 
     def startListening(self):
-        #lthread = threading.Thread(target=self.listener.serve_forever())
-        #lthread.daemon = True
-        #lthread.start()
-        try:
-            self.listener.serve_forever()
-        except KeyboardInterrupt:
-            self.listener.server_close()
+        #start serving in a thread. the object will be stored in a set owned by the daemon object, so the thread will be kept alive
+        self.lthread = threading.Thread(target = self.listener.serve_forever)
+        self.lthread.daemon = True
+        self.lthread.start()
+        
+        #try:
+        #    self.listener.serve_forever()
+        #except KeyboardInterrupt:
+        #    self.listener.server_close()
         
     def returnClientAddress(self):
-        return self.lClientAddr
+        return self.client_address
 
     def ip2long(self, ip):
         return struct.unpack('!L', socket.inet_aton(ip))[0]
@@ -120,3 +123,9 @@ class llListenerObject():
     def error_cleanup(self):
         self.listener.timeoutTimer.cancel()
         self.listener.shutdown()
+        
+    def close_object(self): #only ever called by listener.shutdown()
+        while self.lthread.isAlive(): #attempt to join the thread
+            self.lthread.join(5)
+        
+        self.end_function(self) #self _should_ be the same as the newListen object added by the daemon

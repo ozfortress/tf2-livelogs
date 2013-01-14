@@ -21,21 +21,23 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
         SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
         
-    def setup(self):
-        self.logger.debug('Handler setup')
-        return SocketServer.BaseRequestHandler.setup(self)
-        
     def handle(self):
         self.logger.debug('Daemon Handler Handling')
         
-        rcvd = self.request.recv(1024) #read 1024 bytes of data
+        cur_thread = threading.currentThread()
+        t_name = cur_thread.name
         
-        cur_pid = os.getpid()
+        rcvd = self.request.recv(1024) #read 1024 bytes of data
 
-        self.logger.debug('PID %s: Received "%s" from client %s:%s', cur_pid, rcvd, self.cip, self.cport)
+        self.logger.debug('THREAD %s: Received "%s" from client %s:%s', t_name, rcvd, self.cip, self.cport)
 
         #FORMAT OF LOG REQUEST: LIVELOG!KEY!SIP!SPORT!MAP!NAME!WEBTV_PORT(OPTIONAL)
-        tokenized = rcvd.split('!')
+        try:
+            tokenized = rcvd.split('!')
+        except:
+            self.logger.debug("Invalid data received")
+            return
+            
         tokLen = len(tokenized)
         if (tokLen >= 6) and (tokenized[0] == "LIVELOG"):
             if (tokenized[1] == self.server.LL_API_KEY):
@@ -57,13 +59,13 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                         self.logger.debug("Unable to resolve DNS. Rejecting connection")
                         return
                         
-                    self.ll_clientip = dns_res[0][4][0]
+                    self.ll_clientip = dns_res[0][4][0] #get the first IP returned by getaddrinfo
                 
-                self.ll_clientport = tokenized[3]
+                self.ll_client_server_port = tokenized[3]
 
-                if (self.server.clientExists(self.ll_clientip, self.ll_clientport)):
-                    self.logger.debug("PID %s: Client %s:%s already has a listener", cur_pid, self.ll_clientip, self.ll_clientport)
-                    dict_key = "c" + self.ll_clientip + self.ll_clientport
+                if (self.server.clientExists(self.ll_clientip, self.ll_client_server_port)):
+                    self.logger.debug("THREAD %s: Client %s:%s already has a listener", t_name, self.ll_clientip, self.ll_client_server_port)
+                    dict_key = "c" + self.ll_clientip + self.ll_client_server_port
                     listen_ip, listen_port = self.server.clientDict[dict_key]
                     
                     returnMsg = "LIVELOG!%s!%s!%s!REUSE" % (self.server.LL_API_KEY, listen_ip, listen_port)
@@ -71,39 +73,47 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                     self.request.send(returnMsg)
                     return    
 
-                sip, sport = self.server.server_address
+                sip, sport = self.server.server_address #get our server info, so we know what IP to listen on
 
                 if (tokLen == 6):
-                    self.newListen = listener.llListenerObject(sip, (self.ll_clientip, self.ll_clientport), tokenized[4], tokenized[5], timeout=self.server.listener_timeout)
+                    webtv_port = None
 
                 elif (tokLen == 7):
-                    self.newListen = listener.llListenerObject(sip, (self.ll_clientip, self.ll_clientport), tokenized[4], tokenized[5], timeout=self.server.listener_timeout, webtv_port = tokenized[6])
+                    webtv_port = tokenized[6]
 
-                lport = self.newListen.lport
-                self.logger.debug("PID %s: Listener port: %s", cur_pid, lport)
+                self.newListen = listener.llListenerObject(sip, (self.ll_clientip, self.ll_client_server_port), tokenized[4], tokenized[5], self.server.removeListenerObject,
+                                                            timeout=self.server.listener_timeout, webtv_port = webtv_port)
                 
-                returnMsg = "LIVELOG!%s!%s!%s!%s" % (self.server.LL_API_KEY, sip, lport, self.newListen.unique_parser_ident)
-                self.logger.debug("RESPONSE: %s", returnMsg)
-                self.request.send(returnMsg)
-
-                self.server.addClient(self.ll_clientip, self.ll_clientport, (sip, lport)) 
-
-                if not self.newListen.listener.parser.HAD_ERROR:
-                    self.newListen.startListening()
-                else:
-                    self.logger.debug("PID %s: Parser had error trying to initialise. Closing connection")
-                    self.newListen.error_cleanup()
+                if not self.newListen.listener.parser.HAD_ERROR: #check if the parser had an error during init or not
+                    lport = self.newListen.lport #port the listener is on
+                    self.logger.debug("THREAD %s: Listener port: %s", t_name, lport)
                     
-                self.logger.debug("PID %s: Stopped listening for logs", cur_pid)
+                    #REPLY FORMAT: LIVELOG!KEY!LISTEN_IP!LISTEN_PORT!UNIQUE_IDENT
+                    returnMsg = "LIVELOG!%s!%s!%s!%s" % (self.server.LL_API_KEY, sip, lport, self.newListen.unique_parser_ident)
+                    
+                    self.logger.debug("RESPONSE: %s", returnMsg)
+                    self.request.send(returnMsg)
+                    
+                    self.server.addClient(self.ll_clientip, self.ll_client_server_port, (sip, lport)) #add the client to a dict and store its listener address
 
-                self.server.removeClient(self.ll_clientip, self.ll_clientport)
+                    self.server.addListenerObject(self.newListen) #add the listener object to a set, so it remains alive
+                    
+                    self.newListen.startListening() #start listening
+                else:
+                    self.logger.debug("THREAD %s: Parser had error trying to initialise. Closing connection", t_name)
+                    self.newListen.error_cleanup() #shutdown the listener
+                    
+                self.logger.debug("THREAD %s: Stopped listening for logs", t_name)
         else:
-            self.logger.debug("PID %s: Invalid data received. Exiting", cur_pid)
+            self.logger.debug("THREAD %s: Invalid data received. Exiting", t_name)
 
         return
         
     def finish(self):
-        self.logger.debug('Finished handling request from %s:%s', self.cip, self.cport)
+        if self.newListen:
+            self.logger.debug("Finished handling request from %s:%s. Listener established", self.cip, self.cport)
+        else:
+            self.logger.debug("Finished handling request from %s:%s. Listener not running", self.cip, self.cport)
 
         return SocketServer.BaseRequestHandler.finish(self)
         
@@ -115,6 +125,8 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.allow_reuse_address = True
         self.daemon_threads = True
 
+        self.listen_set = set()
+        
         SocketServer.TCPServer.__init__(self, server_ip, handler)
         
     def server_activate(self):
@@ -131,8 +143,8 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         return
 
     def clientExists(self, ip, port):
-        print "Keys in self.clientDict: "
-        pprint(self.clientDict.keys())
+        #print "Keys in self.clientDict: "
+        #pprint(self.clientDict.keys())
 
         dict_key = "c" + ip + port
 
@@ -151,6 +163,24 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
         return
 
+    def addListenerObject(self, listener_object):
+        #add the listener object to a set
+        if listener_object in self.listen_set:
+            self.logger.info("Listen object %s is already in the listen set. wat & why?", l_object)
+        else:    
+            self.listen_set.add(l_object)
+        
+    def removeListenerObject(self, listener_object):
+        #removes the object from the set
+        if listener_object in self.listen_set:
+            self.logger.info("Listener object is in set. Removing")
+            client_ip, client_server_port = listener_object.client_address
+        
+            self.removeClient(client_ip, client_server_port)
+            
+            self.listen_set.discard(l_object)
+            
+            
 
 if __name__ == '__main__':
     cfg_parser = ConfigParser.SafeConfigParser()
@@ -216,6 +246,3 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt. Closing daemon")
         quit()
-     
-        
-    #now in threaded serving
