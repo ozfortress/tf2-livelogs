@@ -61,8 +61,6 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     
     logUpdateThread = None
     
-    logger = logging.getLogger("CLIENTUPDATE")
-    
     #def allow_draft76(self):
         #allow old versions of the websocket protocol, for legacy support. LESS SECURE
     #    return True
@@ -273,6 +271,10 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     
     @classmethod
     def sendLogUpdates(cls):
+        if len(cls.clients) == 0:
+            logger.info("Sending thread is still active, but no clients are connected. WAT")
+            return
+        
         logger.info("Sending updates")
         for log_id in cls.ordered_clients:
             if log_id != "none":
@@ -572,12 +574,19 @@ class dbManager(object):
 
             self.CHECKING_LOG_STATUS = True
             
-            self.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (self.LOG_IDENT,), callback = self._databaseStatusCallback)
+            try:
+                self.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (self.LOG_IDENT,), callback = self._databaseStatusCallback)
+            except OperationalError:
+                self.log.info("Operational error during log status check")
+                self.CHECKING_LOG_STATUS = False
         else:    
             self.log.info("Getting database update on table %s", self.STAT_TABLE)
             
             query = "SELECT * FROM %s" % self.STAT_TABLE
-            self.db.execute(query, callback = self._databaseUpdateCallback)
+            try:
+                self.db.execute(query, callback = self._databaseUpdateCallback)
+            except OperationalError:
+                self.log.info("Op error during database update")
                
     def _databaseStatusCallback(self, cursor, error):
         if error:
