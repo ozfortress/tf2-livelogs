@@ -74,7 +74,7 @@ class llListener(SocketServer.UDPServer):
     def shutdown(self):
         #need to close the parser's database connection
         if not self.parser.pgsqlConn.closed: #cancel current operations and end the log
-            self.parser.pgsqlConn.cancel()
+            #self.parser.pgsqlConn.cancel()
             self.parser.endLogParsing()
                   
         SocketServer.UDPServer.shutdown(self)

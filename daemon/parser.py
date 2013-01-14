@@ -40,6 +40,25 @@ class parserClass():
             self.HAD_ERROR = True
             return
             
+        #try open the file before opening the sql connection, so if the file errors out we won't have to close the sql connection as well
+        self.LOG_FILE_HANDLE = None
+        
+        try:
+            if not os.path.exists(log_dir):
+                #need to make the directory
+                os.makedirs(log_dir, 0755)
+                
+            log_file_name = "%s.log" % unique_ident    
+            log_file = os.path.normpath(os.path.join(log_dir, log_file_name))
+            
+            self.LOG_FILE_HANDLE = open(log_file, 'w')
+            
+        except OSError:
+            print "Error opening new log file for writing, or creating log directory: %s" % OSError
+            
+            self.HAD_ERROR = True
+            return
+            
         try:
             self.pgsqlConn = psycopg2.connect(host=db_host, port=db_port, database=db_name, user=db_user, password=db_pass)
 
@@ -48,22 +67,8 @@ class parserClass():
             print e.pgerror
             
             self.HAD_ERROR = True
-            return
-        
-        try:
-            if not os.path.exists(log_dir):
-                #need to make the directory
-                os.makedirs(log_dir, "744")
-                
-            log_file_name = "%s.log" % unique_ident    
-            log_file = os.path.normpath(os.path.join(log_dir, log_file_name))
             
-            self.LOG_FILE_HANDLE = open(log_file, 'w')
-            
-        except error:
-            print "Error opening new log file for writing, or creating log directory: %s" % error
-            
-            self.HAD_ERROR = True
+            self.LOG_FILE_HANDLE.close() #close the file handle previously established
             return
         
         print "Parser params: Map: " + current_map + " Log name: " + log_name
@@ -789,22 +794,27 @@ class parserClass():
     def endLogParsing(self, game_over=False):
         if not self.LOG_PARSING_ENDED:
             print "Ending log parsing"
-            live_end_query = "UPDATE livelogs_servers SET live='false' WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT)
-            self.executeQuery(live_end_query)
+            
+            if not self.HAD_ERROR:
+                live_end_query = "UPDATE livelogs_servers SET live='false' WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT)
+                self.executeQuery(live_end_query)
+                
+                #begin ending timer
+                if ((self.closeListenerCallback != None) and (game_over)):
+                    self.closeListenerCallback(game_over);
             
             self.pgsqlConn.close()
             
-            #begin ending timer
-            if ((self.closeListenerCallback != None) and (game_over)):
-                self.closeListenerCallback(game_over);
-                
             self.LOG_PARSING_ENDED = True
             
-            self.LOG_FILE_HANDLE.close()
+            if self.LOG_FILE_HANDLE:
+                if not self.LOG_FILE_HANDLE.closed:
+                    self.LOG_FILE_HANDLE.close()
     
     def __del__(self):
-        if not self.LOG_FILE_HANDLE.closed:
-            self.LOG_FILE_HANDLE.close()
+        if self.LOG_FILE_HANDLE:
+            if not self.LOG_FILE_HANDLE.closed:
+                self.LOG_FILE_HANDLE.close()
             
         if not self.pgsqlConn.closed:
             self.pgsqlConn.close()
