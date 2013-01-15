@@ -401,6 +401,7 @@ class dbManager(object):
         
         self.UPDATE_NO_DIFF = 0
         self.CHECKING_LOG_STATUS = False
+        self.GETTING_DATABASE_UPDATE = False
         
         self.STAT_KEYS = {
                 0: "name",
@@ -578,22 +579,39 @@ class dbManager(object):
             self.CHECKING_LOG_STATUS = True
             
             try:
+                
                 self.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (self.LOG_IDENT,), callback = self._databaseStatusCallback)
-            except OperationalError:
+            except psycopg2.OperationalError:
                 self.log.info("Operational error during log status check")
                 self.CHECKING_LOG_STATUS = False
-        else:    
+            except Exception as e:
+                self.log.info("Unknown exception %s occurred during database update", e)
+        elif not self.GETTING_DATABASE_UPDATE:    
             self.log.info("Getting database update on table %s", self.STAT_TABLE)
             
+            self.GETTING_DATABASE_UPDATE = True
+            
             query = "SELECT * FROM %s" % self.STAT_TABLE
+            
             try:
                 self.db.execute(query, callback = self._databaseUpdateCallback)
-            except OperationalError:
+                
+            except psycopg2.OperationalError:
+                self.GETTING_DATABASE_UPDATE = False
+                
                 self.log.info("Op error during database update")
-               
+                
+            except Exception as e:
+                self.GETTING_DATABASE_UPDATE = False
+                
+                self.log.info("Unknown exception %s occurred during database update", e)
+        else:
+            self.log.info("Busy getting database update")
+            
     def _databaseStatusCallback(self, cursor, error):
         if error:
             self.log.info("Error querying database for log status: %s", error)
+            self.CHECKING_LOG_STATUS = False
             return
             
         self.log.info("databaseStatusCallback")   
@@ -620,6 +638,7 @@ class dbManager(object):
         #the callback for database update queries
         if error:
             self.log.info("Error querying database for stat data")
+            self.GETTING_DATABASE_UPDATE = False
             return
         
         stat_dict = {}
@@ -645,6 +664,8 @@ class dbManager(object):
                 
             self.DB_DIFFERENCE_TABLE = temp_table
             self.DB_LATEST_TABLE = stat_dict
+            
+        self.GETTING_DATABASE_UPDATE = False
         
     def _updateThread(self, event):
         #this method is run in a thread, and acts as a timer. 
