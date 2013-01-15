@@ -264,9 +264,11 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     def delDBManager(cls, log_ident):
         if log_ident in cls.db_managers:
             #log_ident key in db_managers corresponds to a dbManager object
-            logger.info("Removing dbManager object for log id %s", log_ident)
             
+            logger.info("Cleaning up dbManager object for log id %s", log_ident)
             cls.db_managers[log_ident].cleanup() #run the cleanup method, which ends the update thread. everything else is garbage collected
+            
+            logger.info("Removing dbManager object for log id %s", log_ident)
             del cls.db_managers[log_ident]
     
     @classmethod
@@ -684,10 +686,10 @@ if __name__ == "__main__":
             update_rate = cfg_parser.getfloat('websocket-server', 'update_rate')
             
         except:
-            "Unable to read websocket and or database section in config file"
+            print "Unable to read websocket and or database section in config file. Please ensure you've run the daemon once, which generates the config file"
             quit()
     else:
-        "Error reading config file"
+        print "Error reading config file"
         quit()
     
     logger = logging.getLogger('WS MAIN')
