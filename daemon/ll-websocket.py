@@ -188,6 +188,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                         
                         self.write_message("LOG_IS_LIVE") #notify client the log is live
                         
+                        logUpdateHandler.addDBManager(log_id, self.application.db, self.application.update_rate)
                         logUpdateHandler.addToOrderedClients(log_id, self)
                         
                 else:
@@ -254,7 +255,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     
     @classmethod
     def addDBManager(cls, log_ident, database, update_rate):
-        if not log_ident in cls.db_managers:
+        if log_ident not in cls.db_managers:
             logger.info("Adding %s to dbManager dict", log_ident)
             #now we need to create a new dbManager for this log id. the database handle is the momoko pool created @ startup
             #and is the same for all clients
