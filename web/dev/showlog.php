@@ -118,6 +118,7 @@
             die("404</div>"); //die with an error if we have invalid log ident, but close the main div
         }
         ?>
+        
         <div id="navigation" class="ll_navbar">
             <ul class="nav nav-pills">
                 <li>
@@ -150,6 +151,7 @@
                         <?php
                         }
                         ?>
+                        
                     </ul>
                 </li>
                 <li class="dropdown">
@@ -167,8 +169,8 @@
                         </li>
                     </ul>
                 </li>
-                <li>
-                    <a href="#" class="disabled">Login</a>
+                <li class="disabled">
+                    <a href="#">Login</a>
                 </li>
             </ul>
         </div>
@@ -189,6 +191,7 @@
             <?php
             }
             ?>
+            
             <span class="log_name_id">Name: </span><span class="log_detail"><?=$log_details["log_name"]?></span><br>
             <span class="server_details_id">Server: </span><span class="log_detail"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span><br>
             <span class="log_map_id">Map: </span><span class="log_detail"><?=$log_details["map"]?></span><br>
@@ -198,6 +201,7 @@
             if ($log_live)
             {
             ?>
+            
                 <span class="log_status text-success">Live!</span><br>
                 <span class="time_elapsed_id">Time Elapsed: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
             <?php
@@ -205,11 +209,13 @@
             else
             {
             ?>
+            
                 <span class="log_status text-error">Complete</span><br>
                 <span class="time_elapsed_id">Total Time: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
             <?php
             }
             ?>
+            
                 <span class="red_score_tag">RED </span><span class="red_score" id="red_score_value"><?=(($red_score) ? $red_score : 0)?></span>
                 <span class="blue_score_tag">BLUE </span><span class="blue_score" id="blue_score_value"><?=(($blue_score) ? $blue_score : 0)?></span>
             </div>
@@ -400,6 +406,7 @@
                                 $i++;
                             }
                         ?>
+                        
                         </tbody>
                         <caption>Summary of medic statistics</caption>
                     </table>
@@ -437,6 +444,7 @@
         if (($log_live) && ($log_details["webtv_port"]))
         {
         ?>
+        
         <div class="left_float_sourcetv_container collapse in">
             <div class="sourcetv_controls">
                 <p class="text-info">STV 2D</p>
@@ -485,6 +493,7 @@
     <?php
     }
     ?>
+    
     <script src="/js/sourcetv2d.js" type="text/javascript"></script>
 </body>
 </html>

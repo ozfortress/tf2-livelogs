@@ -49,8 +49,8 @@
                         </li>
                     </ul>
                 </li>
-                <li>
-                    <a href="#" class="disabled">Login</a>
+                <li class="disabled">
+                    <a href="#">Login</a>
                 </li>
             </ul>
         </div>
@@ -61,6 +61,7 @@
         if (!$live_res)
         {
         ?>
+        
         <p class="text-error">Unable to retrieve live status</p>
         <?php
         }
@@ -104,6 +105,7 @@
                     <?php
                     }
                     ?>
+                    
                     </tbody>
                     <caption>Logs that are currently live</caption>
                 </table>
@@ -136,6 +138,7 @@
             {
             
             ?>
+            
             <div class="log_list">
                 <table class="table table-bordered table-hover ll_table">
                     <thead>
@@ -176,6 +179,7 @@
                     <?php
                     }
                     ?>
+                    
                     </tbody>
                     <caption>Past 10 Logs (<a href="/past/">See more</a>)</caption>
                 </table>
@@ -184,6 +188,7 @@
         <?php
             }
         ?>
+        
         </div>
         <div class="uploaded_logs">
         
