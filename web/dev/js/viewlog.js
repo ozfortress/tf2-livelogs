@@ -213,4 +213,10 @@ var llWSClient = llWSClient || (function() {
         }
     };
 }());
+
+window.onbeforeunload = function() {
+    if (llWSClient.client) {
+        llWSClient.client.close();
+    }
+};
     

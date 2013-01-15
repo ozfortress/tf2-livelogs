@@ -285,7 +285,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                 
                 for client in cls.ordered_clients[log_id]:
                     #client is a websocket client object, which data can be sent to using client.write_message, etc
-                    client.write_message("HELLO!")
+                    #client.write_message("HELLO!")
                     
                     if not client.HAD_FIRST_UPDATE:
                         if log_id in cls.db_managers:
