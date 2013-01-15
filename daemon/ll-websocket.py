@@ -278,7 +278,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             logger.info("Sending thread is still active, but no clients are connected. WAT")
             return
         
-        logger.info("Sending updates")
+        logger.info("Sending updates. Number of clients: %d", len(cls.clients))
         for log_id in cls.ordered_clients:
             if log_id != "none":
                 #the key will correspond to a set of client objects which are listening for updates on this log id
