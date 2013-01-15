@@ -97,11 +97,6 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         logUpdateHandler.clients.add(self)
         logUpdateHandler.ordered_clients["none"].add(self)
         
-        if not logUpdateHandler.logUpdateThread.isAlive():
-            logger.info("Starting send update thread")
-            
-            logUpdateHandler.logUpdateThread.start()
-        
     def on_close(self):
         #client disconnects
         logger.info("Client disconnected. IP: %s", self.request.remote_ip)
@@ -223,7 +218,12 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             
         cls.ordered_clients["none"].discard(client) #remove from unallocated set
         
-        cls.sendLogUpdates()
+        if not cls.logUpdateThread.isAlive():
+            logger.info("Starting send update thread")
+            
+            cls.logUpdateThread.start()
+        
+        #cls.sendLogUpdates()
         
     @classmethod
     def removeFromOrderedClients(cls, client):
@@ -301,9 +301,6 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                                 delta_update_dict = cls.db_managers[log_id].compressedUpdate()
                                 if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
                                     client.write_message(delta_update_dict)
-                                
-                                
-        #TODO: Close connection when game is no longer live
 
     def getLogStatus(self, log_ident):
         """
@@ -365,10 +362,10 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     def _sendUpdateThread(cls, event):
         #this method is run in a thread, and acts as a timer
         while not event.is_set():
-            cls.sendLogUpdates()
-            
             event.wait(cls.update_rate)
-        
+            
+            cls.sendLogUpdates()
+
     @classmethod
     def _logFinishedCallback(cls, log_ident):
         logger.info("Log id %s is over. Closing connections", log_ident)
@@ -386,6 +383,8 @@ currently stored data and new data (delta compression) which will be sent to the
 class dbManager(object):
     def __init__(self, log_id, db_conn, update_rate, end_callback = None):
         #end_callback is the function to be called when the log is no longer live
+        
+        self.log = logging.getLogger("dbManager #%s" % log_id)
         
         self.end_callback = end_callback
         self.LOG_IDENT = log_id
@@ -437,10 +436,9 @@ class dbManager(object):
         
         self.updateThread = threading.Thread(target = self._updateThread, args=(self.updateThreadEvent,))
         self.updateThread.daemon = True
+        self.updateThread.start()
         
-        self.log = logging.getLogger("dbManager #%s" % log_id)
-        
-        self.getDatabaseUpdate()
+        #self.getDatabaseUpdate()
     
     def steamCommunityID(self, steam_id):
         #takes a steamid in the format STEAM_x:x:xxxxx and converts it to a 64bit community id
@@ -579,13 +577,15 @@ class dbManager(object):
             self.CHECKING_LOG_STATUS = True
             
             try:
-                
                 self.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (self.LOG_IDENT,), callback = self._databaseStatusCallback)
+                
             except psycopg2.OperationalError:
                 self.log.info("Operational error during log status check")
                 self.CHECKING_LOG_STATUS = False
+                
             except Exception as e:
                 self.log.info("Unknown exception %s occurred during database update", e)
+                
         elif not self.GETTING_DATABASE_UPDATE:    
             self.log.info("Getting database update on table %s", self.STAT_TABLE)
             
@@ -676,7 +676,7 @@ class dbManager(object):
             self.getDatabaseUpdate()
             
             event.wait(self.update_rate)
-            
+
     def cleanup(self):
         #the only cleanup we need to do is releasing the update thread
         
