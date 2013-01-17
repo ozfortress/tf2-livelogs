@@ -1,0 +1,180 @@
+.ll_navbar {
+    margin-bottom: 0.5em;
+    padding: 6px;
+}
+
+.livelogs_wrapper {
+    margin-left: auto;
+    margin-right: auto;
+    overflow: auto;
+    width: 80%;
+    border: 1px solid #dddddd;
+    /*border-left: 0;*/
+    *border-collapse: collapse;
+    -webkit-border-radius: 4px;
+        -moz-border-radius: 4px;
+            border-radius: 4px;
+            
+    background-color: #FFFFFF;
+}
+
+.ll_body {
+    background-color: #FFFFF0;
+}
+
+.ll_table{
+    text-align: left;
+    /*font-size: 10px;*/
+    
+}
+
+.ll_table td {
+    white-space: nowrap;
+}
+
+.ll_table thead {
+    color: #339933;
+    /*border-bottom: 2px solid #dddddd;*/
+}
+
+.stat_table_container {
+    width: 55%;
+    margin-bottom: 5px;
+    margin-left: 10px;
+    /*border-radius: 10px;
+    border: solid 1px black;*/
+}
+
+.stat_table_container_medic {
+    width: 100%;
+}
+
+.log_details_container {
+    width: 20%;
+    padding: 3px;
+    border: 1px solid #dddddd;
+    /*border-left: 0;*/
+    *border-collapse: collapse;
+    -webkit-border-radius: 4px;
+        -moz-border-radius: 4px;
+            border-radius: 4px;
+            
+    margin-bottom: 5px;
+    margin-left: 10px;
+}
+
+.log_name_id, .server_details_id, .log_map_id, .live_id, .log_id_tag, .time_elapsed_id, .score_id {
+    font-size: 15px;
+    text-align: left;
+    font-weight: bold;
+}
+
+.log_detail {
+    font-size: 14px;
+    text-align: center;
+}
+
+.log_status {
+    font-size: 16px;
+}
+
+.red_score_tag {
+    font-size: 18px;
+    color: #E62E00;
+}
+
+.blue_score_tag {
+    font-size: 18px;
+    color: #3366FF;
+}
+
+.blue_score, .red_score {
+    color: #663300;
+    font-size: 22px;
+}
+
+.red_player {
+    color: #E62E00;
+}
+.red_player:hover {
+    color: #B82500;
+}
+
+.blue_player {
+    color: #3366FF;
+}
+
+.blue_player:hover {
+    color: #2952CC;
+}
+
+.no_team_player {
+    color: #000000;
+}
+.stat_summary_col_title_secondary {
+    border-left: solid 4px black;
+}
+
+.player_community_id_link {
+    font-weight: bold;
+}
+
+/*.event_feed_container {
+    float:left;
+    width: 40%;
+    margin-bottom: 5px;
+    margin-left: 5px;
+    margin-right: 5px;
+}*/
+
+.left_float_feed_medic_container {
+    float:left;
+    width: 22%;
+    
+}
+
+.left_float_sourcetv_container {
+    float: left;
+    width: 76%;
+    margin-left: 5px;
+}
+
+.live_feed_container {
+    float: left;
+    width: 40%;
+    margin-bottom: 5px;
+    margin-left: 10px;
+    overflow-x: hidden;
+    overflow-y: scroll;
+    height: 400px;
+}
+
+.sourcetv_controls {
+    text-align: center;
+}
+
+.log_list_container {
+    float: left;
+    width: 49%;
+    margin-bottom: 5px;
+    margin-left: 10px;
+}
+
+.log_list {
+    width: 100%;
+}
+
+.log_table {
+    text-align: left;
+}
+
+.index_welcome {
+    margin-left: 10px;
+    width: 90%;
+    text-align: center;
+}
+
+.pastlogs_searchfield {
+    padding: 5px;
+    margin-bottom: 5px;
+}
