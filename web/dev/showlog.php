@@ -440,60 +440,63 @@
         <?php
         }
         ?>
-        <div class="live_feed_container" id="chat_accordion">
-            <div class="accordion-heading">
-                <a class="accordion-toggle" data-toggle="collapse" data-parent="#chat_accordion" href="#chat_event_feed">
-                    Game Chat
-                </a>
-            </div>
-            <div class="collapse in" id="chat_event_feed">
-                <table class="table table-bordered table-hover ll_table" id="event_feed">
-                    <thead>
-                        <tr>
-                            <th>
-                                <abbr title="Player Name">Name</abbr>
-                            </th>
-                            <th>
-                                <abbr title="Player's message">Message</abbr>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php
-                    while ($pchat = pg_fetch_array($chat_result, NULL, PGSQL_ASSOC))
-                    {
-                        $community_id = steamid_to_bigint($pchat["steamid"]);
 
-                        $team = strtolower($pchat["team"]);
-                        if ($team == "blue")
+        <div class="live_feed_container accordion" id="chat_accordion">
+            <div class="accordion-group">
+                <div class="accordion-heading">
+                    <a class="accordion-toggle" data-toggle="collapse" data-parent="#chat_accordion" href="#chat_event_feed">
+                        Game Chat
+                    </a>
+                </div>
+                <div class="collapse in" id="chat_event_feed">
+                    <table class="table table-bordered table-hover ll_table" id="event_feed">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <abbr title="Player Name">Name</abbr>
+                                </th>
+                                <th>
+                                    <abbr title="Player's message">Message</abbr>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php
+                        while ($pchat = pg_fetch_array($chat_result, NULL, PGSQL_ASSOC))
                         {
-                            $team_class = "blue_player";
+                            $community_id = steamid_to_bigint($pchat["steamid"]);
+
+                            $team = strtolower($pchat["team"]);
+                            if ($team == "blue")
+                            {
+                                $team_class = "blue_player";
+                            }
+                            else if ($team == "red")
+                            {
+                                $team_class = "red_player";
+                            }
+                            else
+                            {
+                                $team_class = "no_team_player";
+                            }
+
+                            $chat_type = $pchat["chat_type"];
+
+                        ?>
+
+                            <tr>
+                                <td><span class="<?=$team_class?> player_chat"><?=$pchat["name"]?></span></td>
+                                <td><span class="player_chat">(<?=$chat_type?>)</span> <span class="player_chat_message"><?=$pchat["chat_message"]?></span></td>
+                            </tr>
+                        <?php
                         }
-                        else if ($team == "red")
-                        {
-                            $team_class = "red_player";
-                        }
-                        else
-                        {
-                            $team_class = "no_team_player";
-                        }
 
-                        $chat_type = $pchat["chat_type"];
+                        ?>
 
-                    ?>
-
-                        <tr>
-                            <td><span class="<?=$team_class?> player_chat"><?=$pchat["name"]?></span></td>
-                            <td><span class="player_chat">(<?=$chat_type?>)</span> <span class="player_chat_message"><?=$pchat["chat_message"]?></span></td>
-                        </tr>
-                    <?php
-                    }
-
-                    ?>
-
-                    </tbody>
-                    <caption>Chat Log</caption>
-                </table>
+                        </tbody>
+                        <caption>Chat Log</caption>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
