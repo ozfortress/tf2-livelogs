@@ -202,7 +202,7 @@
             {
             ?>
             
-                <span class="log_status text-success">Live!</span><br>
+                <span class="log_status text-success" id="log_status_span">Live!</span><br>
                 <span class="time_elapsed_id">Time Elapsed: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
             <?php
             }
@@ -210,7 +210,7 @@
             {
             ?>
             
-                <span class="log_status text-error">Complete</span><br>
+                <span class="log_status text-error" id="log_status_span">Complete</span><br>
                 <span class="time_elapsed_id">Total Time: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
             <?php
             }
@@ -414,30 +414,53 @@
             </div>
             
             <div class="live_feed_container collapse in" id="chat_event_feed">
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
+                <table class="table table-bordered table-striped table-hover ll_table" id="event_feed">
+                    <thead>
+                        <tr>
+                            <th>
+                                <abbr title="Player Name">Name</abbr>
+                            </th>
+                            <th>
+                                <abbr title="Player's message">Message</abbr>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php
+                    while ($pchat = pg_fetch_array($chat_result, NULL, PGSQL_ASSOC))
+                    {
+                        $community_id = steamid_to_bigint($pchat["steamid"]);
+
+                        $team = strtolower($pchat["team"]);
+                        if ($team == "blue")
+                        {
+                            $team_class = "blue_player";
+                        }
+                        else if ($team == "red")
+                        {
+                            $team_class = "red_player";
+                        }
+                        else
+                        {
+                            $team_class = "no_team_player";
+                        }
+
+                        $chat_type = $pchat["chat_type"];
+
+                    ?>
+
+                        <tr>
+                            <td><a class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=$pchat["name"]?></a></td>
+                            <td>(<?=$chat_type?>) <?=$pchat["chat_message"]?></td>
+                        </tr>
+                    <?php
+                    }
+
+                    ?>
+
+                    </tbody>
+                    <caption>Game chat</caption>
+                </table>
             </div>
         </div>
         <?php
@@ -479,8 +502,9 @@
     <script src="/js/jquery.min.js" type="text/javascript"></script>
     <script src="/js/jquery-ui.min.js" type="text/javascript"></script>
     <script src="/js/jquery.dataTables.min.js" type="text/javascript"></script>
+
     <script src="/js/bootstrap/bootstrap.js" type="text/javascript"></script>
-    
+    <script src="/js/sprintf-0.7-beta1.js" type="text/javscript"></script>
     <script src="/js/viewlog.js" type="text/javascript"></script>
     <?php
     if ($log_live)
