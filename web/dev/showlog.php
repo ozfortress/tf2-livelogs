@@ -351,7 +351,7 @@
                 </table>
             </div>
         </div>
-        <div class="left_float_feed_medic_container">
+        
             <div class="stat_table_container stat_table_container_medic">
                 <div class="medic_stat_summary">
                     <table class="table table-bordered table-striped table-hover ll_table" id="medic_stats">
@@ -462,13 +462,13 @@
                     <caption>Game chat</caption>
                 </table>
             </div>
-        </div>
+        
         <?php
         if (($log_live) && ($log_details["webtv_port"]))
         {
         ?>
         
-        <div class="left_float_sourcetv_container collapse in">
+        <div class="sourcetv_container collapse in">
             <div class="sourcetv_controls">
                 <p class="text-info">STV 2D</p>
                 <button class="btn btn-success" onclick="stv2d_connect('<?=long2ip($log_details["server_ip"])?>', <?=$log_details["webtv_port"]?>)">Connect</button>

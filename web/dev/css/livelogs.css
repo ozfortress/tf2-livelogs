@@ -133,19 +133,18 @@
     
 }
 
-.left_float_sourcetv_container {
+.sourcetv_container {
     float: left;
     width: 76%;
-    margin-left: 5px;
+    margin-left: 10px;
 }
 
 .live_feed_container {
     float: left;
-    width: 40%;
+    width: 100%;
     margin-bottom: 5px;
     margin-left: 10px;
-    overflow-x: hidden;
-    overflow-y: scroll;
+    overflow: auto;
     height: 400px;
 }
 
