@@ -276,6 +276,9 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     def sendLogUpdates(cls):
         if len(cls.clients) == 0:
             logger.info("Sending thread is still active, but no clients are connected")
+            #there's nothing we can do from here to stop the thread, as this method is being invoked by the thread and is part of it
+            #hence, it cannot be joined by this method or have the event set by this method
+            #something in the main thread must ensure that the send thread is paused
 
             return
         
@@ -814,7 +817,8 @@ class dbManager(object):
         #if there's data, data will be in the format: (start_time, most_recent_time)
         #times are in the format "10/01/2012 21:38:18", so we need to convert them to epoch to get the difference
 
-        times = cursor.fetchall() #a single tuple in the format described above
+        times = cursor.fetchone() #a single tuple in the format described above
+        self.log.info("Time query returned %s", times)
 
         if times:
             time_format = "%m/%d/%Y %H:%M:%S"
