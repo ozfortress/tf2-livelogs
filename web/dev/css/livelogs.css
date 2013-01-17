@@ -136,16 +136,16 @@
 }*/
 
 .sourcetv_container {
-    float: left;
     width: 76%;
     margin-left: 10px;
 }
 
 .live_feed_container {
-    float: left;
     margin-bottom: 5px;
+    margin-right: 10px;
     margin-left: 10px;
     overflow: auto;
+    width: 40%;
 }
 
 .sourcetv_controls {
