@@ -442,7 +442,7 @@
         ?>
 
         <div class="live_feed_container collapse in" id="chat_event_feed">
-            <table class="table table-bordered table-striped table-hover ll_table" id="event_feed">
+            <table class="table table-bordered table-hover ll_table" id="event_feed">
                 <thead>
                     <tr>
                         <th>
@@ -478,8 +478,8 @@
                 ?>
 
                     <tr>
-                        <td><span class="<?=$team_class?> chat_name"><?=$pchat["name"]?></span></td>
-                        <td>(<?=$chat_type?>) <?=$pchat["chat_message"]?></td>
+                        <td><span class="<?=$team_class?> player_chat"><?=$pchat["name"]?></span></td>
+                        <td><span class="player_chat">(<?=$chat_type?>)</span> <span class="player_chat_message"><?=$pchat["chat_message"]?></span></td>
                     </tr>
                 <?php
                 }

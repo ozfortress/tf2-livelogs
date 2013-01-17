@@ -121,7 +121,10 @@
 
 .player_chat {
     font-weight: bold;
-    font-size: 8;
+    font-size: 10pt;
+}
+.player_chat_message {
+    font-size: 10pt;
 }
 
 /*.event_feed_container {
