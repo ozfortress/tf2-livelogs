@@ -128,7 +128,7 @@ var llWSClient = llWSClient || (function() {
             } else {
                 //all other messages are json encoded packets
                 if (!HAD_FIRST_UPDATE) {
-                    //the first message sent is a full _STAT_ update, so the client and server are in sync
+                    //the first message sent is a full _STAT_ and _SCORE_ update, so the client and server are in sync
                     try {
                         update_json = jQuery.parseJSON(msg_data);
                     }
@@ -137,7 +137,8 @@ var llWSClient = llWSClient || (function() {
                         return;
                     }
                     
-                    this.parseStatUpdate(update_json);
+                    this.parseScoreUpdate(update_json.score);
+                    this.parseStatUpdate(update_json.stat);
                         
                     HAD_FIRST_UPDATE = true;
                     
@@ -203,11 +204,15 @@ var llWSClient = llWSClient || (function() {
             } else { //it's a delta compressed score update
                 if (red_score) {
                     red_element = document.getElementById("#red_score_value");
-                    red_element.innerHTML = Number(red_element.innerHTML) + red_score;
+                    if (red_element) {
+                        red_element.innerHTML = Number(red_element.innerHTML) + red_score;
+                    }
                 }
                 if (blue_score) {
                     blue_element = document.getElementById("#blue_score_value");
-                    blue_element.innerHTML = Number(blue_element.innerHTML) + blue_score;
+                    if (blue_element) {
+                        blue_element.innerHTML = Number(blue_element.innerHTML) + blue_score;
+                    }
                 }
 
             }

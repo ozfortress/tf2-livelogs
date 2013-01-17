@@ -377,7 +377,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         logger.info("Log id %s is over. Closing connections", log_ident)
         if log_ident in cls.ordered_clients:
             for client in cls.ordered_clients[log_ident]:
-                client.write_message("END_LOG")
+                client.write_message("LOG_END")
                 
                 client.close() #on_close will take care of empty sets and what not!
                 
