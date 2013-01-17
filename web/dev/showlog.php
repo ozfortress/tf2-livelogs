@@ -443,12 +443,12 @@
 
         <div class="live_feed_container accordion" id="chat_accordion">
             <div class="accordion-group">
-                <div class="accordion-heading">
+                <div class="accordion-heading" align="center">
                     <a class="accordion-toggle" data-toggle="collapse" data-parent="#chat_accordion" href="#chat_event_feed">
                         Game Chat
                     </a>
                 </div>
-                <div class="collapse in" id="chat_event_feed">
+                <div class="collapse" id="chat_event_feed">
                     <table class="table table-bordered table-hover ll_table chat" id="event_feed">
                         <thead>
                             <tr>
