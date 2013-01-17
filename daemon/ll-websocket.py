@@ -102,18 +102,19 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         logger.info("Client disconnected. IP: %s", self.request.remote_ip)
         logUpdateHandler.clients.remove(self)
         
-        logUpdateHandler.removeFromOrderedClients(self)
-        
         if (len(logUpdateHandler.clients) == 0) and logUpdateHandler.logUpdateThread.isAlive():
             #no clients are connected. stop the update thread
             logUpdateHandler.logUpdateThreadEvent.set()
             
-            while logUpdateHandler.logUpdateThread.isAlive():
-                logUpdateHandler.logUpdateThread.join(5)
+            #while logUpdateHandler.logUpdateThread.isAlive():
+            #    logUpdateHandler.logUpdateThread.join(5)
                 
             
             logger.info("Ended sending update thread. No clients connected")
+
+        logUpdateHandler.removeFromOrderedClients(self)
         
+
         return
         
     def on_message(self, msg):
@@ -274,11 +275,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     @classmethod
     def sendLogUpdates(cls):
         if len(cls.clients) == 0:
-            logger.info("Sending thread is still active, but no clients are connected. Ending thread")
-
-            cls.logUpdateThreadEvent.set()
-            while cls.logUpdateThread.isAlive():
-                cls.logUpdateThread.join(5)
+            logger.info("Sending thread is still active, but no clients are connected")
 
             return
         
