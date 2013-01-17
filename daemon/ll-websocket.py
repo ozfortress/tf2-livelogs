@@ -736,7 +736,10 @@ class dbManager(object):
         if not self._chat_event_id:
             if cursor:
                 self._chat_event_id = cursor.fetchone()[0]
-                self.log.info("First chat query. Latest chat event id: %d", self._chat_event_id)
+                if self._chat_event_id: #may be None, if unable to get any results
+                    self.log.info("First chat query. Latest chat event id: %d", self._chat_event_id)
+            else:
+                self.log.info("Invalid result for chat query: %s", cursor.fetchone())
 
         else:
             chat_dict = {}
