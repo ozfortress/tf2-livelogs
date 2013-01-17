@@ -449,7 +449,7 @@
                     </a>
                 </div>
                 <div class="collapse" id="chat_event_feed">
-                    <table class="table table-bordered table-hover ll_table chat" id="event_feed">
+                    <table class="table table-bordered table-hover ll_table chat" id="chat_table">
                         <thead>
                             <tr>
                                 <th>

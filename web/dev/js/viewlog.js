@@ -94,7 +94,7 @@ var llWSClient = llWSClient || (function() {
         },
         
         onMessage : function(msg) {
-            var msg_data = msg.data, full_update = null, delta_update = null;
+            var msg_data = msg.data, update_json, element;
             console.log("MESSAGE: " + msg_data);
             
             if (msg_data === "LOG_NOT_LIVE") {
@@ -110,33 +110,91 @@ var llWSClient = llWSClient || (function() {
                 
             } else if (msg_data === "LOG_IS_LIVE") {
                 HAD_FIRST_UPDATE = false;
-                
+
+            } else if (msg_data == "LOG_END") {
+                this.client.close(200);
+                //update status element with "Complete"
+
+                element = document.getElementById("#log_status_span");
+
+                if ($("#log_status_span").hasClass("text-success")) { //if it has the text-success class, remove it and add text-error (red)
+                    $("#log_status_span").removeClass("text-success");
+
+                    $("#log_status_span").addClass("text-error");
+                }
+
+                element.innerHTML = "Complete"; 
+
             } else {
                 //all other messages are json encoded packets
                 if (!HAD_FIRST_UPDATE) {
                     //the first message sent is a full update, so the client and server are in sync
                     try {
-                        full_update = jQuery.parseJSON(msg_data);
+                        update_json = jQuery.parseJSON(msg_data);
                     }
                     catch (exception) {
                         console.log("Error trying to decode or parse json. Message: %s, ERROR: %s", msg_data, exception);
                         return;
                     }
                     
-                    this.parseStatUpdate(full_update);
+                    this.parseStatUpdate(update_json);
                         
                     HAD_FIRST_UPDATE = true;
                     
                 } else {
                     try {
-                        delta_update = jQuery.parseJSON(msg_data);
+                        update_json = jQuery.parseJSON(msg_data);
                     }
                     catch (exception) {
                         console.log("Error trying to decode or parse json. Message: %s, ERROR: %s", msg_data, exception);
                         return;
                     }
                     
-                    this.parseStatUpdate(delta_update);
+                    //there's multiple other possible json packets we can receive. Need to go through them, before defaulting to a stat update
+
+                    //first structure: [{"time": "unix timestamp"}]
+                    //second structure: [{"score": {{"red": val}, {"blue": val}}}]
+                    //third structure: [{"chat": {{"name": {{"message": msg}, {"msg_type": team/all}, {"team": team colour}}}, repeat}}]
+                    //and finally, a stat object: [{"sid": {{"type": val}, ...}, {"sid": .....}, repeat]
+
+                    if (update_json["time"] != undefined) {
+                        //update the time. requires use of sprintf
+                        var timestamp = Number(update_json["time"]); //make sure the timestamp is a number
+
+                        console.log("Got timestamp message. Timestamp: %d", timestamp);
+
+                        element = document.getElementById("#time_elapsed");
+                        element.innerHTML = sprintf("%02d minute(s) and %02d second(s)", (timestamp/60)%60, timestamp%60);
+
+                    } else if (update_json["score"] != undefined) {
+                        var red_score, blue_score;
+
+                        red_score = Number(update_json.score.red);
+                        blue_score = Number(update_json.score.blue);
+
+                        console.log("SCORE UPDATE. RED: %d BLUE: %d", red_score, blue_score);
+
+                        document.getElementById("#red_score_value").innerHTML = red_score;
+                        document.getElementById("#blue_score_value").innerHTML = blue_score;
+
+                    } else if (update_json["chat"] != undefined) {
+                        var chat_name, chat_team, chat_type, chat_message;
+                        //underneath "chat" is the player names and the message
+                        $.each(update_json.chat, function(player_name, data) {
+                            //data will be all the message shit
+
+                        });
+
+                        $("table#chat_table tbody").append('
+                            <tr>
+                                <td><span class=""');
+
+
+
+                    } else {
+                        //default update type
+                        this.parseStatUpdate(update_json);
+                    }
                 }
             }
         },

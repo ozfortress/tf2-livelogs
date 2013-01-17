@@ -71,7 +71,7 @@
     <div class="livelogs_wrapper">
         <div id="navigation" class="ll_navbar">
             <ul class="nav nav-pills">
-                <li class="active">
+                <li>
                     <a href="/">Home</a>
                 </li>
                 <li class="dropdown">
@@ -89,7 +89,7 @@
                         </li>
                     </ul>
                 </li>
-                <li>
+                <li class="disabled">
                     <a href="#">Login</a>
                 </li>
             </ul>
