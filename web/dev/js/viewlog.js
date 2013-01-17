@@ -216,11 +216,11 @@ var llWSClient = llWSClient || (function() {
 
                 console.log("CHAT: player %s (team: %s) msg: (%s) %s", chat_name, chat_team, chat_type, chat_message);
 
-                $("table#chat_table tbody").append('
-                    <tr>
-                        <td><span class="' + team_class + ' player_chat">' + chat_name + '</span></td>
-                        <td><span class="player_chat">(' + chat_type + ')</span> <span class="player_chat_message">' + chat_message + '</span></td>
-                    </tr>');
+                $("table#chat_table tbody").append(
+                    '<tr>' +
+                        '<td><span class="' + team_class + ' player_chat">' + chat_name + '</span></td>' +
+                        '<td><span class="player_chat">(' + chat_type + ')</span> <span class="player_chat_message">' + chat_message + '</span></td>' +
+                    '</tr>');
             });
         },
         
@@ -278,6 +278,7 @@ var llWSClient = llWSClient || (function() {
                         }
                     } else {
                         //this means the player needs to be added to the table
+                        console.log("New player to be added. SID: %s", sid);
                     }
                 });
             }
