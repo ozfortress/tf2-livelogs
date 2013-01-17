@@ -38,14 +38,14 @@
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
                     <ul class="dropdown-menu">
                         <li>
-                            <a href="#">About</a>
+                            <a href="#about_modal" data-toggle="modal">About</a>
                         </li>
                         
                         <li>
-                            <a href="#">FAQ</a>
+                            <a href="#faq_modal" data-toggle="modal">FAQ</a>
                         </li>
                         <li class="disabled">
-                            <a href="#">Source @ github</a>
+                            <a href="#">Source</a>
                         </li>
                     </ul>
                 </li>
@@ -55,7 +55,7 @@
             </ul>
         </div>
         <div class="index_welcome">
-            <p>Welcome to Livelogs! Below you will find a list of logs that are currently live, and a list of past logs that you may view.</p>
+            <p>Welcome to Livelogs! Below you will find a list of logs that are currently live (if any), and a list of past logs that you may view.</p>
         </div>
         <?php
         if (!$live_res)
@@ -194,6 +194,37 @@
         
         </div>
         
+    </div>
+
+    <!--BEGIN MODAL DIVS-->
+    <div id="about_modal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="aboutModalLabel" aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+            <h3 id="aboutModelLabel">About Livelogs</h3>
+        </div>
+
+        <div class="modal-body">
+            Nothing to see
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+        </div>
+    </div>
+
+    <div id="faq_modal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="faqModalLabel" aria-hidden="true">
+        <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
+            <h3 id="faqModelLabel">Frequently Asked Questions</h3>
+        </div>
+
+        <div class="modal-body">
+            Empty
+        </div>
+
+        <div class="modal-footer">
+            <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+        </div>
     </div>
 
     <!-- LOAD SCRIPTS AT THE BOTOM FOR PERFORMANCE ++ -->
