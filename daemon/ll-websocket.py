@@ -111,7 +111,6 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             while logUpdateHandler.logUpdateThread.isAlive():
                 logUpdateHandler.logUpdateThread.join(5)
                 
-            logUpdateHandler.logUpdateThread = None
             
             logger.info("Ended sending update thread. No clients connected")
         
@@ -275,7 +274,12 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     @classmethod
     def sendLogUpdates(cls):
         if len(cls.clients) == 0:
-            logger.info("Sending thread is still active, but no clients are connected. WAT")
+            logger.info("Sending thread is still active, but no clients are connected. Ending thread")
+
+            cls.logUpdateThreadEvent.set()
+            while cls.logUpdateThread.isAlive():
+                cls.logUpdateThread.join(5)
+
             return
         
         logger.info("Sending updates. Number of clients: %d", len(cls.clients))
@@ -316,7 +320,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         logger.info("Number of non-busy pSQL conns @ getLogStatus: %d", i)
         
-        res_cursor = self.application.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (log_ident,), callback=self._logStatusCallback)
+        self.application.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (log_ident,), callback=self._logStatusCallback)
     
     @tornado.web.asynchronous
     def _logStatusCallback(self, cursor, error):
@@ -730,8 +734,9 @@ class dbManager(object):
         #if this is the first chat query, it is a query to get the most recent chat event id
         #subsequent queries will contain chat after this id
         if not self._chat_event_id:
-            self._chat_event_id = cursor.fetchone()[0]
-            self.log.info("First chat query. Latest chat event id: %d", self._chat_event_id)
+            if cursor:
+                self._chat_event_id = cursor.fetchone()[0]
+                self.log.info("First chat query. Latest chat event id: %d", self._chat_event_id)
 
         else:
             chat_dict = {}
