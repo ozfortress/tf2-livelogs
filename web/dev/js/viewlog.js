@@ -185,15 +185,32 @@ var llWSClient = llWSClient || (function() {
         },
 
         parseScoreUpdate : function (score_obj) {
-            var red_score, blue_score;
+            var red_score = 0, blue_score = 0, red_element, blue_element;
 
-            red_score = Number(score_obj.red);
-            blue_score = Number(score_obj.blue);
+            if (score_obj.red !== undefined) {
+                red_score = Number(score_obj.red);
+            }
+            if (score_obj.blue !== undefined) {
+                blue_score = Number(score_obj.blue);
+            }
 
-            console.log("SCORE UPDATE. RED: %d BLUE: %d", red_score, blue_score);
+            
+            console.log("SCORE UPDATE. RED: +%d BLUE: +%d", red_score, blue_score);
+            if (!HAD_FIRST_UPDATE) {
+                document.getElementById("#red_score_value").innerHTML = red_score;
+                document.getElementById("#blue_score_value").innerHTML = blue_score;
 
-            document.getElementById("#red_score_value").innerHTML = red_score;
-            document.getElementById("#blue_score_value").innerHTML = blue_score;
+            } else { //it's a delta compressed score update
+                if (red_score) {
+                    red_element = document.getElementById("#red_score_value");
+                    red_element.innerHTML = Number(red_element.innerHTML) + red_score;
+                }
+                if (blue_score) {
+                    blue_element = document.getElementById("#blue_score_value");
+                    blue_element.innerHTML = Number(blue_element.innerHTML) + blue_score;
+                }
+
+            }
         },
 
         parseChatUpdate : function(chat_obj) {

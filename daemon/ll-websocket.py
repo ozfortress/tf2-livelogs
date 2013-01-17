@@ -541,13 +541,17 @@ class dbManager(object):
         update_dict = {}
 
         if update_stat_dict:
+            self.log.info("Have stat update diff in compressedUpdate")
             update_dict["stat"] = update_stat_dict
 
         if self._chat_table:
+            self.log.info("Have chat update dict in compressedUpdate")
             update_dict["chat"] = self._chat_table
+            pprint(update_dict["chat"])
             self._chat_table = None #clear the chat table, so it cannot be duplicated on next send if update fails
 
         if self._score_difference_table:
+            self.log.info("Have score update dict in compressedUpdate")
             update_dict["score"] = self._score_difference_table
 
         if self._time_stamp:
@@ -751,7 +755,12 @@ class dbManager(object):
 
                 sid = self.steamCommunityID(row[1]) #convert to community id
 
-                chat_dict[sid] = {{"name": row[2]}, {"team": row[3]}, {"msg_type": row[4]}, {"msg": row[5]}}
+                chat_dict[sid] = {
+                        "name": row[2], 
+                        "team": row[3], 
+                        "msg_type": row[4], 
+                        "msg": row[5]
+                    }
 
                 self.log.info("CHAT: ID: %s NAME: %s TEAM: %s MSG_TYPE: %s MSG: %s", sid, row[2], row[3], row[4], row[5])
 
@@ -778,7 +787,7 @@ class dbManager(object):
         scores = cursor.fetchone() #a single tuple in the format described above
         self.log.info("Score query returned %s", scores)
         
-        if len(scores) == 2: 
+        if scores and len(scores) >= 1: 
             if scores[0]:
                 score_dict["red"] = scores[0]
             else:
@@ -797,7 +806,10 @@ class dbManager(object):
                 score_diff_dict = {}
                 for team in score_dict:
                     #score_dict has the most recent version
-                    score_diff_dict[team] = score_dict[team] - self._score_table[team]
+                    score_diff = score_dict[team] - self._score_table[team]
+                    if score_diff:
+                        score_diff_dict[team] = score_diff
+
                 
                 self.log.info("NEW SCORE DIFF: Red: +%d Blue: +%d", score_diff_dict["red"], score_diff_dict["blue"])
                 self._score_difference_table = score_diff_dict
