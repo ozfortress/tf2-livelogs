@@ -46,7 +46,7 @@
 }
 
 .stat_table_container_medic {
-    width: 100%;
+    width: 25%;
 }
 
 .log_details_container {
@@ -119,6 +119,11 @@
     font-weight: bold;
 }
 
+.player_chat {
+    font-weight: bold;
+    font-size: 8;
+}
+
 /*.event_feed_container {
     float:left;
     width: 40%;
@@ -126,12 +131,6 @@
     margin-left: 5px;
     margin-right: 5px;
 }*/
-
-.left_float_feed_medic_container {
-    float:left;
-    width: 22%;
-    
-}
 
 .sourcetv_container {
     float: left;
@@ -141,11 +140,9 @@
 
 .live_feed_container {
     float: left;
-    width: 100%;
     margin-bottom: 5px;
     margin-left: 10px;
     overflow: auto;
-    height: 400px;
 }
 
 .sourcetv_controls {

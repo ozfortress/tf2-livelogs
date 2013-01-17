@@ -351,117 +351,67 @@
                 </table>
             </div>
         </div>
-        
-            <div class="stat_table_container stat_table_container_medic">
-                <div class="medic_stat_summary">
-                    <table class="table table-bordered table-striped table-hover ll_table" id="medic_stats">
-                        <thead>
-                            <tr class="stat_summary_title_bar">
-                                <th class="stat_summary_col_title">
-                                    <abbr title="Player Name">Name</abbr>
-                                </th>
-                                <th class="stat_summary_col_title">
-                                    <abbr title="Healing Done">Healing</abbr>
-                                </th>
-                                <th class="stat_summary_col_title">
-                                    <abbr title="Ubers Used">U</abbr>
-                                </th>
-                                <th class="stat_summary_col_title">
-                                    <abbr title="Ubers Lost">UL</abbr>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php
-                            $num_med = sizeof($mstats);
-                            $i = 0;
-                            
-                            while ($i < $num_med)
-                            {
-                                $community_id = steamid_to_bigint($mstats[$i]["steamid"]);
-                                
-                                $team = get_player_team($team_array, $mstats[$i]["steamid"]);
-                                if ($team == "blue")
-                                {
-                                    $team_class = "blue_player";
-                                }
-                                else if ($team == "red")
-                                {
-                                    $team_class = "red_player";
-                                }
-                                else
-                                {
-                                    $team_class = "no_team_player";
-                                }
-                                
-                            ?>
-                            
-                            <tr>
-                                <td><a class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=$mstats[$i]["name"]?></a></td>
-                                <td><span id="<?=$community_id . ".heal_done"?>"><?=$mstats[$i]["healing_done"]?></span></td>
-                                <td><span id="<?=$community_id . ".ubers_used"?>"><?=$mstats[$i]["ubers_used"]?></span></td>
-                                <td><span id="<?=$community_id . ".ubers_lost"?>"><?=$mstats[$i]["ubers_lost"]?></span></td>
-                            </tr>
-                        <?php
-                                $i++;
-                            }
-                        ?>
-                        
-                        </tbody>
-                        <caption>Summary of medic statistics</caption>
-                    </table>
-                </div>
-            </div>
-            
-            <div class="live_feed_container collapse in" id="chat_event_feed">
-                <table class="table table-bordered table-striped table-hover ll_table" id="event_feed">
+
+        <div class="stat_table_container stat_table_container_medic">
+            <div class="medic_stat_summary">
+                <table class="table table-bordered table-striped table-hover ll_table" id="medic_stats">
                     <thead>
-                        <tr>
-                            <th>
+                        <tr class="stat_summary_title_bar">
+                            <th class="stat_summary_col_title">
                                 <abbr title="Player Name">Name</abbr>
                             </th>
-                            <th>
-                                <abbr title="Player's message">Message</abbr>
+                            <th class="stat_summary_col_title">
+                                <abbr title="Healing Done">Healing</abbr>
+                            </th>
+                            <th class="stat_summary_col_title">
+                                <abbr title="Ubers Used">U</abbr>
+                            </th>
+                            <th class="stat_summary_col_title">
+                                <abbr title="Ubers Lost">UL</abbr>
                             </th>
                         </tr>
                     </thead>
                     <tbody>
                     <?php
-                    while ($pchat = pg_fetch_array($chat_result, NULL, PGSQL_ASSOC))
-                    {
-                        $community_id = steamid_to_bigint($pchat["steamid"]);
-
-                        $team = strtolower($pchat["team"]);
-                        if ($team == "blue")
+                        $num_med = sizeof($mstats);
+                        $i = 0;
+                        
+                        while ($i < $num_med)
                         {
-                            $team_class = "blue_player";
-                        }
-                        else if ($team == "red")
-                        {
-                            $team_class = "red_player";
-                        }
-                        else
-                        {
-                            $team_class = "no_team_player";
-                        }
-
-                        $chat_type = $pchat["chat_type"];
-
-                    ?>
-
+                            $community_id = steamid_to_bigint($mstats[$i]["steamid"]);
+                            
+                            $team = get_player_team($team_array, $mstats[$i]["steamid"]);
+                            if ($team == "blue")
+                            {
+                                $team_class = "blue_player";
+                            }
+                            else if ($team == "red")
+                            {
+                                $team_class = "red_player";
+                            }
+                            else
+                            {
+                                $team_class = "no_team_player";
+                            }
+                            
+                        ?>
+                        
                         <tr>
-                            <td><a class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=$pchat["name"]?></a></td>
-                            <td>(<?=$chat_type?>) <?=$pchat["chat_message"]?></td>
+                            <td><a class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=$mstats[$i]["name"]?></a></td>
+                            <td><span id="<?=$community_id . ".heal_done"?>"><?=$mstats[$i]["healing_done"]?></span></td>
+                            <td><span id="<?=$community_id . ".ubers_used"?>"><?=$mstats[$i]["ubers_used"]?></span></td>
+                            <td><span id="<?=$community_id . ".ubers_lost"?>"><?=$mstats[$i]["ubers_lost"]?></span></td>
                         </tr>
                     <?php
-                    }
-
+                            $i++;
+                        }
                     ?>
-
+                    
                     </tbody>
-                    <caption>Game chat</caption>
+                    <caption>Summary of medic statistics</caption>
                 </table>
             </div>
+        </div>
         
         <?php
         if (($log_live) && ($log_details["webtv_port"]))
@@ -490,7 +440,56 @@
         <?php
         }
         ?>
-        
+
+        <div class="live_feed_container collapse in" id="chat_event_feed">
+            <table class="table table-bordered table-striped table-hover ll_table" id="event_feed">
+                <thead>
+                    <tr>
+                        <th>
+                            <abbr title="Player Name">Name</abbr>
+                        </th>
+                        <th>
+                            <abbr title="Player's message">Message</abbr>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php
+                while ($pchat = pg_fetch_array($chat_result, NULL, PGSQL_ASSOC))
+                {
+                    $community_id = steamid_to_bigint($pchat["steamid"]);
+
+                    $team = strtolower($pchat["team"]);
+                    if ($team == "blue")
+                    {
+                        $team_class = "blue_player";
+                    }
+                    else if ($team == "red")
+                    {
+                        $team_class = "red_player";
+                    }
+                    else
+                    {
+                        $team_class = "no_team_player";
+                    }
+
+                    $chat_type = $pchat["chat_type"];
+
+                ?>
+
+                    <tr>
+                        <td><span class="<?=$team_class?> chat_name"><?=$pchat["name"]?></span></td>
+                        <td>(<?=$chat_type?>) <?=$pchat["chat_message"]?></td>
+                    </tr>
+                <?php
+                }
+
+                ?>
+
+                </tbody>
+                <caption>Chat Log</caption>
+            </table>
+        </div>
     </div>
         
     <!-- LOAD SCRIPTS AT THE BOTOM FOR PERFORMANCE ++ -->
