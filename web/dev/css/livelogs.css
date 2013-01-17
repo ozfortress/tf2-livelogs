@@ -36,6 +36,10 @@
     color: #339933;
     /*border-bottom: 2px solid #dddddd;*/
 }
+.chat {
+    margin-left: 2px;
+    margin-right: 2px;
+}
 
 .stat_table_container {
     width: 55%;
