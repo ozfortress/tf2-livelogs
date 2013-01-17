@@ -546,7 +546,7 @@
     <script src="/js/jquery.dataTables.min.js" type="text/javascript"></script>
 
     <script src="/js/bootstrap/bootstrap.js" type="text/javascript"></script>
-    <script src="/js/sprintf-0.7-beta1.js" type="text/javscript"></script>
+    <script src="/js/sprintf-0.7-beta1.js" type="text/javascript"></script>
     <script src="/js/viewlog.js" type="text/javascript"></script>
     <?php
     if ($log_live)

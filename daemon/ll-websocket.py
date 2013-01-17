@@ -810,10 +810,13 @@ class dbManager(object):
                     if score_diff:
                         score_diff_dict[team] = score_diff
 
-                
-                self.log.info("NEW SCORE DIFF: Red: +%d Blue: +%d", score_diff_dict["red"], score_diff_dict["blue"])
                 self._score_difference_table = score_diff_dict
                 self._score_table = score_dict
+        else:
+            self._score_table = {
+                    "red": 0,
+                    "blue": 0
+                }
 
         self._score_query_complete = True
 
