@@ -177,11 +177,11 @@ var llWSClient = llWSClient || (function() {
 
         parseTimeUpdate : function(timestamp) {
             //update the time. requires use of sprintf
-            var time_elapsed = Number(timestamp); //make sure the timestamp is a number
+            var time_sec = Number(timestamp); //make sure the timestamp is a number
 
-            console.log("Got timestamp message. Timestamp: %d", time_elapsed);
+            console.log("Got timestamp message. Timestamp: %d", time_sec);
 
-            document.getElementById("#time_elapsed").innerHTML = sprintf("%02d minute(s) and %02d second(s)", (time_elapsed/60)%60, time_elapsed%60);
+            document.getElementById("#time_elapsed").innerHTML = sprintf("%02d minute(s) and %02d second(s)", (time_sec/60)%60, time_sec%60);
         },
 
         parseScoreUpdate : function (score_obj) {

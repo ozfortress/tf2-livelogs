@@ -203,7 +203,7 @@
             ?>
             
                 <span class="log_status text-success" id="log_status_span">Live!</span><br>
-                <span class="time_elapsed_id">Time Elapsed: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
+                <span class="time_elapsed_id">Time Elapsed: </span><span class="log_detail" id="time_elapsed"><?=$time_elapsed?></span><br><br>
             <?php
             }
             else
@@ -211,7 +211,7 @@
             ?>
             
                 <span class="log_status text-error" id="log_status_span">Complete</span><br>
-                <span class="time_elapsed_id">Total Time: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
+                <span class="time_elapsed_id">Total Time: </span><span class="log_detail" id="time_elapsed"><?=$time_elapsed?></span><br><br>
             <?php
             }
             ?>
