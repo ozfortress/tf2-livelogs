@@ -775,8 +775,10 @@ class dbManager(object):
 
         score_dict = {}
 
-        scores = cursor.fetchall() #a single tuple in the format described above
-        if scores: 
+        scores = cursor.fetchone() #a single tuple in the format described above
+        self.log.info("Score query returned %s", scores)
+        
+        if len(scores) == 2: 
             if scores[0]:
                 score_dict["red"] = scores[0]
             else:
@@ -814,21 +816,26 @@ class dbManager(object):
 
         self.log.info("Time update callback")
 
-        #if there's data, data will be in the format: (start_time, most_recent_time)
+        #if there's data, data will be in the format (2 tuples inside a tuple): ((start_time,), (most_recent_time,))
         #times are in the format "10/01/2012 21:38:18", so we need to convert them to epoch to get the difference
 
-        times = cursor.fetchone() #a single tuple in the format described above
+        times = cursor.fetchall() #two tuples in the format above
         self.log.info("Time query returned %s", times)
 
-        if times:
-            time_format = "%m/%d/%Y %H:%M:%S"
+        if len(times) == 2:
+            if (len(times[0]) > 0) and (len(times[1]) > 0): #we have our expected results!
+                time_format = "%m/%d/%Y %H:%M:%S"
 
-            #time_diff is in seconds as a float
-            time_diff = time.mktime(time.strptime(times[1], time_format)) - time.mktime(time.strptime(times[0], time_format))
+                start_time = time.mktime(time.strptime(times[0][0], time_format))
 
-            self.log.info("Time update difference: %0.2f", time_diff)
+                latest_time =time.mktime(time.strptime(times[1][0], time_format))
 
-            self._time_stamp = time_diff
+                #time_diff is in seconds as a float
+                time_diff =  latest_time - start_time
+
+                self.log.info("Time update difference: %0.2f", time_diff)
+
+                self._time_stamp = time_diff
 
         self._time_query_complete = True
 
