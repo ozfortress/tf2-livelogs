@@ -439,6 +439,9 @@
         </div>
         <?php
         }
+
+        if (pg_num_rows($chat_result) > 0)
+        {
         ?>
 
         <div class="live_feed_container accordion" id="chat_accordion">
@@ -498,9 +501,11 @@
                 </div>
             </div>
         </div>
-    </div>
+        <?php
+        }
+        ?>
         
-
+    </div>  
 
 
     <!--BEGIN MODAL DIVS-->
