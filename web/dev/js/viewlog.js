@@ -115,7 +115,7 @@ var llWSClient = llWSClient || (function() {
                 this.client.close(200);
                 //update status element with "Complete"
 
-                element = document.getElementById("#log_status_span");
+                element = document.getElementById("log_status_span");
 
                 if ($("#log_status_span").hasClass("text-success")) { //if it has the text-success class, remove it and add text-error (red)
                     $("#log_status_span").removeClass("text-success");
@@ -136,9 +136,12 @@ var llWSClient = llWSClient || (function() {
                         console.log("Error trying to decode or parse json. Message: %s, ERROR: %s", msg_data, exception);
                         return;
                     }
-                    
-                    this.parseScoreUpdate(update_json.score);
-                    this.parseStatUpdate(update_json.stat);
+                    if (update_json.score !== undefined) {
+                        this.parseScoreUpdate(update_json.score);
+                    }
+                    if (update_json.stat !== undefined) {
+                        this.parseStatUpdate(update_json.stat);
+                    }
                         
                     HAD_FIRST_UPDATE = true;
                     
@@ -178,11 +181,14 @@ var llWSClient = llWSClient || (function() {
 
         parseTimeUpdate : function(timestamp) {
             //update the time. requires use of sprintf
-            var time_sec = Number(timestamp); //make sure the timestamp is a number
+            var time_sec = Number(timestamp), new_time_disp; //make sure the timestamp is a number
 
-            console.log("Got timestamp message. Timestamp: %d", time_sec);
+            new_time_disp = sprintf("%02d minute(s) and %02d second(s)", (time_sec/60)%60, time_sec%60);
 
-            document.getElementById("#time_elapsed").innerHTML = sprintf("%02d minute(s) and %02d second(s)", (time_sec/60)%60, time_sec%60);
+            console.log("Got timestamp message. Timestamp: %d Time display: %s", time_sec, new_time_disp);
+
+
+            document.getElementById("time_elapsed").innerHTML = new_time_disp;
         },
 
         parseScoreUpdate : function (score_obj) {
@@ -198,18 +204,18 @@ var llWSClient = llWSClient || (function() {
             
             console.log("SCORE UPDATE. RED: +%d BLUE: +%d", red_score, blue_score);
             if (!HAD_FIRST_UPDATE) {
-                document.getElementById("#red_score_value").innerHTML = red_score;
-                document.getElementById("#blue_score_value").innerHTML = blue_score;
+                document.getElementById("red_score_value").innerHTML = red_score;
+                document.getElementById("blue_score_value").innerHTML = blue_score;
 
             } else { //it's a delta compressed score update
                 if (red_score) {
-                    red_element = document.getElementById("#red_score_value");
+                    red_element = document.getElementById("red_score_value");
                     if (red_element) {
                         red_element.innerHTML = Number(red_element.innerHTML) + red_score;
                     }
                 }
                 if (blue_score) {
-                    blue_element = document.getElementById("#blue_score_value");
+                    blue_element = document.getElementById("blue_score_value");
                     if (blue_element) {
                         blue_element.innerHTML = Number(blue_element.innerHTML) + blue_score;
                     }

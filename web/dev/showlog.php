@@ -203,7 +203,7 @@
             ?>
             
                 <span class="log_status text-success" id="log_status_span">Live!</span><br>
-                <span class="time_elapsed_id">Time Elapsed: </span><span class="log_detail" id="time_elapsed"><?=$time_elapsed?></span><br><br>
+                <span class="time_elapsed_id">Time Elapsed: </span><span id="time_elapsed" class="log_detail"><?=$time_elapsed?></span><br><br>
             <?php
             }
             else
@@ -211,13 +211,13 @@
             ?>
             
                 <span class="log_status text-error" id="log_status_span">Complete</span><br>
-                <span class="time_elapsed_id">Total Time: </span><span class="log_detail" id="time_elapsed"><?=$time_elapsed?></span><br><br>
+                <span class="time_elapsed_id">Total Time: </span><span id="time_elapsed" class="log_detail"><?=$time_elapsed?></span><br><br>
             <?php
             }
             ?>
             
-                <span class="red_score_tag">RED </span><span class="red_score" id="red_score_value"><?=(($red_score) ? $red_score : 0)?></span>
-                <span class="blue_score_tag">BLUE </span><span class="blue_score" id="blue_score_value"><?=(($blue_score) ? $blue_score : 0)?></span>
+                <span class="red_score_tag">RED </span><span id="red_score_value" class="red_score"><?=(($red_score) ? $red_score : 0)?></span>
+                <span class="blue_score_tag">BLUE </span><span id="blue_score_value" class="blue_score"><?=(($blue_score) ? $blue_score : 0)?></span>
             </div>
         </div>
         
