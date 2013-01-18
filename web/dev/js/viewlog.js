@@ -81,7 +81,7 @@ var llWSClient = llWSClient || (function() {
         },
         
         onOpen : function(event) {
-            console.log("Client websock opened");
+            console.log("Client websock opened. Sending connect message");
             client.send(JSON.stringify(connect_msg));
         },
         
@@ -90,7 +90,7 @@ var llWSClient = llWSClient || (function() {
         },
         
         onError : function(event) {
-            console.log("Had WS error: " + event);
+            console.log("Had WS error: %s", event);
         },
         
         onMessage : function(msg) {
@@ -112,7 +112,6 @@ var llWSClient = llWSClient || (function() {
                 HAD_FIRST_UPDATE = false;
 
             } else if (msg_data === "LOG_END") {
-                this.client.close(200);
                 //update status element with "Complete"
 
                 element = document.getElementById("log_status_span");
@@ -201,7 +200,6 @@ var llWSClient = llWSClient || (function() {
                 blue_score = Number(score_obj.blue);
             }
 
-            
             console.log("SCORE UPDATE. RED: +%d BLUE: +%d", red_score, blue_score);
             if (!HAD_FIRST_UPDATE) {
                 document.getElementById("red_score_value").innerHTML = red_score;
@@ -267,7 +265,7 @@ var llWSClient = llWSClient || (function() {
                             
                             element = document.getElementById(element_id);
                             if (element) {
-                                console.log("Got element %s, VALUE: %s", element, element.innerHTML);
+                                //console.log("Got element %s, VALUE: %s", element, element.innerHTML);
                                 
                                 if (HAD_FIRST_UPDATE) {                    
                                     element.innerHTML = Number(element.innerHTML) + Number(value);
@@ -275,7 +273,7 @@ var llWSClient = llWSClient || (function() {
                                     element.innerHTML = Number(value);
                                 }
                                 
-                                console.log("Element new value: %s", element.innerHTML);
+                                //console.log("Element new value: %s", element.innerHTML);
                             }
                         });
                         
@@ -285,7 +283,7 @@ var llWSClient = llWSClient || (function() {
                             element_id = sid + "." + tmp;
                             element = document.getElementById(element_id);
                             
-                            console.log("SID: %s, HTML ELEMENT: %s", sid, element_id);
+                            //console.log("SID: %s, HTML ELEMENT: %s", sid, element_id);
                             
                             
                             deaths = Number(document.getElementById(sid + ".deaths").innerHTML);
