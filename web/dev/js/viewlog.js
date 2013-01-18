@@ -225,9 +225,9 @@ var llWSClient = llWSClient || (function() {
         parseChatUpdate : function(chat_obj) {
             var chat_name, chat_team, chat_type, chat_message, team_class;
             //underneath "chat" is the player names and the message
-            $.each(chat_obj, function(player_name, chat_data) {
+            $.each(chat_obj, function(sid, chat_data) {
                 //chat_data will be all the message shit
-                chat_name = player_name;
+                chat_name = chat_data.name;
                 chat_team = chat_data.team.toLowerCase();
                 chat_type = chat_data.msg_type;
                 chat_message = chat_data.msg;

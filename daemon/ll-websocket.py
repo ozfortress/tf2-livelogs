@@ -383,8 +383,8 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                 
                 cls.delDBManager(log_ident)
 """
-The database manager class holds a copy of a log id's stat table. It provides functions to calculate the difference between
-currently stored data and new data (delta compression) which will be sent to the clients.
+The database manager class holds copies of a log's data. It provides functions to calculate the difference between
+currently stored data and new data (delta compression) which will be sent to the clients, along with time and chat data
 """
 class dbManager(object):
     def __init__(self, log_id, db_conn, update_rate, end_callback = None):
@@ -547,7 +547,6 @@ class dbManager(object):
         if self._chat_table:
             self.log.info("Have chat update dict in compressedUpdate")
             update_dict["chat"] = self._chat_table
-            pprint(update_dict["chat"])
             self._chat_table = None #clear the chat table, so it cannot be duplicated on next send if update fails
 
         if self._score_difference_table:
@@ -848,7 +847,7 @@ class dbManager(object):
                 #time_diff is in seconds as a float
                 time_diff =  latest_time - start_time
 
-                self.log.info("Time update difference: %0.2f", time_diff)
+                #self.log.info("Time update difference: %0.2f", time_diff)
 
                 self._time_stamp = time_diff
 
