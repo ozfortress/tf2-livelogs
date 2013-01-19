@@ -1,6 +1,7 @@
 /*
-    Credit goes to Carbon for basic structure of initiating actions on mp_tournament starts and ends
+    Credit to Carbon for basic structure of initiating actions on mp_tournament starts and ends
     To Jannik 'Peace-Maker' Hartung @ http://www.wcfan.de/ for basis of SourceTV2D
+    To Cinq, Annuit Coeptis and Jean-Denis Caron for additional statistic logging such as damage done, heals, items and pausing/unpausing
 */
 
 /** WEBTV SEND CODES
@@ -34,6 +35,8 @@
  */
 
 
+#pragma semicolon 1 //must use semicolon to end lines
+
 #include <sourcemod>
 #include <socket>
 
@@ -47,8 +50,6 @@
 #include <tf2_stocks>
 #endif
 
-#pragma semicolon 1 //must use semicolon to end lines
-
 #define RED 0
 #define BLUE 1
 #define TEAM_OFFSET 2
@@ -57,7 +58,7 @@
 #if defined _websocket_included
 
 #define MAX_BUFFER_SIZE 750 //MATH: (1/WEBTV_POSITION_UPDATE_RATE)*(MAX_TV_DELAY) + MAX_POSSIBLE_ADDITIONAL_EVENTS
-                                //the maximum possible additional events is an (overly generous) educated guess at the number of events that could occur @ max tv_delay (90s)
+                            //the maximum possible additional events is an (overly generous) educated guess at the number of events that could occur @ max tv_delay (90s)
 
 #define WEBTV_POSITION_UPDATE_RATE 0.25 /*rate at which position packets are added to the buffer. MAKE SURE TO BE SLOWER THAN THE PROCESS TIMER,
                                        ELSE YOU WILL GET MULTIPLE POSITION UPDATES IN THE SAME PROCESSING FRAME (BAD) AND WASTE RESOURCES*/
@@ -68,13 +69,13 @@
 public Plugin:myinfo =
 {
     #if defined _websocket_included
-	name = "Livelogs (with SourceTV2D)",
+	name = "Livelogs (SourceTV2D Enabled)",
     #else
     name = "Livelogs (no SourceTV2D)",
     #endif
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
-	version = "0.1.1",
+	version = "0.1.2",
 	url = "http://livelogs.unknown.ip"
 };
 
@@ -84,19 +85,24 @@ public Plugin:myinfo =
 // Variables
 //------------------------------------------------------------------------------
 
-new bool:t_state[2] = { false, false }; //Holds ready state for both teams
+new bool:tournament_state[2] = { false, false }; //Holds ready state for both teams
 new bool:live_at_restart = false;
 new bool:is_logging = false;
-new String:log_unique_ident[64];
+new bool:log_additional_stats = true;
+new bool:late_loaded;
 
 new String:server_ip[64];
+new String:livelogs_listener_address[128];
+new String:log_unique_ident[64];
+new String:client_index_cache[MAXPLAYERS+1][64];
+
 new server_port;
-new String:ll_listener_address[128];
 
 //Handles for convars
 new Handle:livelogs_daemon_address = INVALID_HANDLE; //ip/dns of livelogs daemon
 new Handle:livelogs_daemon_port = INVALID_HANDLE; //port of livelogs daemon
 new Handle:livelogs_daemon_apikey = INVALID_HANDLE; //the key that must be specified when communicating with the ll daemon
+new Handle:livelogs_server_name = INVALID_HANDLE;
 
 //if websocket is included, let's define the websocket stuff!
 #if defined _websocket_included
@@ -121,6 +127,12 @@ new Handle:livelogs_webtv_cleanup_timer = INVALID_HANDLE;
 // Startup
 //------------------------------------------------------------------------------
 
+public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
+{
+    late_loaded = late;
+    return APLRes_Success;
+}
+
 public OnPluginStart()
 {
     // Console command to test socket sending
@@ -139,15 +151,19 @@ public OnPluginStart()
     // Hook into mp_tournament_restart
     AddCommandListener(tournamentRestartHook, "mp_tournament_restart");
 
+    //Hook events for additional statistic display
+    HookEvent("item_pickup", itemPickupEvent); //item is picked up
+    HookEvent("player_hurt", playerHurtEvent); //player is hurt
+    HookEvent("player_healed", playerHealEvent); //player receives healing, from dispenser or medic
+
     //Convars
     livelogs_daemon_address = CreateConVar("livelogs_address", "192.168.35.128", "IP or hostname of the livelogs daemon", FCVAR_PROTECTED);
     livelogs_daemon_port = CreateConVar("livelogs_port", "61222", "Port of the livelogs daemon", FCVAR_PROTECTED);
     livelogs_daemon_apikey = CreateConVar("livelogs_api_key", "123test", "API key for livelogs daemon", FCVAR_PROTECTED|FCVAR_DONTRECORD|FCVAR_UNLOGGED);
 
-    //Setup variables for later sending
-    //GetConVarString(FindConVar("ip"), server_ip, sizeof(server_ip));
+    livelogs_server_name = CreateConVar("livelogs_name", "default", "The name by which logs are identified on the website", FCVAR_PROTECTED);
     
-    //we should get the IP via hostip, because sometimes people don't set "ip"
+    //variables for later sending. we should get the IP via hostip, because sometimes people don't set "ip"
     new longip = GetConVarInt(FindConVar("hostip")), ip_quad[4];
     ip_quad[0] = (longip >> 24) & 0x000000FF;
     ip_quad[1] = (longip >> 16) & 0x000000FF;
@@ -157,12 +173,26 @@ public OnPluginStart()
     Format(server_ip, sizeof(server_ip), "%d.%d.%d.%d", ip_quad[0], ip_quad[1], ip_quad[2], ip_quad[3]);
     
     server_port = GetConVarInt(FindConVar("hostport"));
+
+
+    if (late_loaded)
+    {
+        decl String:auth[64];
+        for (new i = 1; i <= MaxClients; i++)
+        {
+            if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
+            {
+                GetClientAuthString(i, auth, sizeof(auth));
+                OnClientAuthorized(i, auth); //call to onclientauth, which will cache the auth for us
+            }
+        }
+    }
     
 #if defined _websocket_included
-    decl String:tmp[12];
-    Format(tmp, sizeof(tmp), "%d", server_port + 2);
+    new String:default_web_port[12];
+    Format(default_web_port, sizeof(default_web_port), "%d", server_port + 2);
     
-    livelogs_webtv_listenport = CreateConVar("livelogs_webtv_port", tmp, "The port to listen on for SourceTV 2D connections", FCVAR_PROTECTED);
+    livelogs_webtv_listenport = CreateConVar("livelogs_webtv_port", default_web_port, "The port to listen on for SourceTV 2D connections", FCVAR_PROTECTED);
 
     livelogs_webtv_children = CreateArray();
     livelogs_webtv_children_ip = CreateArray(ByteCountToCells(33));
@@ -184,9 +214,16 @@ public OnPluginStart()
 #endif
 }
 
-#if defined _websocket_included
+
 public OnAllPluginsLoaded()
 {
+    //check to see if there are any (known) plugins installed that log additional stats. if so, disable this plugin's additional stat logging
+    if (LibraryExists("supstats") || LibraryExists("tf2comp"))
+    {
+        log_additional_stats = false;
+    }
+
+    #if defined _websocket_included
     if (LibraryExists("websocket"))
     {
         webtv_library_present = true;
@@ -196,9 +233,28 @@ public OnAllPluginsLoaded()
     }
     else
         LogMessage("websocket.smx is not present. Not using SourceTV2D");
+    #endif
 }
 
-#endif
+public OnLibraryAdded(const String:name[])
+{
+    //this forward is only fired if websocket is added
+    if (StrEqual(name, "websocket"))
+    {
+        webtv_library_present = true;
+        cleanUpWebSocket();
+    }
+}
+
+public OnLibraryRemoved(const String:name[])
+{
+    //this forward is only fired if websocket is added
+    if (StrEqual(name, "websocket"))
+    {
+        webtv_library_present = false;
+        cleanUpWebSocket();
+    }
+}
 
 public OnMapStart()
 {
@@ -215,6 +271,27 @@ public OnMapStart()
 // Callbacks
 //------------------------------------------------------------------------------
 
+public OnClientAuthorized(client, const String:auth[])
+{
+    //cache the client's steam id, for performance in event hooks
+    strcopy(client_index_cache[client], sizeof(client_index_cache[]), auth);
+}
+
+public OnClientDisconnect(client)
+{
+    strcopy(client_index_cache[client], sizeof(client_index_cache[]), "\0"); //clear client's steamid
+    
+    #if defined _websocket_included
+    if (IsClientInGame(client))
+    {
+        decl String:buffer[12];
+        Format(buffer, sizeof(buffer), "D%d", GetClientUserId(client));
+        
+        addToWebBuffer(buffer);
+    }
+    #endif
+}
+
 public tournamentStateChangeEvent(Handle:event, const String:name[], bool:dontBroadcast)
 {
     new client_team = GetClientTeam(GetEventInt(event, "userid")) - TEAM_OFFSET;
@@ -223,10 +300,10 @@ public tournamentStateChangeEvent(Handle:event, const String:name[], bool:dontBr
     new bool:is_name_change = GetEventBool(event, "namechange");
     if (!is_name_change)
     {
-        t_state[client_team] = r_state;
+        tournament_state[client_team] = r_state;
 
         //we're ready to begin logging at round restart if both teams are ready
-        if (t_state[RED] && t_state[BLUE])
+        if (tournament_state[RED] && tournament_state[BLUE])
         {
             live_at_restart = true;
         }
@@ -244,8 +321,8 @@ public gameRestartEvent(Handle:event, const String:name[], bool:dontBroadcast)
     {
         requestListenerAddress();
         live_at_restart = false;
-        t_state[RED] = false;
-        t_state[BLUE] = false;
+        tournament_state[RED] = false;
+        tournament_state[BLUE] = false;
 
         is_logging = true;
     }
@@ -254,6 +331,99 @@ public gameRestartEvent(Handle:event, const String:name[], bool:dontBroadcast)
 public gameOverEvent(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	endLogging(); //stop the logging -- does this really need to be done? hmmm
+}
+
+public itemPickupEvent(Handle:event, const String:name[], bool:dontBroadcast)
+{
+    if (log_additional_stats)
+    {
+        decl String:player_name[MAX_NAME_LENGTH], String:auth_id[64], String:team[16], String:item[64];
+
+        new userid = GetEventInt(event, "userid");
+        new clientidx = GetClientOfUserId(userid);
+
+        strcopy(auth_id, sizeof(auth_id), client_index_cache[clientidx]); //get the player ID from the cache if it's in there
+
+        GetClientName(clientidx, player_name, sizeof(player_name));
+        GetTeamName(GetClientTeam(clientidx), team, sizeof(team));
+        GetEventString(event, "item", item, sizeof(item));
+
+        LogToGame("\"%s<%d><%s><%s>\" picked up item \"%s\"",
+                player_name,
+                userid,
+                auth_id,
+                team,
+                item
+            );
+    }
+}
+
+public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
+{
+    if (log_additional_stats) {
+        decl String:player_name[MAX_NAME_LENGTH], String:auth_id[64], String:team[16];
+
+        new userid = GetEventInt(event, "userid");
+        new clientidx = GetClientOfUserId(userid);
+
+        new attackerid = GetEventInt(event, "attacker");
+        new attackeridx = GetClientOfUserId(attackerid);
+
+        new damage = GetEventInt(event, "damageamount");
+
+        if (userid != attackerid && attackerid != 0)
+        {
+            strcopy(auth_id, sizeof(auth_id), client_index_cache[attackeridx]); //get the player ID from the cache if it's in there
+            
+            GetClientName(attackeridx, player_name, sizeof(player_name));
+            GetTeamName(GetClientTeam(attackeridx), team, sizeof(team));
+
+            LogToGame("\"%s<%d><%s><%s>\" triggered \"damage\" (damage \"%d\")",
+                    name,
+                    attackerid,
+                    auth_id,
+                    team,
+                    damage
+                );
+        }
+    }
+}
+
+public playerHealEvent(Handle:event, const String:name[], bool:dontBroadcast)
+{
+    if (log_additional_stats) {
+        decl String:healer_name[MAX_NAME_LENGTH], String:healer_auth[64], String:healer_team[16];
+        decl String:patient_name[MAX_NAME_LENGTH], String:patient_auth[64], String:patient_team[16];
+
+        new healerid = GetEventInt(event, "healer");
+        new healer_idx = GetClientOfUserId(healerid);
+
+        new patientid = GetEventInt(event, "patient");
+        new patient_idx = GetClientOfUserId(patientid);
+
+        strcopy(healer_auth, sizeof(healer_auth), client_index_cache[healer_idx]);
+        strcopy(patient_auth, sizeof(patient_auth), client_index_cache[patient_idx]);
+        
+        GetClientName(healer_idx, healer_name, sizeof(healer_name));
+        GetClientName(patient_idx, patient_name, sizeof(patient_name));
+
+        GetTeamName(GetClientTeam(healer_idx), healer_team, sizeof(healer_team));
+        GetTeamName(GetClientTeam(patient_idx), patient_team, sizeof(patient_team));
+
+        new heal_amount = GetEventInt(event, "amount");
+
+        LogToGame("\"%s<%d><%s><%s>\" triggered \"healed\" against \"%s<%d><%s><%s>\" (healing \"%d\")",
+                healer_name,
+                healerid,
+                healer_auth,
+                healer_team,
+                patient_name,
+                patientid,
+                patient_auth,
+                patient_team,
+                heal_amount
+            );
+    }
 }
 
 public Action:tournamentRestartHook(client, const String:command[], arg)
@@ -284,17 +454,6 @@ public OnClientPutInServer(client)
     Format(buffer, sizeof(buffer), "C%d:%s:%d:0:x:x:100:0:0:%N", GetClientUserId(client), "0.0.0.0", GetClientTeam(client), client);
     
     sendToAllWebChildren(buffer);
-}
-
-public OnClientDisconnect(client)
-{
-    if (IsClientInGame(client))
-    {
-        decl String:buffer[12];
-        Format(buffer, sizeof(buffer), "D%d", GetClientUserId(client));
-        
-        addToWebBuffer(buffer);
-    }
 }
 
 public playerTeamChangeEvent(Handle: event, const String:name[], bool:dontBroadcast)
@@ -476,13 +635,7 @@ public onWebSocketReadyStateChange(WebsocketHandle:sock, WebsocketReadyState:rea
 }
 
 public Action:updatePlayerPositionTimer(Handle:timer, any:data)
-{
-    /*new num_web_clients = GetArraySize(livelogs_webtv_children);
-    if (num_web_clients == 0)
-        return Plugin_Continue;
-    */
-    //LogMessage("update player pos");
- 
+{ 
     decl String:buffer[4096];
     
     Format(buffer, sizeof(buffer), "O");
@@ -602,24 +755,12 @@ public OnMapEnd()
 #if defined _websocket_included
 public onWebSocketListenClose(WebsocketHandle:listen_sock)
 {
-    if (DEBUG) { LogMessage("listen sock close"); }
+    if (DEBUG) { LogMessage("webtv listen sock close"); }
     livelogs_webtv_listen_socket = INVALID_WEBSOCKET_HANDLE;
     
     new num_web_clients = GetArraySize(livelogs_webtv_children);
     if (num_web_clients == 0)
         return;
-        
-    /*new WebsocketHandle:child_sock;
-    
-    for (new i = 0; i < num_web_clients; i++)
-    {
-        child_sock = GetArrayCell(livelogs_webtv_children, i);
-        
-        Websocket_Close(child_sock);
-        
-        RemoveFromArray(livelogs_webtv_children, i);
-        RemoveFromArray(livelogs_webtv_children_ip, i);
-    }*/
 }
 
 public onWebSocketListenError(WebsocketHandle:sock, const errorType, const errorNum)
@@ -684,7 +825,7 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
 
         if ((StrEqual("LIVELOG", split_buffer[0])) && (StrEqual(ll_api_key, split_buffer[1])))
         {            
-            Format(ll_listener_address, sizeof(ll_listener_address), "%s:%s", split_buffer[2], split_buffer[3]);
+            Format(livelogs_listener_address, sizeof(livelogs_listener_address), "%s:%s", split_buffer[2], split_buffer[3]);
             
             if (!StrEqual(split_buffer[4], "REUSE"))
             {
@@ -692,8 +833,8 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
                 strcopy(log_unique_ident, sizeof(log_unique_ident), split_buffer[4]);
             }
             
-            ServerCommand("logaddress_add %s", ll_listener_address);
-            if (DEBUG) { LogMessage("Added address %s to logaddress list", ll_listener_address); }
+            ServerCommand("logaddress_add %s", livelogs_listener_address);
+            if (DEBUG) { LogMessage("Added address %s to logaddress list", livelogs_listener_address); }
             
             #if defined _websocket_included
             
@@ -721,7 +862,7 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
 public onSocketDisconnect(Handle:socket, any:arg)
 {
 	CloseHandle(socket);
-	if (DEBUG) { LogMessage("Socket disconnected and closed"); }
+	if (DEBUG) { LogMessage("Livelogs socket disconnected and closed"); }
 }
 
 public onSocketSendQueueEmpty(Handle:socket, any:arg) 
@@ -774,8 +915,8 @@ clearVars()
     is_logging = false;
     live_at_restart = false;
 
-    t_state[RED] = false;
-    t_state[BLUE] = false;
+    tournament_state[RED] = false;
+    tournament_state[BLUE] = false;
 }
 
 requestListenerAddress()
@@ -793,7 +934,7 @@ requestListenerAddress()
     }
     else
     {
-        Format(log_name, sizeof(log_name), "default");
+        GetConVarString(livelogs_server_name, log_name, sizeof(log_name));
     }
     
     GetConVarString(livelogs_daemon_apikey, ll_api_key, sizeof(ll_api_key));
@@ -813,7 +954,7 @@ endLogging()
     {
         is_logging = false;
 
-        ServerCommand("logaddress_del %s", ll_listener_address);
+        ServerCommand("logaddress_del %s", livelogs_listener_address);
     }
     
     #if defined _websocket_included
@@ -827,6 +968,23 @@ endLogging()
 stock _:ConVarExists(const String:cvar_name[])
 {
     return FindConVar(cvar_name);
+}
+
+stock String:GetTFTeamName(index)
+{
+    //takes a GetClientTeam index, and returns a named team
+    decl String:team[16];
+    switch (index)
+    {
+        case 2:
+            team = "Red";
+        case 3:
+            team = "Blue";
+        default:
+            team = "unknown";
+    }
+
+    return team;
 }
 
 #if defined _websocket_included
@@ -844,8 +1002,8 @@ addToWebBuffer(const String:msg[])
     
     new Float:time = GetEngineTime();
     
-    decl String:newbuffer[4096];
-    Format(newbuffer, sizeof(newbuffer), "%f@%s", time, msg); //append the timestamp to the msg
+    new String:newbuffer[4096];
+    FormatEx(newbuffer, sizeof(newbuffer), "%f@%s", time, msg); //append the timestamp to the msg
     
     strcopy(livelogs_webtv_buffer[livelogs_webtv_buffer_length], MAX_BUFFER_SIZE, newbuffer);
     livelogs_webtv_buffer_length++;
