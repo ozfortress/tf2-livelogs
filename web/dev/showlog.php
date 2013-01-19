@@ -52,7 +52,7 @@
             $team_result = pg_query($ll_db, $team_query);
             $team_array = pg_fetch_all($team_result);
             
-            $time_query = "SELECT event_time as start_last_time FROM {$escaped_event_table} WHERE eventid = '1' UNION SELECT event_time FROM {$escaped_event_table} WHERE eventid = (SELECT MAX(eventid) FROM {$escaped_event_table})";
+            $time_query = "SELECT event_time FROM {$escaped_event_table} WHERE eventid = '1' UNION SELECT event_time FROM {$escaped_event_table} WHERE eventid = (SELECT MAX(eventid) FROM {$escaped_event_table})";
             $time_result = pg_query($ll_db, $time_query);        
 
             if ((!$stat_result) || (!$team_result) || (!$chat_result) || (!$time_result))
