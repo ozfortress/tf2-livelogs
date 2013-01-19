@@ -42,8 +42,8 @@
             $stat_query = "SELECT * FROM {$escaped_stat_table}";
             $stat_result = pg_query($ll_db, $stat_query);
             
-            $event_query = "SELECT * FROM {$escaped_event_table}";
-            $event_result = pg_query($ll_db, $event_query);
+            //$event_query = "SELECT * FROM {$escaped_event_table}";
+            //$event_result = pg_query($ll_db, $event_query);
             
             $chat_query = "SELECT * FROM {$escaped_chat_table}";
             $chat_result = pg_query($ll_db, $chat_query);
@@ -52,7 +52,10 @@
             $team_result = pg_query($ll_db, $team_query);
             $team_array = pg_fetch_all($team_result);
             
-            if ((!$stat_result) || (!$event_result) || (!$chat_result))
+            $time_query = "SELECT event_time as start_last_time FROM {$escaped_event_table} WHERE eventid = '1' UNION SELECT event_time FROM {$escaped_event_table} WHERE eventid = (SELECT MAX(eventid) FROM {$escaped_event_table})";
+            $time_result = pg_query($ll_db, $time_query);        
+
+            if ((!$stat_result) || (!$team_result) || (!$chat_result) || (!$time_result))
             {
                 echo "PGSQL HAD ERROR: " . pg_last_error();
             }
@@ -74,9 +77,12 @@
                 $blue_score = 0;
             }
             
-            $event_array = pg_fetch_all($event_result);
-            $time_start = $event_array[0]["event_time"];
-            $time_last = $event_array[(sizeof($event_array) - 1)]["event_time"];
+            //$event_array = pg_fetch_all($event_result);
+
+            $time_array = pg_fetch_all($time_result);
+
+            $time_start = $time_array[0]["event_time"]; //starting time
+            $time_last = $time_array[1]["event_time"]; //latest time
             
             //time is in format "10/01/2012 21:38:18"
             $time_start_ctime = strtotime($time_start);
@@ -86,13 +92,6 @@
             $time_elapsed = sprintf("%02d minute(s) and %02d second(s)", ($time_elapsed_sec/60)%60, $time_elapsed_sec%60);
             
             $invalid_log_ident = false;
-            /*
-            $time_query = "SELECT event_time as start_last_time FROM {$escaped_event_table} WHERE eventid = '1' UNION SELECT event_time FROM {$escaped_event_table} WHERE eventid = (SELECT MAX(eventid) FROM {$escaped_event_table})";
-            $time_result = pg_query($ll_db, $time_query);
-            
-            $time_array = pg_fetch_array($time_result, 
-            
-            $time_elapsed = 0;*/
         }
         
         
@@ -115,7 +114,7 @@
         <?php
         if ($invalid_log_ident)
         {
-            die("404</div>"); //die with an error if we have invalid log ident, but close the main div
+            die("404</div>"); //die with an error if we have invalid log ident and close the main div
         }
         ?>
         
@@ -124,7 +123,10 @@
                 <li>
                     <a href="/">Home</a>
                 </li>
-                <li class="dropdown">
+                <li>
+                    <a href="/past">Archive</a>
+                </li>
+                <li class="dropdown active">
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#">View Settings <b class="caret"></b></a>
                     <ul class="dropdown-menu">
                         <li>
@@ -504,7 +506,7 @@
         <?php
         }
         ?>
-        
+
     </div>  
 
 

@@ -74,6 +74,9 @@
                 <li>
                     <a href="/">Home</a>
                 </li>
+                <li class="active">
+                    <a href="/past">Archive</a>
+                </li>
                 <li class="dropdown">
                     <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
                     <ul class="dropdown-menu">

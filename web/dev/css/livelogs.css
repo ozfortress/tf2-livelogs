@@ -131,14 +131,6 @@
     font-size: 10pt;
 }
 
-/*.event_feed_container {
-    float:left;
-    width: 40%;
-    margin-bottom: 5px;
-    margin-left: 5px;
-    margin-right: 5px;
-}*/
-
 .sourcetv_container {
     width: 76%;
     margin-left: 10px;
@@ -150,7 +142,7 @@
     margin-right: 10px;
     margin-left: 10px;
     overflow: auto;
-    width: 40%;
+    width: 55%;
 }
 
 .sourcetv_controls {
