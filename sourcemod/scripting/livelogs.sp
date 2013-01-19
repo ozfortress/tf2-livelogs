@@ -744,12 +744,20 @@ public onWebSocketChildDisconnect(WebsocketHandle:sock)
 
 public OnMapEnd()
 {
-	endLogging();
+	endLogging(true);
     
     #if defined _websocket_included
     //notify connected clients of map end
     sendToAllWebChildren("MAP_END");
+
+    if (livelogs_webtv_cleanup_timer != INVALID_HANDLE)
+    {
+        KillTimer(livelogs_webtv_cleanup_timer);
+        livelogs_webtv_cleanup_timer = INVALID_HANDLE;
+    }
     #endif
+
+
 }
 
 #if defined _websocket_included
@@ -948,7 +956,7 @@ requestListenerAddress()
     sendSocketData(ll_request);
 }
 
-endLogging()
+endLogging(bool:map_end = false)
 {
     if (is_logging)
     {
@@ -958,9 +966,16 @@ endLogging()
     }
     
     #if defined _websocket_included
-    if ((webtv_library_present) && (livelogs_webtv_listen_socket != INVALID_WEBSOCKET_HANDLE))
+    if (map_end)
     {
-        livelogs_webtv_cleanup_timer = CreateTimer(GetConVarFloat(FindConVar("tv_delay")) + 10.0, cleanUpWebSocketTimer, TIMER_FLAG_NO_MAPCHANGE);
+        cleanUpWebSocket();
+    }
+    else
+    {
+        if ((webtv_library_present) && (livelogs_webtv_listen_socket != INVALID_WEBSOCKET_HANDLE))
+        {
+            livelogs_webtv_cleanup_timer = CreateTimer(GetConVarFloat(FindConVar("tv_delay")) + 10.0, cleanUpWebSocketTimer, TIMER_FLAG_NO_MAPCHANGE);
+        }
     }
     #endif
 }
