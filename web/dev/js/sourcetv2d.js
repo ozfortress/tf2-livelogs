@@ -72,7 +72,7 @@ var SourceTV2D = SourceTV2D || (function() {
         connect : function(ip, port) {
             if (this.socket !== undefined) {
                 this.disconnect();  
-            } 
+            }
 
             if (this.canvas !== null)
             {
@@ -104,7 +104,7 @@ var SourceTV2D = SourceTV2D || (function() {
                     this.debug("Connection established " + msg);
                 };
                 
-                this.socket.onmessage = function (msg) { this.onSocketMessage(msg); };
+                this.socket.onmessage = function (msg) { SourceTV2D.onSocketMessage(msg); };
                 
                     
                 this.socket.onerror = function (msg)
@@ -179,7 +179,7 @@ var SourceTV2D = SourceTV2D || (function() {
 
                     this.loadMapImageInfo(frame.game, frame.map);
                     
-                    this.timer = setInterval(this.drawMap, 50);
+                    this.timer = setInterval(this.drawMap(this), 50);
                     
                     this.totalUsersWatching += 1;
 
@@ -749,7 +749,8 @@ var SourceTV2D = SourceTV2D || (function() {
             this.socket=null;
         },
 
-        drawMap : function() {
+        //drawmap is called by an interval, and hence its parent is not 'this' (the sourcetv2d object), therefore we pass it
+        drawMap : function(this) {
             var d, time, i, alpha, offs, iOffset, deathWidth, fragsWidth, classWidth, iListBorderHeight, iHeight, classname;
             try
             {
