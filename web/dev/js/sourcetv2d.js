@@ -70,7 +70,9 @@ var SourceTV2D = SourceTV2D || (function() {
         },
 
         connect : function(ip, port) {
-            this.disconnect();
+            if (this.socket !== undefined) {
+                this.disconnect();  
+            } 
 
             if (this.canvas !== null)
             {
