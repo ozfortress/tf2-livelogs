@@ -1422,41 +1422,41 @@ var SourceTV2D = SourceTV2D || (function() {
                   url: '/maps/' + game + '/' + map + '.txt',
                   dataType: 'json',
                   success: function (json) {
-                      this.mapsettings.xoffset = json.xoffset;
-                      this.mapsettings.yoffset = json.yoffset;
-                      this.mapsettings.flipx = json.flipx;
-                      this.mapsettings.flipy = json.flipy;
-                      this.mapsettings.scale = json.scale;
-                      this.mapsettingsLoaded = true;
+                      SourceTV2D.mapsettings.xoffset = json.xoffset;
+                      SourceTV2D.mapsettings.yoffset = json.yoffset;
+                      SourceTV2D.mapsettings.flipx = json.flipx;
+                      SourceTV2D.mapsettings.flipy = json.flipy;
+                      SourceTV2D.mapsettings.scale = json.scale;
+                      SourceTV2D.mapsettingsLoaded = true;
                   },
                   error: function (jqXHR, textStatus) {
                       alert("Failed to load map info: " + jqXHR + " " + textStatus);
-                      this.mapsettingsFailed = true;
+                      SourceTV2D.mapsettingsFailed = true;
                   }
                 });
             }).error(function () {
-                this.canvas = document.createElement('canvas');
+                SourceTV2D.canvas = document.createElement('canvas');
 
                 // Browser does not support canvas
-                if (!this.canvas.getContext)
+                if (!SourceTV2D.canvas.getContext)
                 {
                   $("#sourcetv2d").html("<h2>Your browser does not support the canvas element.</h2>");
                   return;
                 }
 
-                //this.scaling = 1.0;
+                //SourceTV2D.scaling = 1.0;
 
                 // Default height
-                this.width = 1280 * this.scaling;
-                this.height = 1024 * this.scaling;
-                this.canvas.setAttribute('width',this.width);
-                this.canvas.setAttribute('height',this.height);
+                SourceTV2D.width = 1280 * SourceTV2D.scaling;
+                SourceTV2D.height = 1024 * SourceTV2D.scaling;
+                SourceTV2D.canvas.setAttribute('width',SourceTV2D.width);
+                SourceTV2D.canvas.setAttribute('height',SourceTV2D.height);
 
-                $("#sourcetv2d").append(this.canvas);
+                $("#sourcetv2d").append(SourceTV2D.canvas);
 
-                this.ctx = this.canvas.getContext('2d');
-                this.background = null;
-          }).attr('src', '/maps/' + game + '/' + map + '.jpg');
+                SourceTV2D.ctx = SourceTV2D.canvas.getContext('2d');
+                SourceTV2D.background = null;
+            }).attr('src', '/maps/' + game + '/' + map + '.jpg');
         },
 
         sortScoreboard : function() {
