@@ -201,7 +201,7 @@ var SourceTV2D = SourceTV2D || (function() {
                     this.teamPoints[0] = this.teamPoints[1] = 0;
                     this.roundEnded = -1;
                     
-                    this.loadMapImageInfo();
+                    this.loadMapImageInfo(this.game, frame.map);
                     
                     break;
                 
@@ -650,44 +650,6 @@ var SourceTV2D = SourceTV2D || (function() {
                             this.players[idx].positions[this.players[idx].positions.length-1].hurt = true;
                         }
                     }
-                    break;
-                
-                // SourceTV2D Chat message
-                case "Z":
-                    //Zuser:message
-                    split = msg_data.split(':');
-
-                    frame.message = split[1];
-                    frame.user = split[0];
-                    
-                    d = new Date();
-                    var timestring = "(";
-                    if (d.getHours() < 10) {
-                        timestring += "0";
-                    }
-                    timestring += d.getHours() + ":";
-                    if (d.getMinutes() < 10) {
-                        timestring += "0";
-                    }
-                    timestring += d.getMinutes() + ":";
-                    if (d.getSeconds() < 10) {
-                        timestring += "0";
-                    }
-                    timestring += d.getSeconds() + ") ";
-                    
-                    $("#chatoutput").append(document.createTextNode(timestring + frame.message));
-                    $("#chatoutput").append("<br />");
-                    $('#chatoutput').prop('scrollTop', $('#chatoutput').prop('scrollHeight'));
-                    
-                    break;
-                
-                // SourceTV2D spectator amount changed
-                case "A":
-                    //Anumwatch
-                    frame.totalwatching = parseInt(msg_data, 10);
-                    this.totalUsersWatching = frame.totalwatching;
-                    $("#totalwatching").text(this.totalUsersWatching);
-                    
                     break;
                 
                 // Player changed his name
@@ -1425,6 +1387,8 @@ var SourceTV2D = SourceTV2D || (function() {
 
         loadMapImageInfo : function(game, map) {
             // Load the background map image
+            console.log("loadMapImageInfo game: %s map: %s", game, map);
+
             this.background = new Image();
             $(this.background).load(function() {
                 this.canvas = document.createElement('canvas');
@@ -1492,7 +1456,7 @@ var SourceTV2D = SourceTV2D || (function() {
 
                 this.ctx = this.canvas.getContext('2d');
                 this.background = null;
-          }).attr('src', '/maps/' + this.game + '/' + this.map + '.jpg');
+          }).attr('src', '/maps/' + game + '/' + map + '.jpg');
         },
 
         sortScoreboard : function() {

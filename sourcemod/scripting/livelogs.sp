@@ -624,7 +624,7 @@ public onWebSocketReadyStateChange(WebsocketHandle:sock, WebsocketReadyState:rea
     new blue_score = GetTeamScore(BLUE+TEAM_OFFSET);
 
     //IGAME:MAP:TEAM2NAME:TEAM3NAME:TEAM2SCORE:TEAM3SCORE:HOSTNAME
-    FormatEx(buffer, sizeof(buffer), "I%s:%s:%s:%s:%d:%d:%s", game, map, "RED", "BLUE", hostname);
+    FormatEx(buffer, sizeof(buffer), "I%s:%s:%s:%s:%d:%d:%s", game, map, "RED", "BLUE", red_score, blue_score, hostname);
     
     Websocket_Send(sock, SendType_Text, buffer);
     
@@ -1027,7 +1027,7 @@ addToWebBuffer(const String:msg[])
         return;
     
     
-    if (livelogs_webtv_buffer_length >= MAX_BUFFER_SIZE)
+    if (livelogs_webtv_buffer_length >= MAX_BUFFER_SIZE-1)
     {
         if (DEBUG) { LogMessage("number of buffer items (%d) is >= the max buffer elements", livelogs_webtv_buffer_length); }
 
@@ -1078,6 +1078,12 @@ sendToAllWebChildren(const String:data[], num_web_clients = -1)
 
 shiftBufferLeft()
 {
+    if (livelogs_webtv_buffer_length > MAX_BUFFER_SIZE)
+    {   
+        //need to chop it back down for left shift to work
+        livelogs_webtv_buffer_length = MAX_BUFFER_SIZE;
+    }
+
     for (new i = 0; i < livelogs_webtv_buffer_length; i++)
     {
         strcopy(livelogs_webtv_buffer[i], sizeof(livelogs_webtv_buffer[]), livelogs_webtv_buffer[i+1]);

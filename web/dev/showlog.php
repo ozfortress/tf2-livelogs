@@ -305,19 +305,7 @@
                             $p_dpd = round($pstat["damage_dealt"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); //damage/death
                             $p_dpr = round($pstat["damage_dealt"] / (($red_score) ? ($red_score + $blue_score) : 1), 2); //num rounds are red score + blue score, damage/round
                             
-                            $team = get_player_team($team_array, $pstat["steamid"]);
-                            if ($team == "blue")
-                            {
-                                $team_class = "blue_player";
-                            }
-                            else if ($team == "red")
-                            {
-                                $team_class = "red_player";
-                            }
-                            else
-                            {
-                                $team_class = "no_team_player";
-                            }
+                            $team_class = get_player_team_class(get_player_team($team_array, $pstat["steamid"]));
                             
                             if (($pstat["healing_done"] > 0) || ($pstat["ubers_used"]) || ($pstat["ubers_lost"]))
                             {
@@ -382,19 +370,7 @@
                         {
                             $community_id = steamid_to_bigint($mstats[$i]["steamid"]);
                             
-                            $team = get_player_team($team_array, $mstats[$i]["steamid"]);
-                            if ($team == "blue")
-                            {
-                                $team_class = "blue_player";
-                            }
-                            else if ($team == "red")
-                            {
-                                $team_class = "red_player";
-                            }
-                            else
-                            {
-                                $team_class = "no_team_player";
-                            }
+                            $team_class = get_player_team_class(get_player_team($team_array, $mstats[$i]["steamid"]));
                             
                         ?>
                         
@@ -471,19 +447,7 @@
                         {
                             $community_id = steamid_to_bigint($pchat["steamid"]);
 
-                            $team = strtolower($pchat["team"]);
-                            if ($team == "blue")
-                            {
-                                $team_class = "blue_player";
-                            }
-                            else if ($team == "red")
-                            {
-                                $team_class = "red_player";
-                            }
-                            else
-                            {
-                                $team_class = "no_team_player";
-                            }
+                            $team_class = get_player_team_class(strtolower($pchat["team"]));
 
                             $chat_type = $pchat["chat_type"];
 
@@ -614,8 +578,25 @@
                 return $pteam["team"];
             }
         }
-        
+    
         return 0;
+    }
+
+    function get_player_team_class($team)
+    {
+        if ($team == "blue")
+        {
+            $team_class = "blue_player";
+        }
+        else if ($team == "red")
+        {
+            $team_class = "red_player";
+        }
+        else
+        {
+            $team_class = "no_team_player";
+        }
+        return $team_class;
     }
     
     pg_close($ll_db)
