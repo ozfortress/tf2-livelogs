@@ -177,7 +177,7 @@ var SourceTV2D = SourceTV2D || (function() {
 
                     this.loadMapImageInfo(frame.game, frame.map);
                     
-                    this.timer = setInterval(this.drawMap(this), 50);
+                    this.timer = setInterval(this.drawMap, 50);
                     
                     this.totalUsersWatching += 1;
 
@@ -747,442 +747,442 @@ var SourceTV2D = SourceTV2D || (function() {
             this.socket=null;
         },
 
-        //drawmap is called by an interval, and hence its parent is not 'this' (the sourcetv2d object), therefore we pass it
+        //drawmap is called by a window interval, and hence its parent is not 'this' (the sourcetv2d object), so we have to reference the object instead of using `this`
         drawMap : function() {
             var d, time, i, alpha, offs, iOffset, deathWidth, fragsWidth, classWidth, iListBorderHeight, iHeight, classname;
             try
             {
-                if (this.ctx === null) {
-                    this.debug("No canvas element present");
+                if (SourceTV2D.ctx === null) {
+                    SourceTV2D.debug("No canvas element present");
 
                     return;
                 }
                 // Clear the canvas.
-                this.ctx.clearRect(0,0,this.width,this.height);
-                if (this.background !== null) {
-                    this.ctx.drawImage(this.background,0,0,this.width,this.height);
+                SourceTV2D.ctx.clearRect(0,0,SourceTV2D.width,SourceTV2D.height);
+                if (SourceTV2D.background !== null) {
+                    SourceTV2D.ctx.drawImage(SourceTV2D.background,0,0,SourceTV2D.width,SourceTV2D.height);
                 }
                 else
                 {
-                    this.ctx.save();
-                    this.ctx.beginPath();
-                    this.ctx.fillStyle = "rgb(0, 0, 0)";
-                    this.ctx.rect(0, 0, this.width, this.height);
-                    this.ctx.fill();
-                    this.ctx.restore();
+                    SourceTV2D.ctx.save();
+                    SourceTV2D.ctx.beginPath();
+                    SourceTV2D.ctx.fillStyle = "rgb(0, 0, 0)";
+                    SourceTV2D.ctx.rect(0, 0, SourceTV2D.width, SourceTV2D.height);
+                    SourceTV2D.ctx.fill();
+                    SourceTV2D.ctx.restore();
                 }
                 
                 // Draw the kill messages
                 d = new Date();
                 time = d.getTime()/1000;
 
-                this.ctx.textAlign = "left";
-                this.ctx.font = Math.round(10*this.scaling) + "pt Verdana";
+                SourceTV2D.ctx.textAlign = "left";
+                SourceTV2D.ctx.font = Math.round(10*SourceTV2D.scaling) + "pt Verdana";
 
-                for (i=0; i<this.frags.length; i++)
+                for (i=0; i<SourceTV2D.frags.length; i++)
                 {
-                    if ((time - this.frags[i].time) > this.fragFadeTime)
+                    if ((time - SourceTV2D.frags[i].time) > SourceTV2D.fragFadeTime)
                     {
-                        this.frags.splice(i, 1);
+                        SourceTV2D.frags.splice(i, 1);
                         i -= 1;
                         continue;
                     }
                     
-                    this.ctx.save();
+                    SourceTV2D.ctx.save();
                     
-                    alpha = 1.0 - (time - this.frags[i].time) / this.fragFadeTime;
+                    alpha = 1.0 - (time - SourceTV2D.frags[i].time) / SourceTV2D.fragFadeTime;
                     
-                    if (this.frags[i].ateam === 2) {
-                        this.ctx.fillStyle = "rgba(255,0,0," + alpha + ")";
+                    if (SourceTV2D.frags[i].ateam === 2) {
+                        SourceTV2D.ctx.fillStyle = "rgba(255,0,0," + alpha + ")";
                     }
-                    else if (this.frags[i].ateam === 3) {
-                        this.ctx.fillStyle = "rgba(0,0,255," + alpha + ")";
-                    }
-                    
-                    this.ctx.fillText(this.frags[i].attacker, (50*this.scaling), ((50 + (this.frags.length-i-1)*20)*this.scaling));
-                    
-                    offs = this.ctx.measureText(this.frags[i].attacker).width + 10*this.scaling;
-                    this.ctx.fillStyle = "rgba(255,255,255," + alpha + ")";
-                    
-                    this.ctx.fillText(this.frags[i].weapon, (50*this.scaling + offs), ((50 + (this.frags.length-i-1)*20)*this.scaling));
-                    
-                    offs += this.ctx.measureText(this.frags[i].weapon).width + 10*this.scaling;
-                    
-                    if (this.frags[i].vteam === 2) {
-                        this.ctx.fillStyle = "rgba(255,0,0," + alpha + ")";
-                    }
-                    else if (this.frags[i].vteam === 3) {
-                        this.ctx.fillStyle = "rgba(0,0,255," + alpha + ")";
+                    else if (SourceTV2D.frags[i].ateam === 3) {
+                        SourceTV2D.ctx.fillStyle = "rgba(0,0,255," + alpha + ")";
                     }
                     
-                    this.ctx.fillText(this.frags[i].victim, (50*this.scaling + offs), ((50 + (this.frags.length-i-1)*20)*this.scaling));
-                    this.ctx.restore();
+                    SourceTV2D.ctx.fillText(SourceTV2D.frags[i].attacker, (50*SourceTV2D.scaling), ((50 + (SourceTV2D.frags.length-i-1)*20)*SourceTV2D.scaling));
+                    
+                    offs = SourceTV2D.ctx.measureText(SourceTV2D.frags[i].attacker).width + 10*SourceTV2D.scaling;
+                    SourceTV2D.ctx.fillStyle = "rgba(255,255,255," + alpha + ")";
+                    
+                    SourceTV2D.ctx.fillText(SourceTV2D.frags[i].weapon, (50*SourceTV2D.scaling + offs), ((50 + (SourceTV2D.frags.length-i-1)*20)*SourceTV2D.scaling));
+                    
+                    offs += SourceTV2D.ctx.measureText(SourceTV2D.frags[i].weapon).width + 10*SourceTV2D.scaling;
+                    
+                    if (SourceTV2D.frags[i].vteam === 2) {
+                        SourceTV2D.ctx.fillStyle = "rgba(255,0,0," + alpha + ")";
+                    }
+                    else if (SourceTV2D.frags[i].vteam === 3) {
+                        SourceTV2D.ctx.fillStyle = "rgba(0,0,255," + alpha + ")";
+                    }
+                    
+                    SourceTV2D.ctx.fillText(SourceTV2D.frags[i].victim, (50*SourceTV2D.scaling + offs), ((50 + (SourceTV2D.frags.length-i-1)*20)*SourceTV2D.scaling));
+                    SourceTV2D.ctx.restore();
                 }
                 
                 
                 // Draw the connect/disconnect messages
-                this.ctx.font = Math.round(11*this.scaling) + "pt Verdana";
-                for (i=0; i<this.infos.length; i++)
+                SourceTV2D.ctx.font = Math.round(11*SourceTV2D.scaling) + "pt Verdana";
+                for (i=0; i<SourceTV2D.infos.length; i++)
                 {
-                    if ((time - this.infos[i].time) > this.infosFadeTime)
+                    if ((time - SourceTV2D.infos[i].time) > SourceTV2D.infosFadeTime)
                     {
-                        this.infos.splice(i, 1);
+                        SourceTV2D.infos.splice(i, 1);
                         i -= 1;
                         continue;
                     }
                     
-                    this.ctx.save();
-                    alpha = 1.0 - (time - this.infos[i].time) / this.infosFadeTime;
-                    this.ctx.fillStyle = "rgba(255,255,255," + alpha + ")";
+                    SourceTV2D.ctx.save();
+                    alpha = 1.0 - (time - SourceTV2D.infos[i].time) / SourceTV2D.infosFadeTime;
+                    SourceTV2D.ctx.fillStyle = "rgba(255,255,255," + alpha + ")";
                     
-                    this.ctx.fillText(this.infos[i].msg, ((this.width-this.ctx.measureText(this.infos[i].msg).width)-50*this.scaling), ((50 + (this.infos.length-i-1)*20)*this.scaling));
-                    this.ctx.restore();
+                    SourceTV2D.ctx.fillText(SourceTV2D.infos[i].msg, ((SourceTV2D.width-SourceTV2D.ctx.measureText(SourceTV2D.infos[i].msg).width)-50*SourceTV2D.scaling), ((50 + (SourceTV2D.infos.length-i-1)*20)*SourceTV2D.scaling));
+                    SourceTV2D.ctx.restore();
                 }
                 
                 
                 // Draw the chat
                 d = new Date();
                 time = d.getTime()/1000;
-                this.ctx.textAlign = "left";
-                this.ctx.font = Math.round(12*this.scaling) + "pt Verdana";
-                for (i=(this.chat.length-1); i>=0; i--)
+                SourceTV2D.ctx.textAlign = "left";
+                SourceTV2D.ctx.font = Math.round(12*SourceTV2D.scaling) + "pt Verdana";
+                for (i=(SourceTV2D.chat.length-1); i>=0; i--)
                 {
-                    if ((time - this.chat[i].time) > (this.chatHoldTime + this.chatFadeTime))
+                    if ((time - SourceTV2D.chat[i].time) > (SourceTV2D.chatHoldTime + SourceTV2D.chatFadeTime))
                     {
-                        this.chat.splice(i, 1);
-                        if (this.chat.length > 0) {
+                        SourceTV2D.chat.splice(i, 1);
+                        if (SourceTV2D.chat.length > 0) {
                             i += 1;
                         }
                         continue;
                     }
                     
-                    this.ctx.save();
+                    SourceTV2D.ctx.save();
                     
                     alpha = 1.0;
-                    if ((time - this.chat[i].time) > this.chatHoldTime) {
-                        alpha = 1.0 - (time - this.chat[i].time - this.chatHoldTime) / this.chatFadeTime;
+                    if ((time - SourceTV2D.chat[i].time) > SourceTV2D.chatHoldTime) {
+                        alpha = 1.0 - (time - SourceTV2D.chat[i].time - SourceTV2D.chatHoldTime) / SourceTV2D.chatFadeTime;
                     }
                     
-                    if (this.chat[i].team === 0) {
-                        this.ctx.fillStyle = "rgba(255,165,0," + alpha + ")";
-                    } else if (this.chat[i].team === 1) {
-                        this.ctx.fillStyle = "rgba(255,255,255," + alpha + ")";
-                    } else if (this.chat[i].team === 2) {
-                        this.ctx.fillStyle = "rgba(255,0,0," + alpha + ")";
-                    } else if (this.chat[i].team === 3) {
-                        this.ctx.fillStyle = "rgba(0,0,255," + alpha + ")";
+                    if (SourceTV2D.chat[i].team === 0) {
+                        SourceTV2D.ctx.fillStyle = "rgba(255,165,0," + alpha + ")";
+                    } else if (SourceTV2D.chat[i].team === 1) {
+                        SourceTV2D.ctx.fillStyle = "rgba(255,255,255," + alpha + ")";
+                    } else if (SourceTV2D.chat[i].team === 2) {
+                        SourceTV2D.ctx.fillStyle = "rgba(255,0,0," + alpha + ")";
+                    } else if (SourceTV2D.chat[i].team === 3) {
+                        SourceTV2D.ctx.fillStyle = "rgba(0,0,255," + alpha + ")";
                     }
                     
-                    this.ctx.fillText(this.chat[i].name, (50*this.scaling), (this.height-(50 + (this.chat.length-i-1)*20)*this.scaling));
+                    SourceTV2D.ctx.fillText(SourceTV2D.chat[i].name, (50*SourceTV2D.scaling), (SourceTV2D.height-(50 + (SourceTV2D.chat.length-i-1)*20)*SourceTV2D.scaling));
                     
-                    offs = this.ctx.measureText(this.chat[i].name).width;
-                    this.ctx.fillStyle = "rgba(255,165,0," + alpha + ")";
+                    offs = SourceTV2D.ctx.measureText(SourceTV2D.chat[i].name).width;
+                    SourceTV2D.ctx.fillStyle = "rgba(255,165,0," + alpha + ")";
                     
-                    this.ctx.fillText(": " + this.chat[i].msg, (50*this.scaling + offs), (this.height-(50 + (this.chat.length-i-1)*20)*this.scaling));
-                    this.ctx.restore();
+                    SourceTV2D.ctx.fillText(": " + SourceTV2D.chat[i].msg, (50*SourceTV2D.scaling + offs), (SourceTV2D.height-(50 + (SourceTV2D.chat.length-i-1)*20)*SourceTV2D.scaling));
+                    SourceTV2D.ctx.restore();
                 }
                 
                 //if the mapconfig wasn't found, disconnect with msg
-                if (this.background === null || this.mapsettingsFailed)
+                if (SourceTV2D.background === null || SourceTV2D.mapsettingsFailed)
                 {
-                    this.ctx.save();
-                    this.ctx.fillStyle = "rgb(255,255,255)";
-                    this.ctx.font = Math.round(20*this.scaling) + "pt Verdana";
+                    SourceTV2D.ctx.save();
+                    SourceTV2D.ctx.fillStyle = "rgb(255,255,255)";
+                    SourceTV2D.ctx.font = Math.round(20*SourceTV2D.scaling) + "pt Verdana";
                     var text = "No map image";
-                    this.debug(text);
-                    if (this.mapsettingsFailed) {
+                    SourceTV2D.debug(text);
+                    if (SourceTV2D.mapsettingsFailed) {
                         text = "Map config failed to load. Player positions can not be shown.";
                         //debug(text);
-                        this.ctx.fillStyle = "rgb(255,0,0)";
+                        SourceTV2D.ctx.fillStyle = "rgb(255,0,0)";
                     }
-                    this.ctx.fillText(text, (this.width - this.ctx.measureText(text).width)/2, (this.height/2));
-                    this.ctx.restore();
+                    SourceTV2D.ctx.fillText(text, (SourceTV2D.width - SourceTV2D.ctx.measureText(text).width)/2, (SourceTV2D.height/2));
+                    SourceTV2D.ctx.restore();
 
-                    this.disconnect();
+                    SourceTV2D.disconnect();
 
                     return;
                 }
                 
                 // Draw intel on map
-                if (this.intelDropped)
+                if (SourceTV2D.intelDropped)
                 {
-                  this.ctx.save();
-                  this.ctx.fillStyle = "#FF4500";
-                  this.ctx.beginPath();
-                  this.ctx.arc(this.bombPosition[0], this.bombPosition[1], 6*this.scaling, 0, Math.PI*2, true);
-                  this.ctx.fill();
+                  SourceTV2D.ctx.save();
+                  SourceTV2D.ctx.fillStyle = "#FF4500";
+                  SourceTV2D.ctx.beginPath();
+                  SourceTV2D.ctx.arc(SourceTV2D.bombPosition[0], SourceTV2D.bombPosition[1], 6*SourceTV2D.scaling, 0, Math.PI*2, true);
+                  SourceTV2D.ctx.fill();
                   
-                  this.ctx.strokeStyle = "#FFFFFF";
-                  this.ctx.beginPath();
-                  this.ctx.arc(this.bombPosition[0], this.bombPosition[1], 6*this.scaling, 0, Math.PI*2, true);
-                  this.ctx.stroke();
+                  SourceTV2D.ctx.strokeStyle = "#FFFFFF";
+                  SourceTV2D.ctx.beginPath();
+                  SourceTV2D.ctx.arc(SourceTV2D.bombPosition[0], SourceTV2D.bombPosition[1], 6*SourceTV2D.scaling, 0, Math.PI*2, true);
+                  SourceTV2D.ctx.stroke();
                   
-                  this.ctx.font = Math.round(7*this.scaling) + "pt Verdana";
-                  this.ctx.fillStyle = "#FFFFFF";
-                  this.ctx.fillText("B", this.bombPosition[0]-4*this.scaling, this.bombPosition[1] + 3);
-                  this.ctx.restore();
+                  SourceTV2D.ctx.font = Math.round(7*SourceTV2D.scaling) + "pt Verdana";
+                  SourceTV2D.ctx.fillStyle = "#FFFFFF";
+                  SourceTV2D.ctx.fillText("B", SourceTV2D.bombPosition[0]-4*SourceTV2D.scaling, SourceTV2D.bombPosition[1] + 3);
+                  SourceTV2D.ctx.restore();
                 }
                 
-                if (this.intelCaptured)
+                if (SourceTV2D.intelCaptured)
                 {
-                  this.ctx.save();
-                  this.ctx.fillStyle = "#FF8C00";
-                  this.ctx.beginPath();
-                  this.ctx.arc(this.bombPosition[0], this.bombPosition[1], 50*this.scaling, 0, Math.PI*2, true);
-                  this.ctx.fill();
+                  SourceTV2D.ctx.save();
+                  SourceTV2D.ctx.fillStyle = "#FF8C00";
+                  SourceTV2D.ctx.beginPath();
+                  SourceTV2D.ctx.arc(SourceTV2D.bombPosition[0], SourceTV2D.bombPosition[1], 50*SourceTV2D.scaling, 0, Math.PI*2, true);
+                  SourceTV2D.ctx.fill();
                   
-                  this.ctx.fillStyle = "#FFFF00";
-                  this.ctx.beginPath();
-                  this.ctx.arc(this.bombPosition[0], this.bombPosition[1], 20*this.scaling, 0, Math.PI*2, true);
-                  this.ctx.fill();
-                  this.ctx.restore();
+                  SourceTV2D.ctx.fillStyle = "#FFFF00";
+                  SourceTV2D.ctx.beginPath();
+                  SourceTV2D.ctx.arc(SourceTV2D.bombPosition[0], SourceTV2D.bombPosition[1], 20*SourceTV2D.scaling, 0, Math.PI*2, true);
+                  SourceTV2D.ctx.fill();
+                  SourceTV2D.ctx.restore();
                 }
                 
                 d = new Date();
                 time = d.getTime();
                 // Draw planted bomb on map
-                if (!this.bombDropped && this.bombPlantTime > 0)
+                if (!SourceTV2D.bombDropped && SourceTV2D.bombPlantTime > 0)
                 {
-                  this.ctx.save();
-                  this.ctx.fillStyle = "#FF4500";
-                  this.ctx.beginPath();
-                  this.ctx.arc(this.bombPosition[0], this.bombPosition[1], 9*this.scaling, 0, Math.PI*2, true);
-                  this.ctx.fill();
+                  SourceTV2D.ctx.save();
+                  SourceTV2D.ctx.fillStyle = "#FF4500";
+                  SourceTV2D.ctx.beginPath();
+                  SourceTV2D.ctx.arc(SourceTV2D.bombPosition[0], SourceTV2D.bombPosition[1], 9*SourceTV2D.scaling, 0, Math.PI*2, true);
+                  SourceTV2D.ctx.fill();
                   
-                  this.ctx.strokeStyle = "rgb(255,0,0)";
-                  this.ctx.beginPath();
-                  this.ctx.arc(this.bombPosition[0], this.bombPosition[1], 9*this.scaling, 0, Math.PI*2, true);
-                  this.ctx.stroke();
+                  SourceTV2D.ctx.strokeStyle = "rgb(255,0,0)";
+                  SourceTV2D.ctx.beginPath();
+                  SourceTV2D.ctx.arc(SourceTV2D.bombPosition[0], SourceTV2D.bombPosition[1], 9*SourceTV2D.scaling, 0, Math.PI*2, true);
+                  SourceTV2D.ctx.stroke();
                   
-                  this.ctx.font = Math.round(8*this.scaling) + "pt Verdana";
-                  this.ctx.fillStyle = "#FFFFFF";
-                  this.ctx.fillText("B", this.bombPosition[0]-4*this.scaling, this.bombPosition[1] + 3*this.scaling);
+                  SourceTV2D.ctx.font = Math.round(8*SourceTV2D.scaling) + "pt Verdana";
+                  SourceTV2D.ctx.fillStyle = "#FFFFFF";
+                  SourceTV2D.ctx.fillText("B", SourceTV2D.bombPosition[0]-4*SourceTV2D.scaling, SourceTV2D.bombPosition[1] + 3*SourceTV2D.scaling);
                   
-                  if (!this.bombExploded)
+                  if (!SourceTV2D.bombExploded)
                   {
-                    this.ctx.font = Math.round(8*this.scaling) + "pt Verdana";
-                    this.ctx.fillStyle = "#FFFFFF";
+                    SourceTV2D.ctx.font = Math.round(8*SourceTV2D.scaling) + "pt Verdana";
+                    SourceTV2D.ctx.fillStyle = "#FFFFFF";
                     var bombTimeLeft;
                     // Not yet defused? Count down!
-                    if (this.bombDefuseTime === -1) {
-                        bombTimeLeft = Math.round(this.bombExplodeTime-time/1000 + this.bombPlantTime);
+                    if (SourceTV2D.bombDefuseTime === -1) {
+                        bombTimeLeft = Math.round(SourceTV2D.bombExplodeTime-time/1000 + SourceTV2D.bombPlantTime);
                     }
                     // The bomb has been defused. Stay on the current time
                     else {
-                        bombTimeLeft = Math.round(this.bombDefuseTime - this.bombPlantTime);
+                        bombTimeLeft = Math.round(SourceTV2D.bombDefuseTime - SourceTV2D.bombPlantTime);
                     }
                     if (bombTimeLeft < 0) {
                         bombTimeLeft = 0;
                     }
-                    this.ctx.fillText("" + bombTimeLeft, this.bombPosition[0]-4*this.scaling, this.bombPosition[1]-15*this.scaling);          
+                    SourceTV2D.ctx.fillText("" + bombTimeLeft, SourceTV2D.bombPosition[0]-4*SourceTV2D.scaling, SourceTV2D.bombPosition[1]-15*SourceTV2D.scaling);          
                   }
-                  this.ctx.restore();
+                  SourceTV2D.ctx.restore();
                 }
                 
                 
-                this.ctx.font = Math.round(10*this.scaling) + "pt Verdana"; // Set this for the player names
-                for (i=0; i<this.players.length; i++)
+                SourceTV2D.ctx.font = Math.round(10*SourceTV2D.scaling) + "pt Verdana"; // Set SourceTV2D. for the player names
+                for (i=0; i<SourceTV2D.players.length; i++)
                 {
                     // Make sure we're in sync with the other messages..
                     // Delete older frames
-                    while (this.players[i].positions.length > 0 && (time - this.players[i].positions[0].time) > 2000)
+                    while (SourceTV2D.players[i].positions.length > 0 && (time - SourceTV2D.players[i].positions[0].time) > 2000)
                     {
-                      this.players[i].positions.splice(0,1);
+                      SourceTV2D.players[i].positions.splice(0,1);
                     }
                     
-                    // There is no coordinate for this player yet
-                    if (this.players[i].positions.length === 0) {
+                    // There is no coordinate for SourceTV2D. player yet
+                    if (SourceTV2D.players[i].positions.length === 0) {
                         //debug("No co-ords for player idx " + i);
                         continue;
                     }
                     
-                    this.ctx.save();
+                    SourceTV2D.ctx.save();
                     
-                    if (this.players[i].team < 2) {
-                        this.ctx.fillStyle = "black";
-                    } else if (this.players[i].team === 2) {
-                        if (this.players[i].positions[0].diedhere === false) {
-                            this.ctx.fillStyle = "red";
+                    if (SourceTV2D.players[i].team < 2) {
+                        SourceTV2D.ctx.fillStyle = "black";
+                    } else if (SourceTV2D.players[i].team === 2) {
+                        if (SourceTV2D.players[i].positions[0].diedhere === false) {
+                            SourceTV2D.ctx.fillStyle = "red";
                         }
                         else {
-                            this.ctx.fillStyle = "rgba(255,0,0,0.3)";
+                            SourceTV2D.ctx.fillStyle = "rgba(255,0,0,0.3)";
                         }
-                    } else if (this.players[i].team === 3) {
-                        if (this.players[i].positions[0].diedhere === false) {
-                            this.ctx.fillStyle = "blue";
+                    } else if (SourceTV2D.players[i].team === 3) {
+                        if (SourceTV2D.players[i].positions[0].diedhere === false) {
+                            SourceTV2D.ctx.fillStyle = "blue";
                         }
                         else {
-                            this.ctx.fillStyle = "rgba(0,0,255,0.3)";
+                            SourceTV2D.ctx.fillStyle = "rgba(0,0,255,0.3)";
                         }
                     }
                     
-                    // Teleport directly to new spawn, if he died at this position
-                    if (this.players[i].positions[0].diedhere)
+                    // Teleport directly to new spawn, if he died at SourceTV2D. position
+                    if (SourceTV2D.players[i].positions[0].diedhere)
                     {
-                        if (this.players[i].positions[1])
+                        if (SourceTV2D.players[i].positions[1])
                         {
-                            //if (time >= this.players[i].positions[1].time)
-                                this.players[i].positions.splice(0,1);
+                            //if (time >= SourceTV2D.players[i].positions[1].time)
+                                SourceTV2D.players[i].positions.splice(0,1);
                         }
                     }
                     // Move the player smoothly towards the new position (interpolate)
-                    else if (this.players[i].positions.length > 1)
+                    else if (SourceTV2D.players[i].positions.length > 1)
                     {
-                        if (this.players[i].positions[0].x === this.players[i].positions[1].x && this.players[i].positions[0].y === this.players[i].positions[1].y)
+                        if (SourceTV2D.players[i].positions[0].x === SourceTV2D.players[i].positions[1].x && SourceTV2D.players[i].positions[0].y === SourceTV2D.players[i].positions[1].y)
                         {
-                            //if (time >= this.players[i].positions[1].time)
-                                this.players[i].positions.splice(0,1);
+                            //if (time >= SourceTV2D.players[i].positions[1].time)
+                                SourceTV2D.players[i].positions.splice(0,1);
                         }
                         else
                         {
-                            // This function is called 20x a second
-                            if (this.players[i].positions[0].swapx === null)
+                            // SourceTV2D. function is called 20x a second
+                            if (SourceTV2D.players[i].positions[0].swapx === null)
                             {
-                                this.players[i].positions[0].swapx = this.players[i].positions[0].x > this.players[i].positions[1].x?-1:1;
-                                this.players[i].positions[0].swapy = this.players[i].positions[0].y > this.players[i].positions[1].y?-1:1;
+                                SourceTV2D.players[i].positions[0].swapx = SourceTV2D.players[i].positions[0].x > SourceTV2D.players[i].positions[1].x?-1:1;
+                                SourceTV2D.players[i].positions[0].swapy = SourceTV2D.players[i].positions[0].y > SourceTV2D.players[i].positions[1].y?-1:1;
                             }
-                            if (this.players[i].positions[0].diffx === null)
+                            if (SourceTV2D.players[i].positions[0].diffx === null)
                             {
-                                var timediff = this.players[i].positions[1].time - this.players[i].positions[0].time;
-                                this.players[i].positions[0].diffx = Math.abs(this.players[i].positions[1].x - this.players[i].positions[0].x)/(timediff/50);
-                                this.players[i].positions[0].diffy = Math.abs(this.players[i].positions[1].y - this.players[i].positions[0].y)/(timediff/50);
+                                var timediff = SourceTV2D.players[i].positions[1].time - SourceTV2D.players[i].positions[0].time;
+                                SourceTV2D.players[i].positions[0].diffx = Math.abs(SourceTV2D.players[i].positions[1].x - SourceTV2D.players[i].positions[0].x)/(timediff/50);
+                                SourceTV2D.players[i].positions[0].diffy = Math.abs(SourceTV2D.players[i].positions[1].y - SourceTV2D.players[i].positions[0].y)/(timediff/50);
                             }
                             
-                            var x = this.players[i].positions[0].x + this.players[i].positions[0].swapx*this.players[i].positions[0].diffx;
-                            var y = this.players[i].positions[0].y + this.players[i].positions[0].swapy*this.players[i].positions[0].diffy;
+                            var x = SourceTV2D.players[i].positions[0].x + SourceTV2D.players[i].positions[0].swapx*SourceTV2D.players[i].positions[0].diffx;
+                            var y = SourceTV2D.players[i].positions[0].y + SourceTV2D.players[i].positions[0].swapy*SourceTV2D.players[i].positions[0].diffy;
                             
                             // We're moving too far...
-                            if ((this.players[i].positions[0].swapx===-1 && x <= this.players[i].positions[1].x) || (this.players[i].positions[0].swapx===1 && x >= this.players[i].positions[1].x) || (this.players[i].positions[0].swapy===-1 && y <= this.players[i].positions[1].y) || (this.players[i].positions[0].swapy===1 && y >= this.players[i].positions[1].y))
+                            if ((SourceTV2D.players[i].positions[0].swapx===-1 && x <= SourceTV2D.players[i].positions[1].x) || (SourceTV2D.players[i].positions[0].swapx===1 && x >= SourceTV2D.players[i].positions[1].x) || (SourceTV2D.players[i].positions[0].swapy===-1 && y <= SourceTV2D.players[i].positions[1].y) || (SourceTV2D.players[i].positions[0].swapy===1 && y >= SourceTV2D.players[i].positions[1].y))
                             {
-                                this.players[i].positions.splice(0,1);
+                                SourceTV2D.players[i].positions.splice(0,1);
                             }
                             else
                             {
-                                this.players[i].positions[0].x = x;
-                                this.players[i].positions[0].y = y;
+                                SourceTV2D.players[i].positions[0].x = x;
+                                SourceTV2D.players[i].positions[0].y = y;
                             }
                         }
                     }
                     
-                    var playerRadius = this.playerRadius;
-                    // User hovers his mouse over this player
-                    if (this.players[i].hovered || this.players[i].selected)
+                    var playerRadius = SourceTV2D.playerRadius;
+                    // User hovers his mouse over SourceTV2D. player
+                    if (SourceTV2D.players[i].hovered || SourceTV2D.players[i].selected)
                     {
-                        playerRadius = this.playerRadius + 4*this.scaling;
-                        this.ctx.save();
-                        this.ctx.beginPath();
-                        this.ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-                        this.ctx.arc(this.players[i].positions[0].x, this.players[i].positions[0].y, playerRadius + 2*this.scaling, 0, Math.PI*2, true);
-                        this.ctx.fill();
-                        this.ctx.restore();
+                        playerRadius = SourceTV2D.playerRadius + 4*SourceTV2D.scaling;
+                        SourceTV2D.ctx.save();
+                        SourceTV2D.ctx.beginPath();
+                        SourceTV2D.ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+                        SourceTV2D.ctx.arc(SourceTV2D.players[i].positions[0].x, SourceTV2D.players[i].positions[0].y, playerRadius + 2*SourceTV2D.scaling, 0, Math.PI*2, true);
+                        SourceTV2D.ctx.fill();
+                        SourceTV2D.ctx.restore();
                     }
 
                     // Draw player itself
-                    this.ctx.beginPath();
-                    this.ctx.arc(this.players[i].positions[0].x, this.players[i].positions[0].y, playerRadius, 0, Math.PI*2, true);
-                    this.ctx.fill();
+                    SourceTV2D.ctx.beginPath();
+                    SourceTV2D.ctx.arc(SourceTV2D.players[i].positions[0].x, SourceTV2D.players[i].positions[0].y, playerRadius, 0, Math.PI*2, true);
+                    SourceTV2D.ctx.fill();
                     
-                    // He got hurt this frame
-                    if (this.players[i].positions[0].hurt)
+                    // He got hurt SourceTV2D. frame
+                    if (SourceTV2D.players[i].positions[0].hurt)
                     {
-                        this.ctx.strokeStyle = "rgb(230, 149, 0)";
-                        this.ctx.beginPath();
-                        this.ctx.arc(this.players[i].positions[0].x, this.players[i].positions[0].y, playerRadius, 0, Math.PI*2, true);
-                        this.ctx.stroke();
+                        SourceTV2D.ctx.strokeStyle = "rgb(230, 149, 0)";
+                        SourceTV2D.ctx.beginPath();
+                        SourceTV2D.ctx.arc(SourceTV2D.players[i].positions[0].x, SourceTV2D.players[i].positions[0].y, playerRadius, 0, Math.PI*2, true);
+                        SourceTV2D.ctx.stroke();
                     }
                     
                     //if ($("#names").attr('checked'))
-                    //if (this.shownames)
+                    //if (SourceTV2D.shownames)
                     if ($("#stv_nametoggle").attr("checked"))
                     {
-                        this.ctx.save();
-                        var nameWidth = this.ctx.measureText(this.players[i].name).width;
-                        this.ctx.translate(this.players[i].positions[0].x-(nameWidth/2), this.players[i].positions[0].y-(bShowHealthBar?16:10)*this.scaling);
-                        this.ctx.fillText(this.players[i].name, 0, 0);
-                        this.ctx.restore();
+                        SourceTV2D.ctx.save();
+                        var nameWidth = SourceTV2D.ctx.measureText(SourceTV2D.players[i].name).width;
+                        SourceTV2D.ctx.translate(SourceTV2D.players[i].positions[0].x-(nameWidth/2), SourceTV2D.players[i].positions[0].y-(bShowHealthBar?16:10)*SourceTV2D.scaling);
+                        SourceTV2D.ctx.fillText(SourceTV2D.players[i].name, 0, 0);
+                        SourceTV2D.ctx.restore();
                     }
                     
                     // Draw view angle as white dot
-                    this.ctx.translate(this.players[i].positions[0].x, this.players[i].positions[0].y);
-                    this.ctx.fillStyle = "white";
-                    this.ctx.rotate(this.players[i].positions[0].angle);
-                    this.ctx.beginPath();
-                    this.ctx.arc(0, Math.round(3 * this.scaling), Math.round(2 * this.scaling), 0, Math.PI*2, true);
-                    this.ctx.fill();
+                    SourceTV2D.ctx.translate(SourceTV2D.players[i].positions[0].x, SourceTV2D.players[i].positions[0].y);
+                    SourceTV2D.ctx.fillStyle = "white";
+                    SourceTV2D.ctx.rotate(SourceTV2D.players[i].positions[0].angle);
+                    SourceTV2D.ctx.beginPath();
+                    SourceTV2D.ctx.arc(0, Math.round(3 * SourceTV2D.scaling), Math.round(2 * SourceTV2D.scaling), 0, Math.PI*2, true);
+                    SourceTV2D.ctx.fill();
                     
-                    this.ctx.restore();
+                    SourceTV2D.ctx.restore();
 
                     // Display player names above their heads
-                    var bShowHealthBar = (this.players[i].health > 0 && $("#healthbars").attr('checked'));
+                    var bShowHealthBar = (SourceTV2D.players[i].health > 0 && $("#healthbars").attr('checked'));
                     // Draw health bars
                     if (bShowHealthBar)
                     {
-                        this.ctx.save();
-                        this.ctx.translate(this.players[i].positions[0].x-12*this.scaling, this.players[i].positions[0].y-12*this.scaling);
-                        this.ctx.beginPath();
-                        this.ctx.strokeStyle = "rgba(0, 0, 0, 0.7)";
-                        this.ctx.rect(0, 0, 24*this.scaling, 4*this.scaling);
-                        this.ctx.stroke();
+                        SourceTV2D.ctx.save();
+                        SourceTV2D.ctx.translate(SourceTV2D.players[i].positions[0].x-12*SourceTV2D.scaling, SourceTV2D.players[i].positions[0].y-12*SourceTV2D.scaling);
+                        SourceTV2D.ctx.beginPath();
+                        SourceTV2D.ctx.strokeStyle = "rgba(0, 0, 0, 0.7)";
+                        SourceTV2D.ctx.rect(0, 0, 24*SourceTV2D.scaling, 4*SourceTV2D.scaling);
+                        SourceTV2D.ctx.stroke();
                         
-                        var width = (24*this.players[i].health/100)*this.scaling;
+                        var width = (24*SourceTV2D.players[i].health/100)*SourceTV2D.scaling;
                         if (width > 0)
                         {
-                            this.ctx.beginPath();
+                            SourceTV2D.ctx.beginPath();
                             
-                            if (this.players[i].health >= 70) {
-                                this.ctx.fillStyle = "rgba(0, 255, 0, 0.7)";
+                            if (SourceTV2D.players[i].health >= 70) {
+                                SourceTV2D.ctx.fillStyle = "rgba(0, 255, 0, 0.7)";
                             }
-                            else if (this.players[i].health >= 30) {
-                                this.ctx.fillStyle = "rgba(255, 255, 50, 0.7)";
+                            else if (SourceTV2D.players[i].health >= 30) {
+                                SourceTV2D.ctx.fillStyle = "rgba(255, 255, 50, 0.7)";
                             }
                             else {
-                                this.ctx.fillStyle = "rgba(255, 0, 0, 0.7)";
+                                SourceTV2D.ctx.fillStyle = "rgba(255, 0, 0, 0.7)";
                             }
                             
-                            this.ctx.rect(0, 0, width, 4*this.scaling);
-                            this.ctx.fill();
+                            SourceTV2D.ctx.rect(0, 0, width, 4*SourceTV2D.scaling);
+                            SourceTV2D.ctx.fill();
                         }
                         
-                        this.ctx.restore();
+                        SourceTV2D.ctx.restore();
                     }
                 }
                 
                 // Draw the round end info box
-                if (this.roundEnded !== -1)
+                if (SourceTV2D.roundEnded !== -1)
                 {
-                    this.ctx.save();
-                    this.ctx.font = Math.round(32*this.scaling) + "pt Verdana";
+                    SourceTV2D.ctx.save();
+                    SourceTV2D.ctx.font = Math.round(32*SourceTV2D.scaling) + "pt Verdana";
 
-                    var winnertext = this.team[this.roundEnded] + " won the round!";
+                    var winnertext = SourceTV2D.team[SourceTV2D.roundEnded] + " won the round!";
                     
                     // Draw a box around it
-                    this.ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-                    this.ctx.beginPath();
-                    this.ctx.rect(this.width/2-this.ctx.measureText(winnertext).width/2-5, this.height/2*this.scaling-34, this.ctx.measureText(winnertext).width + 10, 40);
-                    this.ctx.fill();
+                    SourceTV2D.ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+                    SourceTV2D.ctx.beginPath();
+                    SourceTV2D.ctx.rect(SourceTV2D.width/2-SourceTV2D.ctx.measureText(winnertext).width/2-5, SourceTV2D.height/2*SourceTV2D.scaling-34, SourceTV2D.ctx.measureText(winnertext).width + 10, 40);
+                    SourceTV2D.ctx.fill();
                     
-                    this.ctx.fillStyle = "rgb(255,255,255)";
-                    this.ctx.fillText(winnertext, this.width/2-this.ctx.measureText(winnertext).width/2, this.height/2*this.scaling);
+                    SourceTV2D.ctx.fillStyle = "rgb(255,255,255)";
+                    SourceTV2D.ctx.fillText(winnertext, SourceTV2D.width/2-SourceTV2D.ctx.measureText(winnertext).width/2, SourceTV2D.height/2*SourceTV2D.scaling);
                     
-                    this.ctx.restore();
+                    SourceTV2D.ctx.restore();
                 }
                 
                 // Draw the round time
-                if (this.game === "cstrike" && this.mp_roundtime > 0 && this.roundStartTime > 0)
+                if (SourceTV2D.game === "cstrike" && SourceTV2D.mp_roundtime > 0 && SourceTV2D.roundStartTime > 0)
                 {
-                    this.ctx.save();
-                    this.ctx.font = Math.round(14*this.scaling) + "pt Verdana";
-                    this.ctx.fillStyle = "rgb(255,255,255)";
+                    SourceTV2D.ctx.save();
+                    SourceTV2D.ctx.font = Math.round(14*SourceTV2D.scaling) + "pt Verdana";
+                    SourceTV2D.ctx.fillStyle = "rgb(255,255,255)";
                     var timeleft = 0;
                     // Stop the counting on round end
-                    if (this.roundEndTime > 0)
+                    if (SourceTV2D.roundEndTime > 0)
                     {
-                        timeleft = this.mp_roundtime - this.roundEndTime + this.roundStartTime;
+                        timeleft = SourceTV2D.mp_roundtime - SourceTV2D.roundEndTime + SourceTV2D.roundStartTime;
                     }
                     else
                     {
                         d = new Date();
-                        timeleft = this.mp_roundtime - Math.floor(d.getTime()/1000) + this.roundStartTime;
+                        timeleft = SourceTV2D.mp_roundtime - Math.floor(d.getTime()/1000) + SourceTV2D.roundStartTime;
                     }
                     if (timeleft < 0) {
                         timeleft = 0;
@@ -1199,227 +1199,227 @@ var SourceTV2D = SourceTV2D || (function() {
                         timetext += "0";
                     }
                     timetext += seconds;
-                    this.ctx.fillText(timetext, this.width-this.ctx.measureText(timetext).width-50*this.scaling, this.height-50*this.scaling);
+                    SourceTV2D.ctx.fillText(timetext, SourceTV2D.width-SourceTV2D.ctx.measureText(timetext).width-50*SourceTV2D.scaling, SourceTV2D.height-50*SourceTV2D.scaling);
                     
-                    this.ctx.restore();
+                    SourceTV2D.ctx.restore();
                 }
                 
                 // Draw the scoreboard
-                if (this.spacebarPressed)
+                if (SourceTV2D.spacebarPressed)
                 {
-                    this.ctx.save();
-                    this.ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-                    this.ctx.strokeStyle = "rgb(255,165,0)";
-                    this.ctx.translate(this.width*0.1, this.height*0.1);
+                    SourceTV2D.ctx.save();
+                    SourceTV2D.ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+                    SourceTV2D.ctx.strokeStyle = "rgb(255,165,0)";
+                    SourceTV2D.ctx.translate(SourceTV2D.width*0.1, SourceTV2D.height*0.1);
                     
                     // Box with border
-                    this.ctx.beginPath();
-                    this.ctx.rect(0, 0, this.width*0.8, this.height*0.8);
-                    this.ctx.fill();
-                    this.ctx.beginPath();
-                    this.ctx.rect(0, 0, this.width*0.8, this.height*0.8);
-                    this.ctx.stroke();
+                    SourceTV2D.ctx.beginPath();
+                    SourceTV2D.ctx.rect(0, 0, SourceTV2D.width*0.8, SourceTV2D.height*0.8);
+                    SourceTV2D.ctx.fill();
+                    SourceTV2D.ctx.beginPath();
+                    SourceTV2D.ctx.rect(0, 0, SourceTV2D.width*0.8, SourceTV2D.height*0.8);
+                    SourceTV2D.ctx.stroke();
                     
-                    this.ctx.translate(10*this.scaling, 0);
+                    SourceTV2D.ctx.translate(10*SourceTV2D.scaling, 0);
                     
                     // Map and servername
-                    this.ctx.font = Math.round(12*this.scaling) + "pt Verdana";
-                    this.ctx.fillStyle = "rgba(255,165,0,0.9)";
-                    this.ctx.fillText("Server: " + this.servername + " (" + this.map + ")", 0, 30*this.scaling);
+                    SourceTV2D.ctx.font = Math.round(12*SourceTV2D.scaling) + "pt Verdana";
+                    SourceTV2D.ctx.fillStyle = "rgba(255,165,0,0.9)";
+                    SourceTV2D.ctx.fillText("Server: " + SourceTV2D.servername + " (" + SourceTV2D.map + ")", 0, 30*SourceTV2D.scaling);
                     
                     // Blue team header box
-                    this.ctx.beginPath();
-                    this.ctx.fillStyle = "rgba(69, 171, 255, 0.7)";
-                    this.ctx.rect(0, 50*this.scaling, (this.width*0.8)/2-10*this.scaling, 80*this.scaling);
-                    this.ctx.fill();
-                    this.ctx.beginPath();
-                    this.ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
-                    this.ctx.rect(0, 50*this.scaling, (this.width*0.8)/2-10*this.scaling, 80*this.scaling);
-                    this.ctx.stroke();
+                    SourceTV2D.ctx.beginPath();
+                    SourceTV2D.ctx.fillStyle = "rgba(69, 171, 255, 0.7)";
+                    SourceTV2D.ctx.rect(0, 50*SourceTV2D.scaling, (SourceTV2D.width*0.8)/2-10*SourceTV2D.scaling, 80*SourceTV2D.scaling);
+                    SourceTV2D.ctx.fill();
+                    SourceTV2D.ctx.beginPath();
+                    SourceTV2D.ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+                    SourceTV2D.ctx.rect(0, 50*SourceTV2D.scaling, (SourceTV2D.width*0.8)/2-10*SourceTV2D.scaling, 80*SourceTV2D.scaling);
+                    SourceTV2D.ctx.stroke();
                     
-                    this.ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-                    this.ctx.font = Math.round(18*this.scaling) + "pt Verdana";
+                    SourceTV2D.ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+                    SourceTV2D.ctx.font = Math.round(18*SourceTV2D.scaling) + "pt Verdana";
                     // Team name
-                    this.ctx.fillText(this.team[3], 10*this.scaling, 90*this.scaling);
+                    SourceTV2D.ctx.fillText(SourceTV2D.team[3], 10*SourceTV2D.scaling, 90*SourceTV2D.scaling);
                     
                     // Player count in team
-                    this.ctx.font = Math.round(14*this.scaling) + "pt Verdana";
-                    this.ctx.fillText(this.teamPlayersAlive[1] + "/" + this.teamPlayerAmount[2] + " players alive", 16*this.scaling, 120*this.scaling);
+                    SourceTV2D.ctx.font = Math.round(14*SourceTV2D.scaling) + "pt Verdana";
+                    SourceTV2D.ctx.fillText(SourceTV2D.teamPlayersAlive[1] + "/" + SourceTV2D.teamPlayerAmount[2] + " players alive", 16*SourceTV2D.scaling, 120*SourceTV2D.scaling);
                     
                     // Team points
-                    this.ctx.font = Math.round(36*this.scaling) + "pt Verdana";
-                    this.ctx.fillText(this.teamPoints[1] + "", (this.width*0.8)/2-16*this.scaling-this.ctx.measureText(this.teamPoints[1] + "").width, 120*this.scaling);
+                    SourceTV2D.ctx.font = Math.round(36*SourceTV2D.scaling) + "pt Verdana";
+                    SourceTV2D.ctx.fillText(SourceTV2D.teamPoints[1] + "", (SourceTV2D.width*0.8)/2-16*SourceTV2D.scaling-SourceTV2D.ctx.measureText(SourceTV2D.teamPoints[1] + "").width, 120*SourceTV2D.scaling);
                     
                     // Table header
-                    this.ctx.fillStyle = "rgba(69, 171, 255, 0.9)";
-                    this.ctx.font = Math.round(10*this.scaling) + "pt Verdana";
-                    this.ctx.fillText("Player", 10*this.scaling, 150*this.scaling);       
+                    SourceTV2D.ctx.fillStyle = "rgba(69, 171, 255, 0.9)";
+                    SourceTV2D.ctx.font = Math.round(10*SourceTV2D.scaling) + "pt Verdana";
+                    SourceTV2D.ctx.fillText("Player", 10*SourceTV2D.scaling, 150*SourceTV2D.scaling);       
                     
                     //to position these, get the centre line of the scoreboard (sourcetv.width*0.8/2) and then substract the width of the other columns preceding 
                     //the one you want placed. all headers have the same Y positions (150*scaling)
-                    deathWidth = this.ctx.measureText("Deaths").width;
-                    this.ctx.fillText("Deaths", (this.width*0.8)/2 - 20*this.scaling - deathWidth, 150*this.scaling);
+                    deathWidth = SourceTV2D.ctx.measureText("Deaths").width;
+                    SourceTV2D.ctx.fillText("Deaths", (SourceTV2D.width*0.8)/2 - 20*SourceTV2D.scaling - deathWidth, 150*SourceTV2D.scaling);
                     
-                    fragsWidth = this.ctx.measureText("Frags").width;
-                    this.ctx.fillText("Frags", (this.width*0.8)/2 - 28*this.scaling - deathWidth - fragsWidth, 150*this.scaling);
+                    fragsWidth = SourceTV2D.ctx.measureText("Frags").width;
+                    SourceTV2D.ctx.fillText("Frags", (SourceTV2D.width*0.8)/2 - 28*SourceTV2D.scaling - deathWidth - fragsWidth, 150*SourceTV2D.scaling);
                     
-                    classWidth = this.ctx.measureText("Class").width;
-                    this.ctx.fillText("Class", (this.width*0.8)/2 - 160*this.scaling - deathWidth - fragsWidth - classWidth, 150*this.scaling);
+                    classWidth = SourceTV2D.ctx.measureText("Class").width;
+                    SourceTV2D.ctx.fillText("Class", (SourceTV2D.width*0.8)/2 - 160*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, 150*SourceTV2D.scaling);
                     
                     
                     // Player list border
-                    this.ctx.strokeStyle = "rgba(69, 171, 255, 0.9)";
-                    this.ctx.beginPath();
-                    iListBorderHeight = this.height*0.8-200*this.scaling;
-                    this.ctx.rect(0, 160*this.scaling, (this.width*0.8)/2-10*this.scaling, iListBorderHeight);
-                    this.ctx.stroke();
+                    SourceTV2D.ctx.strokeStyle = "rgba(69, 171, 255, 0.9)";
+                    SourceTV2D.ctx.beginPath();
+                    iListBorderHeight = SourceTV2D.height*0.8-200*SourceTV2D.scaling;
+                    SourceTV2D.ctx.rect(0, 160*SourceTV2D.scaling, (SourceTV2D.width*0.8)/2-10*SourceTV2D.scaling, iListBorderHeight);
+                    SourceTV2D.ctx.stroke();
                     
                     // Player list
-                    this.ctx.font = Math.round(14*this.scaling) + "pt Verdana";
+                    SourceTV2D.ctx.font = Math.round(14*SourceTV2D.scaling) + "pt Verdana";
                     iOffset = 0;
-                    for (i=0; i<this.players.length; i++)
+                    for (i=0; i<SourceTV2D.players.length; i++)
                     {
-                        if (this.players[i].team !== 3) {
+                        if (SourceTV2D.players[i].team !== 3) {
                             continue;
                         }
                         
-                        iHeight = (180 + 20*iOffset)*this.scaling;
+                        iHeight = (180 + 20*iOffset)*SourceTV2D.scaling;
                         if (iHeight > iListBorderHeight) {
                             break;
                         }
                         
-                        if (this.players[i].alive) {
-                            this.ctx.fillStyle = "rgba(69, 171, 255, 0.9)";
+                        if (SourceTV2D.players[i].alive) {
+                            SourceTV2D.ctx.fillStyle = "rgba(69, 171, 255, 0.9)";
                         }
                         else {
-                            this.ctx.fillStyle = "rgba(69, 171, 255, 0.6)";
+                            SourceTV2D.ctx.fillStyle = "rgba(69, 171, 255, 0.6)";
                         }
                         
                         //likewise for the headers, get centre pos and subtract
                         
-                        this.ctx.fillText(this.players[i].name, 10*this.scaling, iHeight);
-                        this.ctx.fillText(this.players[i].deaths, (this.width*0.8)/2 - 20*this.scaling - deathWidth, iHeight);
-                        this.ctx.fillText(this.players[i].frags, (this.width*0.8)/2 - 28*this.scaling - deathWidth - fragsWidth, iHeight);
+                        SourceTV2D.ctx.fillText(SourceTV2D.players[i].name, 10*SourceTV2D.scaling, iHeight);
+                        SourceTV2D.ctx.fillText(SourceTV2D.players[i].deaths, (SourceTV2D.width*0.8)/2 - 20*SourceTV2D.scaling - deathWidth, iHeight);
+                        SourceTV2D.ctx.fillText(SourceTV2D.players[i].frags, (SourceTV2D.width*0.8)/2 - 28*SourceTV2D.scaling - deathWidth - fragsWidth, iHeight);
                         
                         //player classes are a bit diff, since they're numbered and we want them in name
-                        classname = this.classnames[this.players[i].pclass];
-                        this.ctx.fillText(classname, (this.width*0.8)/2 - 160*this.scaling - deathWidth - fragsWidth - classWidth, iHeight);
+                        classname = SourceTV2D.classnames[SourceTV2D.players[i].pclass];
+                        SourceTV2D.ctx.fillText(classname, (SourceTV2D.width*0.8)/2 - 160*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, iHeight);
                         
                         
-                        if (this.players[i].has_intel) {
-                            this.ctx.fillText("F", (this.width*0.8)/2 - 66*this.scaling - deathWidth - fragsWidth - classWidth, iHeight);
+                        if (SourceTV2D.players[i].has_intel) {
+                            SourceTV2D.ctx.fillText("F", (SourceTV2D.width*0.8)/2 - 66*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, iHeight);
                         }
                         iOffset += 1;
                     }
                     
                     // Red team!
-                    this.ctx.save();
-                    this.ctx.translate((this.width*0.8)/2, 0);
+                    SourceTV2D.ctx.save();
+                    SourceTV2D.ctx.translate((SourceTV2D.width*0.8)/2, 0);
                     
                     // Red team header box
-                    this.ctx.beginPath();
-                    this.ctx.fillStyle = "rgba(207, 68, 102, 0.7)";
-                    this.ctx.rect(0, 50*this.scaling, (this.width*0.8)/2-20*this.scaling, 80*this.scaling);
-                    this.ctx.fill();
-                    this.ctx.beginPath();
-                    this.ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
-                    this.ctx.rect(0, 50*this.scaling, (this.width*0.8)/2-20*this.scaling, 80*this.scaling);
-                    this.ctx.stroke();
+                    SourceTV2D.ctx.beginPath();
+                    SourceTV2D.ctx.fillStyle = "rgba(207, 68, 102, 0.7)";
+                    SourceTV2D.ctx.rect(0, 50*SourceTV2D.scaling, (SourceTV2D.width*0.8)/2-20*SourceTV2D.scaling, 80*SourceTV2D.scaling);
+                    SourceTV2D.ctx.fill();
+                    SourceTV2D.ctx.beginPath();
+                    SourceTV2D.ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+                    SourceTV2D.ctx.rect(0, 50*SourceTV2D.scaling, (SourceTV2D.width*0.8)/2-20*SourceTV2D.scaling, 80*SourceTV2D.scaling);
+                    SourceTV2D.ctx.stroke();
                     
-                    this.ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-                    this.ctx.font = Math.round(18*this.scaling) + "pt Verdana";
+                    SourceTV2D.ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+                    SourceTV2D.ctx.font = Math.round(18*SourceTV2D.scaling) + "pt Verdana";
                     // Team name
-                    this.ctx.fillText(this.team[2], (this.width*0.8)/2-31*this.scaling-this.ctx.measureText(this.team[2]).width, 90*this.scaling);
+                    SourceTV2D.ctx.fillText(SourceTV2D.team[2], (SourceTV2D.width*0.8)/2-31*SourceTV2D.scaling-SourceTV2D.ctx.measureText(SourceTV2D.team[2]).width, 90*SourceTV2D.scaling);
                     
                     // Player count in team
-                    this.ctx.font = Math.round(14*this.scaling) + "pt Verdana";
-                    var sBuf = "players alive " + this.teamPlayersAlive[0] + "/" + this.teamPlayerAmount[1];
-                    this.ctx.fillText(sBuf, (this.width*0.8)/2-37*this.scaling-this.ctx.measureText(sBuf).width, 120*this.scaling);
+                    SourceTV2D.ctx.font = Math.round(14*SourceTV2D.scaling) + "pt Verdana";
+                    var sBuf = "players alive " + SourceTV2D.teamPlayersAlive[0] + "/" + SourceTV2D.teamPlayerAmount[1];
+                    SourceTV2D.ctx.fillText(sBuf, (SourceTV2D.width*0.8)/2-37*SourceTV2D.scaling-SourceTV2D.ctx.measureText(sBuf).width, 120*SourceTV2D.scaling);
                     
                     // Team points
-                    this.ctx.font = Math.round(36*this.scaling) + "pt Verdana";
-                    this.ctx.fillText(this.teamPoints[0] + "", 5*this.scaling, 120*this.scaling);
+                    SourceTV2D.ctx.font = Math.round(36*SourceTV2D.scaling) + "pt Verdana";
+                    SourceTV2D.ctx.fillText(SourceTV2D.teamPoints[0] + "", 5*SourceTV2D.scaling, 120*SourceTV2D.scaling);
                     
                     // Table header
-                    this.ctx.fillStyle = "rgba(207, 68, 102, 0.9)";
-                    this.ctx.font = Math.round(10*this.scaling) + "pt Verdana";
-                    this.ctx.fillText("Player", 10*this.scaling, 150*this.scaling);
+                    SourceTV2D.ctx.fillStyle = "rgba(207, 68, 102, 0.9)";
+                    SourceTV2D.ctx.font = Math.round(10*SourceTV2D.scaling) + "pt Verdana";
+                    SourceTV2D.ctx.fillText("Player", 10*SourceTV2D.scaling, 150*SourceTV2D.scaling);
                     
-                    deathWidth = this.ctx.measureText("Deaths").width;
-                    this.ctx.fillText("Deaths", (this.width*0.8)/2-30*this.scaling-deathWidth, 150*this.scaling);
+                    deathWidth = SourceTV2D.ctx.measureText("Deaths").width;
+                    SourceTV2D.ctx.fillText("Deaths", (SourceTV2D.width*0.8)/2-30*SourceTV2D.scaling-deathWidth, 150*SourceTV2D.scaling);
                     
-                    fragsWidth = this.ctx.measureText("Frags").width;
-                    this.ctx.fillText("Frags", (this.width*0.8)/2-38*this.scaling-deathWidth-fragsWidth, 150*this.scaling);
+                    fragsWidth = SourceTV2D.ctx.measureText("Frags").width;
+                    SourceTV2D.ctx.fillText("Frags", (SourceTV2D.width*0.8)/2-38*SourceTV2D.scaling-deathWidth-fragsWidth, 150*SourceTV2D.scaling);
                     
-                    classWidth = this.ctx.measureText("Class").width;
-                    this.ctx.fillText("Class", (this.width*0.8)/2 - 180*this.scaling - deathWidth - fragsWidth - classWidth, 150*this.scaling);
+                    classWidth = SourceTV2D.ctx.measureText("Class").width;
+                    SourceTV2D.ctx.fillText("Class", (SourceTV2D.width*0.8)/2 - 180*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, 150*SourceTV2D.scaling);
                     
                     // Player list border
-                    this.ctx.strokeStyle = "rgba(207, 68, 102, 0.9)";
-                    this.ctx.beginPath();
-                    iListBorderHeight = this.height*0.8-200*this.scaling;
-                    this.ctx.rect(0, 160*this.scaling, (this.width*0.8)/2-20*this.scaling, iListBorderHeight);
-                    this.ctx.stroke();
+                    SourceTV2D.ctx.strokeStyle = "rgba(207, 68, 102, 0.9)";
+                    SourceTV2D.ctx.beginPath();
+                    iListBorderHeight = SourceTV2D.height*0.8-200*SourceTV2D.scaling;
+                    SourceTV2D.ctx.rect(0, 160*SourceTV2D.scaling, (SourceTV2D.width*0.8)/2-20*SourceTV2D.scaling, iListBorderHeight);
+                    SourceTV2D.ctx.stroke();
                     
                     // Player list
-                    this.ctx.font = Math.round(14*this.scaling) + "pt Verdana";
+                    SourceTV2D.ctx.font = Math.round(14*SourceTV2D.scaling) + "pt Verdana";
                     iOffset = 0;
-                    for (i=0; i<this.players.length; i++)
+                    for (i=0; i<SourceTV2D.players.length; i++)
                     {
-                        if (this.players[i].team !== 2) {
+                        if (SourceTV2D.players[i].team !== 2) {
                             continue;
                         }
                         
-                        iHeight = (180 + 20*iOffset)*this.scaling;
+                        iHeight = (180 + 20*iOffset)*SourceTV2D.scaling;
                         if (iHeight > iListBorderHeight) {
                             break;
                         }
                         
-                        if (this.players[i].alive) {
-                            this.ctx.fillStyle = "rgba(207, 68, 102, 0.9)";
+                        if (SourceTV2D.players[i].alive) {
+                            SourceTV2D.ctx.fillStyle = "rgba(207, 68, 102, 0.9)";
                         }
                         else {
-                            this.ctx.fillStyle = "rgba(207, 68, 102, 0.6)";
+                            SourceTV2D.ctx.fillStyle = "rgba(207, 68, 102, 0.6)";
                         }
                         
-                        this.ctx.fillText(this.players[i].name, 10*this.scaling, iHeight);
-                        this.ctx.fillText(this.players[i].deaths, (this.width*0.8)/2 - 20*this.scaling - deathWidth, iHeight);
-                        this.ctx.fillText(this.players[i].frags, (this.width*0.8)/2 - 28*this.scaling - deathWidth - fragsWidth, iHeight);
+                        SourceTV2D.ctx.fillText(SourceTV2D.players[i].name, 10*SourceTV2D.scaling, iHeight);
+                        SourceTV2D.ctx.fillText(SourceTV2D.players[i].deaths, (SourceTV2D.width*0.8)/2 - 20*SourceTV2D.scaling - deathWidth, iHeight);
+                        SourceTV2D.ctx.fillText(SourceTV2D.players[i].frags, (SourceTV2D.width*0.8)/2 - 28*SourceTV2D.scaling - deathWidth - fragsWidth, iHeight);
                         
-                        classname = this.classnames[this.players[i].pclass];
-                        this.ctx.fillText(classname, (this.width*0.8)/2 - 160*this.scaling - deathWidth - fragsWidth - classWidth, iHeight);
+                        classname = SourceTV2D.classnames[SourceTV2D.players[i].pclass];
+                        SourceTV2D.ctx.fillText(classname, (SourceTV2D.width*0.8)/2 - 160*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, iHeight);
                         
-                        if (this.players[i].has_intel) {
-                            this.ctx.fillText("F", (this.width*0.8) / 2 - 66*this.scaling - deathWidth - fragsWidth, iHeight);
+                        if (SourceTV2D.players[i].has_intel) {
+                            SourceTV2D.ctx.fillText("F", (SourceTV2D.width*0.8) / 2 - 66*SourceTV2D.scaling - deathWidth - fragsWidth, iHeight);
                         }
 
                         iOffset += 1;
                     }
                     
-                    this.ctx.restore();
+                    SourceTV2D.ctx.restore();
                     
                     // Spectators
-                    iOffset = 10*this.scaling + this.ctx.measureText(this.teamPlayerAmount[0] + " Spectators: ").width;
-                    iListBorderHeight += 185*this.scaling;
-                    this.ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-                    this.ctx.fillText(this.teamPlayerAmount[0] + " Spectators: ", 10*this.scaling, iListBorderHeight);
+                    iOffset = 10*SourceTV2D.scaling + SourceTV2D.ctx.measureText(SourceTV2D.teamPlayerAmount[0] + " Spectators: ").width;
+                    iListBorderHeight += 185*SourceTV2D.scaling;
+                    SourceTV2D.ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+                    SourceTV2D.ctx.fillText(SourceTV2D.teamPlayerAmount[0] + " Spectators: ", 10*SourceTV2D.scaling, iListBorderHeight);
                     var bMoreSpectators = false;
-                    for (i=0; i<this.players.length; i++)
+                    for (i=0; i<SourceTV2D.players.length; i++)
                     {
-                        if (this.players[i].team > 1) {
+                        if (SourceTV2D.players[i].team > 1) {
                             continue;
                         }
                         
-                        this.ctx.fillText((bMoreSpectators?", ":" ") + this.players[i].name, iOffset, iListBorderHeight);
-                        iOffset += this.ctx.measureText((bMoreSpectators?", ":" ") + this.players[i].name).width;
+                        SourceTV2D.ctx.fillText((bMoreSpectators?", ":" ") + SourceTV2D.players[i].name, iOffset, iListBorderHeight);
+                        iOffset += SourceTV2D.ctx.measureText((bMoreSpectators?", ":" ") + SourceTV2D.players[i].name).width;
                         bMoreSpectators = true;
                     }
                     
-                    this.ctx.restore();
+                    SourceTV2D.ctx.restore();
                 }
             }
             catch(ex) {
-                this.debug('Error: ' + ex);
+                SourceTV2D.debug('Error: ' + ex);
             }
         },
 
