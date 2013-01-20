@@ -91,46 +91,44 @@ var SourceTV2D = SourceTV2D || (function() {
             try
             {
                 if (!window.WebSocket) {
-                    this.debug("Your browser doesn't support WebSockets.");
+                    SourceTV2D.debug("Your browser doesn't support WebSockets.");
                     return;
                 } else {
                     this.socket = new WebSocket(host);
+                    this.debug("Opening connection to " + ip + ":" + port);
+                    this.socket.onopen = function (msg) { SourceTV2D.onSocketOpen(msg); };
+                    this.socket.onmessage = function (msg) { SourceTV2D.onSocketMessage(msg); };
+                    this.socket.onerror = function(msg) { SourceTV2D.onSocketError(msg); };
+                    this.socket.onclose = function (msg) { SourceTV2D.onSocketClose(msg); };
                 }
-                
-                this.debug("Opening connection to " + ip + ":" + port);
-                
-                this.socket.onopen = function (msg)
-                {
-                    this.debug("Connection established " + msg);
-                };
-                
-                this.socket.onmessage = function (msg) { SourceTV2D.onSocketMessage(msg); };
-                
-                    
-                this.socket.onerror = function (msg)
-                {
-                    if (this.ctx !== null)
-                    {
-                        this.ctx.font = Math.round(22*this.scaling) + "pt Verdana";
-                        this.ctx.fillStyle = "rgb(255,255,255)";
-                        this.ctx.fillText("Disconnected.", 100*this.scaling, 100*this.scaling);
-                    }
-                    this.debug("Socket reported error! " + msg);
-                };
-                this.socket.onclose = function (msg)
-                {
-                    if (this.ctx !== null)
-                    {
-                        this.ctx.font = Math.round(22*this.scaling) + "pt Verdana";
-                        this.ctx.fillStyle = "rgb(255,255,255)";
-                        this.ctx.fillText("Disconnected.", 100*this.scaling, 100*this.scaling);
-                    }
-                    this.debug("Disconnected - readyState: " + this.readyState + " Code: " + msg.code + ". Reason:" + msg.reason + " - wasClean: " + msg.wasClean);
-                };
             }
             catch(ex) {
                 this.debug('Error: ' + ex);
             }
+        },
+
+        onSocketOpen : function(msg) {
+            this.debug("Connection established " + msg);
+        },
+
+        onSocketClose : function(msg) {
+            if (this.ctx !== null)
+            {
+                this.ctx.font = Math.round(22*this.scaling) + "pt Verdana";
+                this.ctx.fillStyle = "rgb(255,255,255)";
+                this.ctx.fillText("Disconnected.", 100*this.scaling, 100*this.scaling);
+            }
+            this.debug("Disconnected - readyState: " + this.readyState + " Code: " + msg.code + ". Reason:" + msg.reason + " - wasClean: " + msg.wasClean);
+        },
+
+        onSocketError : function(msg) {
+            if (this.ctx !== null)
+            {
+                this.ctx.font = Math.round(22*this.scaling) + "pt Verdana";
+                this.ctx.fillStyle = "rgb(255,255,255)";
+                this.ctx.fillText("Disconnected.", 100*this.scaling, 100*this.scaling);
+            }
+            this.debug("Socket reported error! " + msg);
         },
 
         onSocketMessage : function(msg) {
@@ -750,7 +748,7 @@ var SourceTV2D = SourceTV2D || (function() {
         },
 
         //drawmap is called by an interval, and hence its parent is not 'this' (the sourcetv2d object), therefore we pass it
-        drawMap : function(this) {
+        drawMap : function() {
             var d, time, i, alpha, offs, iOffset, deathWidth, fragsWidth, classWidth, iListBorderHeight, iHeight, classname;
             try
             {
