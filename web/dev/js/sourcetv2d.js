@@ -1,4 +1,6 @@
-﻿/*
+﻿/*jshint plusplus:true*/
+
+/*
     Livelogs SourceTV2D Browser client
     
     
@@ -23,621 +25,484 @@
 
 
 
-var SourceTV2D = {};
-
-function init() {
+var SourceTV2D = SourceTV2D || (function() {
     "use strict";
-    SourceTV2D.socket = null;
-    SourceTV2D.canvas = null;
-    SourceTV2D.background = null;
-    SourceTV2D.ctx = null;
-    SourceTV2D.game = null;
-    SourceTV2D.map = null;
-    SourceTV2D.servername = "";
-    SourceTV2D.classnames = ["????", "Scout", "Sniper", "Soldier", "Demo", "Medic", "Heavy", "Pyro", "Spy", "Engi"]; //corresponding to the indexes of classes
-    SourceTV2D.team = ["Unassigned", "Spectator", "", ""];
-    SourceTV2D.teamPoints = [0, 0];
-    SourceTV2D.teamPlayerAmount = [0, 0, 0];
-    SourceTV2D.teamPlayersAlive = [0, 0];
-    SourceTV2D.players = [];
-    SourceTV2D.mapsettingsLoaded = false;
-    SourceTV2D.mapsettingsFailed = false;
-    SourceTV2D.mapsettings = {};
-    SourceTV2D.scaling = 0.8;
-    SourceTV2D.playerRadius = 5;
-    SourceTV2D.width = 0;
-    SourceTV2D.height = 0;
-    SourceTV2D.timer = null;
-    SourceTV2D.roundEnded = -1;
-    SourceTV2D.roundEndTime = -1;
-    SourceTV2D.roundStartTime = -1;
-    SourceTV2D.mp_roundtime = -1;
-    SourceTV2D.frags = [];
-    SourceTV2D.fragFadeTime = 5;
-    SourceTV2D.infos = [];
-    SourceTV2D.infosFadeTime = 6;
-    SourceTV2D.chat = [];
-    SourceTV2D.chatHoldTime = 10;
-    SourceTV2D.chatFadeTime = 2;
-    SourceTV2D.totalUsersWatching = 0;
-    SourceTV2D.shownames = 1;
-    $("sourcetv2d").mousemove = null;
-    $("#player").html("");
-    $("#players2").html("");
-    $("#players3").html("");
-    $("#players1").html("");
-    $("#selectedplayer").html("");
-    $("#totalwatching").text("0");
-    SourceTV2D.bomb_const = {pickup: 0, dropped: 1, position: 2, planted: 3, defused: 4, exploded: 5, beginplant: 6, abortplant: 7, begindefuse: 8, abortdefuse: 9};
-    SourceTV2D.bombDropped = false;
-    SourceTV2D.bombPlantTime = -1;
-    SourceTV2D.bombPosition = [0, 0];
-    SourceTV2D.bombExplodeTime = 45;
-    SourceTV2D.bombExploded = false;
-    SourceTV2D.bombDefuseTime = -1;
-}
+    return {
+        init : function() {
+            this.socket = null;
+            this.canvas = null;
+            this.background = null;
+            this.ctx = null;
+            this.game = null;
+            this.map = null;
+            this.servername = "";
+            this.classnames = ["????", "Scout", "Sniper", "Soldier", "Demo", "Medic", "Heavy", "Pyro", "Spy", "Engi"]; //corresponding to the indices of classes
+            this.team = ["Unassigned", "Spectator", "", ""];
+            this.teamPoints = [0, 0];
+            this.teamPlayerAmount = [0, 0, 0];
+            this.teamPlayersAlive = [0, 0];
+            this.players = [];
+            this.mapsettingsLoaded = false;
+            this.mapsettingsFailed = false;
+            this.mapsettings = {};
+            this.scaling = 0.8;
+            this.playerRadius = 5;
+            this.width = 0;
+            this.height = 0;
+            this.timer = null;
+            this.roundEnded = -1;
+            this.roundEndTime = -1;
+            this.roundStartTime = -1;
+            this.mp_roundtime = -1;
+            this.frags = [];
+            this.fragFadeTime = 5;
+            this.infos = [];
+            this.infosFadeTime = 6;
+            this.chat = [];
+            this.chatHoldTime = 10;
+            this.chatFadeTime = 2;
+            this.totalUsersWatching = 0;
+            this.shownames = 1;
+            $("sourcetv2d").mousemove = null;
+        },
 
-$(document).keydown(function (e) {
-    "use strict";
-    if (($(document.activeElement).attr("id") != "chatinput") && ($(document.activeElement).attr("id") != "chatnick") && (e.which == 32)) {
-        SourceTV2D.spacebarPressed = true;
-        return false;
-    }
-});
-$(document).keyup(function (e) {
-    "use strict";
-    if ($(document.activeElement).attr("id") != "chatinput" && $(document.activeElement).attr("id") != "chatnick" && e.which == 32) {
-        SourceTV2D.spacebarPressed = false;
-        return false;
-    }
-});
+        connect : function(ip, port) {
+            this.disconnect();
 
-function debug(msg) {
-    "use strict";
-    $("#debug").html($("#debug").html() + "<br />" + msg);
-}
-
-function stv2d_togglenames() {
-    "use strict";
-    if (SourceTV2D.shownames == 1) {
-        SourceTV2D.shownames = 0;
-    } else {
-        SourceTV2D.shownames = 1;
-    }
-}
-
-function stv2d_disconnect() {
-    "use strict";
-    if (SourceTV2D.timer != null) {
-        clearInterval(SourceTV2D.timer);
-        SourceTV2D.timer = null;
-    }
-    if (SourceTV2D.ctx != null) {
-        SourceTV2D.ctx.font = Math.round(22*SourceTV2D.scaling) + "pt Verdana";
-        SourceTV2D.ctx.fillStyle = "rgb(255,255,255)";
-        SourceTV2D.ctx.fillText("Disconnected.", 100*SourceTV2D.scaling, 100*SourceTV2D.scaling);
-    }
-    if (SourceTV2D.socket==null) {
-        return;
-    }
-    
-    SourceTV2D.totalUsersWatching -= 1;
-    $("#totalwatching").text(SourceTV2D.totalUsersWatching);
-    debug("Disconnecting from socket");
-    SourceTV2D.socket.close(1000);
-    SourceTV2D.socket=null;
-}
-
-function stv2d_connect(ip, port) {
-    stv2d_disconnect();
-    if (SourceTV2D.canvas != null)
-    {
-        $(SourceTV2D.canvas).remove();
-        SourceTV2D.canvas = null;
-    }
-    init();
-    $("#debug").html("");
-    SourceTV2D.ip = ip;
-    SourceTV2D.port = port;
-    var host = "ws://" + ip + ":" + port + "/sourcetv2d";
-    try
-    {
-        // FF needs the Moz prefix..
-        if (!window.WebSocket) {
-            if (window.MozWebSocket) {
-                SourceTV2D.socket = new MozWebSocket(host);
-            } else {
-                debug("Your browser doesn't support WebSockets.");
-                return;
+            if (this.canvas !== null)
+            {
+                $(this.canvas).remove();
+                this.canvas = null;
             }
-        } else {
-            SourceTV2D.socket = new WebSocket(host);
-        }
-        
-        debug("Opening connection to " + ip + ":" +port);
-        
-        SourceTV2D.socket.onopen = function (msg)
-        {
-            debug("Connection established");
-        };
-        
-        SourceTV2D.socket.onmessage = function (msg)
-        {
-            //debug("Received: " + msg.data);
-            // I primarily suck at javascript. This may be optimized to read bits instead of whole characters
-            var frame = {}, offset = 0;
-            frame.type = msg.data.charAt(offset);
-            offset += 1;
-            if (frame.type != "O") {
-                debug("Received frame type: " + frame.type + " Msg: " + msg.data);
+            this.init();
+
+            $("#debug").html("");
+
+            this.ip = ip;
+            this.port = port;
+
+            var host = "ws://" + ip + ":" + port + "/sourcetv2d";
+            try
+            {
+                if (!window.WebSocket) {
+                    if (window.MozWebSocket) {
+                        this.socket = new MozWebSocket(host);
+                    } else {
+                        this.debug("Your browser doesn't support WebSockets.");
+                        return;
+                    }
+                } else {
+                    this.socket = new WebSocket(host);
+                }
+                
+                this.debug("Opening connection to " + ip + ":" + port);
+                
+                this.socket.onopen = function (msg)
+                {
+                    this.debug("Connection established");
+                };
+                
+                this.socket.onmessage = function (msg) { this.onSocketMessage(msg); };
+                
+                    
+                this.socket.onerror = function (msg)
+                {
+                    if (this.ctx !== null)
+                    {
+                        this.ctx.font = Math.round(22*this.scaling) + "pt Verdana";
+                        this.ctx.fillStyle = "rgb(255,255,255)";
+                        this.ctx.fillText("Disconnected.", 100*this.scaling, 100*this.scaling);
+                    }
+                    this.debug("Socket reported error!");
+                };
+                this.socket.onclose = function (msg)
+                {
+                    if (this.ctx !== null)
+                    {
+                        this.ctx.font = Math.round(22*this.scaling) + "pt Verdana";
+                        this.ctx.fillStyle = "rgb(255,255,255)";
+                        this.ctx.fillText("Disconnected.", 100*this.scaling, 100*this.scaling);
+                    }
+                    this.debug("Disconnected - readyState: " + this.readyState + " Code: " + msg.code + ". Reason:" + msg.reason + " - wasClean: " + msg.wasClean);
+                };
             }
+            catch(ex) {
+                debug('Error: ' + ex);
+            }
+        },
+
+        onSocketMessage : function(msg) {
+            var frame = {}, msg_data, split = null, idx, d, time;
+
+            var i = 0; //used in all for loops
+
+            frame.type = msg.data.charAt(0);
+            msg_data = msg.data.slice(1); //will get data from position 1 to strlen(msg.data), i.e all the needed information (strips the frame type)
+
+            if (frame.type !== "O") {
+                this.debug("Received frame type: " + frame.type + " Msg: " + msg.data);
+            }
+
             switch (frame.type)
             {
                 // Initialisation
                 case "I":
-                {
-                    var info = 0;
-                    frame.game = "";
-                    frame.map = "";
-                    frame.team1 = "";
-                    frame.team2 = "";
-                    frame.hostname = "";
-                    for(; offset < msg.data.length; offset++)
-                    {
-                        if (msg.data.charAt(offset) == ':')
-                        {
-                            info++;
-                            continue;
-                        }
-                        if (info == 0)
-                            frame.game += msg.data.charAt(offset);
-                        else if (info == 1)
-                            frame.map += msg.data.charAt(offset);
-                        else if (info == 2)
-                            frame.team1 += msg.data.charAt(offset);
-                        else if (info == 3)
-                            frame.team2 += msg.data.charAt(offset);
-                        else
-                            frame.hostname += msg.data.charAt(offset);
-                    }
-                    debug("Game: " + frame.game);
-                    debug("Map: " + frame.map);
-                    debug("Team 2: " + frame.team1);
-                    debug("Team 3: " + frame.team2);
+                    //IGAME:MAP:TEAM2NAME:TEAM3NAME:HOSTNAME
+                    //we have all data in msg_data, so it can easily be tokenized
+
+                    split = msg_data.split(':');
                     
-                    SourceTV2D.game = frame.game;
-                    SourceTV2D.map = frame.map;
-                    SourceTV2D.servername = frame.hostname;
-                    SourceTV2D.team[2] = frame.team1;
-                    SourceTV2D.team[3] = frame.team2;
-                    $("#teamname2").text(frame.team1);
-                    $("#teamname3").text(frame.team2);
+                    frame.game = split[0];
+                    frame.map = split[1];
+                    frame.team1 = split[2];
+                    frame.team2 = split[3];
+                    frame.team1score = split[4];
+                    frame.team2score = split[5];
+                    frame.hostname = split[6];
+
+                    this.debug("Game: " + frame.game);
+                    this.debug("Map: " + frame.map);
+                    this.debug("Team 2: " + frame.team1 + " Score: " + frame.team1score);
+                    this.debug("Team 3: " + frame.team2 + " Score: " + frame.team2score);
                     
-                    loadMapImageInfo(frame.game, frame.map);
+                    this.game = frame.game;
+                    this.map = frame.map;
+                    this.servername = frame.hostname;
+
+                    this.team[2] = frame.team1;
+                    this.team[3] = frame.team2;
                     
-                    SourceTV2D.timer = setInterval("drawMap()", 50);
+                    this.teamPoints[0] = frame.team1score;
+                    this.teamPoints[1] = frame.team2score;
+
+                    this.loadMapImageInfo(frame.game, frame.map);
                     
-                    SourceTV2D.totalUsersWatching++;
-                    $("#totalwatching").text(SourceTV2D.totalUsersWatching);
+                    this.timer = setInterval(this.drawMap, 50);
+                    
+                    this.totalUsersWatching += 1;
+
                     break;
-                }
+                
                 // Map changed
                 case "M":
-                {
-                    frame.map = "";
-                    for(; offset<msg.data.length; offset++)
-                    {
-                        frame.map += msg.data.charAt(offset);
-                    }
+                    //Mmap
+                    frame.map = msg_data;
                     
-                    if (SourceTV2D.canvas != null)
+                    if (this.canvas !== null)
                     {
-                        $(SourceTV2D.canvas).remove();
-                        SourceTV2D.canvas = null;
+                        $(this.canvas).remove();
+                        this.canvas = null;
                     }
-                    SourceTV2D.map = frame.map;
-                    SourceTV2D.background = null;
-                    SourceTV2D.mapsettingsLoaded = false;
-                    SourceTV2D.mapsettingsFailed = false;
-                    SourceTV2D.teamPoints[0] = SourceTV2D.teamPoints[1] = 0;
-                    SourceTV2D.roundEnded = -1;
+
+                    this.map = frame.map;
+                    this.background = null;
+                    this.mapsettingsLoaded = false;
+                    this.mapsettingsFailed = false;
+                    this.teamPoints[0] = this.teamPoints[1] = 0;
+                    this.roundEnded = -1;
                     
-                    loadMapImageInfo();
+                    this.loadMapImageInfo();
                     
                     break;
-                }
+                
                 // Player connected.
                 case "C":
-                {
                     //CUSERID:IP:TEAM:ALIVE:FRAGS:DEATHS:HEALTH:CLASS:INTEL:NAME
-                    var info = 0;
-                    frame.userid = "";
-                    frame.ip = "";
-                    frame.team = "";
-                    frame.alive = "";
-                    frame.frags = "";
-                    frame.deaths = "";
-                    frame.health = "";
-                    frame.pclass = "";
-                    frame.has_intel = "";
-                    frame.name = "";
-                    for(; offset<msg.data.length; offset++)
-                    {
-                        if (info < 9 && msg.data.charAt(offset) == ':')
-                        {
-                            info++;
-                            continue;
-                        }
-                        if (info == 0)
-                            frame.userid += msg.data.charAt(offset);
-                        else if (info == 1)
-                            frame.ip += msg.data.charAt(offset);
-                        else if (info == 2)
-                            frame.team += msg.data.charAt(offset);
-                        else if (info == 3)
-                            frame.alive += msg.data.charAt(offset);
-                        else if (info == 4)
-                            frame.frags += msg.data.charAt(offset);
-                        else if (info == 5)
-                            frame.deaths += msg.data.charAt(offset);
-                        else if (info == 6)
-                            frame.health += msg.data.charAt(offset);
-                        else if (info == 7)
-                            frame.pclass += msg.data.charAt(offset);
-                        else if (info == 8)
-                            frame.has_intel += msg.data.charAt(offset);
-                        else
-                            frame.name += msg.data.charAt(offset);
+                    split = msg_data.split(':');
+
+                    frame.userid = split[0];
+                    frame.ip = split[1];
+                    frame.team = split[2];
+                    frame.alive = split[3];
+                    frame.frags = split[4];
+                    frame.deaths = split[5];
+                    frame.health = split[6];
+                    frame.pclass = split[7];
+                    frame.has_intel = split[8];
+                    frame.name = split[9];
+                    
+                    frame.team = parseInt(frame.team, 10);
+                    frame.pclass = parseInt(frame.pclass, 10);
+                    frame.has_intel = parseInt(frame.has_intel, 10);
+                    
+                    if (frame.team < 2) {
+                        this.teamPlayerAmount[0] += 1;
+                    } else {
+                        this.teamPlayerAmount[frame.team-1] += 1;
+                        this.teamPlayersAlive[frame.team-2] += 1;
                     }
                     
-                    frame.team = parseInt(frame.team);
-                    frame.pclass = parseInt(frame.pclass);
-                    frame.has_intel = parseInt(frame.has_intel);
-                    
-                    if (frame.team < 2)
-                        SourceTV2D.teamPlayerAmount[0]++;
-                    else
-                    {
-                        SourceTV2D.teamPlayerAmount[frame.team-1]++;
-                        SourceTV2D.teamPlayersAlive[frame.team-2]++;
-                    }
-                    
-                    frame.alive = parseInt(frame.alive);
-                    frame.health = parseInt(frame.health);
+                    frame.alive = parseInt(frame.alive, 10);
+                    frame.health = parseInt(frame.health, 10);
                     if (frame.health > 100)
+                    {
                         frame.health = 100;
+                    }
                     
-                    // On real new connect, it's always "x". If we just connected to the server and we retrieve the player list, it's set to the correct k/d.
+                    // On real client connect, k/d is "x". If we just connected to the server and we retrieve the player list, it's set to the correct k/d.
+
                     var frags = 0;
-                    if (frame.frags != "x")  
-                        frags = parseInt(frame.frags);
+                    if (frame.frags !== "x") {
+                        frags = parseInt(frame.frags, 10);
+                    }
+
                     var deaths = 0;
-                    if (frame.deaths != "x")  
-                        deaths = parseInt(frame.deaths);
+                    if (frame.deaths !== "x") {
+                        deaths = parseInt(frame.deaths, 10);
+                    }
                     
-                    var idx = SourceTV2D.players.length;
-                    var d = new Date();
-                    SourceTV2D.players[idx] = {'userid': parseInt(frame.userid), 'ip': frame.ip, 'name': frame.name, 'team': frame.team, 'positions': [], 'alive': (frame.alive==1), 'health': frame.health, 'hovered': false, 'selected': false, 'frags': frags, 'deaths': deaths, 'pclass': frame.pclass, 'has_intel': (frame.has_intel==1), 'plant_start_time': -1, 'defuse_start_time': -1};
+                    idx = this.players.length;
+                    d = new Date();
+
+                    this.players[idx] = {'userid': parseInt(frame.userid, 10), 'ip': frame.ip, 'name': frame.name, 'team': frame.team, 'positions': [], 'alive': (frame.alive===1), 'health': frame.health, 'hovered': false, 'selected': false, 'frags': frags, 'deaths': deaths, 'pclass': frame.pclass, 'has_intel': (frame.has_intel===1)};
                     // Only show the connect message, if he's newly joined -> no team yet.
-                    if (SourceTV2D.players[idx].team == 0)
-                        SourceTV2D.infos[SourceTV2D.infos.length] = {'msg': frame.name + " has joined the server", 'time': d.getTime()/1000};
+                    if (this.players[idx].team === 0) {
+                        this.infos[this.infos.length] = {'msg': frame.name + " has joined the server", 'time': d.getTime()/1000};
+                    }
                     
-                    var playerList = $("#players" + (SourceTV2D.players[idx].team==0?1:SourceTV2D.players[idx].team));
-                    playerList.html(playerList.html() + "<div class=\"player\" id=\"usrid_" + SourceTV2D.players[idx].userid + "\" onclick=\"selectPlayer(" + SourceTV2D.players[idx].userid + ");\" onmouseover=\"highlightPlayer(" + SourceTV2D.players[idx].userid + ");\" onmouseout=\"unhighlightPlayer(" + SourceTV2D.players[idx].userid + ");\">" + SourceTV2D.players[idx].name + "</div>");
+                    //var playerList = $("#players" + (this.players[idx].team===0?1:this.players[idx].team));
+                    //playerList.html(playerList.html() + "<div class=\"player\" id=\"usrid_" + this.players[idx].userid + "\" onclick=\"selectPlayer(" + this.players[idx].userid + ");\" onmouseover=\"highlightPlayer(" + this.players[idx].userid + ");\" onmouseout=\"unhighlightPlayer(" + this.players[idx].userid + ");\">" + this.players[idx].name + "</div>");
                     
-                    sortScoreBoard();
-                    
-                    //if (window.console && window.console.log)
-                    //    window.console.log("Player connected: #" + SourceTV2D.players[idx].userid + ": " + SourceTV2D.players[idx].name);
+                    this.sortScoreboard();
+
                     break;
-                }
+                
                 // Player disconnected
                 case "D":
-                {
-                    frame.userid = "";
-                    for(; offset<msg.data.length; offset++)
-                    {
-                        frame.userid += msg.data.charAt(offset);
-                    }
-                    frame.userid = parseInt(frame.userid);
+                    //Duserid
+                    frame.userid = msg_data;
+                    
+                    frame.userid = parseInt(frame.userid, 10);
                     //debug("Player disconnected: #" + frame.userid);
                     
-                    var d = new Date();
-                    for(var i=0;i<SourceTV2D.players.length;i++)
-                    {
-                        if (SourceTV2D.players[i].userid == frame.userid)
+                    d = new Date();
+                    for (i = 0; i<this.players.length; i++) {
+                        if (this.players[i].userid === frame.userid)
                         {
-                            if (SourceTV2D.players[i].team < 2)
-                                SourceTV2D.teamPlayerAmount[0]--;
-                            else
-                            {
-                                SourceTV2D.teamPlayerAmount[SourceTV2D.players[i].team-1]--;
-                                if (SourceTV2D.players[i].alive)
-                                    SourceTV2D.teamPlayersAlive[SourceTV2D.players[i].team-2]--;
+                            if (this.players[i].team < 2) {
+                                this.teamPlayerAmount[0] -= 1;
+                            } else {
+                                this.teamPlayerAmount[this.players[i].team-1] -= 1;
+                                if (this.players[i].alive) {
+                                    this.teamPlayersAlive[this.players[i].team-2] -= 1;
+                                }
                             }
-                            SourceTV2D.infos[SourceTV2D.infos.length] = {'msg': SourceTV2D.players[i].name + " has left the server", 'time': d.getTime()/1000};
+                            this.infos[this.infos.length] = {'msg': this.players[i].name + " has left the server", 'time': d.getTime()/1000};
+
                             // Handle our player list
-                            $("#usrid_" + frame.userid).remove();
-                            if (SourceTV2D.players[i].selected)
-                                $("#selectedplayer").html("");
-                            SourceTV2D.players.splice(i, 1);
+                            //$("#usrid_" + frame.userid).remove();
+                            //if (this.players[i].selected)
+                            //    $("#selectedplayer").html("");
+
+                            this.players.splice(i, 1);
+
                             break;
                         }
                     }
-                    sortScoreBoard();
+                    this.sortScoreboard();
                     //if (window.console && window.console.log)
                     //    window.console.log("Player disconnected: #" + frame.userid);
                     break;
-                }
+                
                 // Player changed team
                 case "T":
-                {
-                    var info = 0;
-                    frame.userid = "";
-                    frame.team = "";
-                    for(; offset<msg.data.length; offset++)
-                    {
-                        if (msg.data.charAt(offset) == ':')
-                        {
-                            info++;
-                            continue;
-                        }
-                        if (info == 0)
-                            frame.userid += msg.data.charAt(offset);
-                        else
-                            frame.team += msg.data.charAt(offset);
-                    }
-                    frame.userid = parseInt(frame.userid);
-                    frame.team = parseInt(frame.team);
+                    //Tuserid:team
+                    split = msg_data.split(':');
+
+                    frame.userid = split[0];
+                    frame.team = split[1];
+
+                    frame.userid = parseInt(frame.userid, 10);
+                    frame.team = parseInt(frame.team, 10);
                     
-                    var idx = -1;
-                    for(var i=0;i<SourceTV2D.players.length;i++)
-                    {
-                        if (SourceTV2D.players[i].userid == frame.userid)
+                    //get player's index
+                    idx = -1;
+                    for (i = 0; i<this.players.length; i++) {
+                        if (this.players[i].userid === frame.userid)
                         {
                             idx = i;
                             break;
                         }
                     }
-                    if (idx != -1)
+
+                    if (idx !== -1)
                     {
-                        // He joined that team
-                        if (frame.team < 2)
-                            SourceTV2D.teamPlayerAmount[0]++;
-                        else
-                        {
-                            SourceTV2D.teamPlayerAmount[frame.team-1]++;
-                            if (SourceTV2D.players[idx].alive)
-                                SourceTV2D.teamPlayersAlive[frame.team-2]++;
+                        //Player is valid, and he joined team "team"
+                        if (frame.team < 2) {
+                            this.teamPlayerAmount[0] += 1; //spec/unassigned
+                        } else {
+                            this.teamPlayerAmount[frame.team-1] += 1;
+                            if (this.players[idx].alive) {
+                                this.teamPlayersAlive[frame.team-2] += 1;
+                            }
                         }
-                        // He left that team
-                        if (SourceTV2D.players[idx].team < 2)
-                            SourceTV2D.teamPlayerAmount[0]--;
-                        else
-                        {
-                            SourceTV2D.teamPlayerAmount[SourceTV2D.players[idx].team-1]--;
-                            if (SourceTV2D.players[idx].alive)
-                                SourceTV2D.teamPlayersAlive[SourceTV2D.players[idx].team-2]--;
+
+                        //Left the other team
+                        if (this.players[idx].team < 2) {
+                            this.teamPlayerAmount[0] -= 1;
+                        } else {
+                            this.teamPlayerAmount[this.players[idx].team-1] -= 1;
+                            if (this.players[idx].alive) {
+                                this.teamPlayersAlive[this.players[idx].team-2] -= 1;
+                            }
                         }
                         
                         // Handle our player list
-                        $("#players" + (frame.team==0?1:frame.team)).append($("#usrid_" + frame.userid));
+                        //$("#players" + (frame.team===0?1:frame.team)).append($("#usrid_" + frame.userid));
                         
-                        var d = new Date();
-                        SourceTV2D.players[idx].team = frame.team;
-                        SourceTV2D.infos[SourceTV2D.infos.length] = {'msg': SourceTV2D.players[idx].name + " changed team to " + SourceTV2D.team[SourceTV2D.players[idx].team], 'time': d.getTime()/1000};
+                        d = new Date();
+                        this.players[idx].team = frame.team;
+                        this.infos[this.infos.length] = {'msg': this.players[idx].name + " changed team to " + this.team[this.players[idx].team], 'time': d.getTime()/1000};
                         
-                        if (SourceTV2D.players[idx].team < 2)
-                            SourceTV2D.players[idx].positions.clear();
+                        if (this.players[idx].team < 2) {
+                            this.players[idx].positions.clear();
+                        }
                         
-                        //debug("Player #" + frame.userid + " changed team to: " + SourceTV2D.players[idx].team);
-                        sortScoreBoard();
+                        //debug("Player #" + frame.userid + " changed team to: " + this.players[idx].team);
+                        this.sortScoreboard();
+                    } else {
+                        this.debug("NOT FOUND!!! Player #" + frame.userid + " changed team to: " + frame.team);
                     }
-                    else
-                        debug("NOT FOUND!!! Player #" + frame.userid + " changed team to: " + frame.team);
+
                     break;
-                }
+                
                 // Players origin updated
                 case "O":
-                {
-                    if (!SourceTV2D.mapsettingsLoaded || SourceTV2D.background == null)
+                    //Ouserid:x:y:angle|userid:x:y:angle|userid:x:y:angle|repeat
+                    if (!this.mapsettingsLoaded || this.background === null) {
                         break;
-                    
-                    var info = 0;
-                    var playerIndex = 0;
-                    frame.positions = [];
-                    for(; offset<msg.data.length; offset++)
-                    {
-                        // next player
-                        if (msg.data.charAt(offset) == '|')
-                        {
-                            info = 0;
-                            playerIndex++;
-                            continue;
-                        }
-                        
-                        if (msg.data.charAt(offset) == ':')
-                        {
-                            info++;
-                            continue;
-                        }
-                        if (frame.positions[playerIndex] == undefined)
-                            frame.positions[playerIndex] = new Array('','','','','');
-                        
-                        frame.positions[playerIndex][info] += msg.data.charAt(offset);
                     }
+
+                    split = msg_data.split('|');
+
+                    frame.positions = [];
+
+                    $.each(split, function(player_index, player_data) {
+                        if (frame.positions[player_index] === undefined) {
+                            frame.positions[player_index] = ['', '', '', ''];
+                        }
+
+                        player_values = player_data.split(':');
+
+                        $.each(player_values, function(index, value) {
+                            frame.positions[player_index][index] = parseInt(value, 10);
+                        });
+                    });
                     
                     // Save the player positions
-                    var idx = -1;
-                    var d = new Date();
-                    var time = d.getTime();
-                    for(var i=0;i<frame.positions.length;i++)
-                    {
-                        frame.positions[i][0] = parseInt(frame.positions[i][0]);
-                        frame.positions[i][1] = parseInt(frame.positions[i][1]);
-                        frame.positions[i][2] = parseInt(frame.positions[i][2]);
-                        frame.positions[i][3] = parseInt(frame.positions[i][3]);
+                    idx = -1;
+                    d = new Date();
+                    time = d.getTime();
+
+                    for (i = 0; i<frame.positions.length; i++) {
+                        frame.positions[i][3] += 90; //add 90 to our direction angle
                         
-                        frame.positions[i][3] += 90;
-                        
-                        if (frame.positions[i][3] < 0)
+                        if (frame.positions[i][3] < 0) { //if angle is negative, flip to positive
                             frame.positions[i][3] *= -1;
-                        else if (frame.positions[i][3] > 0)
+                        }
+                        else if (frame.positions[i][3] > 0) {
                             frame.positions[i][3] = 360-frame.positions[i][3];
+                        }
                         
-                        frame.positions[i][3] = (Math.PI/180)*frame.positions[i][3];
+                        frame.positions[i][3] = (Math.PI/180)*frame.positions[i][3]; //convert angle to radians
                         
-                        //frame.positions[i][4] = parseInt(frame.positions[i][4]);
-                        if (SourceTV2D.mapsettings.flipx)
+                        if (this.mapsettings.flipx) {
                             frame.positions[i][1] *= -1;
-                        if (SourceTV2D.mapsettings.flipy)
+                        }
+                        if (this.mapsettings.flipy) {
                             frame.positions[i][2] *= -1;
+                        }
                         
-                        frame.positions[i][1] = Math.round(((frame.positions[i][1] + SourceTV2D.mapsettings.xoffset) / SourceTV2D.mapsettings.scale) * SourceTV2D.scaling);
-                        frame.positions[i][2] = Math.round(((frame.positions[i][2] + SourceTV2D.mapsettings.yoffset) / SourceTV2D.mapsettings.scale) * SourceTV2D.scaling);
+                        frame.positions[i][1] = Math.round(((frame.positions[i][1] + this.mapsettings.xoffset) / this.mapsettings.scale) * this.scaling);
+                        frame.positions[i][2] = Math.round(((frame.positions[i][2] + this.mapsettings.yoffset) / this.mapsettings.scale) * this.scaling);
                         
                         //debug("CANVAS X: " + frame.positions[i][1] + ", CANVAS Y: " + frame.positions[i][2]);
                         
                         // Get the correct team color
                         idx = -1;
-                        for(var p=0;p<SourceTV2D.players.length;p++)
-                        {
-                            if (SourceTV2D.players[p].userid == frame.positions[i][0])
+                        for (var p=0; p<this.players.length; p++) {
+                            if (this.players[p].userid === frame.positions[i][0])
                             {
                                 idx = p;
                                 break;
                             }
                         }
                         
-                        if (idx != -1)
+                        if (idx !== -1)
                         {
-                            SourceTV2D.players[idx].positions[SourceTV2D.players[idx].positions.length] = {'x': frame.positions[i][1], 'y': frame.positions[i][2], 'angle': frame.positions[i][3], 'time': time, 'diffx': null, 'diffy': null, 'swapx': null, 'swapy': null, 'diedhere': false, 'hurt': false};
+                            this.players[idx].positions[this.players[idx].positions.length] = {'x': frame.positions[i][1], 'y': frame.positions[i][2], 'angle': frame.positions[i][3], 'time': time, 'diffx': null, 'diffy': null, 'swapx': null, 'swapy': null, 'diedhere': false, 'hurt': false};
                         }
                         
                         //debug("Player moved: #" + frame.positions[i][0] + " - x: " + frame.positions[i][1] + ", y: " + frame.positions[i][2] + ", angle: " + frame.positions[i][3]);
                     }
                     
                     break;
-                }
+                
                 // Round start
                 case "R":
-                {
                     //Rroundtime:full_restart
-                    frame.roundstart = "";
-                    var splitresponse = msg.data.split(":");
+                    split = msg_data.split(":");
                     
-                    var rstarttime = splitresponse[0], full_reset = splitresponse[1];
+                    frame.roundstart = Number(split[0]);
+                    var full_reset = split[1];
                     
-                    for(; offset < rstarttime; offset++)
-                    {
-                        frame.roundstart += rstarttime.charAt(offset);
-                    }
-                    SourceTV2D.roundEnded = -1;
-                    SourceTV2D.roundEndTime = -1;
-                    SourceTV2D.roundStartTime = parseInt(frame.roundstart);
+                    this.roundEnded = -1;
+                    this.roundEndTime = -1;
+                    this.roundStartTime = frame.roundstart;
                     
-                    SourceTV2D.bombPlantTime = -1;
-                    SourceTV2D.bombExploded = false;
-                    SourceTV2D.bombDefuseTime = -1;
-                    
-                    //full reset, need to clear player stats
-                    if (full_reset == 1) {
-                        for (var i = 0; i < SourceTV2D.players.length; i++) {
-                            SourceTV2D.players[i].frags = 0;
-                            SourceTV2D.players[i].deaths = 0;
+                    //full reset (mp_restartgame or something?), need to clear player stats
+                    if (full_reset === "1") {
+                        for (i = 0; i < this.players.length; i++) {
+                            this.players[i].frags = 0;
+                            this.players[i].deaths = 0;
                         }
                     }
                     
                     break;
-                }
+                
                 // Round end
                 case "E":
-                {
-                    frame.winnerteam = "";
-                    for(; offset<msg.data.length; offset++)
-                    {
-                        frame.winnerteam += msg.data.charAt(offset);
-                    }
+                    frame.winnerteam = msg_data;
                     
-                    frame.winnerteam = parseInt(frame.winnerteam);
+                    frame.winnerteam = parseInt(frame.winnerteam, 10);
                     
-                    SourceTV2D.teamPoints[frame.winnerteam-2]++;
-                    SourceTV2D.roundEnded = frame.winnerteam;
+                    this.teamPoints[frame.winnerteam-2] += 1;
+                    this.roundEnded = frame.winnerteam;
                     
-                    var d = new Date();
-                    SourceTV2D.roundEndTime = Math.floor(d.getTime()/1000);
-                    
-                    SourceTV2D.bombDropped = false;
+                    d = new Date();
+                    this.roundEndTime = Math.floor(d.getTime()/1000);
                     
                     break;
-                }
+                
                 // ConVar changed
                 case "V":
-                {
-                    if (SourceTV2D.game == "cstrike")
-                    {
-                        var info = 0;
-                        frame.roundtime = "";
-                        frame.c4timer = "";
-                        for(; offset<msg.data.length; offset++)
-                        {
-                            if (msg.data.charAt(offset) == ':')
-                            {
-                                info++;
-                                continue;
-                            }
-                            
-                            if (info == 0)
-                              frame.roundtime += msg.data.charAt(offset);
-                            else
-                              frame.c4timer += msg.data.charAt(offset);
-                        }
-                        
-                        frame.roundtime = parseFloat(frame.roundtime);
-                        frame.c4timer = parseFloat(frame.c4timer);
-                        SourceTV2D.mp_roundtime = Math.ceil(frame.roundtime*60.0);
-                        SourceTV2D.bombExplodeTime = frame.c4timer;
-                    }
                     
                     break;
-                }
+
                 // Someone killed somebody
-                case "K":
-                {
-                    if (SourceTV2D.ctx == null)
+                case "K":                
+                    if (this.ctx === null) {
                         break;
-                    
-                    var info = 0;
-                    frame.victim = "";
-                    frame.attacker = "";
-                    frame.weapon = "";
-                    for(; offset<msg.data.length; offset++)
-                    {
-                        if (info < 2 && msg.data.charAt(offset) == ':')
-                        {
-                            info++;
-                            continue;
-                        }
-                        if (info == 0)
-                            frame.victim += msg.data.charAt(offset);
-                        else if (info == 1)
-                            frame.attacker += msg.data.charAt(offset);
-                        else
-                            frame.weapon += msg.data.charAt(offset);
                     }
+                    //Kvictimid:attackerid:weapon
+
+                    split = msg_data.split(':');
+
+                    frame.victim = split[0];
+                    frame.attacker = split[1];
+                    frame.weapon = split[2];
                     
-                    frame.attacker = parseInt(frame.attacker);
-                    frame.victim = parseInt(frame.victim);
+                    frame.attacker = parseInt(frame.attacker, 10);
+                    frame.victim = parseInt(frame.victim, 10);
                     
                     var idxV = -1;
                     var idxA = -1;
-                    for(var i=0;i<SourceTV2D.players.length;i++)
-                    {
-                        if (SourceTV2D.players[i].userid == frame.attacker)
+                    for (i = 0; i<this.players.length; i++) {
+                        if (this.players[i].userid === frame.attacker)
                         {
                             idxA = i;
                         }
-                        if (SourceTV2D.players[i].userid == frame.victim)
+                        if (this.players[i].userid === frame.victim)
                         {
                             idxV = i;
                         }
@@ -645,187 +510,168 @@ function stv2d_connect(ip, port) {
                     
                     var attackername = "";
                     var attackerteam = 0;
-                    if (frame.attacker == 0)
+
+                    if (frame.attacker === 0) {
                         attackername = "WORLD";
-                    else if (idxA == -1)
+                    } else if (idxA === -1) {
                         attackername = "NotFound(#" + frame.attacker + ")";
-                    else
-                    {
-                        SourceTV2D.players[idxA].frags++;
-                        attackername = SourceTV2D.players[idxA].name;
-                        attackerteam = SourceTV2D.players[idxA].team;
+                    } else {
+                        this.players[idxA].frags += 1;
+                        attackername = this.players[idxA].name;
+                        attackerteam = this.players[idxA].team;
                     }
                     
                     var victimname = "";
                     var victimteam = 0;
-                    if (idxV == -1)
+                    if (idxV === -1) {
                         victimname = "NotFound(#" + frame.victim + ")";
-                    else
-                    {
-                        victimname = SourceTV2D.players[idxV].name;
-                        victimteam = SourceTV2D.players[idxV].team;
-                        SourceTV2D.players[idxV].alive = false;
-                        SourceTV2D.players[idxV].got_defuser = false;
-                        SourceTV2D.players[idxV].deaths++;
-                        SourceTV2D.teamPlayersAlive[SourceTV2D.players[idxV].team-2]--;
-                        if (SourceTV2D.players[idxV].positions.length != 0)
+                    } else {
+                        victimname = this.players[idxV].name;
+                        victimteam = this.players[idxV].team;
+                        this.players[idxV].alive = false;
+                        this.players[idxV].got_defuser = false;
+                        this.players[idxV].deaths += 1;
+                        this.teamPlayersAlive[this.players[idxV].team-2] -= 1;
+                        if (this.players[idxV].positions.length !== 0)
                         {
-                            SourceTV2D.players[idxV].positions[SourceTV2D.players[idxV].positions.length-1].diedhere = true;
+                            this.players[idxV].positions[this.players[idxV].positions.length-1].diedhere = true;
                         }
                     }
                     
                     // Suicides = frags-1
-                    if (idxV != -1 && idxA != -1 && idxV == idxA)
+                    if (idxV !== -1 && idxA !== -1 && idxV === idxA)
                     {
                         // We added one frag already above..
-                        SourceTV2D.players[idxV].frags-=2;
+                        this.players[idxV].frags-=2;
                     }
                     
-                    var d = new Date();
-                    SourceTV2D.frags[SourceTV2D.frags.length] = {'attacker': attackername, 'ateam': attackerteam, 'victim': victimname, 'vteam': victimteam, 'weapon': frame.weapon, 'time': (d.getTime()/1000)};
+                    d = new Date();
+                    this.frags[this.frags.length] = {'attacker': attackername, 'ateam': attackerteam, 'victim': victimname, 'vteam': victimteam, 'weapon': frame.weapon, 'time': (d.getTime()/1000)};
                     
-                    sortScoreBoard();
+                    this.sortScoreboard();
                     
                     //debug("Player " + attackername + " killed " + victimname + " with " + frame.weapon);
                     break;
-                }
+
                 // Player spawned
                 case "S":
-                {
-                    //S:id:class
+                    //Sid:class
                     frame.userclass = "";
                     frame.userid = "";
                     
-                    var tok = msg.data.split(":");
-                    frame.userclass = tok[2];
-                    frame.userid = tok[1];
+                    split = msg_data.split(":");
                     
-                    var idx = -1;
-                    for(var i=0;i<SourceTV2D.players.length;i++)
-                    {
-                        if (SourceTV2D.players[i].userid == frame.userid)
+                    frame.userid = split[0];
+                    frame.userclass = split[1];
+                    
+                    idx = -1;
+                    for (i = 0; i<this.players.length; i++) {
+                        if (this.players[i].userid === frame.userid)
                         {
                             idx = i;
                             break;
                         }
                     }
-                    if (idx != -1)
+                    if (idx !== -1)
                     {
-                        if (!SourceTV2D.players[idx].alive) {
-                            SourceTV2D.teamPlayersAlive[SourceTV2D.players[idx].team-2]++;
+                        if (!this.players[idx].alive) {
+                            this.teamPlayersAlive[this.players[idx].team-2] += 1;
                         }
                         
-                        SourceTV2D.players[idx].alive = true;
-                        SourceTV2D.players[idx].health = 100;
-                        SourceTV2D.players[idx].plant_start_time = -1;
-                        SourceTV2D.players[idx].defuse_start_time = -1;
-                        SourceTV2D.players[idx].pclass = frame.userclass;
+                        this.players[idx].alive = true;
+                        this.players[idx].health = 100;
+                        this.players[idx].plant_start_time = -1;
+                        this.players[idx].defuse_start_time = -1;
+                        this.players[idx].pclass = frame.userclass;
                     }
                     break;
-                }
+                
                 // Player said something
                 case "X":
-                {
-                    var info = 0;
-                    frame.userid = "";
-                    frame.msg = "";
-                    for(; offset<msg.data.length; offset++)
-                    {
-                        if (info == 0 && msg.data.charAt(offset) == ':')
-                        {
-                            info++;
-                            continue;
-                        }
-                        if (info == 0)
-                            frame.userid += msg.data.charAt(offset);
-                        else
-                            frame.msg += msg.data.charAt(offset);
-                    }
-                    frame.userid = parseInt(frame.userid);
+                    //Xuserid:msg
+
+                    split = msg_data.split(':');
+
+                    frame.userid = split[0];
+                    frame.msg = split[1];
+
+                    frame.userid = parseInt(frame.userid, 10);
                     
                     // Console?
-                    if (frame.userid == 0)
-                    {
-                        var d = new Date();
-                        SourceTV2D.chat[SourceTV2D.chat.length] = {'name': "Console", 'team': 0, 'msg': frame.msg, 'time': d.getTime()/1000};
+                    if (frame.userid === 0) {
+                        d = new Date();
+                        this.chat[this.chat.length] = {'name': "Console", 'team': 0, 'msg': frame.msg, 'time': d.getTime()/1000};
                         break;
                     }
                     
-                    var idx = -1;
-                    for(var i=0;i<SourceTV2D.players.length;i++)
-                    {
-                        if (SourceTV2D.players[i].userid == frame.userid)
-                        {
+                    idx = -1;
+                    for (i = 0; i<this.players.length; i++) {
+                        if (this.players[i].userid === frame.userid) {
                             idx = i;
                             break;
                         }
                     }
-                    if (idx != -1)
+                    if (idx !== -1)
                     {
-                        var d = new Date();
-                        SourceTV2D.chat[SourceTV2D.chat.length] = {'name': SourceTV2D.players[idx].name, 'team': SourceTV2D.players[idx].team, 'msg': frame.msg, 'time': d.getTime()/1000};
+                        d = new Date();
+                        this.chat[this.chat.length] = {'name': this.players[idx].name, 'team': this.players[idx].team, 'msg': frame.msg, 'time': d.getTime()/1000};
                     }
                     //debug("Player #" + frame.userid + " said: " + frame.msg);
                     break;
-                }
+                
                 // Player was hurt
                 case "H":
-                {
-                    var info = 0;
-                    frame.userid = "";
-                    frame.dmg = "";
-                    for(; offset<msg.data.length; offset++)
-                    {
-                        if (msg.data.charAt(offset) == ':')
-                        {
-                            info++;
-                            continue;
-                        }
-                        if (info == 0)
-                            frame.userid += msg.data.charAt(offset);
-                        else
-                            frame.dmg += msg.data.charAt(offset);
-                    }
-                    frame.userid = parseInt(frame.userid);
-                    frame.dmg = parseInt(frame.dmg);
+                    //Huserid:damage
+
+                    split = msg_data.split(':');
+
+                    frame.userid = split[0];
+                    frame.dmg = split[1];
+
+                    frame.userid = parseInt(frame.userid, 10);
+                    frame.dmg = parseInt(frame.dmg, 10);
                     
-                    var idx = -1;
-                    for(var i=0;i<SourceTV2D.players.length;i++)
+                    idx = -1;
+                    for (i = 0; i<this.players.length; i++)
                     {
-                        if (SourceTV2D.players[i].userid == frame.userid)
+                        if (this.players[i].userid === frame.userid)
                         {
                             idx = i;
                             break;
                         }
                     }
-                    if (idx != -1)
+                    if (idx !== -1)
                     {
-                        SourceTV2D.players[idx].health =  SourceTV2D.players[idx].health - frame.dmg;
-                        if (SourceTV2D.players[idx].health < 0)
-                            SourceTV2D.players[idx].health = 0;
-                        if (SourceTV2D.players[idx].positions.length > 0)
-                            SourceTV2D.players[idx].positions[SourceTV2D.players[idx].positions.length-1].hurt = true;
+                        this.players[idx].health = this.players[idx].health - frame.dmg;
+                        if (this.players[idx].health < 0) {
+                            this.players[idx].health = 0;
+                        }
+                        if (this.players[idx].positions.length > 0) {
+                            this.players[idx].positions[this.players[idx].positions.length-1].hurt = true;
+                        }
                     }
                     break;
-                }
+                
                 // SourceTV2D Chat message
                 case "Z":
-                {
                     frame.message = "";
-                    for(; offset<msg.data.length; offset++)
+                    for (; offset<msg.data.length; offset++)
                     {
                         frame.message += msg.data.charAt(offset);
                     }
-                    var d = new Date();
+                    d = new Date();
                     var timestring = "(";
-                    if (d.getHours() < 10)
-                      timestring += "0";
+                    if (d.getHours() < 10) {
+                        timestring += "0";
+                    }
                     timestring += d.getHours() + ":";
-                    if (d.getMinutes() < 10)
-                      timestring += "0";
+                    if (d.getMinutes() < 10) {
+                        timestring += "0";
+                    }
                     timestring += d.getMinutes() + ":";
-                    if (d.getSeconds() < 10)
-                      timestring += "0";
+                    if (d.getSeconds() < 10) {
+                        timestring += "0";
+                    }
                     timestring += d.getSeconds() + ") ";
                     
                     $("#chatoutput").append(document.createTextNode(timestring + frame.message));
@@ -833,1127 +679,989 @@ function stv2d_connect(ip, port) {
                     $('#chatoutput').prop('scrollTop', $('#chatoutput').prop('scrollHeight'));
                     
                     break;
-                }
+                
                 // SourceTV2D spectator amount changed
                 case "A":
-                {
                     frame.totalwatching = "";
-                    for(; offset<msg.data.length; offset++)
+                    for (; offset<msg.data.length; offset++)
                     {
                         frame.totalwatching += msg.data.charAt(offset);
                     }
-                    frame.totalwatching = parseInt(frame.totalwatching);
-                    SourceTV2D.totalUsersWatching = frame.totalwatching;
-                    $("#totalwatching").text(SourceTV2D.totalUsersWatching);
+                    frame.totalwatching = parseInt(frame.totalwatching, 10);
+                    this.totalUsersWatching = frame.totalwatching;
+                    $("#totalwatching").text(this.totalUsersWatching);
                     
                     break;
-                }
+                
                 // Player changed his name
                 case "N":
-                {
-                    var info = 0;
-                    frame.userid = "";
-                    frame.name = "";
-                    for(; offset<msg.data.length; offset++)
-                    {
-                        if (msg.data.charAt(offset) == ':')
-                        {
-                            info++;
-                            continue;
-                        }
-                        if (info == 0)
-                            frame.userid += msg.data.charAt(offset);
-                        else
-                            frame.name += msg.data.charAt(offset);
-                    }
-                    frame.userid = parseInt(frame.userid);
+                    //Nuserid:newname
+
+                    split = msg_data.split(':');
                     
-                    var idx = -1;
-                    for(var i=0;i<SourceTV2D.players.length;i++)
+                    frame.userid = split[0];
+                    frame.name = split[1];
+
+                    frame.userid = parseInt(frame.userid, 10);
+                    
+                    idx = -1;
+                    for (i = 0;i<this.players.length;i++)
                     {
-                        if (SourceTV2D.players[i].userid == frame.userid)
+                        if (this.players[i].userid === frame.userid)
                         {
                             idx = i;
                             break;
                         }
                     }
-                    if (idx != -1)
+                    if (idx !== -1)
                     {
-                        var d = new Date();
-                        SourceTV2D.infos[SourceTV2D.infos.length] = {'msg': SourceTV2D.players[idx].name + " changed team to " + frame.name, 'time': d.getTime()/1000};
-                        SourceTV2D.players[idx].name = frame.name;
+                        d = new Date();
+                        this.infos[this.infos.length] = {'msg': this.players[idx].name + " changed team to " + frame.name, 'time': d.getTime()/1000};
+                        this.players[idx].name = frame.name;
                         $("#usrid_" + frame.userid).text(frame.name);
                     }
                     break;
+
+                default:
+                    this.debug("Unknown frame type received: " + frame.type);
+            }
+        },
+
+        disconnect : function() {
+            if (this.timer !== null) {
+                clearInterval(this.timer);
+                this.timer = null;
+            }
+
+            if (this.ctx !== null) {
+                this.ctx.font = Math.round(22*this.scaling) + "pt Verdana";
+                this.ctx.fillStyle = "rgb(255,255,255)";
+                this.ctx.fillText("Disconnected.", 100*this.scaling, 100*this.scaling);
+            }
+
+            if (this.socket===null) {
+                return;
+            }
+            
+            this.totalUsersWatching -= 1;
+            this.debug("Disconnecting from socket");
+
+            this.socket.close(1000);
+            this.socket=null;
+        },
+
+        drawMap : function() {
+            try
+            {
+                if (this.ctx === null) {
+                    this.debug("No canvas element present");
+
+                    return;
                 }
-                // Bomb action
-                case "B":
+                // Clear the canvas.
+                this.ctx.clearRect(0,0,this.width,this.height);
+                if (this.background !== null)
+                    this.ctx.drawImage(this.background,0,0,this.width,this.height);
+                else
                 {
-                    var info = 0;
-                    frame.action = "";
-                    frame.userid = "";
-                    frame.posX = "";
-                    frame.posY = "";
-                    frame.plantTime = "";
-                    frame.haskit = "";
-                    for(; offset<msg.data.length; offset++)
+                    this.ctx.save();
+                    this.ctx.beginPath();
+                    this.ctx.fillStyle = "rgb(0, 0, 0)";
+                    this.ctx.rect(0, 0, this.width, this.height);
+                    this.ctx.fill();
+                    this.ctx.restore();
+                }
+                
+                // Draw the kill messages
+                d = new Date();
+                time = d.getTime()/1000;
+
+                this.ctx.textAlign = "left";
+                this.ctx.font = Math.round(10*this.scaling) + "pt Verdana";
+
+                for (var i=0; i<this.frags.length; i++)
+                {
+                    if ((time - this.frags[i].time) > this.fragFadeTime)
                     {
-                        if (msg.data.charAt(offset) == ':')
+                        this.frags.splice(i, 1);
+                        i--;
+                        continue;
+                    }
+                    
+                    this.ctx.save();
+                    
+                    var alpha = 1.0 - (time - this.frags[i].time) / this.fragFadeTime;
+                    
+                    if (this.frags[i].ateam === 2)
+                        this.ctx.fillStyle = "rgba(255,0,0," + alpha + ")";
+                    else if (this.frags[i].ateam === 3)
+                        this.ctx.fillStyle = "rgba(0,0,255," + alpha + ")";
+                    
+                    this.ctx.fillText(this.frags[i].attacker, (50*this.scaling), ((50 + (this.frags.length-i-1)*20)*this.scaling));
+                    
+                    var offs = this.ctx.measureText(this.frags[i].attacker).width + 10*this.scaling;
+                    this.ctx.fillStyle = "rgba(255,255,255," + alpha + ")";
+                    
+                    this.ctx.fillText(this.frags[i].weapon, (50*this.scaling + offs), ((50 + (this.frags.length-i-1)*20)*this.scaling));
+                    
+                    offs += this.ctx.measureText(this.frags[i].weapon).width + 10*this.scaling;
+                    
+                    if (this.frags[i].vteam === 2)
+                        this.ctx.fillStyle = "rgba(255,0,0," + alpha + ")";
+                    else if (this.frags[i].vteam === 3)
+                        this.ctx.fillStyle = "rgba(0,0,255," + alpha + ")";
+                    
+                    this.ctx.fillText(this.frags[i].victim, (50*this.scaling + offs), ((50 + (this.frags.length-i-1)*20)*this.scaling));
+                    this.ctx.restore();
+                }
+                
+                
+                // Draw the connect/disconnect messages
+                this.ctx.font = Math.round(11*this.scaling) + "pt Verdana";
+                for (var i=0;i<this.infos.length;i++)
+                {
+                    if ((time - this.infos[i].time) > this.infosFadeTime)
+                    {
+                        this.infos.splice(i, 1);
+                        i--;
+                        continue;
+                    }
+                    
+                    this.ctx.save();
+                    var alpha = 1.0 - (time - this.infos[i].time) / this.infosFadeTime;
+                    this.ctx.fillStyle = "rgba(255,255,255," + alpha + ")";
+                    
+                    this.ctx.fillText(this.infos[i].msg, ((this.width-this.ctx.measureText(this.infos[i].msg).width)-50*this.scaling), ((50 + (this.infos.length-i-1)*20)*this.scaling));
+                    this.ctx.restore();
+                }
+                
+                
+                // Draw the chat
+                d = new Date();
+                time = d.getTime()/1000;
+                this.ctx.textAlign = "left";
+                this.ctx.font = Math.round(12*this.scaling) + "pt Verdana";
+                for (var i=(this.chat.length-1);i>=0;i--)
+                {
+                    if ((time - this.chat[i].time) > (this.chatHoldTime + this.chatFadeTime))
+                    {
+                        this.chat.splice(i, 1);
+                        if (this.chat.length > 0)
+                            i++;
+                        continue;
+                    }
+                    
+                    this.ctx.save();
+                    
+                    var alpha = 1.0;
+                    if ((time - this.chat[i].time) > this.chatHoldTime)
+                        alpha = 1.0 - (time - this.chat[i].time - this.chatHoldTime) / this.chatFadeTime;
+                    
+                    if (this.chat[i].team === 0)
+                        this.ctx.fillStyle = "rgba(255,165,0," + alpha + ")";
+                    else if (this.chat[i].team === 1)
+                        this.ctx.fillStyle = "rgba(255,255,255," + alpha + ")";
+                    else if (this.chat[i].team === 2)
+                        this.ctx.fillStyle = "rgba(255,0,0," + alpha + ")";
+                    else if (this.chat[i].team === 3)
+                        this.ctx.fillStyle = "rgba(0,0,255," + alpha + ")";
+                    
+                    this.ctx.fillText(this.chat[i].name, (50*this.scaling), (this.height-(50 + (this.chat.length-i-1)*20)*this.scaling));
+                    
+                    var offs = this.ctx.measureText(this.chat[i].name).width;
+                    this.ctx.fillStyle = "rgba(255,165,0," + alpha + ")";
+                    
+                    this.ctx.fillText(": " + this.chat[i].msg, (50*this.scaling + offs), (this.height-(50 + (this.chat.length-i-1)*20)*this.scaling));
+                    this.ctx.restore();
+                }
+                
+                // Show that notice, if the mapconfig wasn't found
+                if (this.background === null || this.mapsettingsFailed)
+                {
+                    this.ctx.save();
+                    this.ctx.fillStyle = "rgb(255,255,255)";
+                    this.ctx.font = Math.round(20*this.scaling) + "pt Verdana";
+                    var text = "No map image.";
+                    debug(text);
+                    if (this.mapsettingsFailed) {
+                        text = "Map config failed to load. Player positions can not be shown.";
+                        //debug(text);
+                        this.ctx.fillStyle = "rgb(255,0,0)";
+                    }
+                    this.ctx.fillText(text, (this.width - this.ctx.measureText(text).width)/2, (this.height/2));
+                    this.ctx.restore();
+                    stv2d_disconnect();
+                    return;
+                }
+                
+                // Draw dropped bomb on map
+                if (this.bombDropped)
+                {
+                  this.ctx.save();
+                  this.ctx.fillStyle = "#FF4500";
+                  this.ctx.beginPath();
+                  this.ctx.arc(this.bombPosition[0], this.bombPosition[1], 6*this.scaling, 0, Math.PI*2, true);
+                  this.ctx.fill();
+                  
+                  this.ctx.strokeStyle = "#FFFFFF";
+                  this.ctx.beginPath();
+                  this.ctx.arc(this.bombPosition[0], this.bombPosition[1], 6*this.scaling, 0, Math.PI*2, true);
+                  this.ctx.stroke();
+                  
+                  this.ctx.font = Math.round(7*this.scaling) + "pt Verdana";
+                  this.ctx.fillStyle = "#FFFFFF";
+                  this.ctx.fillText("B", this.bombPosition[0]-4*this.scaling, this.bombPosition[1] + 3);
+                  this.ctx.restore();
+                }
+                
+                if (this.bombExploded)
+                {
+                  this.ctx.save();
+                  this.ctx.fillStyle = "#FF8C00";
+                  this.ctx.beginPath();
+                  this.ctx.arc(this.bombPosition[0], this.bombPosition[1], 50*this.scaling, 0, Math.PI*2, true);
+                  this.ctx.fill();
+                  
+                  this.ctx.fillStyle = "#FFFF00";
+                  this.ctx.beginPath();
+                  this.ctx.arc(this.bombPosition[0], this.bombPosition[1], 20*this.scaling, 0, Math.PI*2, true);
+                  this.ctx.fill();
+                  this.ctx.restore();
+                }
+                
+                d = new Date();
+                time = d.getTime();
+                // Draw planted bomb on map
+                if (!this.bombDropped && this.bombPlantTime > 0)
+                {
+                  this.ctx.save();
+                  this.ctx.fillStyle = "#FF4500";
+                  this.ctx.beginPath();
+                  this.ctx.arc(this.bombPosition[0], this.bombPosition[1], 9*this.scaling, 0, Math.PI*2, true);
+                  this.ctx.fill();
+                  
+                  this.ctx.strokeStyle = "rgb(255,0,0)";
+                  this.ctx.beginPath();
+                  this.ctx.arc(this.bombPosition[0], this.bombPosition[1], 9*this.scaling, 0, Math.PI*2, true);
+                  this.ctx.stroke();
+                  
+                  this.ctx.font = Math.round(8*this.scaling) + "pt Verdana";
+                  this.ctx.fillStyle = "#FFFFFF";
+                  this.ctx.fillText("B", this.bombPosition[0]-4*this.scaling, this.bombPosition[1] + 3*this.scaling);
+                  
+                  if (!this.bombExploded)
+                  {
+                    this.ctx.font = Math.round(8*this.scaling) + "pt Verdana";
+                    this.ctx.fillStyle = "#FFFFFF";
+                    var bombTimeLeft;
+                    // Not yet defused? Count down!
+                    if (this.bombDefuseTime === -1)
+                      bombTimeLeft = Math.round(this.bombExplodeTime-time/1000 + this.bombPlantTime);
+                    // The bomb has been defused. Stay on the current time
+                    else
+                      bombTimeLeft = Math.round(this.bombDefuseTime - this.bombPlantTime);
+                    if (bombTimeLeft < 0)
+                      bombTimeLeft = 0;
+                    this.ctx.fillText("" + bombTimeLeft, this.bombPosition[0]-4*this.scaling, this.bombPosition[1]-15*this.scaling);          
+                  }
+                  this.ctx.restore();
+                }
+                
+                // Set this for the player names
+                this.ctx.font = Math.round(10*this.scaling) + "pt Verdana";
+                for (var i=0;i<this.players.length;i++)
+                {
+                    // Make sure we're in sync with the other messages..
+                    // Delete older frames
+                    while(this.players[i].positions.length > 0 && (time - this.players[i].positions[0].time) > 2000)
+                    {
+                      this.players[i].positions.splice(0,1);
+                    }
+                    
+                    // There is no coordinate for this player yet
+                    if (this.players[i].positions.length === 0)
+                        //debug("No co-ords for player idx " + i);
+                        continue;
+                    
+                    this.ctx.save();
+                    
+                    if (this.players[i].team < 2)
+                        this.ctx.fillStyle = "black";
+                    else if (this.players[i].team === 2)
+                    {
+                        if (this.players[i].positions[0].diedhere === false)
+                            this.ctx.fillStyle = "red";
+                        else
+                            this.ctx.fillStyle = "rgba(255,0,0,0.3)";
+                    }
+                    else if (this.players[i].team === 3)
+                    {
+                        if (this.players[i].positions[0].diedhere === false)
+                            this.ctx.fillStyle = "blue";
+                        else
+                            this.ctx.fillStyle = "rgba(0,0,255,0.3)";
+                    }
+                    
+                    // Teleport directly to new spawn, if he died at this position
+                    if (this.players[i].positions[0].diedhere)
+                    {
+                        if (this.players[i].positions[1])
                         {
-                            info++;
-                            continue;
+                            //if (time >= this.players[i].positions[1].time)
+                                this.players[i].positions.splice(0,1);
                         }
-                        if (info == 0)
-                            frame.action += msg.data.charAt(offset);
-                        else if (parseInt(frame.action) == SourceTV2D.bomb_const.position || parseInt(frame.action) == SourceTV2D.bomb_const.planted)
+                    }
+                    // Move the player smoothly towards the new position
+                    else if (this.players[i].positions.length > 1)
+                    {
+                        if (this.players[i].positions[0].x === this.players[i].positions[1].x
+                        && this.players[i].positions[0].y === this.players[i].positions[1].y)
                         {
-                          if (info == 1)
-                            frame.posX += msg.data.charAt(offset);
-                          else if (info == 2)
-                            frame.posY += msg.data.charAt(offset);
-                          else if (parseInt(frame.action) == SourceTV2D.bomb_const.planted)
-                          {
-                            if (info == 3)
-                              frame.plantTime += msg.data.charAt(offset);
+                            //if (time >= this.players[i].positions[1].time)
+                                this.players[i].positions.splice(0,1);
+                        }
+                        else
+                        {
+                            // This function is called 20x a second
+                            if (this.players[i].positions[0].swapx === null)
+                            {
+                                this.players[i].positions[0].swapx = this.players[i].positions[0].x > this.players[i].positions[1].x?-1:1;
+                                this.players[i].positions[0].swapy = this.players[i].positions[0].y > this.players[i].positions[1].y?-1:1;
+                            }
+                            if (this.players[i].positions[0].diffx === null)
+                            {
+                                var timediff = this.players[i].positions[1].time - this.players[i].positions[0].time;
+                                this.players[i].positions[0].diffx = Math.abs(this.players[i].positions[1].x - this.players[i].positions[0].x)/(timediff/50);
+                                this.players[i].positions[0].diffy = Math.abs(this.players[i].positions[1].y - this.players[i].positions[0].y)/(timediff/50);
+                            }
+                            
+                            var x = this.players[i].positions[0].x + this.players[i].positions[0].swapx*this.players[i].positions[0].diffx;
+                            var y = this.players[i].positions[0].y + this.players[i].positions[0].swapy*this.players[i].positions[0].diffy;
+                            
+                            // We're moving too far...
+                            if ((this.players[i].positions[0].swapx===-1 && x <= this.players[i].positions[1].x)
+                            || (this.players[i].positions[0].swapx===1 && x >= this.players[i].positions[1].x)
+                            || (this.players[i].positions[0].swapy===-1 && y <= this.players[i].positions[1].y)
+                            || (this.players[i].positions[0].swapy===1 && y >= this.players[i].positions[1].y))
+                            {
+                                this.players[i].positions.splice(0,1);
+                            }
                             else
-                              frame.userid += msg.data.charAt(offset);
-                          }
+                            {
+                                this.players[i].positions[0].x = x;
+                                this.players[i].positions[0].y = y;
+                            }
                         }
-                        else if (parseInt(frame.action) == SourceTV2D.bomb_const.begindefuse)
-                        {
-                          if (info == 1)
-                            frame.haskit += msg.data.charAt(offset);
-                          else
-                            frame.userid += msg.data.charAt(offset);
-                        }
-                        else if (parseInt(frame.action) != SourceTV2D.bomb_const.exploded)
-                            frame.userid += msg.data.charAt(offset);
                     }
-                    frame.action = parseInt(frame.action);
-                    frame.userid = parseInt(frame.userid);
-                    frame.posX = parseInt(frame.posX);
-                    frame.posY = parseInt(frame.posY);
-                    frame.plantTime = parseInt(frame.plantTime);
-                    frame.haskit = parseInt(frame.haskit);
                     
-                    if (frame.action != SourceTV2D.bomb_const.position && frame.action != SourceTV2D.bomb_const.exploded)
+                    var playerRadius = this.playerRadius;
+                    // User hovers his mouse over this player
+                    if (this.players[i].hovered || this.players[i].selected)
                     {
-                      // Find player with that userid
-                      var idx = -1;
-                      for(var i=0;i<SourceTV2D.players.length;i++)
-                      {
-                          if (SourceTV2D.players[i].userid == frame.userid)
-                          {
-                              idx = i;
-                              break;
-                          }
-                      }
-                      if (idx != -1)
-                      {
-                          if (frame.action == SourceTV2D.bomb_const.pickup)
-                          {
-                              // Someone else got the bomb. Only one bomb at the time.
-                              for(var p=0;p<SourceTV2D.players.length;p++)
-                              {
-                                  SourceTV2D.players[p].got_the_bomb = false;
-                              }
-                              SourceTV2D.players[idx].got_the_bomb = true;
-                              SourceTV2D.bombDropped = false;
-                          }
-                          else if (frame.action == SourceTV2D.bomb_const.dropped)
-                          {
-                              SourceTV2D.players[idx].got_the_bomb = false;
-                              SourceTV2D.bombDropped = true;
-                          }
-                      }
-                      
-                      if (frame.action == SourceTV2D.bomb_const.planted)
-                      {
-                        SourceTV2D.bombDropped = false;
-                        SourceTV2D.bombDefused = false;
+                        playerRadius = this.playerRadius + 4*this.scaling;
+                        this.ctx.save();
+                        this.ctx.beginPath();
+                        this.ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+                        this.ctx.arc(this.players[i].positions[0].x, this.players[i].positions[0].y, playerRadius + 2*this.scaling, 0, Math.PI*2, true);
+                        this.ctx.fill();
+                        this.ctx.restore();
+                    }
+
+                    // Draw player itself
+                    this.ctx.beginPath();
+                    this.ctx.arc(this.players[i].positions[0].x, this.players[i].positions[0].y, playerRadius, 0, Math.PI*2, true);
+                    this.ctx.fill();
+                    
+                    // He got hurt this frame
+                    if (this.players[i].positions[0].hurt)
+                    {
+                        this.ctx.strokeStyle = "rgb(230, 149, 0)";
+                        this.ctx.beginPath();
+                        this.ctx.arc(this.players[i].positions[0].x, this.players[i].positions[0].y, playerRadius, 0, Math.PI*2, true);
+                        this.ctx.stroke();
+                    }
+                    
+                    // Display player names above their heads
+                    var bShowHealthBar = (this.players[i].health > 0 && $("#healthbars").attr('checked'));
+                    //if ($("#names").attr('checked'))
+                    if (1)
+                    {
+                        this.ctx.save();
+                        var nameWidth = this.ctx.measureText(this.players[i].name).width;
+                        this.ctx.translate(this.players[i].positions[0].x-(nameWidth/2), this.players[i].positions[0].y-(bShowHealthBar?16:10)*this.scaling);
+                        this.ctx.fillText(this.players[i].name, 0, 0);
+                        this.ctx.restore();
+                    }
+                    
+                    // Draw view angle as white dot
+                    this.ctx.translate(this.players[i].positions[0].x, this.players[i].positions[0].y);
+                    this.ctx.fillStyle = "white";
+                    this.ctx.rotate(this.players[i].positions[0].angle);
+                    this.ctx.beginPath();
+                    this.ctx.arc(0, Math.round(3 * this.scaling), Math.round(2 * this.scaling), 0, Math.PI*2, true);
+                    this.ctx.fill();
+                    
+                    this.ctx.restore();
+                    
+                    // Draw health bars
+                    if (bShowHealthBar)
+                    {
+                        this.ctx.save();
+                        this.ctx.translate(this.players[i].positions[0].x-12*this.scaling, this.players[i].positions[0].y-12*this.scaling);
+                        this.ctx.beginPath();
+                        this.ctx.strokeStyle = "rgba(0, 0, 0, 0.7)";
+                        this.ctx.rect(0, 0, 24*this.scaling, 4*this.scaling);
+                        this.ctx.stroke();
                         
-                        SourceTV2D.players[idx].got_the_bomb = false;
-                        
-                        if (SourceTV2D.mapsettings.flipx)
-                            frame.posX *= -1;
-                        if (SourceTV2D.mapsettings.flipy)
-                            frame.posY *= -1;
-                        
-                        SourceTV2D.bombPosition[0] = Math.round(((frame.posX + SourceTV2D.mapsettings.xoffset) / SourceTV2D.mapsettings.scale) * SourceTV2D.scaling);
-                        SourceTV2D.bombPosition[1] = Math.round(((frame.posY + SourceTV2D.mapsettings.yoffset) / SourceTV2D.mapsettings.scale) * SourceTV2D.scaling);
-                        SourceTV2D.bombPlantTime = frame.plantTime;
-                        
-                        debug("Bomb was planted at x: " + SourceTV2D.bombPosition[0] + ", y: " + SourceTV2D.bombPosition[1] + " at " + SourceTV2D.bombPlantTime);
-                        
-                        if (idx != -1)
+                        var width = (24*this.players[i].health/100)*this.scaling;
+                        if (width > 0)
                         {
-                          var d = new Date();
-                          SourceTV2D.infos[SourceTV2D.infos.length] = {'msg': SourceTV2D.players[idx].name + " planted the bomb!", 'time': d.getTime()/1000};
+                            this.ctx.beginPath();
+                            
+                            if (this.players[i].health >= 70)
+                                this.ctx.fillStyle = "rgba(0, 255, 0, 0.7)";
+                            else if (this.players[i].health >= 30)
+                                this.ctx.fillStyle = "rgba(255, 255, 50, 0.7)";
+                            else
+                                this.ctx.fillStyle = "rgba(255, 0, 0, 0.7)";
+                            
+                            this.ctx.rect(0, 0, width, 4*this.scaling);
+                            this.ctx.fill();
                         }
-                      }
-                      else if (frame.action == SourceTV2D.bomb_const.defused)
-                      {
-                        var d = new Date();
-                        SourceTV2D.bombDropped = false;
-                        SourceTV2D.bombDefuseTime = d.getTime()/1000;
                         
-                        if (idx != -1)
-                        {
-                          SourceTV2D.infos[SourceTV2D.infos.length] = {'msg': SourceTV2D.players[idx].name + " defused the bomb!", 'time': d.getTime()/1000};
-                        }
-                      }
+                        this.ctx.restore();
+                    }
+                }
+                
+                // Draw the round end info box
+                if (this.roundEnded !== -1)
+                {
+                    this.ctx.save();
+                    this.ctx.font = Math.round(32*this.scaling) + "pt Verdana";
+
+                    var winnertext = this.team[this.roundEnded] + " won the round!";
+                    
+                    // Draw a box around it
+                    this.ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+                    this.ctx.beginPath();
+                    this.ctx.rect(this.width/2-this.ctx.measureText(winnertext).width/2-5, this.height/2*this.scaling-34, this.ctx.measureText(winnertext).width + 10, 40);
+                    this.ctx.fill();
+                    
+                    this.ctx.fillStyle = "rgb(255,255,255)";
+                    this.ctx.fillText(winnertext, this.width/2-this.ctx.measureText(winnertext).width/2, this.height/2*this.scaling);
+                    
+                    this.ctx.restore();
+                }
+                
+                // Draw the round time
+                if (this.game === "cstrike" && this.mp_roundtime > 0 && this.roundStartTime > 0)
+                {
+                    this.ctx.save();
+                    this.ctx.font = Math.round(14*this.scaling) + "pt Verdana";
+                    this.ctx.fillStyle = "rgb(255,255,255)";
+                    var timeleft = 0;
+                    // Stop the counting on round end
+                    if (this.roundEndTime > 0)
+                    {
+                        timeleft = this.mp_roundtime - this.roundEndTime + this.roundStartTime;
                     }
                     else
                     {
-                      if (frame.action == SourceTV2D.bomb_const.position)
-                      {
-                        if (SourceTV2D.mapsettings.flipx)
-                            frame.posX *= -1;
-                        if (SourceTV2D.mapsettings.flipy)
-                            frame.posY *= -1;
+                        d = new Date();
+                        timeleft = this.mp_roundtime - Math.floor(d.getTime()/1000) + this.roundStartTime;
+                    }
+                    if (timeleft < 0)
+                        timeleft = 0;
+                    var timetext = "Timeleft: ";
+                    var minutes = Math.floor(timeleft/60);
+                    if (minutes < 10)
+                        timetext += "0";
+                    timetext += minutes + ":";
+                    var seconds = (timeleft%60);
+                    if (seconds < 10)
+                        timetext += "0";
+                    timetext += seconds;
+                    this.ctx.fillText(timetext, this.width-this.ctx.measureText(timetext).width-50*this.scaling, this.height-50*this.scaling);
+                    
+                    this.ctx.restore();
+                }
+                
+                // Draw the scoreboard
+                if (this.spacebarPressed)
+                {
+                    this.ctx.save();
+                    this.ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+                    this.ctx.strokeStyle = "rgb(255,165,0)";
+                    this.ctx.translate(this.width*0.1, this.height*0.1);
+                    
+                    // Box with border
+                    this.ctx.beginPath();
+                    this.ctx.rect(0, 0, this.width*0.8, this.height*0.8);
+                    this.ctx.fill();
+                    this.ctx.beginPath();
+                    this.ctx.rect(0, 0, this.width*0.8, this.height*0.8);
+                    this.ctx.stroke();
+                    
+                    this.ctx.translate(10*this.scaling, 0);
+                    
+                    // Map and servername
+                    this.ctx.font = Math.round(12*this.scaling) + "pt Verdana";
+                    this.ctx.fillStyle = "rgba(255,165,0,0.9)";
+                    this.ctx.fillText("Server: " + this.servername + " (" + this.map + ")", 0, 30*this.scaling);
+                    
+                    // Blue team header box
+                    this.ctx.beginPath();
+                    this.ctx.fillStyle = "rgba(69, 171, 255, 0.7)";
+                    this.ctx.rect(0, 50*this.scaling, (this.width*0.8)/2-10*this.scaling, 80*this.scaling);
+                    this.ctx.fill();
+                    this.ctx.beginPath();
+                    this.ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+                    this.ctx.rect(0, 50*this.scaling, (this.width*0.8)/2-10*this.scaling, 80*this.scaling);
+                    this.ctx.stroke();
+                    
+                    this.ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+                    this.ctx.font = Math.round(18*this.scaling) + "pt Verdana";
+                    // Team name
+                    this.ctx.fillText(this.team[3], 10*this.scaling, 90*this.scaling);
+                    
+                    // Player count in team
+                    this.ctx.font = Math.round(14*this.scaling) + "pt Verdana";
+                    this.ctx.fillText(this.teamPlayersAlive[1] + "/" + this.teamPlayerAmount[2] + " players alive", 16*this.scaling, 120*this.scaling);
+                    
+                    // Team points
+                    this.ctx.font = Math.round(36*this.scaling) + "pt Verdana";
+                    this.ctx.fillText(this.teamPoints[1] + "", (this.width*0.8)/2-16*this.scaling-this.ctx.measureText(this.teamPoints[1] + "").width, 120*this.scaling);
+                    
+                    // Table header
+                    this.ctx.fillStyle = "rgba(69, 171, 255, 0.9)";
+                    this.ctx.font = Math.round(10*this.scaling) + "pt Verdana";
+                    this.ctx.fillText("Player", 10*this.scaling, 150*this.scaling);       
+                    
+                    //to position these, get the centre line of the scoreboard (sourcetv.width*0.8/2) and then substract the width of the other columns preceding 
+                    //the one you want placed. all headers have the same Y positions (150*scaling)
+                    var deathWidth = this.ctx.measureText("Deaths").width;
+                    this.ctx.fillText("Deaths", (this.width*0.8)/2 - 20*this.scaling - deathWidth, 150*this.scaling);
+                    
+                    var fragsWidth = this.ctx.measureText("Frags").width;
+                    this.ctx.fillText("Frags", (this.width*0.8)/2 - 28*this.scaling - deathWidth - fragsWidth, 150*this.scaling);
+                    
+                    var classWidth = this.ctx.measureText("Class").width;
+                    this.ctx.fillText("Class", (this.width*0.8)/2 - 160*this.scaling - deathWidth - fragsWidth - classWidth, 150*this.scaling);
+                    
+                    
+                    // Player list border
+                    this.ctx.strokeStyle = "rgba(69, 171, 255, 0.9)";
+                    this.ctx.beginPath();
+                    var iListBorderHeight = this.height*0.8-200*this.scaling;
+                    this.ctx.rect(0, 160*this.scaling, (this.width*0.8)/2-10*this.scaling, iListBorderHeight);
+                    this.ctx.stroke();
+                    
+                    // Player list
+                    this.ctx.font = Math.round(14*this.scaling) + "pt Verdana";
+                    var iOffset = 0;
+                    for (var i=0;i<this.players.length;i++)
+                    {
+                        if (this.players[i].team !== 3)
+                            continue;
                         
-                        SourceTV2D.bombPosition[0] = Math.round(((frame.posX + SourceTV2D.mapsettings.xoffset) / SourceTV2D.mapsettings.scale) * SourceTV2D.scaling);
-                        SourceTV2D.bombPosition[1] = Math.round(((frame.posY + SourceTV2D.mapsettings.yoffset) / SourceTV2D.mapsettings.scale) * SourceTV2D.scaling);
+                        var iHeight = (180 + 20*iOffset)*this.scaling;
+                        if (iHeight > iListBorderHeight)
+                            break;
                         
-                        // If the bomb is moving, it's obviously dropped.
-                        SourceTV2D.bombDropped = true;
-                      }
-                      if (frame.action == SourceTV2D.bomb_const.exploded)
-                      {
-                        SourceTV2D.bombExploded = true;
-                        var d = new Date();
-                        SourceTV2D.infos[SourceTV2D.infos.length] = {'msg': "The bomb exploded!", 'time': d.getTime()/1000};
+                        if (this.players[i].alive)
+                          this.ctx.fillStyle = "rgba(69, 171, 255, 0.9)";
+                        else
+                          this.ctx.fillStyle = "rgba(69, 171, 255, 0.6)";
                         
-                        for(var i=0;i<SourceTV2D.players.length;i++)
-                        {
-                          SourceTV2D.players[i].defuse_start_time = -1;
-                          SourceTV2D.players[i].plant_start_time = -1;
-                        }
-                      }
+                        //likewise for the headers, get centre pos and subtract
+                        
+                        this.ctx.fillText(this.players[i].name, 10*this.scaling, iHeight);
+                        this.ctx.fillText(this.players[i].deaths, (this.width*0.8)/2 - 20*this.scaling - deathWidth, iHeight);
+                        this.ctx.fillText(this.players[i].frags, (this.width*0.8)/2 - 28*this.scaling - deathWidth - fragsWidth, iHeight);
+                        
+                        //player classes are a bit diff, since they're numbered and we want them in name
+                        var classname = this.classnames[this.players[i].pclass];
+                        this.ctx.fillText(classname, (this.width*0.8)/2 - 160*this.scaling - deathWidth - fragsWidth - classWidth, iHeight);
+                        
+                        
+                        if (this.players[i].has_intel)
+                            this.ctx.fillText("F", (this.width*0.8)/2 - 66*this.scaling - deathWidth - fragsWidth - classWidth, iHeight);
+                        iOffset++;
                     }
-                    break;
-                }
-                case "U":
-                {
                     
-                    break;
-                }
-            }
-        };
-        SourceTV2D.socket.onerror = function (msg)
-        {
-            if (SourceTV2D.ctx != null)
-            {
-                SourceTV2D.ctx.font = Math.round(22*SourceTV2D.scaling) + "pt Verdana";
-                SourceTV2D.ctx.fillStyle = "rgb(255,255,255)";
-                SourceTV2D.ctx.fillText("Disconnected.", 100*SourceTV2D.scaling, 100*SourceTV2D.scaling);
-            }
-            debug("Socket reported error!");
-        };
-        SourceTV2D.socket.onclose = function (msg)
-        {
-            if (SourceTV2D.ctx != null)
-            {
-                SourceTV2D.ctx.font = Math.round(22*SourceTV2D.scaling) + "pt Verdana";
-                SourceTV2D.ctx.fillStyle = "rgb(255,255,255)";
-                SourceTV2D.ctx.fillText("Disconnected.", 100*SourceTV2D.scaling, 100*SourceTV2D.scaling);
-            }
-            debug("Disconnected - readyState: " + this.readyState + " Code: " + msg.code + ". Reason:" + msg.reason + " - wasClean: " + msg.wasClean);
-        };
-    }
-    catch(ex) {
-        debug('Error: ' + ex);
-    }
-}
-
-function drawMap() {
-    "use strict";
-    try
-    {
-        if (SourceTV2D.ctx == null) {
-            debug("No canvas element. ?")
-            return;
-        }
-        // Clear the canvas.
-        SourceTV2D.ctx.clearRect(0,0,SourceTV2D.width,SourceTV2D.height);
-        if (SourceTV2D.background != null)
-            SourceTV2D.ctx.drawImage(SourceTV2D.background,0,0,SourceTV2D.width,SourceTV2D.height);
-        else
-        {
-            SourceTV2D.ctx.save();
-            SourceTV2D.ctx.beginPath();
-            SourceTV2D.ctx.fillStyle = "rgb(0, 0, 0)";
-            SourceTV2D.ctx.rect(0, 0, SourceTV2D.width, SourceTV2D.height);
-            SourceTV2D.ctx.fill();
-            SourceTV2D.ctx.restore();
-        }
-        
-        // Draw the kill messages
-        var d = new Date();
-        var time = d.getTime()/1000;
-        SourceTV2D.ctx.textAlign = "left";
-        SourceTV2D.ctx.font = Math.round(10*SourceTV2D.scaling) + "pt Verdana";
-        for(var i=0;i<SourceTV2D.frags.length;i++)
-        {
-            if ((time - SourceTV2D.frags[i].time) > SourceTV2D.fragFadeTime)
-            {
-                SourceTV2D.frags.splice(i, 1);
-                i--;
-                continue;
-            }
-            
-            SourceTV2D.ctx.save();
-            
-            var alpha = 1.0 - (time - SourceTV2D.frags[i].time) / SourceTV2D.fragFadeTime;
-            
-            if (SourceTV2D.frags[i].ateam == 2)
-                SourceTV2D.ctx.fillStyle = "rgba(255,0,0," + alpha + ")";
-            else if (SourceTV2D.frags[i].ateam == 3)
-                SourceTV2D.ctx.fillStyle = "rgba(0,0,255," + alpha + ")";
-            
-            SourceTV2D.ctx.fillText(SourceTV2D.frags[i].attacker, (50*SourceTV2D.scaling), ((50 + (SourceTV2D.frags.length-i-1)*20)*SourceTV2D.scaling));
-            
-            var offs = SourceTV2D.ctx.measureText(SourceTV2D.frags[i].attacker).width + 10*SourceTV2D.scaling;
-            SourceTV2D.ctx.fillStyle = "rgba(255,255,255," + alpha + ")";
-            
-            SourceTV2D.ctx.fillText(SourceTV2D.frags[i].weapon, (50*SourceTV2D.scaling + offs), ((50 + (SourceTV2D.frags.length-i-1)*20)*SourceTV2D.scaling));
-            
-            offs += SourceTV2D.ctx.measureText(SourceTV2D.frags[i].weapon).width + 10*SourceTV2D.scaling;
-            
-            if (SourceTV2D.frags[i].vteam == 2)
-                SourceTV2D.ctx.fillStyle = "rgba(255,0,0," + alpha + ")";
-            else if (SourceTV2D.frags[i].vteam == 3)
-                SourceTV2D.ctx.fillStyle = "rgba(0,0,255," + alpha + ")";
-            
-            SourceTV2D.ctx.fillText(SourceTV2D.frags[i].victim, (50*SourceTV2D.scaling + offs), ((50 + (SourceTV2D.frags.length-i-1)*20)*SourceTV2D.scaling));
-            SourceTV2D.ctx.restore();
-        }
-        
-        
-        // Draw the connect/disconnect messages
-        SourceTV2D.ctx.font = Math.round(11*SourceTV2D.scaling) + "pt Verdana";
-        for(var i=0;i<SourceTV2D.infos.length;i++)
-        {
-            if ((time - SourceTV2D.infos[i].time) > SourceTV2D.infosFadeTime)
-            {
-                SourceTV2D.infos.splice(i, 1);
-                i--;
-                continue;
-            }
-            
-            SourceTV2D.ctx.save();
-            var alpha = 1.0 - (time - SourceTV2D.infos[i].time) / SourceTV2D.infosFadeTime;
-            SourceTV2D.ctx.fillStyle = "rgba(255,255,255," + alpha + ")";
-            
-            SourceTV2D.ctx.fillText(SourceTV2D.infos[i].msg, ((SourceTV2D.width-SourceTV2D.ctx.measureText(SourceTV2D.infos[i].msg).width)-50*SourceTV2D.scaling), ((50 + (SourceTV2D.infos.length-i-1)*20)*SourceTV2D.scaling));
-            SourceTV2D.ctx.restore();
-        }
-        
-        
-        // Draw the chat
-        var d = new Date();
-        var time = d.getTime()/1000;
-        SourceTV2D.ctx.textAlign = "left";
-        SourceTV2D.ctx.font = Math.round(12*SourceTV2D.scaling) + "pt Verdana";
-        for(var i=(SourceTV2D.chat.length-1);i>=0;i--)
-        {
-            if ((time - SourceTV2D.chat[i].time) > (SourceTV2D.chatHoldTime + SourceTV2D.chatFadeTime))
-            {
-                SourceTV2D.chat.splice(i, 1);
-                if (SourceTV2D.chat.length > 0)
-                    i++;
-                continue;
-            }
-            
-            SourceTV2D.ctx.save();
-            
-            var alpha = 1.0;
-            if ((time - SourceTV2D.chat[i].time) > SourceTV2D.chatHoldTime)
-                alpha = 1.0 - (time - SourceTV2D.chat[i].time - SourceTV2D.chatHoldTime) / SourceTV2D.chatFadeTime;
-            
-            if (SourceTV2D.chat[i].team == 0)
-                SourceTV2D.ctx.fillStyle = "rgba(255,165,0," + alpha + ")";
-            else if (SourceTV2D.chat[i].team == 1)
-                SourceTV2D.ctx.fillStyle = "rgba(255,255,255," + alpha + ")";
-            else if (SourceTV2D.chat[i].team == 2)
-                SourceTV2D.ctx.fillStyle = "rgba(255,0,0," + alpha + ")";
-            else if (SourceTV2D.chat[i].team == 3)
-                SourceTV2D.ctx.fillStyle = "rgba(0,0,255," + alpha + ")";
-            
-            SourceTV2D.ctx.fillText(SourceTV2D.chat[i].name, (50*SourceTV2D.scaling), (SourceTV2D.height-(50 + (SourceTV2D.chat.length-i-1)*20)*SourceTV2D.scaling));
-            
-            var offs = SourceTV2D.ctx.measureText(SourceTV2D.chat[i].name).width;
-            SourceTV2D.ctx.fillStyle = "rgba(255,165,0," + alpha + ")";
-            
-            SourceTV2D.ctx.fillText(": " + SourceTV2D.chat[i].msg, (50*SourceTV2D.scaling + offs), (SourceTV2D.height-(50 + (SourceTV2D.chat.length-i-1)*20)*SourceTV2D.scaling));
-            SourceTV2D.ctx.restore();
-        }
-        
-        // Show that notice, if the mapconfig wasn't found
-        if (SourceTV2D.background == null || SourceTV2D.mapsettingsFailed)
-        {
-            SourceTV2D.ctx.save();
-            SourceTV2D.ctx.fillStyle = "rgb(255,255,255)";
-            SourceTV2D.ctx.font = Math.round(20*SourceTV2D.scaling) + "pt Verdana";
-            var text = "No map image.";
-            debug(text);
-            if (SourceTV2D.mapsettingsFailed) {
-                text = "Map config failed to load. Player positions can not be shown.";
-                //debug(text);
-                SourceTV2D.ctx.fillStyle = "rgb(255,0,0)";
-            }
-            SourceTV2D.ctx.fillText(text, (SourceTV2D.width - SourceTV2D.ctx.measureText(text).width)/2, (SourceTV2D.height/2));
-            SourceTV2D.ctx.restore();
-            stv2d_disconnect();
-            return;
-        }
-        
-        // Draw dropped bomb on map
-        if (SourceTV2D.bombDropped)
-        {
-          SourceTV2D.ctx.save();
-          SourceTV2D.ctx.fillStyle = "#FF4500";
-          SourceTV2D.ctx.beginPath();
-          SourceTV2D.ctx.arc(SourceTV2D.bombPosition[0], SourceTV2D.bombPosition[1], 6*SourceTV2D.scaling, 0, Math.PI*2, true);
-          SourceTV2D.ctx.fill();
-          
-          SourceTV2D.ctx.strokeStyle = "#FFFFFF";
-          SourceTV2D.ctx.beginPath();
-          SourceTV2D.ctx.arc(SourceTV2D.bombPosition[0], SourceTV2D.bombPosition[1], 6*SourceTV2D.scaling, 0, Math.PI*2, true);
-          SourceTV2D.ctx.stroke();
-          
-          SourceTV2D.ctx.font = Math.round(7*SourceTV2D.scaling) + "pt Verdana";
-          SourceTV2D.ctx.fillStyle = "#FFFFFF";
-          SourceTV2D.ctx.fillText("B", SourceTV2D.bombPosition[0]-4*SourceTV2D.scaling, SourceTV2D.bombPosition[1] + 3);
-          SourceTV2D.ctx.restore();
-        }
-        
-        if (SourceTV2D.bombExploded)
-        {
-          SourceTV2D.ctx.save();
-          SourceTV2D.ctx.fillStyle = "#FF8C00";
-          SourceTV2D.ctx.beginPath();
-          SourceTV2D.ctx.arc(SourceTV2D.bombPosition[0], SourceTV2D.bombPosition[1], 50*SourceTV2D.scaling, 0, Math.PI*2, true);
-          SourceTV2D.ctx.fill();
-          
-          SourceTV2D.ctx.fillStyle = "#FFFF00";
-          SourceTV2D.ctx.beginPath();
-          SourceTV2D.ctx.arc(SourceTV2D.bombPosition[0], SourceTV2D.bombPosition[1], 20*SourceTV2D.scaling, 0, Math.PI*2, true);
-          SourceTV2D.ctx.fill();
-          SourceTV2D.ctx.restore();
-        }
-        
-        var d = new Date();
-        var time = d.getTime();
-        // Draw planted bomb on map
-        if (!SourceTV2D.bombDropped && SourceTV2D.bombPlantTime > 0)
-        {
-          SourceTV2D.ctx.save();
-          SourceTV2D.ctx.fillStyle = "#FF4500";
-          SourceTV2D.ctx.beginPath();
-          SourceTV2D.ctx.arc(SourceTV2D.bombPosition[0], SourceTV2D.bombPosition[1], 9*SourceTV2D.scaling, 0, Math.PI*2, true);
-          SourceTV2D.ctx.fill();
-          
-          SourceTV2D.ctx.strokeStyle = "rgb(255,0,0)";
-          SourceTV2D.ctx.beginPath();
-          SourceTV2D.ctx.arc(SourceTV2D.bombPosition[0], SourceTV2D.bombPosition[1], 9*SourceTV2D.scaling, 0, Math.PI*2, true);
-          SourceTV2D.ctx.stroke();
-          
-          SourceTV2D.ctx.font = Math.round(8*SourceTV2D.scaling) + "pt Verdana";
-          SourceTV2D.ctx.fillStyle = "#FFFFFF";
-          SourceTV2D.ctx.fillText("B", SourceTV2D.bombPosition[0]-4*SourceTV2D.scaling, SourceTV2D.bombPosition[1] + 3*SourceTV2D.scaling);
-          
-          if (!SourceTV2D.bombExploded)
-          {
-            SourceTV2D.ctx.font = Math.round(8*SourceTV2D.scaling) + "pt Verdana";
-            SourceTV2D.ctx.fillStyle = "#FFFFFF";
-            var bombTimeLeft;
-            // Not yet defused? Count down!
-            if (SourceTV2D.bombDefuseTime == -1)
-              bombTimeLeft = Math.round(SourceTV2D.bombExplodeTime-time/1000 + SourceTV2D.bombPlantTime);
-            // The bomb has been defused. Stay on the current time
-            else
-              bombTimeLeft = Math.round(SourceTV2D.bombDefuseTime - SourceTV2D.bombPlantTime);
-            if (bombTimeLeft < 0)
-              bombTimeLeft = 0;
-            SourceTV2D.ctx.fillText("" + bombTimeLeft, SourceTV2D.bombPosition[0]-4*SourceTV2D.scaling, SourceTV2D.bombPosition[1]-15*SourceTV2D.scaling);          
-          }
-          SourceTV2D.ctx.restore();
-        }
-        
-        // Set this for the player names
-        SourceTV2D.ctx.font = Math.round(10*SourceTV2D.scaling) + "pt Verdana";
-        for(var i=0;i<SourceTV2D.players.length;i++)
-        {
-            // Make sure we're in sync with the other messages..
-            // Delete older frames
-            while(SourceTV2D.players[i].positions.length > 0 && (time - SourceTV2D.players[i].positions[0].time) > 2000)
-            {
-              SourceTV2D.players[i].positions.splice(0,1);
-            }
-			
-            // There is no coordinate for this player yet
-            if (SourceTV2D.players[i].positions.length == 0)
-                //debug("No co-ords for player idx " + i);
-                continue;
-            
-            SourceTV2D.ctx.save();
-			
-            if (SourceTV2D.players[i].team < 2)
-                SourceTV2D.ctx.fillStyle = "black";
-            else if (SourceTV2D.players[i].team == 2)
-            {
-                if (SourceTV2D.players[i].positions[0].diedhere == false)
-                    SourceTV2D.ctx.fillStyle = "red";
-                else
-                    SourceTV2D.ctx.fillStyle = "rgba(255,0,0,0.3)";
-            }
-            else if (SourceTV2D.players[i].team == 3)
-            {
-                if (SourceTV2D.players[i].positions[0].diedhere == false)
-                    SourceTV2D.ctx.fillStyle = "blue";
-                else
-                    SourceTV2D.ctx.fillStyle = "rgba(0,0,255,0.3)";
-            }
-            
-            // Teleport directly to new spawn, if he died at this position
-            if (SourceTV2D.players[i].positions[0].diedhere)
-            {
-                if (SourceTV2D.players[i].positions[1])
-                {
-                    //if (time >= SourceTV2D.players[i].positions[1].time)
-                        SourceTV2D.players[i].positions.splice(0,1);
-                }
-            }
-            // Move the player smoothly towards the new position
-            else if (SourceTV2D.players[i].positions.length > 1)
-            {
-                if (SourceTV2D.players[i].positions[0].x == SourceTV2D.players[i].positions[1].x
-                && SourceTV2D.players[i].positions[0].y == SourceTV2D.players[i].positions[1].y)
-                {
-                    //if (time >= SourceTV2D.players[i].positions[1].time)
-                        SourceTV2D.players[i].positions.splice(0,1);
-                }
-                else
-                {
-                    // This function is called 20x a second
-                    if (SourceTV2D.players[i].positions[0].swapx == null)
+                    // Red team!
+                    this.ctx.save();
+                    this.ctx.translate((this.width*0.8)/2, 0);
+                    
+                    // Red team header box
+                    this.ctx.beginPath();
+                    this.ctx.fillStyle = "rgba(207, 68, 102, 0.7)";
+                    this.ctx.rect(0, 50*this.scaling, (this.width*0.8)/2-20*this.scaling, 80*this.scaling);
+                    this.ctx.fill();
+                    this.ctx.beginPath();
+                    this.ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+                    this.ctx.rect(0, 50*this.scaling, (this.width*0.8)/2-20*this.scaling, 80*this.scaling);
+                    this.ctx.stroke();
+                    
+                    this.ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+                    this.ctx.font = Math.round(18*this.scaling) + "pt Verdana";
+                    // Team name
+                    this.ctx.fillText(this.team[2], (this.width*0.8)/2-31*this.scaling-this.ctx.measureText(this.team[2]).width, 90*this.scaling);
+                    
+                    // Player count in team
+                    this.ctx.font = Math.round(14*this.scaling) + "pt Verdana";
+                    var sBuf = "players alive " + this.teamPlayersAlive[0] + "/" + this.teamPlayerAmount[1];
+                    this.ctx.fillText(sBuf, (this.width*0.8)/2-37*this.scaling-this.ctx.measureText(sBuf).width, 120*this.scaling);
+                    
+                    // Team points
+                    this.ctx.font = Math.round(36*this.scaling) + "pt Verdana";
+                    this.ctx.fillText(this.teamPoints[0] + "", 5*this.scaling, 120*this.scaling);
+                    
+                    // Table header
+                    this.ctx.fillStyle = "rgba(207, 68, 102, 0.9)";
+                    this.ctx.font = Math.round(10*this.scaling) + "pt Verdana";
+                    this.ctx.fillText("Player", 10*this.scaling, 150*this.scaling);
+                    
+                    var deathWidth = this.ctx.measureText("Deaths").width;
+                    this.ctx.fillText("Deaths", (this.width*0.8)/2-30*this.scaling-deathWidth, 150*this.scaling);
+                    
+                    var fragsWidth = this.ctx.measureText("Frags").width;
+                    this.ctx.fillText("Frags", (this.width*0.8)/2-38*this.scaling-deathWidth-fragsWidth, 150*this.scaling);
+                    
+                    var classWidth = this.ctx.measureText("Class").width;
+                    this.ctx.fillText("Class", (this.width*0.8)/2 - 180*this.scaling - deathWidth - fragsWidth - classWidth, 150*this.scaling);
+                    
+                    // Player list border
+                    this.ctx.strokeStyle = "rgba(207, 68, 102, 0.9)";
+                    this.ctx.beginPath();
+                    var iListBorderHeight = this.height*0.8-200*this.scaling;
+                    this.ctx.rect(0, 160*this.scaling, (this.width*0.8)/2-20*this.scaling, iListBorderHeight);
+                    this.ctx.stroke();
+                    
+                    // Player list
+                    this.ctx.font = Math.round(14*this.scaling) + "pt Verdana";
+                    iOffset = 0;
+                    for (var i=0;i<this.players.length;i++)
                     {
-                        SourceTV2D.players[i].positions[0].swapx = SourceTV2D.players[i].positions[0].x > SourceTV2D.players[i].positions[1].x?-1:1;
-                        SourceTV2D.players[i].positions[0].swapy = SourceTV2D.players[i].positions[0].y > SourceTV2D.players[i].positions[1].y?-1:1;
-                    }
-                    if (SourceTV2D.players[i].positions[0].diffx == null)
-                    {
-                        var timediff = SourceTV2D.players[i].positions[1].time - SourceTV2D.players[i].positions[0].time;
-                        SourceTV2D.players[i].positions[0].diffx = Math.abs(SourceTV2D.players[i].positions[1].x - SourceTV2D.players[i].positions[0].x)/(timediff/50);
-                        SourceTV2D.players[i].positions[0].diffy = Math.abs(SourceTV2D.players[i].positions[1].y - SourceTV2D.players[i].positions[0].y)/(timediff/50);
+                        if (this.players[i].team !== 2)
+                            continue;
+                        
+                        var iHeight = (180 + 20*iOffset)*this.scaling;
+                        if (iHeight > iListBorderHeight)
+                            break;
+                        
+                        if (this.players[i].alive)
+                          this.ctx.fillStyle = "rgba(207, 68, 102, 0.9)";
+                        else
+                          this.ctx.fillStyle = "rgba(207, 68, 102, 0.6)";
+                        
+                        this.ctx.fillText(this.players[i].name, 10*this.scaling, iHeight);
+                        this.ctx.fillText(this.players[i].deaths, (this.width*0.8)/2 - 20*this.scaling - deathWidth, iHeight);
+                        this.ctx.fillText(this.players[i].frags, (this.width*0.8)/2 - 28*this.scaling - deathWidth - fragsWidth, iHeight);
+                        
+                        var classname = this.classnames[this.players[i].pclass];
+                        this.ctx.fillText(classname, (this.width*0.8)/2 - 160*this.scaling - deathWidth - fragsWidth - classWidth, iHeight);
+                        
+                        if (this.players[i].has_intel)
+                            this.ctx.fillText("F", (this.width*0.8) / 2 - 66*this.scaling - deathWidth - fragsWidth, iHeight);
+                        iOffset++;
                     }
                     
-                    var x = SourceTV2D.players[i].positions[0].x + SourceTV2D.players[i].positions[0].swapx*SourceTV2D.players[i].positions[0].diffx;
-                    var y = SourceTV2D.players[i].positions[0].y + SourceTV2D.players[i].positions[0].swapy*SourceTV2D.players[i].positions[0].diffy;
+                    this.ctx.restore();
                     
-                    // We're moving too far...
-                    if ((SourceTV2D.players[i].positions[0].swapx==-1 && x <= SourceTV2D.players[i].positions[1].x)
-                    || (SourceTV2D.players[i].positions[0].swapx==1 && x >= SourceTV2D.players[i].positions[1].x)
-                    || (SourceTV2D.players[i].positions[0].swapy==-1 && y <= SourceTV2D.players[i].positions[1].y)
-                    || (SourceTV2D.players[i].positions[0].swapy==1 && y >= SourceTV2D.players[i].positions[1].y))
+                    // Spectators
+                    iOffset = 10*this.scaling + this.ctx.measureText(this.teamPlayerAmount[0] + " Spectators: ").width;
+                    iListBorderHeight += 185*this.scaling;
+                    this.ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+                    this.ctx.fillText(this.teamPlayerAmount[0] + " Spectators: ", 10*this.scaling, iListBorderHeight);
+                    var bMoreSpectators = false;
+                    for (var i=0;i<this.players.length;i++)
                     {
-                        SourceTV2D.players[i].positions.splice(0,1);
+                        if (this.players[i].team > 1)
+                            continue;
+                        
+                        this.ctx.fillText((bMoreSpectators?", ":" ") + this.players[i].name, iOffset, iListBorderHeight);
+                        iOffset += this.ctx.measureText((bMoreSpectators?", ":" ") + this.players[i].name).width;
+                        bMoreSpectators = true;
                     }
-                    else
-                    {
-                        SourceTV2D.players[i].positions[0].x = x;
-                        SourceTV2D.players[i].positions[0].y = y;
-                    }
+                    
+                    this.ctx.restore();
                 }
             }
-            
-            var playerRadius = SourceTV2D.playerRadius;
-            // User hovers his mouse over this player
-            if (SourceTV2D.players[i].hovered || SourceTV2D.players[i].selected)
-            {
-                playerRadius = SourceTV2D.playerRadius + 4*SourceTV2D.scaling;
-                SourceTV2D.ctx.save();
-                SourceTV2D.ctx.beginPath();
-                SourceTV2D.ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
-                SourceTV2D.ctx.arc(SourceTV2D.players[i].positions[0].x, SourceTV2D.players[i].positions[0].y, playerRadius + 2*SourceTV2D.scaling, 0, Math.PI*2, true);
-                SourceTV2D.ctx.fill();
-                SourceTV2D.ctx.restore();
+            catch(ex) {
+                debug('Error: ' + ex);
             }
+        },
 
-            // Draw player itself
-            SourceTV2D.ctx.beginPath();
-            SourceTV2D.ctx.arc(SourceTV2D.players[i].positions[0].x, SourceTV2D.players[i].positions[0].y, playerRadius, 0, Math.PI*2, true);
-            SourceTV2D.ctx.fill();
-            
-            // He got hurt this frame
-            if (SourceTV2D.players[i].positions[0].hurt)
-            {
-                SourceTV2D.ctx.strokeStyle = "rgb(230, 149, 0)";
-                SourceTV2D.ctx.beginPath();
-                SourceTV2D.ctx.arc(SourceTV2D.players[i].positions[0].x, SourceTV2D.players[i].positions[0].y, playerRadius, 0, Math.PI*2, true);
-                SourceTV2D.ctx.stroke();
-            }
-            
-            // Display player names above their heads
-            var bShowHealthBar = (SourceTV2D.players[i].health > 0 && $("#healthbars").attr('checked'));
-            //if ($("#names").attr('checked'))
-            if (1)
-            {
-                SourceTV2D.ctx.save();
-                var nameWidth = SourceTV2D.ctx.measureText(SourceTV2D.players[i].name).width;
-                SourceTV2D.ctx.translate(SourceTV2D.players[i].positions[0].x-(nameWidth/2), SourceTV2D.players[i].positions[0].y-(bShowHealthBar?16:10)*SourceTV2D.scaling);
-                SourceTV2D.ctx.fillText(SourceTV2D.players[i].name, 0, 0);
-                SourceTV2D.ctx.restore();
-            }
-            
-            // Draw view angle as white dot
-            SourceTV2D.ctx.translate(SourceTV2D.players[i].positions[0].x, SourceTV2D.players[i].positions[0].y);
-            SourceTV2D.ctx.fillStyle = "white";
-            SourceTV2D.ctx.rotate(SourceTV2D.players[i].positions[0].angle);
-            SourceTV2D.ctx.beginPath();
-            SourceTV2D.ctx.arc(0, Math.round(3 * SourceTV2D.scaling), Math.round(2 * SourceTV2D.scaling), 0, Math.PI*2, true);
-            SourceTV2D.ctx.fill();
-            
-            SourceTV2D.ctx.restore();
-            
-            // Draw health bars
-            if (bShowHealthBar)
-            {
-                SourceTV2D.ctx.save();
-                SourceTV2D.ctx.translate(SourceTV2D.players[i].positions[0].x-12*SourceTV2D.scaling, SourceTV2D.players[i].positions[0].y-12*SourceTV2D.scaling);
-                SourceTV2D.ctx.beginPath();
-                SourceTV2D.ctx.strokeStyle = "rgba(0, 0, 0, 0.7)";
-                SourceTV2D.ctx.rect(0, 0, 24*SourceTV2D.scaling, 4*SourceTV2D.scaling);
-                SourceTV2D.ctx.stroke();
-                
-                var width = (24*SourceTV2D.players[i].health/100)*SourceTV2D.scaling;
-                if (width > 0)
+        loadMapImageInfo : function(game, map) {
+            // Load the background map image
+            this.background = new Image();
+            $(this.background).load(function () {
+                this.canvas = document.createElement('canvas');
+
+                // Browser does not support canvas
+                if (!this.canvas.getContext)
                 {
-                    SourceTV2D.ctx.beginPath();
-                    
-                    if (SourceTV2D.players[i].health >= 70)
-                        SourceTV2D.ctx.fillStyle = "rgba(0, 255, 0, 0.7)";
-                    else if (SourceTV2D.players[i].health >= 30)
-                        SourceTV2D.ctx.fillStyle = "rgba(255, 255, 50, 0.7)";
-                    else
-                        SourceTV2D.ctx.fillStyle = "rgba(255, 0, 0, 0.7)";
-                    
-                    SourceTV2D.ctx.rect(0, 0, width, 4*SourceTV2D.scaling);
-                    SourceTV2D.ctx.fill();
+                  $("#sourcetv2d").html("<h2>Your browser does not support the canvas element.</h2>");
+                  return;
                 }
-                
-                SourceTV2D.ctx.restore();
-            }
-        }
-        
-        // Draw the round end info box
-        if (SourceTV2D.roundEnded != -1)
-        {
-            SourceTV2D.ctx.save();
-            SourceTV2D.ctx.font = Math.round(32*SourceTV2D.scaling) + "pt Verdana";
 
-            var winnertext = SourceTV2D.team[SourceTV2D.roundEnded] + " won the round!";
-            
-            // Draw a box around it
-            SourceTV2D.ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-            SourceTV2D.ctx.beginPath();
-            SourceTV2D.ctx.rect(SourceTV2D.width/2-SourceTV2D.ctx.measureText(winnertext).width/2-5, SourceTV2D.height/2*SourceTV2D.scaling-34, SourceTV2D.ctx.measureText(winnertext).width + 10, 40);
-            SourceTV2D.ctx.fill();
-            
-            SourceTV2D.ctx.fillStyle = "rgb(255,255,255)";
-            SourceTV2D.ctx.fillText(winnertext, SourceTV2D.width/2-SourceTV2D.ctx.measureText(winnertext).width/2, SourceTV2D.height/2*SourceTV2D.scaling);
-            
-            SourceTV2D.ctx.restore();
-        }
-        
-        // Draw the round time
-        if (SourceTV2D.game == "cstrike" && SourceTV2D.mp_roundtime > 0 && SourceTV2D.roundStartTime > 0)
-        {
-            SourceTV2D.ctx.save();
-            SourceTV2D.ctx.font = Math.round(14*SourceTV2D.scaling) + "pt Verdana";
-            SourceTV2D.ctx.fillStyle = "rgb(255,255,255)";
-            var timeleft = 0;
-            // Stop the counting on round end
-            if (SourceTV2D.roundEndTime > 0)
+                //this.scaling = 1.0;
+
+                this.playerRadius = Math.round(5 * this.scaling);
+                this.width = this.background.width * this.scaling;
+                this.height = this.background.height * this.scaling;
+                this.canvas.setAttribute('width',this.width);  
+                this.canvas.setAttribute('height',this.height);
+
+                $("#sourcetv2d").append(this.canvas);
+                $("#sourcetv2d").mousemove(function (ev) {mousemove(ev);});
+                $("#sourcetv2d").click(function (ev) {mouseclick(ev);});
+
+                this.ctx = this.canvas.getContext('2d');
+                this.ctx.drawImage(this.background,0,0,this.width,this.height);
+
+                // Get the map config
+                $.ajax({
+                  type: 'GET',
+                  url: '/maps/' + this.game + '/' + this.map + '.txt',
+                  dataType: 'json',
+                  success: function (json) {
+                      this.mapsettings.xoffset = json.xoffset;
+                      this.mapsettings.yoffset = json.yoffset;
+                      this.mapsettings.flipx = json.flipx;
+                      this.mapsettings.flipy = json.flipy;
+                      this.mapsettings.scale = json.scale;
+                      this.mapsettingsLoaded = true;
+                  },
+                  error: function (jqXHR, textStatus) {
+                      alert("Failed.");
+                      this.mapsettingsFailed = true;
+                  }
+                });
+            }).error(function () {
+                this.canvas = document.createElement('canvas');
+
+                // Browser does not support canvas
+                if (!this.canvas.getContext)
+                {
+                  $("#sourcetv2d").html("<h2>Your browser does not support the canvas element.</h2>");
+                  return;
+                }
+
+                //this.scaling = 1.0;
+
+                // Default height
+                this.width = 1280 * this.scaling;
+                this.height = 1024 * this.scaling;
+                this.canvas.setAttribute('width',this.width);
+                this.canvas.setAttribute('height',this.height);
+
+                $("#sourcetv2d").append(this.canvas);
+
+                this.ctx = this.canvas.getContext('2d');
+                this.background = null;
+          }).attr('src', '/maps/' + this.game + '/' + this.map + '.jpg');
+        },
+
+        sortScoreboard : function() {
+            this.players.sort(function (a,b) {
+                if (a.frags === b.frags)
+                    return a.deaths - b.deaths;
+                return b.frags - a.frags;
+            });
+        },
+
+        getPlayerAtPosition : function(x, y) {
+            for (var i=0;i<this.players.length;i++)
             {
-                timeleft = SourceTV2D.mp_roundtime - SourceTV2D.roundEndTime + SourceTV2D.roundStartTime;
+                if (this.players[i].positions[0])
+                {
+                    if ((this.players[i].positions[0].x + this.playerRadius*2) >= x
+                    && this.players[i].positions[0].x <= x
+                    && (this.players[i].positions[0].y + this.playerRadius) >= y
+                    && (this.players[i].positions[0].y - this.playerRadius) <= y)
+                    {
+                        return i;
+                    }
+                }
             }
-            else
+            return -1;
+        },
+
+        mouseMove : function(e) {
+            if (this.socket===null || this.players.length === 0)
+                return;
+                
+            var offs = $("#sourcetv2d").offset();
+            var x = e.pageX-offs.left-$("#playerlist-container").width();
+            if (x < 0 || x > this.width)
+                return;
+            
+            var y = e.pageY-offs.top;
+            
+            for (var i=0;i<this.players.length;i++)
             {
-                var d = new Date();
-                timeleft = SourceTV2D.mp_roundtime - Math.floor(d.getTime()/1000) + SourceTV2D.roundStartTime;
-            }
-            if (timeleft < 0)
-                timeleft = 0;
-            var timetext = "Timeleft: ";
-            var minutes = Math.floor(timeleft/60);
-            if (minutes < 10)
-                timetext += "0";
-            timetext += minutes + ":";
-            var seconds = (timeleft%60);
-            if (seconds < 10)
-                timetext += "0";
-            timetext += seconds;
-            SourceTV2D.ctx.fillText(timetext, SourceTV2D.width-SourceTV2D.ctx.measureText(timetext).width-50*SourceTV2D.scaling, SourceTV2D.height-50*SourceTV2D.scaling);
-            
-            SourceTV2D.ctx.restore();
-        }
-        
-        // Draw the scoreboard
-        if (SourceTV2D.spacebarPressed)
-        {
-            SourceTV2D.ctx.save();
-            SourceTV2D.ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-            SourceTV2D.ctx.strokeStyle = "rgb(255,165,0)";
-            SourceTV2D.ctx.translate(SourceTV2D.width*0.1, SourceTV2D.height*0.1);
-            
-            // Box with border
-            SourceTV2D.ctx.beginPath();
-            SourceTV2D.ctx.rect(0, 0, SourceTV2D.width*0.8, SourceTV2D.height*0.8);
-            SourceTV2D.ctx.fill();
-            SourceTV2D.ctx.beginPath();
-            SourceTV2D.ctx.rect(0, 0, SourceTV2D.width*0.8, SourceTV2D.height*0.8);
-            SourceTV2D.ctx.stroke();
-            
-            SourceTV2D.ctx.translate(10*SourceTV2D.scaling, 0);
-            
-            // Map and servername
-            SourceTV2D.ctx.font = Math.round(12*SourceTV2D.scaling) + "pt Verdana";
-            SourceTV2D.ctx.fillStyle = "rgba(255,165,0,0.9)";
-            SourceTV2D.ctx.fillText("Server: " + SourceTV2D.servername + " (" + SourceTV2D.map + ")", 0, 30*SourceTV2D.scaling);
-            
-            // Blue team header box
-            SourceTV2D.ctx.beginPath();
-            SourceTV2D.ctx.fillStyle = "rgba(69, 171, 255, 0.7)";
-            SourceTV2D.ctx.rect(0, 50*SourceTV2D.scaling, (SourceTV2D.width*0.8)/2-10*SourceTV2D.scaling, 80*SourceTV2D.scaling);
-            SourceTV2D.ctx.fill();
-            SourceTV2D.ctx.beginPath();
-            SourceTV2D.ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
-            SourceTV2D.ctx.rect(0, 50*SourceTV2D.scaling, (SourceTV2D.width*0.8)/2-10*SourceTV2D.scaling, 80*SourceTV2D.scaling);
-            SourceTV2D.ctx.stroke();
-            
-            SourceTV2D.ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-            SourceTV2D.ctx.font = Math.round(18*SourceTV2D.scaling) + "pt Verdana";
-            // Team name
-            SourceTV2D.ctx.fillText(SourceTV2D.team[3], 10*SourceTV2D.scaling, 90*SourceTV2D.scaling);
-            
-            // Player count in team
-            SourceTV2D.ctx.font = Math.round(14*SourceTV2D.scaling) + "pt Verdana";
-            SourceTV2D.ctx.fillText(SourceTV2D.teamPlayersAlive[1] + "/" + SourceTV2D.teamPlayerAmount[2] + " players alive", 16*SourceTV2D.scaling, 120*SourceTV2D.scaling);
-            
-            // Team points
-            SourceTV2D.ctx.font = Math.round(36*SourceTV2D.scaling) + "pt Verdana";
-            SourceTV2D.ctx.fillText(SourceTV2D.teamPoints[1] + "", (SourceTV2D.width*0.8)/2-16*SourceTV2D.scaling-SourceTV2D.ctx.measureText(SourceTV2D.teamPoints[1] + "").width, 120*SourceTV2D.scaling);
-            
-            // Table header
-            SourceTV2D.ctx.fillStyle = "rgba(69, 171, 255, 0.9)";
-            SourceTV2D.ctx.font = Math.round(10*SourceTV2D.scaling) + "pt Verdana";
-            SourceTV2D.ctx.fillText("Player", 10*SourceTV2D.scaling, 150*SourceTV2D.scaling);       
-            
-            //to position these, get the centre line of the scoreboard (sourcetv.width*0.8/2) and then substract the width of the other columns preceding 
-            //the one you want placed. all headers have the same Y positions (150*scaling)
-            var deathWidth = SourceTV2D.ctx.measureText("Deaths").width;
-            SourceTV2D.ctx.fillText("Deaths", (SourceTV2D.width*0.8)/2 - 20*SourceTV2D.scaling - deathWidth, 150*SourceTV2D.scaling);
-            
-            var fragsWidth = SourceTV2D.ctx.measureText("Frags").width;
-            SourceTV2D.ctx.fillText("Frags", (SourceTV2D.width*0.8)/2 - 28*SourceTV2D.scaling - deathWidth - fragsWidth, 150*SourceTV2D.scaling);
-            
-            var classWidth = SourceTV2D.ctx.measureText("Class").width;
-            SourceTV2D.ctx.fillText("Class", (SourceTV2D.width*0.8)/2 - 160*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, 150*SourceTV2D.scaling);
-            
-            
-            // Player list border
-            SourceTV2D.ctx.strokeStyle = "rgba(69, 171, 255, 0.9)";
-            SourceTV2D.ctx.beginPath();
-            var iListBorderHeight = SourceTV2D.height*0.8-200*SourceTV2D.scaling;
-            SourceTV2D.ctx.rect(0, 160*SourceTV2D.scaling, (SourceTV2D.width*0.8)/2-10*SourceTV2D.scaling, iListBorderHeight);
-            SourceTV2D.ctx.stroke();
-            
-            // Player list
-            SourceTV2D.ctx.font = Math.round(14*SourceTV2D.scaling) + "pt Verdana";
-            var iOffset = 0;
-            for(var i=0;i<SourceTV2D.players.length;i++)
-            {
-                if (SourceTV2D.players[i].team != 3)
-                    continue;
-                
-                var iHeight = (180 + 20*iOffset)*SourceTV2D.scaling;
-                if (iHeight > iListBorderHeight)
-                    break;
-                
-                if (SourceTV2D.players[i].alive)
-                  SourceTV2D.ctx.fillStyle = "rgba(69, 171, 255, 0.9)";
-                else
-                  SourceTV2D.ctx.fillStyle = "rgba(69, 171, 255, 0.6)";
-                
-                //likewise for the headers, get centre pos and subtract
-                
-                SourceTV2D.ctx.fillText(SourceTV2D.players[i].name, 10*SourceTV2D.scaling, iHeight);
-                SourceTV2D.ctx.fillText(SourceTV2D.players[i].deaths, (SourceTV2D.width*0.8)/2 - 20*SourceTV2D.scaling - deathWidth, iHeight);
-                SourceTV2D.ctx.fillText(SourceTV2D.players[i].frags, (SourceTV2D.width*0.8)/2 - 28*SourceTV2D.scaling - deathWidth - fragsWidth, iHeight);
-                
-                //player classes are a bit diff, since they're numbered and we want them in name
-                var classname = SourceTV2D.classnames[SourceTV2D.players[i].pclass];
-                SourceTV2D.ctx.fillText(classname, (SourceTV2D.width*0.8)/2 - 160*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, iHeight);
-                
-                
-                if (SourceTV2D.players[i].has_intel)
-                    SourceTV2D.ctx.fillText("F", (SourceTV2D.width*0.8)/2 - 66*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, iHeight);
-                iOffset++;
+                this.players[i].hovered = false;
             }
             
-            // Red team!
-            SourceTV2D.ctx.save();
-            SourceTV2D.ctx.translate((SourceTV2D.width*0.8)/2, 0);
-            
-            // Red team header box
-            SourceTV2D.ctx.beginPath();
-            SourceTV2D.ctx.fillStyle = "rgba(207, 68, 102, 0.7)";
-            SourceTV2D.ctx.rect(0, 50*SourceTV2D.scaling, (SourceTV2D.width*0.8)/2-20*SourceTV2D.scaling, 80*SourceTV2D.scaling);
-            SourceTV2D.ctx.fill();
-            SourceTV2D.ctx.beginPath();
-            SourceTV2D.ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
-            SourceTV2D.ctx.rect(0, 50*SourceTV2D.scaling, (SourceTV2D.width*0.8)/2-20*SourceTV2D.scaling, 80*SourceTV2D.scaling);
-            SourceTV2D.ctx.stroke();
-            
-            SourceTV2D.ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-            SourceTV2D.ctx.font = Math.round(18*SourceTV2D.scaling) + "pt Verdana";
-            // Team name
-            SourceTV2D.ctx.fillText(SourceTV2D.team[2], (SourceTV2D.width*0.8)/2-31*SourceTV2D.scaling-SourceTV2D.ctx.measureText(SourceTV2D.team[2]).width, 90*SourceTV2D.scaling);
-            
-            // Player count in team
-            SourceTV2D.ctx.font = Math.round(14*SourceTV2D.scaling) + "pt Verdana";
-            var sBuf = "players alive " + SourceTV2D.teamPlayersAlive[0] + "/" + SourceTV2D.teamPlayerAmount[1];
-            SourceTV2D.ctx.fillText(sBuf, (SourceTV2D.width*0.8)/2-37*SourceTV2D.scaling-SourceTV2D.ctx.measureText(sBuf).width, 120*SourceTV2D.scaling);
-            
-            // Team points
-            SourceTV2D.ctx.font = Math.round(36*SourceTV2D.scaling) + "pt Verdana";
-            SourceTV2D.ctx.fillText(SourceTV2D.teamPoints[0] + "", 5*SourceTV2D.scaling, 120*SourceTV2D.scaling);
-            
-            // Table header
-            SourceTV2D.ctx.fillStyle = "rgba(207, 68, 102, 0.9)";
-            SourceTV2D.ctx.font = Math.round(10*SourceTV2D.scaling) + "pt Verdana";
-            SourceTV2D.ctx.fillText("Player", 10*SourceTV2D.scaling, 150*SourceTV2D.scaling);
-            
-            var deathWidth = SourceTV2D.ctx.measureText("Deaths").width;
-            SourceTV2D.ctx.fillText("Deaths", (SourceTV2D.width*0.8)/2-30*SourceTV2D.scaling-deathWidth, 150*SourceTV2D.scaling);
-            
-            var fragsWidth = SourceTV2D.ctx.measureText("Frags").width;
-            SourceTV2D.ctx.fillText("Frags", (SourceTV2D.width*0.8)/2-38*SourceTV2D.scaling-deathWidth-fragsWidth, 150*SourceTV2D.scaling);
-            
-            var classWidth = SourceTV2D.ctx.measureText("Class").width;
-            SourceTV2D.ctx.fillText("Class", (SourceTV2D.width*0.8)/2 - 180*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, 150*SourceTV2D.scaling);
-            
-            // Player list border
-            SourceTV2D.ctx.strokeStyle = "rgba(207, 68, 102, 0.9)";
-            SourceTV2D.ctx.beginPath();
-            var iListBorderHeight = SourceTV2D.height*0.8-200*SourceTV2D.scaling;
-            SourceTV2D.ctx.rect(0, 160*SourceTV2D.scaling, (SourceTV2D.width*0.8)/2-20*SourceTV2D.scaling, iListBorderHeight);
-            SourceTV2D.ctx.stroke();
-            
-            // Player list
-            SourceTV2D.ctx.font = Math.round(14*SourceTV2D.scaling) + "pt Verdana";
-            iOffset = 0;
-            for(var i=0;i<SourceTV2D.players.length;i++)
-            {
-                if (SourceTV2D.players[i].team != 2)
-                    continue;
-                
-                var iHeight = (180 + 20*iOffset)*SourceTV2D.scaling;
-                if (iHeight > iListBorderHeight)
-                    break;
-                
-                if (SourceTV2D.players[i].alive)
-                  SourceTV2D.ctx.fillStyle = "rgba(207, 68, 102, 0.9)";
-                else
-                  SourceTV2D.ctx.fillStyle = "rgba(207, 68, 102, 0.6)";
-                
-                SourceTV2D.ctx.fillText(SourceTV2D.players[i].name, 10*SourceTV2D.scaling, iHeight);
-                SourceTV2D.ctx.fillText(SourceTV2D.players[i].deaths, (SourceTV2D.width*0.8)/2 - 20*SourceTV2D.scaling - deathWidth, iHeight);
-                SourceTV2D.ctx.fillText(SourceTV2D.players[i].frags, (SourceTV2D.width*0.8)/2 - 28*SourceTV2D.scaling - deathWidth - fragsWidth, iHeight);
-                
-                var classname = SourceTV2D.classnames[SourceTV2D.players[i].pclass];
-                SourceTV2D.ctx.fillText(classname, (SourceTV2D.width*0.8)/2 - 160*SourceTV2D.scaling - deathWidth - fragsWidth - classWidth, iHeight);
-                
-                if (SourceTV2D.players[i].has_intel)
-                    SourceTV2D.ctx.fillText("F", (SourceTV2D.width*0.8) / 2 - 66*SourceTV2D.scaling - deathWidth - fragsWidth, iHeight);
-                iOffset++;
-            }
-            
-            SourceTV2D.ctx.restore();
-            
-            // Spectators
-            iOffset = 10*SourceTV2D.scaling + SourceTV2D.ctx.measureText(SourceTV2D.teamPlayerAmount[0] + " Spectators: ").width;
-            iListBorderHeight += 185*SourceTV2D.scaling;
-            SourceTV2D.ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-            SourceTV2D.ctx.fillText(SourceTV2D.teamPlayerAmount[0] + " Spectators: ", 10*SourceTV2D.scaling, iListBorderHeight);
-            var bMoreSpectators = false;
-            for(var i=0;i<SourceTV2D.players.length;i++)
-            {
-                if (SourceTV2D.players[i].team > 1)
-                    continue;
-                
-                SourceTV2D.ctx.fillText((bMoreSpectators?", ":" ") + SourceTV2D.players[i].name, iOffset, iListBorderHeight);
-                iOffset += SourceTV2D.ctx.measureText((bMoreSpectators?", ":" ") + SourceTV2D.players[i].name).width;
-                bMoreSpectators = true;
-            }
-            
-            SourceTV2D.ctx.restore();
-        }
-    }
-    catch(ex) {
-        debug('Error: ' + ex);
-    }
-}
-
-function loadMapImageInfo(game, map) {
-    "use strict";
-    // Load the background map image
-    SourceTV2D.background = new Image();
-    $(SourceTV2D.background).load(function () {
-        SourceTV2D.canvas = document.createElement('canvas');
-
-        // Browser does not support canvas
-        if (!SourceTV2D.canvas.getContext)
-        {
-          $("#sourcetv2d").html("<h2>Your browser does not support the canvas element.</h2>");
-          return;
-        }
-
-        //SourceTV2D.scaling = 1.0;
-
-        SourceTV2D.playerRadius = Math.round(5 * SourceTV2D.scaling);
-        SourceTV2D.width = SourceTV2D.background.width * SourceTV2D.scaling;
-        SourceTV2D.height = SourceTV2D.background.height * SourceTV2D.scaling;
-        SourceTV2D.canvas.setAttribute('width',SourceTV2D.width);  
-        SourceTV2D.canvas.setAttribute('height',SourceTV2D.height);
-
-        $("#sourcetv2d").append(SourceTV2D.canvas);
-        $("#sourcetv2d").mousemove(function (ev) {mousemove(ev);});
-        $("#sourcetv2d").click(function (ev) {mouseclick(ev);});
-
-        SourceTV2D.ctx = SourceTV2D.canvas.getContext('2d');
-        SourceTV2D.ctx.drawImage(SourceTV2D.background,0,0,SourceTV2D.width,SourceTV2D.height);
-
-        // Get the map config
-        $.ajax({
-          type: 'GET',
-          url: '/maps/' + SourceTV2D.game + '/' + SourceTV2D.map + '.txt',
-          dataType: 'json',
-          success: function (json) {
-              SourceTV2D.mapsettings.xoffset = json.xoffset;
-              SourceTV2D.mapsettings.yoffset = json.yoffset;
-              SourceTV2D.mapsettings.flipx = json.flipx;
-              SourceTV2D.mapsettings.flipy = json.flipy;
-              SourceTV2D.mapsettings.scale = json.scale;
-              SourceTV2D.mapsettingsLoaded = true;
-          },
-          error: function (jqXHR, textStatus) {
-              alert("Failed.");
-              SourceTV2D.mapsettingsFailed = true;
-          }
-        });
-    }).error(function () {
-        SourceTV2D.canvas = document.createElement('canvas');
-
-        // Browser does not support canvas
-        if (!SourceTV2D.canvas.getContext)
-        {
-          $("#sourcetv2d").html("<h2>Your browser does not support the canvas element.</h2>");
-          return;
-        }
-
-        //SourceTV2D.scaling = 1.0;
-
-        // Default height
-        SourceTV2D.width = 1280 * SourceTV2D.scaling;
-        SourceTV2D.height = 1024 * SourceTV2D.scaling;
-        SourceTV2D.canvas.setAttribute('width',SourceTV2D.width);
-        SourceTV2D.canvas.setAttribute('height',SourceTV2D.height);
-
-        $("#sourcetv2d").append(SourceTV2D.canvas);
-
-        SourceTV2D.ctx = SourceTV2D.canvas.getContext('2d');
-        SourceTV2D.background = null;
-  }).attr('src', '/maps/' + SourceTV2D.game + '/' + SourceTV2D.map + '.jpg');
-}
-
-function sortScoreBoard() {
-    "use strict";
-    SourceTV2D.players.sort(function (a,b) {
-        if (a.frags == b.frags)
-            return a.deaths - b.deaths;
-        return b.frags - a.frags;
-    });
-}
-
-function getPlayerAtPosition(x, y) {
-    "use strict";
-    for(var i=0;i<SourceTV2D.players.length;i++)
-    {
-        if (SourceTV2D.players[i].positions[0])
-        {
-            if ((SourceTV2D.players[i].positions[0].x + SourceTV2D.playerRadius*2) >= x
-            && SourceTV2D.players[i].positions[0].x <= x
-            && (SourceTV2D.players[i].positions[0].y + SourceTV2D.playerRadius) >= y
-            && (SourceTV2D.players[i].positions[0].y - SourceTV2D.playerRadius) <= y)
-            {
-                return i;
-            }
-        }
-    }
-    return -1;
-}
-
-function mousemove(e) {
-    "use strict";
-    if (SourceTV2D.socket==null || SourceTV2D.players.length == 0)
-        return;
-        
-    var offs = $("#sourcetv2d").offset();
-    var x = e.pageX-offs.left-$("#playerlist-container").width();
-    if (x < 0 || x > SourceTV2D.width)
-        return;
-    
-    var y = e.pageY-offs.top;
-    
-    for(var i=0;i<SourceTV2D.players.length;i++)
-    {
-        SourceTV2D.players[i].hovered = false;
-    }
-    
-    $("#player").text("");
-    
-    var player = getPlayerAtPosition(x, y);
-    if (player != -1)
-    {
-        $("#player").html("Target: <b>" + SourceTV2D.players[player].name + "</b>");
-        SourceTV2D.players[player].hovered = true;
-        return;
-    }
-}
-
-function mouseclick(e) {
-    "use strict";
-    if (SourceTV2D.socket==null || SourceTV2D.players.length == 0)
-        return;
-        
-    var offs = $("#sourcetv2d").offset();
-    var x = e.pageX-offs.left-$("#playerlist-container").width();
-    if (x < 0 || x > SourceTV2D.width)
-        return;
-    
-    var y = e.pageY-offs.top;
-    
-    for(var i=0;i<SourceTV2D.players.length;i++)
-    {
-        SourceTV2D.players[i].selected = false;
-        $("#usrid_" + SourceTV2D.players[i].userid).removeClass("selected");
-    }
-    $("#selectedplayer").text("");
-    
-    var player = getPlayerAtPosition(x, y);
-    if (player != -1)
-    {
-        $("#usrid_" + SourceTV2D.players[player].userid).addClass("selected");
-        $("#selectedplayer").html("Selected: <b>" + SourceTV2D.players[player].name + "</b>");
-        SourceTV2D.players[player].selected = true;
-        return;
-    }
-}
-
-function selectPlayer(userid) {
-    "use strict";
-    for(var i=0;i<SourceTV2D.players.length;i++)
-    {
-        if (SourceTV2D.players[i].team > 1 && SourceTV2D.players[i].userid == userid)
-        {
-            for(var x=0;x<SourceTV2D.players.length;x++)
-            {
-                SourceTV2D.players[x].selected = false;
-                $("#usrid_" + SourceTV2D.players[x].userid).removeClass("selected");
-            }
-            SourceTV2D.players[i].selected = true;
-            $("#usrid_" + SourceTV2D.players[i].userid).addClass("selected");
-            $("#selectedplayer").html("Selected: <b>" + SourceTV2D.players[i].name + "</b>");
-            break;
-        }
-    }
-}
-
-function highlightPlayer(userid) {
-    "use strict";
-    for(var i=0;i<SourceTV2D.players.length;i++)
-    {
-        if (SourceTV2D.players[i].team > 1 && SourceTV2D.players[i].userid == userid)
-        {
-            for(var x=0;x<SourceTV2D.players.length;x++)
-            {
-                SourceTV2D.players[x].hovered = false;
-            }
-            SourceTV2D.players[i].hovered = true;
-            $("#player").html("Target: <b>" + SourceTV2D.players[i].name + "</b>");
-            break;
-        }
-    }
-}
-
-function unhighlightPlayer(userid) {
-    for(var i=0;i<SourceTV2D.players.length;i++)
-    {
-        if (SourceTV2D.players[i].team > 1 && SourceTV2D.players[i].userid == userid)
-        {
-            SourceTV2D.players[i].hovered = false;
             $("#player").text("");
-            break;
-        }
+            
+            var player = getPlayerAtPosition(x, y);
+            if (player !== -1)
+            {
+                $("#player").html("Target: <b>" + this.players[player].name + "</b>");
+                this.players[player].hovered = true;
+                return;
+            }
+        },
+
+        mouseclick : function(e) {
+            if (this.socket===null || this.players.length === 0)
+            return;
+            
+            var offs = $("#sourcetv2d").offset();
+            var x = e.pageX-offs.left-$("#playerlist-container").width();
+            if (x < 0 || x > this.width)
+                return;
+            
+            var y = e.pageY-offs.top;
+            
+            for (var i=0;i<this.players.length;i++)
+            {
+                this.players[i].selected = false;
+                $("#usrid_" + this.players[i].userid).removeClass("selected");
+            }
+            $("#selectedplayer").text("");
+            
+            var player = getPlayerAtPosition(x, y);
+            if (player !== -1)
+            {
+                $("#usrid_" + this.players[player].userid).addClass("selected");
+                $("#selectedplayer").html("Selected: <b>" + this.players[player].name + "</b>");
+                this.players[player].selected = true;
+                return;
+            }
+        },
+
+        selectPlayer : function(userid) {
+            for (var i=0;i<this.players.length;i++)
+            {
+                if (this.players[i].team > 1 && this.players[i].userid === userid)
+                {
+                    for (var x=0;x<this.players.length;x++)
+                    {
+                        this.players[x].selected = false;
+                        $("#usrid_" + this.players[x].userid).removeClass("selected");
+                    }
+                    this.players[i].selected = true;
+                    $("#usrid_" + this.players[i].userid).addClass("selected");
+                    $("#selectedplayer").html("Selected: <b>" + this.players[i].name + "</b>");
+                    break;
+                }
+            }
+        },
+
+        highlightPlayer : function(userid) {
+            for (var i=0;i<this.players.length;i++)
+            {
+                if (this.players[i].team > 1 && this.players[i].userid === userid)
+                {
+                    for (var x=0;x<this.players.length;x++)
+                    {
+                        this.players[x].hovered = false;
+                    }
+                    this.players[i].hovered = true;
+                    $("#player").html("Target: <b>" + this.players[i].name + "</b>");
+                    break;
+                }
+            }
+        },
+
+        unHighlightPlayer : function(userid) {
+            for (var i=0;i<this.players.length;i++)
+            {
+                if (this.players[i].team > 1 && this.players[i].userid === userid)
+                {
+                    this.players[i].hovered = false;
+                    $("#player").text("");
+                    break;
+                }
+            }
+        },
+
+        debugPlayers : function() {
+            // {'userid': parseInt(frame.userid), 'ip': frame.ip, 'name': frame.name, 'team': parseInt(frame.team), 'positions': [], 'alive': true};
+            for (var i=0;i<this.players.length;i++)
+            {
+                debug(i + ": #" + this.players[i].userid + ", Name: " + this.players[i].name + ", IP: " + this.players[i].ip + ", Team: " + this.players[i].team + ", Alive: " + this.players[i].alive + ", Positions: " + this.players[i].positions.length);
+                if (this.players[i].positions.length > 0)
+                    debug(i + ": 1x: " + this.players[i].positions[0].x + ", 1y: " + this.players[i].positions[0].y + ", 1diffx: " + this.players[i].positions[0].diffx + ", 1diffy: " + this.players[i].positions[0].diffy + ", 1swapx: " + this.players[i].positions[0].swapx + ", 1swapy: " + this.players[i].positions[0].swapy + ", diedhere: " + this.players[i].positions[0].diedhere);
+                if (this.players[i].positions.length > 1)
+                    debug(i + ": 2x: " + this.players[i].positions[1].x + ", 2y: " + this.players[i].positions[1].y + ", 2diffx: " + this.players[i].positions[1].diffx + ", 2diffy: " + this.players[i].positions[1].diffy + ", 2swapx: " + this.players[i].positions[1].swapx + ", 2swapy: " + this.players[i].positions[1].swapy + ", diedhere: " + this.players[i].positions[1].diedhere);
+            }
+            debug("");
+        },
+
+        sendChatMessage : function() {
+            if (this.socket===null)
+                return;
+
+            if ($("#chatinput").val() === "")
+                return;
+
+            if ($("#chatnick").val() === "")
+            {
+                alert("You have to enter a nickname first.");
+                return;
+            }
+
+            this.socket.send($("#chatnick").val() + ": " + $("#chatinput").val());
+            d = new Date();
+            var timestring = "(";
+            if (d.getHours() < 10)
+            timestring += "0";
+            timestring += d.getHours() + ":";
+            if (d.getMinutes() < 10)
+            timestring += "0";
+            timestring += d.getMinutes() + ":";
+            if (d.getSeconds() < 10)
+            timestring += "0";
+            timestring += d.getSeconds() + ") ";
+
+            $("#chatoutput").append(document.createTextNode(timestring + $("#chatnick").val() + ": " + $("#chatinput").val()));
+            $("#chatoutput").append("<br />");
+            $('#chatoutput').prop('scrollTop', $('#chatoutput').prop('scrollHeight'));
+
+            $("#chatinput").val("");
+            $("#chatinput").focus();
+        },
+
+        toggleNames : function() {
+            if (this.shownames === 1) {
+                this.shownames = 0;
+            } else {
+                this.shownames = 1;
+            }
+        },
+
+        debug : function(msg) {
+            $("#debug").html($("#debug").html() + "<br>" + msg);
+        },
+    };
+}());
+
+$(document).keydown(function (e) {
+    "use strict";
+    if (($(document.activeElement).attr("id") !== "chatinput") && ($(document.activeElement).attr("id") !== "chatnick") && (e.which === 32)) {
+        SourceTV2D.spacebarPressed = true;
+        return false;
     }
-}
-
-function sendChatMessage() {
-  if (SourceTV2D.socket==null)
-    return;
-  
-  if ($("#chatinput").val() == "")
-    return;
-
-  if ($("#chatnick").val() == "")
-  {
-    alert("You have to enter a nickname first.");
-    return;
-  }
-  
-  SourceTV2D.socket.send($("#chatnick").val() + ": " + $("#chatinput").val());
-  var d = new Date();
-  var timestring = "(";
-  if (d.getHours() < 10)
-    timestring += "0";
-  timestring += d.getHours() + ":";
-  if (d.getMinutes() < 10)
-    timestring += "0";
-  timestring += d.getMinutes() + ":";
-  if (d.getSeconds() < 10)
-    timestring += "0";
-  timestring += d.getSeconds() + ") ";
-  
-  $("#chatoutput").append(document.createTextNode(timestring + $("#chatnick").val() + ": " + $("#chatinput").val()));
-  $("#chatoutput").append("<br />");
-  $('#chatoutput').prop('scrollTop', $('#chatoutput').prop('scrollHeight'));
-  
-  $("#chatinput").val("");
-  $("#chatinput").focus();
-}
-
-function players() {
-    // {'userid': parseInt(frame.userid), 'ip': frame.ip, 'name': frame.name, 'team': parseInt(frame.team), 'positions': [], 'alive': true};
-    for(var i=0;i<SourceTV2D.players.length;i++)
-    {
-        debug(i + ": #" + SourceTV2D.players[i].userid + ", Name: " + SourceTV2D.players[i].name + ", IP: " + SourceTV2D.players[i].ip + ", Team: " + SourceTV2D.players[i].team + ", Alive: " + SourceTV2D.players[i].alive + ", Positions: " + SourceTV2D.players[i].positions.length);
-        if (SourceTV2D.players[i].positions.length > 0)
-            debug(i + ": 1x: " + SourceTV2D.players[i].positions[0].x + ", 1y: " + SourceTV2D.players[i].positions[0].y + ", 1diffx: " + SourceTV2D.players[i].positions[0].diffx + ", 1diffy: " + SourceTV2D.players[i].positions[0].diffy + ", 1swapx: " + SourceTV2D.players[i].positions[0].swapx + ", 1swapy: " + SourceTV2D.players[i].positions[0].swapy + ", diedhere: " + SourceTV2D.players[i].positions[0].diedhere);
-        if (SourceTV2D.players[i].positions.length > 1)
-            debug(i + ": 2x: " + SourceTV2D.players[i].positions[1].x + ", 2y: " + SourceTV2D.players[i].positions[1].y + ", 2diffx: " + SourceTV2D.players[i].positions[1].diffx + ", 2diffy: " + SourceTV2D.players[i].positions[1].diffy + ", 2swapx: " + SourceTV2D.players[i].positions[1].swapx + ", 2swapy: " + SourceTV2D.players[i].positions[1].swapy + ", diedhere: " + SourceTV2D.players[i].positions[1].diedhere);
+});
+$(document).keyup(function (e) {
+    "use strict";
+    if ($(document.activeElement).attr("id") !== "chatinput" && $(document.activeElement).attr("id") !== "chatnick" && e.which === 32) {
+        SourceTV2D.spacebarPressed = false;
+        return false;
     }
-    debug("");
-}
+});
