@@ -103,6 +103,7 @@ new Handle:livelogs_daemon_address = INVALID_HANDLE; //ip/dns of livelogs daemon
 new Handle:livelogs_daemon_port = INVALID_HANDLE; //port of livelogs daemon
 new Handle:livelogs_daemon_apikey = INVALID_HANDLE; //the key that must be specified when communicating with the ll daemon
 new Handle:livelogs_server_name = INVALID_HANDLE;
+new Handle:livelogs_stat_toggle = INVALID_HANDLE;
 
 //if websocket is included, let's define the websocket stuff!
 #if defined _websocket_included
@@ -162,6 +163,11 @@ public OnPluginStart()
     livelogs_daemon_apikey = CreateConVar("livelogs_api_key", "123test", "API key for livelogs daemon", FCVAR_PROTECTED|FCVAR_DONTRECORD|FCVAR_UNLOGGED);
 
     livelogs_server_name = CreateConVar("livelogs_name", "default", "The name by which logs are identified on the website", FCVAR_PROTECTED);
+
+    livelogs_stat_toggle = CreateConVar("livelogs_additional_logging", "1", "Toggle whether or not livelogs should log additional statistics. Disable if running sup stats or other similar plugins",
+                                    FCVAR_NOTIFY, true, 0.0, true, 1.0); //convar has min value 0 and max value 1
+
+    HookConVarChange(livelogs_stat_toggle, toggleLoggingHook);
     
     //variables for later sending. we should get the IP via hostip, because sometimes people don't set "ip"
     new longip = GetConVarInt(FindConVar("hostip")), ip_quad[4];
@@ -217,22 +223,17 @@ public OnPluginStart()
 
 public OnAllPluginsLoaded()
 {
-    //check to see if there are any (known) plugins installed that log additional stats. if so, disable this plugin's additional stat logging
-    if (LibraryExists("supstats") || LibraryExists("tf2comp"))
-    {
-        log_additional_stats = false;
-    }
-
+    //maybe check other stuff later?
     #if defined _websocket_included
     if (LibraryExists("websocket"))
     {
         webtv_library_present = true;
-        LogMessage("websocket.smx present. Using SourceTV2D");
+        if (DEBUG) { LogMessage("websocket.smx present. Using SourceTV2D"); }
         
         cleanUpWebSocket();
     }
     else
-        LogMessage("websocket.smx is not present. Not using SourceTV2D");
+        if (DEBUG) { LogMessage("websocket.smx is not present. Not using SourceTV2D"); }
     #endif
 }
 
@@ -290,6 +291,19 @@ public OnClientDisconnect(client)
         addToWebBuffer(buffer);
     }
     #endif
+}
+
+public toggleLoggingHook(Handle:cvar, const String:oldval[], const String:newval[])
+{
+    if (DEBUG) { LogMessage("Additional logging toggled. old: %s new: %s", oldval, newval); }
+    
+    log_additional_stats = GetConVarBool(cvar);
+
+    if (log_additional_stats)
+        PrintToServer("Livelogs now logging additional statistics");
+    else
+        PrintToServer("Livelogs no longer logging additional statistics");
+
 }
 
 public tournamentStateChangeEvent(Handle:event, const String:name[], bool:dontBroadcast)
@@ -379,7 +393,7 @@ public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
             GetTeamName(GetClientTeam(attackeridx), team, sizeof(team));
 
             LogToGame("\"%s<%d><%s><%s>\" triggered \"damage\" (damage \"%d\")",
-                    name,
+                    player_name,
                     attackerid,
                     auth_id,
                     team,
@@ -438,7 +452,7 @@ public Action:tournamentRestartHook(client, const String:command[], arg)
 #if defined _websocket_included
 public delayChangeHook(Handle:cvar, const String:oldval[], const String:newval[])
 {
-    LogMessage("delay changed. old: %s new: %s", oldval, newval);
+    if (DEBUG) { LogMessage("delay changed. old: %s new: %s", oldval, newval); }
     
     webtv_delay = StringToFloat(newval);
 }
@@ -1011,7 +1025,14 @@ addToWebBuffer(const String:msg[])
     
     if (livelogs_webtv_buffer_length >= MAX_BUFFER_SIZE)
     {
-        LogMessage("number of buffer items (%d) is >= the max buffer elements", livelogs_webtv_buffer_length);
+        if (DEBUG) { LogMessage("number of buffer items (%d) is >= the max buffer elements", livelogs_webtv_buffer_length); }
+
+        //if this is occuring, perhaps the process timer is not active?
+        if (livelogs_webtv_buffer_timer == INVALID_HANDLE)
+        {
+            if (DEBUG) { LogMessage("Buffer is full and process timer is not running. Starting process timer"); }
+            livelogs_webtv_buffer_timer = CreateTimer(WEBTV_BUFFER_PROCESS_RATE, webtv_bufferProcessTimer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+        }
         return;
     }
     
@@ -1058,7 +1079,7 @@ shiftBufferLeft()
         strcopy(livelogs_webtv_buffer[i], sizeof(livelogs_webtv_buffer[]), livelogs_webtv_buffer[i+1]);
     }
     livelogs_webtv_buffer_length--;
-    LogMessage("left shift. buffer length: %d", livelogs_webtv_buffer_length);
+    if (DEBUG) { LogMessage("left shift. buffer length: %d", livelogs_webtv_buffer_length); }
 }
 
 emptyWebBuffer()
@@ -1068,7 +1089,7 @@ emptyWebBuffer()
         strcopy(livelogs_webtv_buffer[i], sizeof(livelogs_webtv_buffer[]), "\0");
     }
     livelogs_webtv_buffer_length = 0;
-    LogMessage("cleared buffer");
+    if (DEBUG) { LogMessage("cleared buffer"); }
 }
 
 cleanUpWebSocket()
