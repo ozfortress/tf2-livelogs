@@ -502,7 +502,7 @@ public playerSpawnEvent(Handle:event, const String:name[], bool:dontBroadcast)
     new pclass = GetEventInt(event, "class");
     
     decl String:buffer[12];
-    Format(buffer, sizeof(buffer), "S:%d:%d", userid, pclass);
+    Format(buffer, sizeof(buffer), "S%d:%d", userid, pclass);
     
     addToWebBuffer(buffer);
 }
@@ -612,15 +612,19 @@ public onWebSocketReadyStateChange(WebsocketHandle:sock, WebsocketReadyState:rea
     if (readystate != State_Open)
         return;
         
-    decl String:map[64], String:game[32], String:buffer[196], String:hostname[128];
-    
+    decl String:map[64], String:game[32], String:hostname[128];
+    new String:buffer[196];
+
     GetCurrentMap(map, sizeof(map));
     GetGameFolderName(game, sizeof(game));
     
     GetConVarString(FindConVar("hostname"), hostname, sizeof(hostname));
     
-    //IGAME:MAP:TEAM2NAME:TEAM3NAME:HOSTNAME
-    Format(buffer, sizeof(buffer), "I%s:%s:%s:%s:%s", game, map, "RED", "BLUE", hostname);
+    new red_score = GetTeamScore(RED+TEAM_OFFSET);
+    new blue_score = GetTeamScore(BLUE+TEAM_OFFSET);
+
+    //IGAME:MAP:TEAM2NAME:TEAM3NAME:TEAM2SCORE:TEAM3SCORE:HOSTNAME
+    FormatEx(buffer, sizeof(buffer), "I%s:%s:%s:%s:%d:%d:%s", game, map, "RED", "BLUE", hostname);
     
     Websocket_Send(sock, SendType_Text, buffer);
     
@@ -652,13 +656,13 @@ public Action:updatePlayerPositionTimer(Handle:timer, any:data)
 { 
     decl String:buffer[4096];
     
-    Format(buffer, sizeof(buffer), "O");
+    FormatEx(buffer, sizeof(buffer), "O");
     
     new Float:p_origin[3], Float:p_angle[3]; //two vectors, one containing the position of the player and the other the angle the player is facing
     
     for (new i = 1; i <= MaxClients; i++)
     {
-        if (IsClientInGame(i) && IsPlayerAlive(i))
+        if (IsClientInGame(i) && IsPlayerAlive(i) && !IsFakeClient(i))
         {
             if (strlen(buffer) > 1) //if more than just "O" is in the buffer, add separator
                 Format(buffer, sizeof(buffer), "%s|", buffer); //player positions will be appended after an |
@@ -666,7 +670,7 @@ public Action:updatePlayerPositionTimer(Handle:timer, any:data)
             GetClientAbsOrigin(i, p_origin);
             GetClientEyeAngles(i, p_angle);
             
-            //we only need X and Y co-ords, and only need theta (angle corresponding to the X Y plane)
+            //we only need X and Y co-ords, and only need angle corresponding to the X Y plane
             Format(buffer, sizeof(buffer), "%s%d:%d:%d:%d", buffer, GetClientUserId(i), RoundToNearest(p_origin[0]), 
                                                 RoundToNearest(p_origin[1]), RoundToNearest(p_angle[1]));
         }
@@ -1079,7 +1083,7 @@ shiftBufferLeft()
         strcopy(livelogs_webtv_buffer[i], sizeof(livelogs_webtv_buffer[]), livelogs_webtv_buffer[i+1]);
     }
     livelogs_webtv_buffer_length--;
-    if (DEBUG) { LogMessage("left shift. buffer length: %d", livelogs_webtv_buffer_length); }
+    //if (DEBUG) { LogMessage("left shift. buffer length: %d", livelogs_webtv_buffer_length); }
 }
 
 emptyWebBuffer()
