@@ -87,6 +87,7 @@ var llWSClient = llWSClient || (function() {
         
         onClose : function(event) {
             console.log("Client websocket closed: %s", event);
+            client = null;
         },
         
         onError : function(event) {

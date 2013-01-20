@@ -1,5 +1,4 @@
-﻿/*jshint plusplus:true*/
-
+﻿
 /*
     Livelogs SourceTV2D Browser client
     
@@ -62,8 +61,12 @@ var SourceTV2D = SourceTV2D || (function() {
             this.chatHoldTime = 10;
             this.chatFadeTime = 2;
             this.totalUsersWatching = 0;
-            this.shownames = 1;
+            this.shownames = true;
             $("sourcetv2d").mousemove = null;
+
+
+            this.intelDropped = false;
+            this.intelCaptured = false;
         },
 
         connect : function(ip, port) {
@@ -74,6 +77,7 @@ var SourceTV2D = SourceTV2D || (function() {
                 $(this.canvas).remove();
                 this.canvas = null;
             }
+
             this.init();
 
             $("#debug").html("");
@@ -85,12 +89,8 @@ var SourceTV2D = SourceTV2D || (function() {
             try
             {
                 if (!window.WebSocket) {
-                    if (window.MozWebSocket) {
-                        this.socket = new MozWebSocket(host);
-                    } else {
-                        this.debug("Your browser doesn't support WebSockets.");
-                        return;
-                    }
+                    this.debug("Your browser doesn't support WebSockets.");
+                    return;
                 } else {
                     this.socket = new WebSocket(host);
                 }
@@ -99,7 +99,7 @@ var SourceTV2D = SourceTV2D || (function() {
                 
                 this.socket.onopen = function (msg)
                 {
-                    this.debug("Connection established");
+                    this.debug("Connection established " + msg);
                 };
                 
                 this.socket.onmessage = function (msg) { this.onSocketMessage(msg); };
@@ -113,7 +113,7 @@ var SourceTV2D = SourceTV2D || (function() {
                         this.ctx.fillStyle = "rgb(255,255,255)";
                         this.ctx.fillText("Disconnected.", 100*this.scaling, 100*this.scaling);
                     }
-                    this.debug("Socket reported error!");
+                    this.debug("Socket reported error! " + msg);
                 };
                 this.socket.onclose = function (msg)
                 {
@@ -127,7 +127,7 @@ var SourceTV2D = SourceTV2D || (function() {
                 };
             }
             catch(ex) {
-                debug('Error: ' + ex);
+                this.debug('Error: ' + ex);
             }
         },
 
@@ -382,7 +382,7 @@ var SourceTV2D = SourceTV2D || (function() {
                             frame.positions[player_index] = ['', '', '', ''];
                         }
 
-                        player_values = player_data.split(':');
+                        var player_values = player_data.split(':');
 
                         $.each(player_values, function(index, value) {
                             frame.positions[player_index][index] = parseInt(value, 10);
@@ -654,11 +654,12 @@ var SourceTV2D = SourceTV2D || (function() {
                 
                 // SourceTV2D Chat message
                 case "Z":
-                    frame.message = "";
-                    for (; offset<msg.data.length; offset++)
-                    {
-                        frame.message += msg.data.charAt(offset);
-                    }
+                    //Zuser:message
+                    split = msg_data.split(':');
+
+                    frame.message = split[1];
+                    frame.user = split[0];
+                    
                     d = new Date();
                     var timestring = "(";
                     if (d.getHours() < 10) {
@@ -682,12 +683,8 @@ var SourceTV2D = SourceTV2D || (function() {
                 
                 // SourceTV2D spectator amount changed
                 case "A":
-                    frame.totalwatching = "";
-                    for (; offset<msg.data.length; offset++)
-                    {
-                        frame.totalwatching += msg.data.charAt(offset);
-                    }
-                    frame.totalwatching = parseInt(frame.totalwatching, 10);
+                    //Anumwatch
+                    frame.totalwatching = parseInt(msg_data, 10);
                     this.totalUsersWatching = frame.totalwatching;
                     $("#totalwatching").text(this.totalUsersWatching);
                     
@@ -751,6 +748,7 @@ var SourceTV2D = SourceTV2D || (function() {
         },
 
         drawMap : function() {
+            var d, time, i, alpha, offs, iOffset, deathWidth, fragsWidth, classWidth, iListBorderHeight, iHeight, classname;
             try
             {
                 if (this.ctx === null) {
@@ -760,8 +758,9 @@ var SourceTV2D = SourceTV2D || (function() {
                 }
                 // Clear the canvas.
                 this.ctx.clearRect(0,0,this.width,this.height);
-                if (this.background !== null)
+                if (this.background !== null) {
                     this.ctx.drawImage(this.background,0,0,this.width,this.height);
+                }
                 else
                 {
                     this.ctx.save();
@@ -779,37 +778,41 @@ var SourceTV2D = SourceTV2D || (function() {
                 this.ctx.textAlign = "left";
                 this.ctx.font = Math.round(10*this.scaling) + "pt Verdana";
 
-                for (var i=0; i<this.frags.length; i++)
+                for (i=0; i<this.frags.length; i++)
                 {
                     if ((time - this.frags[i].time) > this.fragFadeTime)
                     {
                         this.frags.splice(i, 1);
-                        i--;
+                        i -= 1;
                         continue;
                     }
                     
                     this.ctx.save();
                     
-                    var alpha = 1.0 - (time - this.frags[i].time) / this.fragFadeTime;
+                    alpha = 1.0 - (time - this.frags[i].time) / this.fragFadeTime;
                     
-                    if (this.frags[i].ateam === 2)
+                    if (this.frags[i].ateam === 2) {
                         this.ctx.fillStyle = "rgba(255,0,0," + alpha + ")";
-                    else if (this.frags[i].ateam === 3)
+                    }
+                    else if (this.frags[i].ateam === 3) {
                         this.ctx.fillStyle = "rgba(0,0,255," + alpha + ")";
+                    }
                     
                     this.ctx.fillText(this.frags[i].attacker, (50*this.scaling), ((50 + (this.frags.length-i-1)*20)*this.scaling));
                     
-                    var offs = this.ctx.measureText(this.frags[i].attacker).width + 10*this.scaling;
+                    offs = this.ctx.measureText(this.frags[i].attacker).width + 10*this.scaling;
                     this.ctx.fillStyle = "rgba(255,255,255," + alpha + ")";
                     
                     this.ctx.fillText(this.frags[i].weapon, (50*this.scaling + offs), ((50 + (this.frags.length-i-1)*20)*this.scaling));
                     
                     offs += this.ctx.measureText(this.frags[i].weapon).width + 10*this.scaling;
                     
-                    if (this.frags[i].vteam === 2)
+                    if (this.frags[i].vteam === 2) {
                         this.ctx.fillStyle = "rgba(255,0,0," + alpha + ")";
-                    else if (this.frags[i].vteam === 3)
+                    }
+                    else if (this.frags[i].vteam === 3) {
                         this.ctx.fillStyle = "rgba(0,0,255," + alpha + ")";
+                    }
                     
                     this.ctx.fillText(this.frags[i].victim, (50*this.scaling + offs), ((50 + (this.frags.length-i-1)*20)*this.scaling));
                     this.ctx.restore();
@@ -818,17 +821,17 @@ var SourceTV2D = SourceTV2D || (function() {
                 
                 // Draw the connect/disconnect messages
                 this.ctx.font = Math.round(11*this.scaling) + "pt Verdana";
-                for (var i=0;i<this.infos.length;i++)
+                for (i=0; i<this.infos.length; i++)
                 {
                     if ((time - this.infos[i].time) > this.infosFadeTime)
                     {
                         this.infos.splice(i, 1);
-                        i--;
+                        i -= 1;
                         continue;
                     }
                     
                     this.ctx.save();
-                    var alpha = 1.0 - (time - this.infos[i].time) / this.infosFadeTime;
+                    alpha = 1.0 - (time - this.infos[i].time) / this.infosFadeTime;
                     this.ctx.fillStyle = "rgba(255,255,255," + alpha + ")";
                     
                     this.ctx.fillText(this.infos[i].msg, ((this.width-this.ctx.measureText(this.infos[i].msg).width)-50*this.scaling), ((50 + (this.infos.length-i-1)*20)*this.scaling));
@@ -841,48 +844,51 @@ var SourceTV2D = SourceTV2D || (function() {
                 time = d.getTime()/1000;
                 this.ctx.textAlign = "left";
                 this.ctx.font = Math.round(12*this.scaling) + "pt Verdana";
-                for (var i=(this.chat.length-1);i>=0;i--)
+                for (i=(this.chat.length-1); i>=0; i--)
                 {
                     if ((time - this.chat[i].time) > (this.chatHoldTime + this.chatFadeTime))
                     {
                         this.chat.splice(i, 1);
-                        if (this.chat.length > 0)
-                            i++;
+                        if (this.chat.length > 0) {
+                            i += 1;
+                        }
                         continue;
                     }
                     
                     this.ctx.save();
                     
-                    var alpha = 1.0;
-                    if ((time - this.chat[i].time) > this.chatHoldTime)
+                    alpha = 1.0;
+                    if ((time - this.chat[i].time) > this.chatHoldTime) {
                         alpha = 1.0 - (time - this.chat[i].time - this.chatHoldTime) / this.chatFadeTime;
+                    }
                     
-                    if (this.chat[i].team === 0)
+                    if (this.chat[i].team === 0) {
                         this.ctx.fillStyle = "rgba(255,165,0," + alpha + ")";
-                    else if (this.chat[i].team === 1)
+                    } else if (this.chat[i].team === 1) {
                         this.ctx.fillStyle = "rgba(255,255,255," + alpha + ")";
-                    else if (this.chat[i].team === 2)
+                    } else if (this.chat[i].team === 2) {
                         this.ctx.fillStyle = "rgba(255,0,0," + alpha + ")";
-                    else if (this.chat[i].team === 3)
+                    } else if (this.chat[i].team === 3) {
                         this.ctx.fillStyle = "rgba(0,0,255," + alpha + ")";
+                    }
                     
                     this.ctx.fillText(this.chat[i].name, (50*this.scaling), (this.height-(50 + (this.chat.length-i-1)*20)*this.scaling));
                     
-                    var offs = this.ctx.measureText(this.chat[i].name).width;
+                    offs = this.ctx.measureText(this.chat[i].name).width;
                     this.ctx.fillStyle = "rgba(255,165,0," + alpha + ")";
                     
                     this.ctx.fillText(": " + this.chat[i].msg, (50*this.scaling + offs), (this.height-(50 + (this.chat.length-i-1)*20)*this.scaling));
                     this.ctx.restore();
                 }
                 
-                // Show that notice, if the mapconfig wasn't found
+                //if the mapconfig wasn't found, disconnect with msg
                 if (this.background === null || this.mapsettingsFailed)
                 {
                     this.ctx.save();
                     this.ctx.fillStyle = "rgb(255,255,255)";
                     this.ctx.font = Math.round(20*this.scaling) + "pt Verdana";
-                    var text = "No map image.";
-                    debug(text);
+                    var text = "No map image";
+                    this.debug(text);
                     if (this.mapsettingsFailed) {
                         text = "Map config failed to load. Player positions can not be shown.";
                         //debug(text);
@@ -890,12 +896,14 @@ var SourceTV2D = SourceTV2D || (function() {
                     }
                     this.ctx.fillText(text, (this.width - this.ctx.measureText(text).width)/2, (this.height/2));
                     this.ctx.restore();
-                    stv2d_disconnect();
+
+                    this.disconnect();
+
                     return;
                 }
                 
-                // Draw dropped bomb on map
-                if (this.bombDropped)
+                // Draw intel on map
+                if (this.intelDropped)
                 {
                   this.ctx.save();
                   this.ctx.fillStyle = "#FF4500";
@@ -914,7 +922,7 @@ var SourceTV2D = SourceTV2D || (function() {
                   this.ctx.restore();
                 }
                 
-                if (this.bombExploded)
+                if (this.intelCaptured)
                 {
                   this.ctx.save();
                   this.ctx.fillStyle = "#FF8C00";
@@ -955,51 +963,56 @@ var SourceTV2D = SourceTV2D || (function() {
                     this.ctx.fillStyle = "#FFFFFF";
                     var bombTimeLeft;
                     // Not yet defused? Count down!
-                    if (this.bombDefuseTime === -1)
-                      bombTimeLeft = Math.round(this.bombExplodeTime-time/1000 + this.bombPlantTime);
+                    if (this.bombDefuseTime === -1) {
+                        bombTimeLeft = Math.round(this.bombExplodeTime-time/1000 + this.bombPlantTime);
+                    }
                     // The bomb has been defused. Stay on the current time
-                    else
-                      bombTimeLeft = Math.round(this.bombDefuseTime - this.bombPlantTime);
-                    if (bombTimeLeft < 0)
-                      bombTimeLeft = 0;
+                    else {
+                        bombTimeLeft = Math.round(this.bombDefuseTime - this.bombPlantTime);
+                    }
+                    if (bombTimeLeft < 0) {
+                        bombTimeLeft = 0;
+                    }
                     this.ctx.fillText("" + bombTimeLeft, this.bombPosition[0]-4*this.scaling, this.bombPosition[1]-15*this.scaling);          
                   }
                   this.ctx.restore();
                 }
                 
-                // Set this for the player names
-                this.ctx.font = Math.round(10*this.scaling) + "pt Verdana";
-                for (var i=0;i<this.players.length;i++)
+                
+                this.ctx.font = Math.round(10*this.scaling) + "pt Verdana"; // Set this for the player names
+                for (i=0; i<this.players.length; i++)
                 {
                     // Make sure we're in sync with the other messages..
                     // Delete older frames
-                    while(this.players[i].positions.length > 0 && (time - this.players[i].positions[0].time) > 2000)
+                    while (this.players[i].positions.length > 0 && (time - this.players[i].positions[0].time) > 2000)
                     {
                       this.players[i].positions.splice(0,1);
                     }
                     
                     // There is no coordinate for this player yet
-                    if (this.players[i].positions.length === 0)
+                    if (this.players[i].positions.length === 0) {
                         //debug("No co-ords for player idx " + i);
                         continue;
+                    }
                     
                     this.ctx.save();
                     
-                    if (this.players[i].team < 2)
+                    if (this.players[i].team < 2) {
                         this.ctx.fillStyle = "black";
-                    else if (this.players[i].team === 2)
-                    {
-                        if (this.players[i].positions[0].diedhere === false)
+                    } else if (this.players[i].team === 2) {
+                        if (this.players[i].positions[0].diedhere === false) {
                             this.ctx.fillStyle = "red";
-                        else
+                        }
+                        else {
                             this.ctx.fillStyle = "rgba(255,0,0,0.3)";
-                    }
-                    else if (this.players[i].team === 3)
-                    {
-                        if (this.players[i].positions[0].diedhere === false)
+                        }
+                    } else if (this.players[i].team === 3) {
+                        if (this.players[i].positions[0].diedhere === false) {
                             this.ctx.fillStyle = "blue";
-                        else
+                        }
+                        else {
                             this.ctx.fillStyle = "rgba(0,0,255,0.3)";
+                        }
                     }
                     
                     // Teleport directly to new spawn, if he died at this position
@@ -1011,11 +1024,10 @@ var SourceTV2D = SourceTV2D || (function() {
                                 this.players[i].positions.splice(0,1);
                         }
                     }
-                    // Move the player smoothly towards the new position
+                    // Move the player smoothly towards the new position (interpolate)
                     else if (this.players[i].positions.length > 1)
                     {
-                        if (this.players[i].positions[0].x === this.players[i].positions[1].x
-                        && this.players[i].positions[0].y === this.players[i].positions[1].y)
+                        if (this.players[i].positions[0].x === this.players[i].positions[1].x && this.players[i].positions[0].y === this.players[i].positions[1].y)
                         {
                             //if (time >= this.players[i].positions[1].time)
                                 this.players[i].positions.splice(0,1);
@@ -1039,10 +1051,7 @@ var SourceTV2D = SourceTV2D || (function() {
                             var y = this.players[i].positions[0].y + this.players[i].positions[0].swapy*this.players[i].positions[0].diffy;
                             
                             // We're moving too far...
-                            if ((this.players[i].positions[0].swapx===-1 && x <= this.players[i].positions[1].x)
-                            || (this.players[i].positions[0].swapx===1 && x >= this.players[i].positions[1].x)
-                            || (this.players[i].positions[0].swapy===-1 && y <= this.players[i].positions[1].y)
-                            || (this.players[i].positions[0].swapy===1 && y >= this.players[i].positions[1].y))
+                            if ((this.players[i].positions[0].swapx===-1 && x <= this.players[i].positions[1].x) || (this.players[i].positions[0].swapx===1 && x >= this.players[i].positions[1].x) || (this.players[i].positions[0].swapy===-1 && y <= this.players[i].positions[1].y) || (this.players[i].positions[0].swapy===1 && y >= this.players[i].positions[1].y))
                             {
                                 this.players[i].positions.splice(0,1);
                             }
@@ -1081,10 +1090,9 @@ var SourceTV2D = SourceTV2D || (function() {
                         this.ctx.stroke();
                     }
                     
-                    // Display player names above their heads
-                    var bShowHealthBar = (this.players[i].health > 0 && $("#healthbars").attr('checked'));
                     //if ($("#names").attr('checked'))
-                    if (1)
+                    //if (this.shownames)
+                    if ($("#stv_nametoggle").attr("checked"))
                     {
                         this.ctx.save();
                         var nameWidth = this.ctx.measureText(this.players[i].name).width;
@@ -1102,7 +1110,9 @@ var SourceTV2D = SourceTV2D || (function() {
                     this.ctx.fill();
                     
                     this.ctx.restore();
-                    
+
+                    // Display player names above their heads
+                    var bShowHealthBar = (this.players[i].health > 0 && $("#healthbars").attr('checked'));
                     // Draw health bars
                     if (bShowHealthBar)
                     {
@@ -1118,12 +1128,15 @@ var SourceTV2D = SourceTV2D || (function() {
                         {
                             this.ctx.beginPath();
                             
-                            if (this.players[i].health >= 70)
+                            if (this.players[i].health >= 70) {
                                 this.ctx.fillStyle = "rgba(0, 255, 0, 0.7)";
-                            else if (this.players[i].health >= 30)
+                            }
+                            else if (this.players[i].health >= 30) {
                                 this.ctx.fillStyle = "rgba(255, 255, 50, 0.7)";
-                            else
+                            }
+                            else {
                                 this.ctx.fillStyle = "rgba(255, 0, 0, 0.7)";
+                            }
                             
                             this.ctx.rect(0, 0, width, 4*this.scaling);
                             this.ctx.fill();
@@ -1170,16 +1183,20 @@ var SourceTV2D = SourceTV2D || (function() {
                         d = new Date();
                         timeleft = this.mp_roundtime - Math.floor(d.getTime()/1000) + this.roundStartTime;
                     }
-                    if (timeleft < 0)
+                    if (timeleft < 0) {
                         timeleft = 0;
+                    }
+
                     var timetext = "Timeleft: ";
                     var minutes = Math.floor(timeleft/60);
-                    if (minutes < 10)
+                    if (minutes < 10) {
                         timetext += "0";
+                    }
                     timetext += minutes + ":";
                     var seconds = (timeleft%60);
-                    if (seconds < 10)
+                    if (seconds < 10) {
                         timetext += "0";
+                    }
                     timetext += seconds;
                     this.ctx.fillText(timetext, this.width-this.ctx.measureText(timetext).width-50*this.scaling, this.height-50*this.scaling);
                     
@@ -1239,39 +1256,43 @@ var SourceTV2D = SourceTV2D || (function() {
                     
                     //to position these, get the centre line of the scoreboard (sourcetv.width*0.8/2) and then substract the width of the other columns preceding 
                     //the one you want placed. all headers have the same Y positions (150*scaling)
-                    var deathWidth = this.ctx.measureText("Deaths").width;
+                    deathWidth = this.ctx.measureText("Deaths").width;
                     this.ctx.fillText("Deaths", (this.width*0.8)/2 - 20*this.scaling - deathWidth, 150*this.scaling);
                     
-                    var fragsWidth = this.ctx.measureText("Frags").width;
+                    fragsWidth = this.ctx.measureText("Frags").width;
                     this.ctx.fillText("Frags", (this.width*0.8)/2 - 28*this.scaling - deathWidth - fragsWidth, 150*this.scaling);
                     
-                    var classWidth = this.ctx.measureText("Class").width;
+                    classWidth = this.ctx.measureText("Class").width;
                     this.ctx.fillText("Class", (this.width*0.8)/2 - 160*this.scaling - deathWidth - fragsWidth - classWidth, 150*this.scaling);
                     
                     
                     // Player list border
                     this.ctx.strokeStyle = "rgba(69, 171, 255, 0.9)";
                     this.ctx.beginPath();
-                    var iListBorderHeight = this.height*0.8-200*this.scaling;
+                    iListBorderHeight = this.height*0.8-200*this.scaling;
                     this.ctx.rect(0, 160*this.scaling, (this.width*0.8)/2-10*this.scaling, iListBorderHeight);
                     this.ctx.stroke();
                     
                     // Player list
                     this.ctx.font = Math.round(14*this.scaling) + "pt Verdana";
-                    var iOffset = 0;
-                    for (var i=0;i<this.players.length;i++)
+                    iOffset = 0;
+                    for (i=0; i<this.players.length; i++)
                     {
-                        if (this.players[i].team !== 3)
+                        if (this.players[i].team !== 3) {
                             continue;
+                        }
                         
-                        var iHeight = (180 + 20*iOffset)*this.scaling;
-                        if (iHeight > iListBorderHeight)
+                        iHeight = (180 + 20*iOffset)*this.scaling;
+                        if (iHeight > iListBorderHeight) {
                             break;
+                        }
                         
-                        if (this.players[i].alive)
-                          this.ctx.fillStyle = "rgba(69, 171, 255, 0.9)";
-                        else
-                          this.ctx.fillStyle = "rgba(69, 171, 255, 0.6)";
+                        if (this.players[i].alive) {
+                            this.ctx.fillStyle = "rgba(69, 171, 255, 0.9)";
+                        }
+                        else {
+                            this.ctx.fillStyle = "rgba(69, 171, 255, 0.6)";
+                        }
                         
                         //likewise for the headers, get centre pos and subtract
                         
@@ -1280,13 +1301,14 @@ var SourceTV2D = SourceTV2D || (function() {
                         this.ctx.fillText(this.players[i].frags, (this.width*0.8)/2 - 28*this.scaling - deathWidth - fragsWidth, iHeight);
                         
                         //player classes are a bit diff, since they're numbered and we want them in name
-                        var classname = this.classnames[this.players[i].pclass];
+                        classname = this.classnames[this.players[i].pclass];
                         this.ctx.fillText(classname, (this.width*0.8)/2 - 160*this.scaling - deathWidth - fragsWidth - classWidth, iHeight);
                         
                         
-                        if (this.players[i].has_intel)
+                        if (this.players[i].has_intel) {
                             this.ctx.fillText("F", (this.width*0.8)/2 - 66*this.scaling - deathWidth - fragsWidth - classWidth, iHeight);
-                        iOffset++;
+                        }
+                        iOffset += 1;
                     }
                     
                     // Red team!
@@ -1322,49 +1344,55 @@ var SourceTV2D = SourceTV2D || (function() {
                     this.ctx.font = Math.round(10*this.scaling) + "pt Verdana";
                     this.ctx.fillText("Player", 10*this.scaling, 150*this.scaling);
                     
-                    var deathWidth = this.ctx.measureText("Deaths").width;
+                    deathWidth = this.ctx.measureText("Deaths").width;
                     this.ctx.fillText("Deaths", (this.width*0.8)/2-30*this.scaling-deathWidth, 150*this.scaling);
                     
-                    var fragsWidth = this.ctx.measureText("Frags").width;
+                    fragsWidth = this.ctx.measureText("Frags").width;
                     this.ctx.fillText("Frags", (this.width*0.8)/2-38*this.scaling-deathWidth-fragsWidth, 150*this.scaling);
                     
-                    var classWidth = this.ctx.measureText("Class").width;
+                    classWidth = this.ctx.measureText("Class").width;
                     this.ctx.fillText("Class", (this.width*0.8)/2 - 180*this.scaling - deathWidth - fragsWidth - classWidth, 150*this.scaling);
                     
                     // Player list border
                     this.ctx.strokeStyle = "rgba(207, 68, 102, 0.9)";
                     this.ctx.beginPath();
-                    var iListBorderHeight = this.height*0.8-200*this.scaling;
+                    iListBorderHeight = this.height*0.8-200*this.scaling;
                     this.ctx.rect(0, 160*this.scaling, (this.width*0.8)/2-20*this.scaling, iListBorderHeight);
                     this.ctx.stroke();
                     
                     // Player list
                     this.ctx.font = Math.round(14*this.scaling) + "pt Verdana";
                     iOffset = 0;
-                    for (var i=0;i<this.players.length;i++)
+                    for (i=0; i<this.players.length; i++)
                     {
-                        if (this.players[i].team !== 2)
+                        if (this.players[i].team !== 2) {
                             continue;
+                        }
                         
-                        var iHeight = (180 + 20*iOffset)*this.scaling;
-                        if (iHeight > iListBorderHeight)
+                        iHeight = (180 + 20*iOffset)*this.scaling;
+                        if (iHeight > iListBorderHeight) {
                             break;
+                        }
                         
-                        if (this.players[i].alive)
-                          this.ctx.fillStyle = "rgba(207, 68, 102, 0.9)";
-                        else
-                          this.ctx.fillStyle = "rgba(207, 68, 102, 0.6)";
+                        if (this.players[i].alive) {
+                            this.ctx.fillStyle = "rgba(207, 68, 102, 0.9)";
+                        }
+                        else {
+                            this.ctx.fillStyle = "rgba(207, 68, 102, 0.6)";
+                        }
                         
                         this.ctx.fillText(this.players[i].name, 10*this.scaling, iHeight);
                         this.ctx.fillText(this.players[i].deaths, (this.width*0.8)/2 - 20*this.scaling - deathWidth, iHeight);
                         this.ctx.fillText(this.players[i].frags, (this.width*0.8)/2 - 28*this.scaling - deathWidth - fragsWidth, iHeight);
                         
-                        var classname = this.classnames[this.players[i].pclass];
+                        classname = this.classnames[this.players[i].pclass];
                         this.ctx.fillText(classname, (this.width*0.8)/2 - 160*this.scaling - deathWidth - fragsWidth - classWidth, iHeight);
                         
-                        if (this.players[i].has_intel)
+                        if (this.players[i].has_intel) {
                             this.ctx.fillText("F", (this.width*0.8) / 2 - 66*this.scaling - deathWidth - fragsWidth, iHeight);
-                        iOffset++;
+                        }
+
+                        iOffset += 1;
                     }
                     
                     this.ctx.restore();
@@ -1375,10 +1403,11 @@ var SourceTV2D = SourceTV2D || (function() {
                     this.ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
                     this.ctx.fillText(this.teamPlayerAmount[0] + " Spectators: ", 10*this.scaling, iListBorderHeight);
                     var bMoreSpectators = false;
-                    for (var i=0;i<this.players.length;i++)
+                    for (i=0; i<this.players.length; i++)
                     {
-                        if (this.players[i].team > 1)
+                        if (this.players[i].team > 1) {
                             continue;
+                        }
                         
                         this.ctx.fillText((bMoreSpectators?", ":" ") + this.players[i].name, iOffset, iListBorderHeight);
                         iOffset += this.ctx.measureText((bMoreSpectators?", ":" ") + this.players[i].name).width;
@@ -1389,20 +1418,21 @@ var SourceTV2D = SourceTV2D || (function() {
                 }
             }
             catch(ex) {
-                debug('Error: ' + ex);
+                this.debug('Error: ' + ex);
             }
         },
 
         loadMapImageInfo : function(game, map) {
             // Load the background map image
             this.background = new Image();
-            $(this.background).load(function () {
+            $(this.background).load(function() {
                 this.canvas = document.createElement('canvas');
 
                 // Browser does not support canvas
                 if (!this.canvas.getContext)
                 {
                   $("#sourcetv2d").html("<h2>Your browser does not support the canvas element.</h2>");
+                  this.disconnect();
                   return;
                 }
 
@@ -1415,8 +1445,8 @@ var SourceTV2D = SourceTV2D || (function() {
                 this.canvas.setAttribute('height',this.height);
 
                 $("#sourcetv2d").append(this.canvas);
-                $("#sourcetv2d").mousemove(function (ev) {mousemove(ev);});
-                $("#sourcetv2d").click(function (ev) {mouseclick(ev);});
+                $("#sourcetv2d").mousemove(function (ev) { this.mouseMove(ev); });
+                $("#sourcetv2d").click(function (ev) { this.mouseClick(ev); });
 
                 this.ctx = this.canvas.getContext('2d');
                 this.ctx.drawImage(this.background,0,0,this.width,this.height);
@@ -1424,7 +1454,7 @@ var SourceTV2D = SourceTV2D || (function() {
                 // Get the map config
                 $.ajax({
                   type: 'GET',
-                  url: '/maps/' + this.game + '/' + this.map + '.txt',
+                  url: '/maps/' + game + '/' + map + '.txt',
                   dataType: 'json',
                   success: function (json) {
                       this.mapsettings.xoffset = json.xoffset;
@@ -1435,7 +1465,7 @@ var SourceTV2D = SourceTV2D || (function() {
                       this.mapsettingsLoaded = true;
                   },
                   error: function (jqXHR, textStatus) {
-                      alert("Failed.");
+                      alert("Failed to load map info: " + jqXHR + " " + textStatus);
                       this.mapsettingsFailed = true;
                   }
                 });
@@ -1466,8 +1496,9 @@ var SourceTV2D = SourceTV2D || (function() {
 
         sortScoreboard : function() {
             this.players.sort(function (a,b) {
-                if (a.frags === b.frags)
+                if (a.frags === b.frags) {
                     return a.deaths - b.deaths;
+                }
                 return b.frags - a.frags;
             });
         },
@@ -1477,10 +1508,7 @@ var SourceTV2D = SourceTV2D || (function() {
             {
                 if (this.players[i].positions[0])
                 {
-                    if ((this.players[i].positions[0].x + this.playerRadius*2) >= x
-                    && this.players[i].positions[0].x <= x
-                    && (this.players[i].positions[0].y + this.playerRadius) >= y
-                    && (this.players[i].positions[0].y - this.playerRadius) <= y)
+                    if ((this.players[i].positions[0].x + this.playerRadius*2) >= x && this.players[i].positions[0].x <= x && (this.players[i].positions[0].y + this.playerRadius) >= y && (this.players[i].positions[0].y - this.playerRadius) <= y)
                     {
                         return i;
                     }
@@ -1490,13 +1518,15 @@ var SourceTV2D = SourceTV2D || (function() {
         },
 
         mouseMove : function(e) {
-            if (this.socket===null || this.players.length === 0)
+            if (this.socket===null || this.players.length === 0) {
                 return;
+            }
                 
             var offs = $("#sourcetv2d").offset();
             var x = e.pageX-offs.left-$("#playerlist-container").width();
-            if (x < 0 || x > this.width)
+            if (x < 0 || x > this.width) {
                 return;
+            }
             
             var y = e.pageY-offs.top;
             
@@ -1507,7 +1537,7 @@ var SourceTV2D = SourceTV2D || (function() {
             
             $("#player").text("");
             
-            var player = getPlayerAtPosition(x, y);
+            var player = this.getPlayerAtPosition(x, y);
             if (player !== -1)
             {
                 $("#player").html("Target: <b>" + this.players[player].name + "</b>");
@@ -1516,14 +1546,16 @@ var SourceTV2D = SourceTV2D || (function() {
             }
         },
 
-        mouseclick : function(e) {
-            if (this.socket===null || this.players.length === 0)
-            return;
+        mouseClick : function(e) {
+            if (this.socket===null || this.players.length === 0) {
+                return;
+            }
             
             var offs = $("#sourcetv2d").offset();
             var x = e.pageX-offs.left-$("#playerlist-container").width();
-            if (x < 0 || x > this.width)
+            if (x < 0 || x > this.width) {
                 return;
+            }
             
             var y = e.pageY-offs.top;
             
@@ -1534,7 +1566,7 @@ var SourceTV2D = SourceTV2D || (function() {
             }
             $("#selectedplayer").text("");
             
-            var player = getPlayerAtPosition(x, y);
+            var player = this.getPlayerAtPosition(x, y);
             if (player !== -1)
             {
                 $("#usrid_" + this.players[player].userid).addClass("selected");
@@ -1594,21 +1626,27 @@ var SourceTV2D = SourceTV2D || (function() {
             // {'userid': parseInt(frame.userid), 'ip': frame.ip, 'name': frame.name, 'team': parseInt(frame.team), 'positions': [], 'alive': true};
             for (var i=0;i<this.players.length;i++)
             {
-                debug(i + ": #" + this.players[i].userid + ", Name: " + this.players[i].name + ", IP: " + this.players[i].ip + ", Team: " + this.players[i].team + ", Alive: " + this.players[i].alive + ", Positions: " + this.players[i].positions.length);
-                if (this.players[i].positions.length > 0)
-                    debug(i + ": 1x: " + this.players[i].positions[0].x + ", 1y: " + this.players[i].positions[0].y + ", 1diffx: " + this.players[i].positions[0].diffx + ", 1diffy: " + this.players[i].positions[0].diffy + ", 1swapx: " + this.players[i].positions[0].swapx + ", 1swapy: " + this.players[i].positions[0].swapy + ", diedhere: " + this.players[i].positions[0].diedhere);
-                if (this.players[i].positions.length > 1)
-                    debug(i + ": 2x: " + this.players[i].positions[1].x + ", 2y: " + this.players[i].positions[1].y + ", 2diffx: " + this.players[i].positions[1].diffx + ", 2diffy: " + this.players[i].positions[1].diffy + ", 2swapx: " + this.players[i].positions[1].swapx + ", 2swapy: " + this.players[i].positions[1].swapy + ", diedhere: " + this.players[i].positions[1].diedhere);
+                this.debug(i + ": #" + this.players[i].userid + ", Name: " + this.players[i].name + ", IP: " + this.players[i].ip + ", Team: " + this.players[i].team + ", Alive: " + this.players[i].alive + ", Positions: " + this.players[i].positions.length);
+                if (this.players[i].positions.length > 0) {
+                    this.debug(i + ": 1x: " + this.players[i].positions[0].x + ", 1y: " + this.players[i].positions[0].y + ", 1diffx: " + this.players[i].positions[0].diffx + ", 1diffy: " + this.players[i].positions[0].diffy + ", 1swapx: " + this.players[i].positions[0].swapx + ", 1swapy: " + this.players[i].positions[0].swapy + ", diedhere: " + this.players[i].positions[0].diedhere);
+                }
+                if (this.players[i].positions.length > 1) {
+                    this.debug(i + ": 2x: " + this.players[i].positions[1].x + ", 2y: " + this.players[i].positions[1].y + ", 2diffx: " + this.players[i].positions[1].diffx + ", 2diffy: " + this.players[i].positions[1].diffy + ", 2swapx: " + this.players[i].positions[1].swapx + ", 2swapy: " + this.players[i].positions[1].swapy + ", diedhere: " + this.players[i].positions[1].diedhere);
+                }
             }
-            debug("");
+
+            this.debug("");
         },
 
         sendChatMessage : function() {
-            if (this.socket===null)
+            var d, timestring;
+            if (this.socket===null) {
                 return;
+            }
 
-            if ($("#chatinput").val() === "")
+            if ($("#chatinput").val() === "") {
                 return;
+            }
 
             if ($("#chatnick").val() === "")
             {
@@ -1618,15 +1656,21 @@ var SourceTV2D = SourceTV2D || (function() {
 
             this.socket.send($("#chatnick").val() + ": " + $("#chatinput").val());
             d = new Date();
-            var timestring = "(";
-            if (d.getHours() < 10)
-            timestring += "0";
+            timestring = "(";
+            if (d.getHours() < 10) {
+                timestring += "0";
+            }
             timestring += d.getHours() + ":";
-            if (d.getMinutes() < 10)
-            timestring += "0";
+            
+            if (d.getMinutes() < 10) {
+                timestring += "0";
+            }
             timestring += d.getMinutes() + ":";
-            if (d.getSeconds() < 10)
-            timestring += "0";
+
+            if (d.getSeconds() < 10) {
+                timestring += "0";
+            }
+
             timestring += d.getSeconds() + ") ";
 
             $("#chatoutput").append(document.createTextNode(timestring + $("#chatnick").val() + ": " + $("#chatinput").val()));
@@ -1638,16 +1682,16 @@ var SourceTV2D = SourceTV2D || (function() {
         },
 
         toggleNames : function() {
-            if (this.shownames === 1) {
-                this.shownames = 0;
+            if (this.shownames) {
+                this.shownames = false;
             } else {
-                this.shownames = 1;
+                this.shownames = true;
             }
         },
 
         debug : function(msg) {
             $("#debug").html($("#debug").html() + "<br>" + msg);
-        },
+        }
     };
 }());
 
