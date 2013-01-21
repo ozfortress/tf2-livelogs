@@ -1,17 +1,10 @@
 <!DOCTYPE html>
 <html lang="en" xml:lang="en">
 <head>
-    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-    
     <title>Livelogs DEV - PASTLOGS</title>
 
-    <!--<link href="/favicon.ico" rel="shortcut icon">-->
-    <!--<link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">-->
-    <link rel="stylesheet" type="text/css" href="/css/jquery.dataTables.css">
-    <link rel="stylesheet" type="text/css" href="/css/bootstrap/bootstrap.css">
-    <link rel="stylesheet" type="text/css" href="/css/livelogs.css">
-
     <?php
+        include 'static/header.html';
         require "../conf/ll_database.php";
         
         if (!$ll_db)
@@ -69,33 +62,35 @@
 </head>
 <body class="ll_body">
     <div class="livelogs_wrapper">
-        <div id="navigation" class="ll_navbar">
-            <ul class="nav nav-pills">
-                <li>
-                    <a href="/">Home</a>
-                </li>
-                <li class="active">
-                    <a href="/past">Archive</a>
-                </li>
-                <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a href="#about_modal" data-toggle="modal">About</a>
-                        </li>
-                        
-                        <li>
-                            <a href="#faq_modal" data-toggle="modal">FAQ</a>
-                        </li>
-                        <li class="disabled">
-                            <a href="#">Source</a>
-                        </li>
-                    </ul>
-                </li>
-                <li class="disabled">
-                    <a href="#">Login</a>
-                </li>
-            </ul>
+        <div class="navbar navbar-inverse navbar-static-top">
+            <div class="navbar-inner">
+                <ul class="nav">
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+                    <li class="active">
+                        <a href="/past">Archive</a>
+                    </li>
+                    <li class="dropdown">
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="#about_modal" data-toggle="modal">About</a>
+                            </li>
+                            
+                            <li>
+                                <a href="#faq_modal" data-toggle="modal">FAQ</a>
+                            </li>
+                            <li class="disabled">
+                                <a href="#">Source</a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="disabled">
+                        <a href="#">Login</a>
+                    </li>
+                </ul>
+            </div>
         </div>
         
         <div class="log_list_container">
@@ -147,7 +142,7 @@
         <?php include('static/logo.html'); ?>
     </div>
     <?php include('static/footer.html'); ?>
-    
+
     <script src="/js/logsearch.js" type="text/javascript"></script>
 </body>
 

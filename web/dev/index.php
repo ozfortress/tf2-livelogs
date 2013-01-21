@@ -1,17 +1,9 @@
 <!DOCTYPE html>
 <html lang="en" xml:lang="en">
 <head>
-    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-    
     <title>Livelogs DEV - INDEX</title>
-
-    <!--<link href="/favicon.ico" rel="shortcut icon">-->
-    <!--<link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">-->
-    <link rel="stylesheet" type="text/css" href="/css/jquery.dataTables.css">
-    <link rel="stylesheet" type="text/css" href="/css/bootstrap/bootstrap.css">
-    <link rel="stylesheet" type="text/css" href="/css/livelogs.css">
-
     <?php
+        include 'static/header.html';
         require "../conf/ll_database.php";
         
         if (!$ll_db)
@@ -29,9 +21,9 @@
 </head>
 <body class="ll_body">
     <div class="livelogs_wrapper">
-        <div class="nav navbar-static-top navbar-inverse">
-            <div id="navigation" class="ll_navbar">
-                <ul class="nav nav-pills">
+        <div class="navbar navbar-inverse navbar-static-top">
+            <div class="navbar-inner">
+                <ul class="nav">
                     <li class="active">
                         <a href="/">Home</a>
                     </li>

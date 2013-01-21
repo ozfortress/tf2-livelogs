@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="en" xml:lang="en">
 <head>
-    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-    
     <title>Livelogs DEV - SHOWLOG</title>
     <?php
+        include 'static/header.html';
+
         require "../conf/ll_database.php";
         require "../conf/ll_websocket.php";
         
@@ -102,12 +102,6 @@
             $log_live = true;
     ?>
 
-    <!--<link href="/favicon.ico" rel="shortcut icon">-->
-    <!--<link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">-->
-    <link rel="stylesheet" type="text/css" href="/css/jquery.dataTables.css">
-    <link rel="stylesheet" type="text/css" href="/css/bootstrap/bootstrap.css">
-    <link rel="stylesheet" type="text/css" href="/css/livelogs.css">
-    
 </head>
 <body class="ll_body">
     <div class="livelogs_wrapper">
@@ -118,63 +112,65 @@
         }
         ?>
         
-        <div id="navigation" class="ll_navbar">
-            <ul class="nav nav-pills">
-                <li>
-                    <a href="/">Home</a>
-                </li>
-                <li>
-                    <a href="/past">Archive</a>
-                </li>
-                <li class="dropdown active">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">View Settings <b class="caret"></b></a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a href="#" data-toggle="collapse" data-target="#chat_event_feed">Show Chat</a>
-                        </li>
-                        <?php 
-                        if (($log_live) && ($log_details["webtv_port"]))
-                        {
-                        ?>
-                        
-                        <li>
-                            <a href="#" data-toggle="collapse" data-target="#sourcetv2d">Show SourceTV 2D</a>
-                        </li>
-                        <?php
-                        }
-                        
-                        if (($log_live) && (!empty($ll_websock["server_ip"])))
-                        {
-                        ?>
-                        
-                        <li>
-                            <a href="javascript:llWSClient.toggleUpdate()">Auto Update Stats</a>
-                        </li>
-                        <?php
-                        }
-                        ?>
-                        
-                    </ul>
-                </li>
-                <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a href="#about_modal" data-toggle="modal">About</a>
-                        </li>
-                        
-                        <li>
-                            <a href="#faq_modal" data-toggle="modal">FAQ</a>
-                        </li>
-                        <li class="disabled">
-                            <a href="#">Source</a>
-                        </li>
-                    </ul>
-                </li>
-                <li class="disabled">
-                    <a href="#">Login</a>
-                </li>
-            </ul>
+        <div class="navbar navbar-inverse navbar-static-top">
+            <div class="navbar-inner">
+                <ul class="nav nav-pills">
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+                    <li>
+                        <a href="/past">Archive</a>
+                    </li>
+                    <li class="dropdown active">
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">View Settings <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="#" data-toggle="collapse" data-target="#chat_event_feed">Show Chat</a>
+                            </li>
+                            <?php 
+                            if (($log_live) && ($log_details["webtv_port"]))
+                            {
+                            ?>
+                            
+                            <li>
+                                <a href="#" data-toggle="collapse" data-target="#sourcetv2d">Show SourceTV 2D</a>
+                            </li>
+                            <?php
+                            }
+                            
+                            if (($log_live) && (!empty($ll_websock["server_ip"])))
+                            {
+                            ?>
+                            
+                            <li>
+                                <a href="javascript:llWSClient.toggleUpdate()">Auto Update Stats</a>
+                            </li>
+                            <?php
+                            }
+                            ?>
+                            
+                        </ul>
+                    </li>
+                    <li class="dropdown">
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="#about_modal" data-toggle="modal">About</a>
+                            </li>
+                            
+                            <li>
+                                <a href="#faq_modal" data-toggle="modal">FAQ</a>
+                            </li>
+                            <li class="disabled">
+                                <a href="#">Source</a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="disabled">
+                        <a href="#">Login</a>
+                    </li>
+                </ul>
+            </div>
         </div>
 
         <div class="log_details_container">
