@@ -55,7 +55,7 @@
             </ul>
         </div>
         <div class="index_welcome">
-            <p>Welcome to Livelogs! Below you will find a list of logs that are currently live, and a list of past logs that you may view.</p>
+            <p>Welcome to Livelogs! Below you will find a list of logs that are currently live (if any), and a list of past logs that you may view.</p>
         </div>
         <?php
         if (!$live_res)
