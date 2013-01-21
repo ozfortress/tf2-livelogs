@@ -87,6 +87,8 @@
                                 </li>
                             </ul>
                         </li>
+                    </ul>
+                    <ul class="pull-right">
                         <li class="disabled">
                             <a href="#">Login</a>
                         </li>
