@@ -198,10 +198,9 @@
         <div class="uploaded_logs">
         
         </div>
-        
+        <?php include('static/logo.html'); ?>
     </div>
-    <?php include('/static/modals.html'); ?>
-    <?php include('/static/footer.html'); ?>
+    <?php include('static/footer.html'); ?>
 </body>
 
 </html>

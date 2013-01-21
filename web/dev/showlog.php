@@ -469,11 +469,10 @@
         </div>
         <?php
         }
+        include('static/logo.html');
         ?>
-
-    </div>  
-    <?php include('/static/modals.html'); ?>
-    <?php include('/static/footer.html'); ?>
+    </div>
+    <?php include('static/footer.html'); ?>
 
     <script src="/js/sprintf-0.7-beta1.js" type="text/javascript"></script>
     <script src="/js/viewlog.js" type="text/javascript"></script>

@@ -143,10 +143,11 @@
                 </table>
             </div>
         </div>
-    </div>
 
-    <?php include('/static/modals.html'); ?>
-    <?php include('/static/footer.html'); ?>
+        <?php include('static/logo.html'); ?>
+    </div>
+    <?php include('static/footer.html'); ?>
+    
     <script src="/js/logsearch.js" type="text/javascript"></script>
 </body>
 
