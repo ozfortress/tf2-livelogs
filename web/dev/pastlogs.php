@@ -145,49 +145,8 @@
         </div>
     </div>
 
-
-
-    <!--BEGIN MODAL DIVS-->
-    <div id="about_modal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="aboutModalLabel" aria-hidden="true">
-        <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
-            <h3 id="aboutModelLabel">About Livelogs</h3>
-        </div>
-
-        <div class="modal-body">
-            Nothing to see
-        </div>
-
-        <div class="modal-footer">
-            <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
-        </div>
-    </div>
-
-    <div id="faq_modal" class="modal hide fade" tabindex="-1" role="dialog" aria-labelledby="faqModalLabel" aria-hidden="true">
-        <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">x</button>
-            <h3 id="faqModelLabel">Frequently Asked Questions</h3>
-        </div>
-
-        <div class="modal-body">
-            Empty
-        </div>
-
-        <div class="modal-footer">
-            <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
-        </div>
-    </div>
-
-    <!-- LOAD SCRIPTS AT THE BOTOM FOR PERFORMANCE ++ -->
-    <!-- use locally hosted scripts for dev 
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
-    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.1/jquery-ui.min.js"></script>
-    <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
-    -->
-    <script src="/js/jquery.min.js"></script>
-    <script src="/js/jquery-ui.min.js"></script>
-    <script src="/js/jquery.dataTables.min.js"></script>
-    <script src="/js/bootstrap/bootstrap.js" type="text/javascript"></script>
+    <?php include('/static/modals.html'); ?>
+    <?php include('/static/footer.html'); ?>
     <script src="/js/logsearch.js" type="text/javascript"></script>
 </body>
 
