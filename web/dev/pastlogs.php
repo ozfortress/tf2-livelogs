@@ -71,6 +71,8 @@
                     <li class="active">
                         <a href="/past">Archive</a>
                     </li>
+                </ul>
+                <ul class="nav pull-right">
                     <li class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
                         <ul class="dropdown-menu">
@@ -86,8 +88,6 @@
                             </li>
                         </ul>
                     </li>
-                </ul>
-                <ul class="nav pull-right">
                     <li class="disabled">
                         <a href="#">Login</a>
                     </li>
