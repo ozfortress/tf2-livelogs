@@ -3,7 +3,11 @@
     padding: 6px;
 }*/
 .livelogs_nav_container {
+    margin-left: auto;
+    margin-right: auto;
+    overflow: auto;
     width: 80%;
+    *border-collapse: collapse;
 }
 
 .livelogs_wrapper {

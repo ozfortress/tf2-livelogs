@@ -61,42 +61,41 @@
 
 </head>
 <body class="ll_body">
-    <div class="livelogs_wrapper">
-        <div class="navbar navbar-inverse navbar-fixed-top">
-            <div class="navbar-inner">
-                <div class="livelogs_nav_container">
-                    <ul class="nav">
-                        <li>
-                            <a href="/">Home</a>
-                        </li>
-                        <li class="active">
-                            <a href="/past">Archive</a>
-                        </li>
-                        <li class="dropdown">
-                            <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
-                            <ul class="dropdown-menu">
-                                <li>
-                                    <a href="#about_modal" data-toggle="modal">About</a>
-                                </li>
-                                
-                                <li>
-                                    <a href="#faq_modal" data-toggle="modal">FAQ</a>
-                                </li>
-                                <li class="disabled">
-                                    <a href="#">Source</a>
-                                </li>
-                            </ul>
-                        </li>
-                    </ul>
-                    <ul class="nav pull-right">
-                        <li class="disabled">
-                            <a href="#">Login</a>
-                        </li>
-                    </ul>
-                </div>
+    <div class="navbar navbar-inverse navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="livelogs_nav_container">
+                <ul class="nav">
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+                    <li class="active">
+                        <a href="/past">Archive</a>
+                    </li>
+                    <li class="dropdown">
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="#about_modal" data-toggle="modal">About</a>
+                            </li>
+                            
+                            <li>
+                                <a href="#faq_modal" data-toggle="modal">FAQ</a>
+                            </li>
+                            <li class="disabled">
+                                <a href="#">Source</a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+                <ul class="nav pull-right">
+                    <li class="disabled">
+                        <a href="#">Login</a>
+                    </li>
+                </ul>
             </div>
         </div>
-        
+    </div>    
+    <div class="livelogs_wrapper">
         <div class="log_list_past_container">
             <div class="log_list">
                 <input type="text" class="pastlogs_searchfield" placeholder="Enter search term" id="searchField" value="<?=$filter?>">
