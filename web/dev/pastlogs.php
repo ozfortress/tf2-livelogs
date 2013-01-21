@@ -6,6 +6,16 @@
     <?php
         include 'static/header.html';
         require "../conf/ll_database.php";
+        require "../conf/ll_config.php";
+
+        if (!empty($ll_config["display"]["archive_num"]))
+        {
+            $num_logs = $ll_config["display"]["archive_num"];
+        }
+        else
+        {
+            $num_logs = 40;
+        }
         
         if (!$ll_db)
         {
@@ -29,7 +39,7 @@
                 $past_query = "SELECT server_ip, server_port, log_ident, log_name, map 
                                 FROM livelogs_servers 
                                 WHERE (server_ip = '{$escaped_address}' AND server_port = CAST('{$escaped_port}' AS INT))
-                                ORDER BY numeric_id DESC LIMIT 40";
+                                ORDER BY numeric_id DESC LIMIT {$num_logs}";
             }
             else
             {
@@ -47,13 +57,13 @@
                 $past_query = "SELECT server_ip, server_port, log_ident, log_name, map 
                                 FROM livelogs_servers 
                                 WHERE (server_ip ~* '{$escaped_filter}' OR log_name ~* '{$escaped_filter}' OR map ~* '{$escaped_filter}')
-                                ORDER BY numeric_id DESC LIMIT 40";
+                                ORDER BY numeric_id DESC LIMIT {$num_logs}";
             }
         }
         else
         {
             $past_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='false' AND numeric_id <= ((SELECT MAX(numeric_id) FROM livelogs_servers) - 10)
-                            ORDER BY numeric_id DESC LIMIT 40";
+                            ORDER BY numeric_id DESC LIMIT {$num_logs}";
         }
         
         $past_res = pg_query($ll_db, $past_query);

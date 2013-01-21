@@ -5,16 +5,26 @@
     <?php
         include 'static/header.html';
         require "../conf/ll_database.php";
+        require "../conf/ll_config.php";
         
         if (!$ll_db)
         {
             die("Unable to connect to database");
         }
+
+        if (!empty($ll_config["display"]["index_num_past"]))
+        {
+            $num_past = $ll_config["display"]["index_num_past"];
+        }
+        else
+        {
+            $num_past = 15;
+        }
     
         $live_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='true' ORDER BY numeric_id DESC";
         $live_res = pg_query($ll_db, $live_query);
     
-        $past_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='false' ORDER BY numeric_id DESC LIMIT 10";
+        $past_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='false' ORDER BY numeric_id DESC LIMIT {$num_past}";
         $past_res = pg_query($ll_db, $past_query);
     ?>
 
@@ -98,33 +108,22 @@
                                 <td class="server_port"><?=$live["server_port"]?></td>
                                 <td class="log_map"><?=$live["map"]?></td>
                                 <td class="log_name"><a href="/view/<?=$live["log_ident"]?>"><?=$live["log_name"]?></a></td>
-
                             </tr>
                         <?php
                         }
                         ?>
                         
                         </tbody>
-                        <caption>Logs that are currently live</caption>
+                        <caption>Live</caption>
                     </table>
                 </div>
             </div>
         <?php
             }
-            if (pg_num_rows($live_res) <= 0)
-            {
         ?>
-        
-            <div class="log_list_container" align="center">
-        <?php
-            }
-            else 
-            {
-        ?>
-        
+
             <div class="log_list_container">
             <?php
-            }
                 if (!$past_res)
                 {
                 ?>
@@ -179,7 +178,7 @@
                         ?>
                         
                         </tbody>
-                        <caption>Past 10 Logs (<a href="/past">See more</a>)</caption>
+                        <caption>Past <?=$num_past?> Logs (<a href="/past">See more</a>)</caption>
                     </table>
                     <p align="right"><a href="/past">See more</a></p>
                 </div>
@@ -193,8 +192,10 @@
             </div>
         </div>
         <?php include('static/logo.html'); ?>
+
     </div>
     <?php include('static/footer.html'); ?>
+
 </body>
 
 </html>

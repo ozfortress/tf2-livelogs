@@ -6,7 +6,7 @@
         include 'static/header.html';
 
         require "../conf/ll_database.php";
-        require "../conf/ll_websocket.php";
+        require "../conf/ll_config.php";
         
         $UNIQUE_IDENT = $_GET["ident"];
         $escaped_ident = pg_escape_string($UNIQUE_IDENT);
@@ -138,7 +138,7 @@
                             <?php
                             }
                             
-                            if (($log_live) && (!empty($ll_websock["server_ip"])))
+                            if (($log_live) && (!empty($ll_config["websock"]["server_ip"])))
                             {
                             ?>
                             
@@ -478,7 +478,7 @@
     ?>
     
     <script type="text/javascript">
-        llWSClient.init("<?=$ll_websock["server_ip"]?>", <?=$ll_websock["server_port"]?>, "<?=$UNIQUE_IDENT?>")
+        llWSClient.init("<?=$ll_config["websock"]["server_ip"]?>", <?=$ll_config["websock"]["server_port"]?>, "<?=$UNIQUE_IDENT?>")
     </script>
     <?php
     }

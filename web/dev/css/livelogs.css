@@ -180,9 +180,15 @@
     margin-left: 10px;
     width: 90%;
     text-align: center;
+    padding: 5px;
 }
 
 .pastlogs_searchfield {
     padding: 5px;
     margin-bottom: 5px;
+    margin-top: 5px;
+}
+
+.logo {
+    padding: 5px;
 }
