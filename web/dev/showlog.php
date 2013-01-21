@@ -112,9 +112,9 @@
         }
         ?>
         
-        <div class="navbar navbar-inverse navbar-static-top">
+        <div class="navbar navbar-inverse navbar-fixed-top">
             <div class="navbar-inner">
-                <ul class="nav nav-pills">
+                <ul class="nav">
                     <li>
                         <a href="/">Home</a>
                     </li>

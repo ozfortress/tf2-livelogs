@@ -2,6 +2,9 @@
     margin-bottom: 0.5em;
     padding: 6px;
 }*/
+.livelogs_nav_container {
+    width: 80%;
+}
 
 .livelogs_wrapper {
     margin-left: auto;
@@ -151,6 +154,11 @@
 
 .log_list_container {
     float: left;
+    width: 49%;
+    margin-bottom: 5px;
+    margin-left: 10px;
+}
+.log_list_past_container {
     width: 49%;
     margin-bottom: 5px;
     margin-left: 10px;

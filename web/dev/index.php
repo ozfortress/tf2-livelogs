@@ -21,7 +21,7 @@
 </head>
 <body class="ll_body">
     <div class="livelogs_wrapper">
-        <div class="navbar navbar-inverse navbar-static-top">
+        <div class="navbar navbar-inverse navbar-fixed-top">
             <div class="navbar-inner">
                 <ul class="nav">
                     <li class="active">
