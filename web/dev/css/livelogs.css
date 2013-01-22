@@ -5,16 +5,15 @@
 .livelogs_nav_container {
     margin-left: auto;
     margin-right: auto;
-    width: 998px;
+    width: 1170px; /*0.975*container width, so nav items are within page */
 }
 
 .livelogs_wrapper {
     margin: 0% auto;
     position: relative;
     overflow: auto;
-    width: 1080px; /*slightly bigger than ipad width*/
     border: 1px solid #dddddd;
-    /*border-left: 0;*/
+    width: 1200px; /*slightly bigger ipad width*/
     *border-collapse: collapse;
     /*-webkit-border-radius: 4px;
         -moz-border-radius: 4px;
@@ -25,7 +24,7 @@
 
 .ll_body {
     background-color: #FFFFF0;
-    padding: 41px;
+    padding-top: 40px; /*padding for the nav bar*/
 }
 
 .ll_table {
@@ -35,28 +34,28 @@
 }
 
 .ll_table td {
-    white-space: nowrap;
+    white-space: nowrap; /*prevent wrapping of names*/
 }
 
 .ll_table thead {
     color: #339933;
     /*border-bottom: 2px solid #dddddd;*/
 }
-.chat {
-    margin-left: 2px;
-    margin-right: 2px;
+.ll_table .chat {
+    padding: 5px;
 }
 
 .stat_table_container {
-    width: 55%;
+    width: 1180px;
     margin-bottom: 5px;
     margin-left: 10px;
+    margin-right: 5px;
     /*border-radius: 10px;
     border: solid 1px black;*/
 }
 
 .stat_table_container_medic {
-    width: 25%;
+    width: 456px; /*0.38*1200*/
 }
 
 .log_details_container {
@@ -133,15 +132,17 @@
 .player_chat {
     font-weight: bold;
     font-size: 10pt;
+    width: 180px;
 }
 .player_chat_message {
     font-size: 10pt;
 }
 
 .sourcetv_container {
-    width: 76%;
+    width: 1180px; /*1200-margin*/
     margin-left: 10px;
     margin-bottom: 5px;
+    margin-right: 10px;
 }
 
 .live_feed_container {
@@ -149,7 +150,7 @@
     margin-right: 10px;
     margin-left: 10px;
     overflow: auto;
-    width: 55%;
+    width: 900px; /*room for obnoxious names and messages*/
 }
 
 .sourcetv_controls {
@@ -180,7 +181,7 @@
     margin-left: 10px;
     width: 90%;
     text-align: center;
-    padding: 5px;
+    padding: 10px;
 }
 
 .pastlogs_searchfield {
