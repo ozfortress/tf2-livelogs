@@ -1,5 +1,35 @@
 /* Uses ajax to get search results using a php script */
 
+var log_search = log_search || (function() {
+    "use strict";
+    return {
+        searchLogs : function() {
+            var search = $("#search_field").val();
+
+            if (search !== "") {
+                $.get("/func/logsearch.php?term=" + search, function(result) {
+                    if (result) {
+                        $("#pastLogs").html(result); //result is in form of <tr><td></td>...</tr>
+                    }
+                    else {
+                        $("#pastLogs").html("No results available");
+                    }
+                });
+            }
+        },
+
+        submitCallback : function() {
+            log_search.searchLogs();
+        },
+
+        keyupCallback : function(e) {
+            if (e.keyCode !== 13) {
+                log_search.searchLogs();
+            }
+        }
+    };
+}());
+
 $(document).ready(function() 
 {
     "use strict";
@@ -14,35 +44,6 @@ $(document).ready(function()
         log_search.submitCallback();
         e.preventDefault();
     });
-
-    var log_search = log_search || (function() {
-        return {
-            searchLogs : function() {
-                var search = $("#search_field").val();
-
-                if (search !== "") {
-                    $.get("/func/logsearch.php?term=" + search, function(result) {
-                        if (result) {
-                            $("#pastLogs").html(result); //result is in form of <tr><td></td>...</tr>
-                        }
-                        else {
-                            $("#pastLogs").html("No results available");
-                        }
-                    });
-                }
-            },
-
-            submitCallback : function() {
-                log_search.searchLogs();
-            },
-
-            keyupCallback : function(e) {
-                if (e.keyCode != 13) {
-                    log_search.searchLogs();
-                }
-            }
-        };
-    }());
 
     /*
     $('#searchField').keyup(function()
