@@ -68,7 +68,7 @@
         <div class="index_welcome">
             <p>Welcome to Livelogs! Below you will find a list of logs that are currently live (if any), and a list of past logs that you may view.</p>
         </div>
-        <div>
+        <div align="center">
             <?php
             if (!$live_res)
             {
@@ -79,7 +79,6 @@
             }
             else if (pg_num_rows($live_res) > 0)
             {
-                $past_log_class = "log_list_container";
             ?>
             
             <div class="log_list_container">
@@ -123,14 +122,10 @@
             </div>
         <?php
             }
-            else
-            {
-                $past_log_class = "log_list_past_container";
-            }
 
         ?>
 
-            <div class="<?=$past_log_class?>">
+            <div class="log_list_container">
             <?php
                 if (!$past_res)
                 {
