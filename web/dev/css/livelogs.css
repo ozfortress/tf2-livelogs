@@ -159,22 +159,14 @@
 
 .log_list_container {
     float: left;
-    width: 49%;
+    width: 588px;
     margin-bottom: 5px;
-    margin-left: 10px;
+    margin-left: 8px;
 }
 .log_list_past_container {
-    width: 49%;
+    width: 588px;
     margin-bottom: 5px;
-    margin-left: 10px;
-}
-
-.log_list {
-    width: 100%;
-}
-
-.log_table {
-    text-align: left;
+    margin-left: 8px;
 }
 
 .index_welcome {
