@@ -8,27 +8,41 @@ $(document).ready(function()
     we use jquery.get() to call a php script that will return the results (if there are any)
     */
     
-    $("#search_field").bindWithDelay("keyup", {when: "delay"}, log_search, 500);
+    $("#search_field").bindWithDelay("keyup", {when: "delay", optional: "eventData"}, log_search.keyupCallback, 500);
 
-    $("search_form").submit(function(e) {
-        log_search();
+    $("#search_form").submit(function(e) {
+        log_search.submitCallback();
         e.preventDefault();
     });
 
-    function log_search() {
-        var search = $("#search_field").val();
+    var log_search = log_search || (function() {
+        return {
+            searchLogs : function() {
+                var search = $("#search_field").val();
 
-        if (search !== "") {
-            $.get("/func/logsearch.php?term=" + search, function(result) {
-                if (result) {
-                    $("#pastLogs").html(result); //result is in form of <tr><td></td>...</tr>
+                if (search !== "") {
+                    $.get("/func/logsearch.php?term=" + search, function(result) {
+                        if (result) {
+                            $("#pastLogs").html(result); //result is in form of <tr><td></td>...</tr>
+                        }
+                        else {
+                            $("#pastLogs").html("No results available");
+                        }
+                    });
                 }
-                else {
-                    $("#pastLogs").html("No results available");
+            },
+
+            submitCallback : function() {
+                log_search.searchLogs();
+            },
+
+            keyupCallback : function(e) {
+                if (e.keyCode != 13) {
+                    log_search.searchLogs();
                 }
-            });
-        }
-    }
+            }
+        };
+    }());
 
     /*
     $('#searchField').keyup(function()

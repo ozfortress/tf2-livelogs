@@ -62,7 +62,9 @@
         }
         else
         {
-            $past_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='false' AND numeric_id <= ((SELECT MAX(numeric_id) FROM livelogs_servers) - 10)
+            $past_query = "SELECT server_ip, server_port, log_ident, log_name, map 
+                            FROM livelogs_servers 
+                            WHERE live='false'
                             ORDER BY numeric_id DESC LIMIT {$num_logs}";
         }
         
