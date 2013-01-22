@@ -108,7 +108,10 @@
     <div class="livelogs_wrapper">
         <div class="log_list_past_container">
             <div class="log_list">
-                <input type="text" class="pastlogs_searchfield" placeholder="Enter search term" id="searchField" value="<?=$filter?>">
+                <form class="form-search">
+                    <input type="text" class="pastlogs_searchfield" placeholder="Enter search term" id="searchField" value="<?=$filter?>">
+                    <button type="submit" class="btn">Search</button>
+                </form>
                 <table class="table table-bordered table-hover ll_table">
                     <thead>
                         <tr class="stat_summary_title_bar info">

@@ -2,31 +2,38 @@
 
 $(document).ready(function() 
 {
+    "use strict";
     /*
     After a user lets go of a key (i.e, they've entered something in the search box,
     we use jquery.get() to call a php script that will return the results (if there are any)
     */
     
-    $('#searchField').bindWithDelay(
-            "keyup", 
-            function(event) {
-                var search = $event.val()
-
-                if (search !== "") {
-                    $.get("/func/logsearch.php?term=" + search, function(result) {
-                        if (result) {
-                            $('#pastLogs').html(result); //result is in form of <tr><td></td>...</tr>
-                        }
-                        else {
-                            $('#pastLogs').html("No results available");
-                        }
-                    });
-                }
-            },
+    $("#search_field").bindWithDelay(
+            "keyup",
+            log_search,
             1000
         );
 
 
+    $("search_submit").click(function() {
+        log_search();
+    });
+
+
+    var log_search = (function() {
+        var search = $("#search_field").val();
+
+        if (search !== "") {
+            $.get("/func/logsearch.php?term=" + search, function(result) {
+                if (result) {
+                    $("#pastLogs").html(result); //result is in form of <tr><td></td>...</tr>
+                }
+                else {
+                    $("#pastLogs").html("No results available");
+                }
+            });
+        }
+    });
 
     /*
     $('#searchField').keyup(function()
