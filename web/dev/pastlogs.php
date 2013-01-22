@@ -108,7 +108,7 @@
         </div>
     </div>    
     <div class="livelogs_wrapper">
-        <div class="log_list_past_container">
+        <div class="log_list_container">
             <form class="form-search" action="javascript:void(0);" id="search_form">
                 <input type="text" class="pastlogs_searchfield" placeholder="Enter search term" id="search_field" value="<?=$filter?>">
                 <button type="submit" class="btn" id="search_submit">Search</button>
