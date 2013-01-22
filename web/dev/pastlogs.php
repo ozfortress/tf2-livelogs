@@ -156,6 +156,7 @@
     </div>
     <?php include('static/footer.html'); ?>
 
+    <script src="/js/bindWithDelay.js" type="text/javascript"></script>
     <script src="/js/logsearch.js" type="text/javascript"></script>
 </body>
 
