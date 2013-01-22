@@ -8,19 +8,13 @@ $(document).ready(function()
     we use jquery.get() to call a php script that will return the results (if there are any)
     */
     
-    $("#search_field").bindWithDelay(
-            "keyup",
-            log_search,
-            1000
-        );
+    $("#search_field").bindWithDelay("keyup", {when: "delay"}, log_search, 500);
 
-
-    $("search_submit").click(function() {
+    $("search_form").submit(function() {
         log_search();
     });
 
-
-    var log_search = (function() {
+     function log_search(e) {
         var search = $("#search_field").val();
 
         if (search !== "") {
@@ -33,7 +27,7 @@ $(document).ready(function()
                 }
             });
         }
-    });
+    };
 
     /*
     $('#searchField').keyup(function()

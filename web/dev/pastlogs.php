@@ -108,9 +108,9 @@
     <div class="livelogs_wrapper">
         <div class="log_list_past_container">
             <div class="log_list">
-                <form class="form-search">
-                    <input type="text" class="pastlogs_searchfield" placeholder="Enter search term" id="searchField" value="<?=$filter?>">
-                    <button type="submit" class="btn">Search</button>
+                <form class="form-search" action="javascript:void(0);" id="search_form">
+                    <input type="text" class="pastlogs_searchfield" placeholder="Enter search term" id="search_field" value="<?=$filter?>">
+                    <button type="submit" class="btn" id="search_submit">Search</button>
                 </form>
                 <table class="table table-bordered table-hover ll_table">
                     <thead>
@@ -144,7 +144,7 @@
                             <td class="server_port"><?=$log["server_port"]?></td>
                             <td class="log_map"><?=$log["map"]?></td>
                             <td class="log_name"><a href="/view/<?=$log["log_ident"]?>"><?=$log["log_name"]?></a></td>
-                            <td class="log_date"><?=date("d/m/Y   H:i:s", $log_split[2])?></td>
+                            <td class="log_date"><?=date("d/m/Y H:i:s", $log_split[2])?></td>
                         </tr>
                     <?php
                     }
