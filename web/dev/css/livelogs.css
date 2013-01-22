@@ -9,8 +9,8 @@
 }
 
 .livelogs_wrapper {
-    margin-left: auto;
-    margin-right: auto;
+    margin: 0% auto;
+    position: relative;
     overflow: auto;
     width: 1024px; /*ipad width*/
     border: 1px solid #dddddd;
