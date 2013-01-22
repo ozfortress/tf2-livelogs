@@ -104,16 +104,9 @@
 
 </head>
 <body class="ll_body">
-    <div class="livelogs_wrapper">
-        <?php
-        if ($invalid_log_ident)
-        {
-            die("404</div>"); //die with an error if we have invalid log ident and close the main div
-        }
-        ?>
-        
-        <div class="navbar navbar-inverse navbar-fixed-top">
-            <div class="navbar-inner">
+    <div class="navbar navbar-inverse navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="livelogs_nav_container">
                 <ul class="nav">
                     <li>
                         <a href="/">Home</a>
@@ -151,6 +144,8 @@
                             
                         </ul>
                     </li>
+                </ul>
+                <ul class="nav pull-right">
                     <li class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
                         <ul class="dropdown-menu">
@@ -172,6 +167,14 @@
                 </ul>
             </div>
         </div>
+    </div>
+    <div class="livelogs_wrapper">
+        <?php
+        if ($invalid_log_ident)
+        {
+            die("404</div>"); //die with an error if we have invalid log ident and close the main div
+        }
+        ?>
 
         <div class="log_details_container">
             <?php

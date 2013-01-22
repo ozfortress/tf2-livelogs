@@ -79,6 +79,7 @@
             }
             else if (pg_num_rows($live_res) > 0)
             {
+                $past_log_class = "log_list_container";
             ?>
             
             <div class="log_list_container">
@@ -122,9 +123,14 @@
             </div>
         <?php
             }
+            else
+            {
+                $past_log_class = "log_list_past_container";
+            }
+
         ?>
 
-            <div class="log_list_container">
+            <div class="<?=$past_log_class?>">
             <?php
                 if (!$past_res)
                 {
