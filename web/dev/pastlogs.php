@@ -107,52 +107,50 @@
     </div>    
     <div class="livelogs_wrapper">
         <div class="log_list_past_container">
-            <div class="log_list">
-                <form class="form-search" action="javascript:void(0);" id="search_form">
-                    <input type="text" class="pastlogs_searchfield" placeholder="Enter search term" id="search_field" value="<?=$filter?>">
-                    <button type="submit" class="btn" id="search_submit">Search</button>
-                </form>
-                <table class="table table-bordered table-hover ll_table">
-                    <thead>
-                        <tr class="stat_summary_title_bar info">
-                            <th class="log_list_col_title">
-                                Server IP
-                            </th>
-                            <th class="log_list_col_title">
-                                Server Port
-                            </th>
-                            <th class="log_list_col_title">
-                                Map
-                            </th>
-                            <th class="log_list_col_title">
-                                Log Name
-                            </th>
-                            <th class="log_list_col_title">
-                                Date
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody id="pastLogs">
-                    <?php
-                    while ($log = pg_fetch_array($past_res, NULL, PGSQL_ASSOC))
-                    {
-                        $log_split = explode("_", $log["log_ident"]); //3232244481_27015_1356076576
-                    ?>
-                        
-                        <tr>
-                            <td class="server_ip"><?=long2ip($log["server_ip"])?></td>
-                            <td class="server_port"><?=$log["server_port"]?></td>
-                            <td class="log_map"><?=$log["map"]?></td>
-                            <td class="log_name"><a href="/view/<?=$log["log_ident"]?>"><?=$log["log_name"]?></a></td>
-                            <td class="log_date"><?=date("d/m/Y H:i:s", $log_split[2])?></td>
-                        </tr>
-                    <?php
-                    }
-                    ?>
+            <form class="form-search" action="javascript:void(0);" id="search_form">
+                <input type="text" class="pastlogs_searchfield" placeholder="Enter search term" id="search_field" value="<?=$filter?>">
+                <button type="submit" class="btn" id="search_submit">Search</button>
+            </form>
+            <table class="table table-bordered table-hover ll_table">
+                <thead>
+                    <tr class="stat_summary_title_bar info">
+                        <th class="log_list_col_title">
+                            Server IP
+                        </th>
+                        <th class="log_list_col_title">
+                            Server Port
+                        </th>
+                        <th class="log_list_col_title">
+                            Map
+                        </th>
+                        <th class="log_list_col_title">
+                            Log Name
+                        </th>
+                        <th class="log_list_col_title">
+                            Date
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="pastLogs">
+                <?php
+                while ($log = pg_fetch_array($past_res, NULL, PGSQL_ASSOC))
+                {
+                    $log_split = explode("_", $log["log_ident"]); //3232244481_27015_1356076576
+                ?>
                     
-                    </tbody>
-                </table>
-            </div>
+                    <tr>
+                        <td class="server_ip"><?=long2ip($log["server_ip"])?></td>
+                        <td class="server_port"><?=$log["server_port"]?></td>
+                        <td class="log_map"><?=$log["map"]?></td>
+                        <td class="log_name"><a href="/view/<?=$log["log_ident"]?>"><?=$log["log_name"]?></a></td>
+                        <td class="log_date"><?=date("d/m/Y H:i:s", $log_split[2])?></td>
+                    </tr>
+                <?php
+                }
+                ?>
+                
+                </tbody>
+            </table>
         </div>
 
         <?php include('static/logo.html'); ?>

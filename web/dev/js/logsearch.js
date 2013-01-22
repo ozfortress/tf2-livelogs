@@ -10,11 +10,12 @@ $(document).ready(function()
     
     $("#search_field").bindWithDelay("keyup", {when: "delay"}, log_search, 500);
 
-    $("search_form").submit(function() {
+    $("search_form").submit(function(e) {
         log_search();
+        e.preventDefault();
     });
 
-     function log_search(e) {
+    function log_search() {
         var search = $("#search_field").val();
 
         if (search !== "") {
@@ -27,7 +28,7 @@ $(document).ready(function()
                 }
             });
         }
-    };
+    }
 
     /*
     $('#searchField').keyup(function()
