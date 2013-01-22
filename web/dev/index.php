@@ -82,45 +82,43 @@
             ?>
             
             <div class="log_list_container">
-                <div class="log_list">
-                    <table class="table table-bordered table-hover ll_table">
-                        <thead>
-                            <tr class="stat_summary_title_bar info">
-                                <th class="log_list_col_title">
-                                    Server IP
-                                </th>
-                                <th class="log_list_col_title">
-                                    Server Port
-                                </th>
-                                <th class="log_list_col_title">
-                                    Map
-                                </th>
-                                <th class="log_list_col_title">
-                                    Log Name
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php
-                        while ($live = pg_fetch_array($live_res, NULL, PGSQL_ASSOC))
-                        {
-                        //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
-                        ?>
-                           
-                            <tr>
-                                <td class="server_ip"><?=long2ip($live["server_ip"])?></td>
-                                <td class="server_port"><?=$live["server_port"]?></td>
-                                <td class="log_map"><?=$live["map"]?></td>
-                                <td class="log_name"><a href="/view/<?=$live["log_ident"]?>"><?=$live["log_name"]?></a></td>
-                            </tr>
-                        <?php
-                        }
-                        ?>
-                        
-                        </tbody>
-                        <caption>Live</caption>
-                    </table>
-                </div>
+                <table class="table table-bordered table-hover ll_table">
+                    <thead>
+                        <tr class="stat_summary_title_bar info">
+                            <th class="log_list_col_title">
+                                Server IP
+                            </th>
+                            <th class="log_list_col_title">
+                                Server Port
+                            </th>
+                            <th class="log_list_col_title">
+                                Map
+                            </th>
+                            <th class="log_list_col_title">
+                                Log Name
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php
+                    while ($live = pg_fetch_array($live_res, NULL, PGSQL_ASSOC))
+                    {
+                    //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
+                    ?>
+                       
+                        <tr>
+                            <td class="server_ip"><?=long2ip($live["server_ip"])?></td>
+                            <td class="server_port"><?=$live["server_port"]?></td>
+                            <td class="log_map"><?=$live["map"]?></td>
+                            <td class="log_name"><a href="/view/<?=$live["log_ident"]?>"><?=$live["log_name"]?></a></td>
+                        </tr>
+                    <?php
+                    }
+                    ?>
+                    
+                    </tbody>
+                    <caption>Live</caption>
+                </table>
             </div>
         <?php
             }
@@ -140,52 +138,50 @@
                 
                 ?>
                 
-                <div class="log_list">
-                    <table class="table table-bordered table-hover ll_table">
-                        <thead>
-                            <tr class="stat_summary_title_bar info">
-                                <th class="log_list_col_title">
-                                    Server IP
-                                </th>
-                                <th class="log_list_col_title">
-                                    Server Port
-                                </th>
-                                <th class="log_list_col_title">
-                                    Map
-                                </th>
-                                <th class="log_list_col_title">
-                                    Log Name
-                                </th>
-                                <th class="log_list_col_title">
-                                    Date
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                    <?php
-                        while ($past = pg_fetch_array($past_res, NULL, PGSQL_ASSOC))
-                        {
-                            //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
-                            $log_split = explode("_", $past["log_ident"]); //3232244481_27015_1356076576
-                            
-                        ?>
-                            
-                            <tr>
-                                <td class="server_ip"><?=long2ip($past["server_ip"])?></td>
-                                <td class="server_port"><?=$past["server_port"]?></td>
-                                <td class="log_map"><?=$past["map"]?></td>
-                                <td class="log_name"><a href="/view/<?=$past["log_ident"]?>"><?=$past["log_name"]?></a></td>
-                                <td class="log_date"><?=date("d/m/Y   H:i:s", $log_split[2])?></td>
-                            </tr>
-                        <?php
-                        }
-                        ?>
+                <table class="table table-bordered table-hover ll_table">
+                    <thead>
+                        <tr class="stat_summary_title_bar info">
+                            <th class="log_list_col_title">
+                                Server IP
+                            </th>
+                            <th class="log_list_col_title">
+                                Server Port
+                            </th>
+                            <th class="log_list_col_title">
+                                Map
+                            </th>
+                            <th class="log_list_col_title">
+                                Log Name
+                            </th>
+                            <th class="log_list_col_title">
+                                Date
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                <?php
+                    while ($past = pg_fetch_array($past_res, NULL, PGSQL_ASSOC))
+                    {
+                        //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
+                        $log_split = explode("_", $past["log_ident"]); //3232244481_27015_1356076576
                         
-                        </tbody>
-                        <caption>Past <?=$num_past?> Logs (<a href="/past">See more</a>)</caption>
-                    </table>
-                    <p align="right"><a href="/past">See more</a></p>
-                </div>
+                    ?>
+                        
+                        <tr>
+                            <td class="server_ip"><?=long2ip($past["server_ip"])?></td>
+                            <td class="server_port"><?=$past["server_port"]?></td>
+                            <td class="log_map"><?=$past["map"]?></td>
+                            <td class="log_name"><a href="/view/<?=$past["log_ident"]?>"><?=$past["log_name"]?></a></td>
+                            <td class="log_date"><?=date("d/m/Y   H:i:s", $log_split[2])?></td>
+                        </tr>
+                    <?php
+                    }
+                    ?>
+                    
+                    </tbody>
+                    <caption>Past <?=$num_past?> Logs (<a href="/past">See more</a>)</caption>
+                </table>
+                <p align="right"><a href="/past">See more</a></p>
             <?php
                 }
             ?>

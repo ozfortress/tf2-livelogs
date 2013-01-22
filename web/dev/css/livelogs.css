@@ -12,7 +12,7 @@
     margin: 0% auto;
     position: relative;
     overflow: auto;
-    width: 1024px; /*ipad width*/
+    width: 1080px; /*slightly bigger than ipad width*/
     border: 1px solid #dddddd;
     /*border-left: 0;*/
     *border-collapse: collapse;

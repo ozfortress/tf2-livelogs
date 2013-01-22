@@ -17,7 +17,7 @@ def on_close(sock):
 
 def on_open(sock):
     print "Websocket opened. Let's send a log ident!"
-    sock.send(json.dumps({"ident" : "3232244481_27015_1356849374"}))
+    sock.send(json.dumps({"ident" : "3232244481_27015_1358161323"}))
 
 if __name__ == "__main__":
     websocket.enableTrace(True)

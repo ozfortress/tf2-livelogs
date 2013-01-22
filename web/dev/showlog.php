@@ -450,7 +450,7 @@
                         ?>
 
                             <tr>
-                                <td><span class="<?=$team_class?> player_chat"><?=$pchat["name"]?></span></td>
+                                <td class="player_chat"><span class="<?=$team_class?>"><?=$pchat["name"]?></span></td>
                                 <td><span class="player_chat">(<?=$chat_type?>)</span> <span class="player_chat_message"><?=$pchat["chat_message"]?></span></td>
                             </tr>
                         <?php
