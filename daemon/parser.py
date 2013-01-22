@@ -796,14 +796,17 @@ class parserClass():
             print "Ending log parsing"
             
             if not self.HAD_ERROR:
-                live_end_query = "UPDATE livelogs_servers SET live='false' WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT)
+                #sets live to false, and merges the stat table with the master stat table
+                live_end_query = "UPDATE livelogs_servers SET live='false' WHERE log_ident = E'%s'; SELECT merge_stat_table('%s');" % (self.UNIQUE_IDENT, self.STAT_TABLE)
                 self.executeQuery(live_end_query)
                 
                 #begin ending timer
                 if ((self.closeListenerCallback != None) and (game_over)):
                     self.closeListenerCallback(game_over);
-            
-            self.pgsqlConn.close()
+
+            if self.pgsqlConn:
+                if not self.pgsqlConn.closed:
+                    self.pgsqlConn.close()
             
             self.LOG_PARSING_ENDED = True
             
