@@ -30,9 +30,9 @@
 
 </head>
 <body class="ll_body">
-    <div class="livelogs_wrapper">
-        <div class="navbar navbar-inverse navbar-fixed-top">
-            <div class="navbar-inner">
+    <div class="navbar navbar-inverse navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="livelogs_nav_container">
                 <ul class="nav">
                     <li class="active">
                         <a href="/">Home</a>
@@ -40,6 +40,8 @@
                     <li>
                         <a href="/past">Archive</a>
                     </li>
+                </ul>
+                <ul class="nav pull-right">
                     <li class="dropdown">
                         <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
                         <ul class="dropdown-menu">
@@ -61,6 +63,8 @@
                 </ul>
             </div>
         </div>
+    </div>
+    <div class="livelogs_wrapper">
         <div class="index_welcome">
             <p>Welcome to Livelogs! Below you will find a list of logs that are currently live (if any), and a list of past logs that you may view.</p>
         </div>
