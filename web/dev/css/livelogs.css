@@ -158,13 +158,11 @@
 }
 
 .log_list_container {
-    float: left;
-    width: 588px;
+    width: 900px;
     margin-bottom: 5px;
-    margin-left: 8px;
-}
+    }
 .log_list_past_container {
-    width: 588px;
+    width: 580px;
     margin-bottom: 5px;
     margin-left: 8px;
 }
