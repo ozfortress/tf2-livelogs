@@ -2,9 +2,16 @@
 
 var log_search = log_search || (function() {
     "use strict";
+    var search, past_search;
     return {
         searchLogs : function() {
-            var search = $("#search_field").val();
+            search = $("#search_field").val();
+            if (search === past_search) {
+                return;
+            }
+            else {
+                past_search = search;
+            }
 
             if (search !== "") {
                 $.get("/func/logsearch.php?term=" + search, function(result) {
