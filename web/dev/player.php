@@ -24,6 +24,8 @@
 
             $stat_query = "SELECT * FROM livelogs_player_stats WHERE steamid='{$escaped_steamid}'";
             $stat_result = pg_query($ll_db, $stat_query);
+
+            $pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC);
         }
     ?>
 
@@ -71,8 +73,9 @@
             }
         ?>
 
-        <div>
-            something goes here
+        <div class="player_details_container">
+            <span class="log_name_id">Name:</span> <span><a href="//steamcommunity.com/profiles/<?=$community_id?>"><?=$pstat["name"]?></a></span> <br>
+            <span class="log_name_id">Steam ID:</span> <span><?=$steamid?></span> <br>
         </div>
 
         <div class="stat_table_container">
@@ -143,8 +146,6 @@
                      */
                      
                     //NAME:K:D:A:P:DMG:HEAL:HS:BS:PC:PB:DMN:TDMN:R:KPD:DPD:DPR
-                    $pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC);
-                
                     $p_kpd = round($pstat["kills"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); // kills/death
                     //$p_ppd = round($pstat["points"] / $pstat["deaths"], 3); // points/death - useless statistic
                     //$p_apd = round($pstat["assists"] / $pstat["deaths"], 3); // assists/death - useless statistic
@@ -176,7 +177,7 @@
             </table>
         </div>
 
-        <div class="stat_table_container_small">
+        <div class="stat_table_container stat_table_container_small">
             <?php
             if (($pstat["healing_done"] > 0) || ($pstat["ubers_used"]) || ($pstat["ubers_lost"])) 
             {
