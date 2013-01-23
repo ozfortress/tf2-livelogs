@@ -40,7 +40,6 @@
 #include <sourcemod>
 #include <socket>
 
-#undef REQUIRE_EXTENSIONS
 #undef REQUIRE_PLUGIN
 
 #tryinclude <websocket>
@@ -71,7 +70,7 @@ public Plugin:myinfo =
     #if defined _websocket_included
 	name = "Livelogs (SourceTV2D Enabled)",
     #else
-    name = "Livelogs (no SourceTV2D)",
+    name = "Livelogs (SourceTV2D Disabled)",
     #endif
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
@@ -109,12 +108,14 @@ new Handle:livelogs_stat_toggle = INVALID_HANDLE;
 #if defined _websocket_included
 new webtv_round_time;
 new bool:webtv_library_present = false;
+new bool:webtv_enabled = true;
 new Float:webtv_delay;
 
 new WebsocketHandle:livelogs_webtv_listen_socket = INVALID_WEBSOCKET_HANDLE;
 new Handle:livelogs_webtv_listenport = INVALID_HANDLE;
 new Handle:livelogs_webtv_children;
 new Handle:livelogs_webtv_children_ip;
+new Handle:livelogs_webtv_toggle = INVALID_HANDLE;
 
 new String:livelogs_webtv_buffer[MAX_BUFFER_SIZE][4096]; //string array buffer, MUCH faster than dynamic arrays
 new livelogs_webtv_buffer_length = 0;
@@ -168,7 +169,7 @@ public OnPluginStart()
                                     FCVAR_NOTIFY, true, 0.0, true, 1.0); //convar has min value 0 and max value 1
 
     HookConVarChange(livelogs_stat_toggle, toggleLoggingHook);
-    
+
     //variables for later sending. we should get the IP via hostip, because sometimes people don't set "ip"
     new longip = GetConVarInt(FindConVar("hostip")), ip_quad[4];
     ip_quad[0] = (longip >> 24) & 0x000000FF;
@@ -199,12 +200,13 @@ public OnPluginStart()
     Format(default_web_port, sizeof(default_web_port), "%d", server_port + 2);
     
     livelogs_webtv_listenport = CreateConVar("livelogs_webtv_port", default_web_port, "The port to listen on for SourceTV 2D connections", FCVAR_PROTECTED);
+    livelogs_webtv_toggle = CreateConVar("livelogs_enable_sourcetv", "1", "Toggle whether or not SourceTV2D will run",
+                                    FCVAR_NOTIFY, true, 0.0, true, 1.0);
+
 
     livelogs_webtv_children = CreateArray();
     livelogs_webtv_children_ip = CreateArray(ByteCountToCells(33));
-    //livelogs_webtv_buffer = CreateArray(4096);
-    
-    
+
     //add event hooks and shiz for websocket, self explanatory names and event hooks
     HookEvent("player_team", playerTeamChangeEvent);
     HookEvent("player_death", playerDeathEvent);
@@ -215,8 +217,8 @@ public OnPluginStart()
     HookEvent("teamplay_round_start", roundStartEvent);
     HookEvent("teamplay_round_win", roundEndEvent);
     
-    //hook tv_delay so we can adjust the delay dynamically
-    HookConVarChange(FindConVar("tv_delay"), delayChangeHook);
+    HookConVarChange(livelogs_webtv_toggle, toggleWebTVHook);
+    HookConVarChange(FindConVar("tv_delay"), delayChangeHook); //hook tv_delay so we can adjust the delay dynamically
 #endif
 }
 
@@ -450,6 +452,22 @@ public Action:tournamentRestartHook(client, const String:command[], arg)
 }
 
 #if defined _websocket_included
+
+public toggleWebTVHook(Handle:cvar, const String:oldval[], const String:newval[])
+{
+    if (DEBUG) { LogMessage("webtv toggled"); }
+    webtv_enabled = GetConVarBool(cvar);
+
+    if (webtv_enabled) 
+    {
+        PrintToServer("SourceTV2D enabled");
+    }
+    else
+    {
+        PrintToServer("SourceTV2D disabled");
+    }
+}
+
 public delayChangeHook(Handle:cvar, const String:oldval[], const String:newval[])
 {
     if (DEBUG) { LogMessage("delay changed. old: %s new: %s", oldval, newval); }
@@ -868,7 +886,7 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
             cleanUpWebSocket();
             
             //now open websocket too
-            if ((livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE) && (webtv_library_present))
+            if ((livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE) && (webtv_library_present) && (webtv_enabled))
             {
                 webtv_delay = GetConVarFloat(FindConVar("tv_delay"));
                 new webtv_lport = GetConVarInt(livelogs_webtv_listenport);

@@ -8,13 +8,13 @@
         <div class="modal-body">
             <p>Livelogs is written with the intention of providing easily accessible logs for users of ozfortress servers, as well as providing server owners the opportunity to have live, web-based, logs with the ease of a simple plugin installation.</p>
 
-            <p>Livelogs uses a <a href="//sourcemod.net">SourceMod</a> plugin to handle Source server-side data and information management, such as initiating the connection with, and sending the appropriate identification data to, the external Livelogs daemon, running on a server provided by <a href="//ozfortress.com">ozfortress</a> and hosted by <a href="//www.infinite.net.au">infinite networks</a>. The plugin also provides a SourceTV2D server (if enabled), by which users may view a 2D SourceTV broadcast (delayed by tv_delay) of the server the plugin is running on.</p>
+            <p>Livelogs uses a <a href="//sourcemod.net">SourceMod</a> plugin to handle Source server-side data and information management, such as initiating the connection with, and sending the appropriate identification data to, the external Livelogs daemon, running on a server provided by <a href="//ozfortress.com">ozfortress</a> and hosted by <a href="//www.infinite.net.au">infinite networks</a>. The plugin also provides a <a href="//wcfan.de/sourcetv2d/">SourceTV2D</a> server (if enabled), by which users may view a 2D SourceTV broadcast (delayed by tv_delay) of the server the plugin is running on.</p>
 
             <p>The plugin does not send any sensitive information (such as passwords), it simply sends a packet with information containing the server's ip, port, name (configurable), and if applicable, the SourceTV2D port (configurable). The plugin source code will be made available for users wishing to modify it, or confirm for themselves that no sensitive data is being sent.</p>
 
             <p>All log data is sent via the Source engine's built in UDP logging functionality.</p>
 
-            <p>If you would like to provide feedback or have any questions not covered in the FAQ or here, you can contact me (bladez) using the following address: bladez (at) ipgn (dot) com (dot) au</p>
+            <p>As Livelogs is still being developed to an extent, you may notice some debug information during use of the website as well as missing maps and green filler for SourceTV2D. If you would like to provide feedback or have any questions not covered in the FAQ or here, you can contact me (bladez) using the following address: bladez (at) ipgn (dot) com (dot) au</p>
         </div>
 
         <div class="modal-footer">
@@ -36,6 +36,21 @@
             <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
         </div>
     </div>
+    
+    <!--google analytics-->
+    <script type="text/javascript">
+
+      var _gaq = _gaq || [];
+      _gaq.push(['_setAccount', 'UA-37892969-1']);
+      _gaq.push(['_trackPageview']);
+
+      (function() {
+        var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+      })();
+
+    </script>
 
     <!-- LOAD SCRIPTS AT THE BOTTOM FOR PERFORMANCE ++ -->
     <!-- use locally hosted scripts for dev 
