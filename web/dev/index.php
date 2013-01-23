@@ -33,7 +33,7 @@
     <div class="navbar navbar-inverse navbar-fixed-top">
         <div class="navbar-inner">
             <div class="livelogs_nav_container">
-                <img class="pull-left" src="/images/livelogs-beta.png"></img>
+                <img class="pull-left" src="/images/livelogs-beta.png">
                 <ul class="nav">
                     <li class="active">
                         <a href="/">Home</a>
