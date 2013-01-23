@@ -274,23 +274,23 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                 #the key will correspond to a set of client objects which are listening for updates on this log id
                 
                 for client in cls.ordered_clients[log_id]:
-                    #client is a websocket client object, which data can be sent to using client.write_message, etc
-                    #client.write_message("HELLO!")
-                    
-                    if not client.HAD_FIRST_UPDATE:
-                        #need to send complete values on first update to keep clients in sync with the server
+                    if client: #make sure the client still exists
+                        #client is a websocket client object, which data can be sent to using client.write_message, etc
+                        #client.write_message("HELLO!")
+                        logger.info("Checking for updates for client %s on id %s", client, log_id)
                         if log_id in cls.db_managers:
-                            #if we have data yet
-                            if cls.db_managers[log_id]._stat_complete_table and cls.db_managers[log_id]._score_table:
-                                #send a complete update to the client
-                                client.write_message(cls.db_managers[log_id].firstUpdate())
+                            if not client.HAD_FIRST_UPDATE:
+                            #need to send complete values on first update to keep clients in sync with the server
+                                #if we have data yet
+                                if cls.db_managers[log_id]._stat_complete_table and cls.db_managers[log_id]._score_table:
+                                    #send a complete update to the client
+                                    client.write_message(cls.db_managers[log_id].firstUpdate())
+                                    
+                                    client.HAD_FIRST_UPDATE = True
                                 
-                                client.HAD_FIRST_UPDATE = True
-                            
-                    else:
-                        if log_id in cls.db_managers:
-                            if cls.db_managers[log_id]._stat_difference_table:
+                            else:
                                 delta_update_dict = cls.db_managers[log_id].compressedUpdate()
+                                logger.info("Got update dict for %s", log_id)
                                 if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
                                     logger.info("Sending update to client %s", client)
                                     client.write_message(delta_update_dict)
