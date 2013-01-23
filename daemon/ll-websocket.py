@@ -75,11 +75,14 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         logUpdateHandler.update_rate = application.update_rate
         
-        logUpdateHandler.logUpdateThreadEvent = threading.Event()
-        
-        logUpdateHandler.logUpdateThread = threading.Thread(target = logUpdateHandler._sendUpdateThread, args=(logUpdateHandler.logUpdateThreadEvent,))
-        logUpdateHandler.logUpdateThread.daemon = True
-        logUpdateHandler.logUpdateThread.start()
+        if not logUpdateHandler.logUpdateThread:
+            logUpdateHandler.logUpdateThreadEvent = threading.Event()
+            
+            logUpdateHandler.logUpdateThread = threading.Thread(target = logUpdateHandler._sendUpdateThread, args=(logUpdateHandler.logUpdateThreadEvent,))
+            logUpdateHandler.logUpdateThread.daemon = True
+            logUpdateHandler.logUpdateThread.start()
+
+            logger.info("Starting update thread")
         
         tornado.websocket.WebSocketHandler.__init__(self, application, request, **kwargs)
     
