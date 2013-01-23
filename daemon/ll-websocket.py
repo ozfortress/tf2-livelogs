@@ -225,7 +225,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             
             cls.logUpdateThread.start()
 
-        if cls.logUpdateThreadEvent.set():
+        if cls.logUpdateThreadEvent.is_set():
             cls.logUpdateThreadEvent.clear() #timer loop will start again
         
         #cls.sendLogUpdates()
