@@ -224,6 +224,9 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             logger.info("Starting send update thread")
             
             cls.logUpdateThread.start()
+
+        if cls.logUpdateThreadEvent.set():
+            cls.logUpdateThreadEvent.clear() #timer loop will start again
         
         #cls.sendLogUpdates()
         
@@ -284,7 +287,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
 
             return
         
-        logger.info("Sending updates. Number of clients: %d", len(cls.clients))
+        logger.info("%d: Sending updates. Number of clients: %d", int(round(time.time())), len(cls.clients))
         for log_id in cls.ordered_clients:
             if log_id != "none":
                 #the key will correspond to a set of client objects which are listening for updates on this log id

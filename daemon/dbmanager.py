@@ -46,6 +46,11 @@ class dbManager(object):
         self._score_query_complete = False
         self._time_query_complete = False
 
+        self._new_stat_update = False
+        self._new_chat_update = False
+        self._new_score_update = False
+        self._new_time_update = False
+
         self.STAT_KEYS = {
                 0: "name",
                 1: "kills",
@@ -161,21 +166,31 @@ class dbManager(object):
                 
         update_dict = {}
 
-        if update_stat_dict:
+        if update_stat_dict and self._new_stat_update:
             self.log.info("Have stat update diff in compressedUpdate")
             update_dict["stat"] = update_stat_dict
 
-        if self._chat_table:
+            self._new_stat_update = False
+
+        if self._chat_table and self._new_chat_update:
             self.log.info("Have chat update dict in compressedUpdate")
             update_dict["chat"] = self._chat_table
             self._chat_table = None #clear the chat table, so it cannot be duplicated on next send if update fails
 
-        if self._score_difference_table:
+            self._new_chat_update = False
+
+        if self._score_difference_table and self._new_score_update:
             self.log.info("Have score update dict in compressedUpdate")
             update_dict["score"] = self._score_difference_table
 
-        if self._time_stamp:
+            self._score_difference_table = None #clear score table to prevent duplicates
+            self._new_score_update = False
+
+        if self._time_stamp and self._new_time_update:
             update_dict["gametime"] = self._time_stamp
+
+            self._time_stamp = None
+            self._new_time_update = False
 
         return update_dict
     
@@ -341,6 +356,8 @@ class dbManager(object):
             else:
                 self._stat_difference_table = temp_table
                 self._stat_complete_table = stat_dict
+
+                self._new_stat_update = True
             
         self._stat_query_complete = True
 
@@ -385,6 +402,7 @@ class dbManager(object):
                 self.log.info("CHAT: ID: %s NAME: %s TEAM: %s MSG_TYPE: %s MSG: %s", sid, row[2], row[3], row[4], row[5])
 
             self._chat_table = chat_dict
+            self._new_chat_update = True
 
         self._chat_query_complete = True
 
@@ -430,6 +448,8 @@ class dbManager(object):
                     if score_diff:
                         score_diff_dict[team] = score_diff
 
+                        self._new_score_update = True
+
                 self._score_difference_table = score_diff_dict
                 self._score_table = score_dict
         else:
@@ -471,6 +491,8 @@ class dbManager(object):
                 #self.log.info("Time update difference: %0.2f", time_diff)
 
                 self._time_stamp = time_diff
+
+                self._new_time_update = True
 
         self._time_query_complete = True
 
