@@ -113,7 +113,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         else:
             self.logger.debug("Finished handling request from %s:%s. Listener not running", self.cip, self.cport)
 
-        return SocketServer.BaseRequestHandler.finish(self)
+        self.request.close() #close the connection, as we've finished the request
         
 class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def __init__(self, server_ip, handler=llDaemonHandler):
