@@ -20,7 +20,7 @@ $(document).ready(function()
         "bUseRendered": true,
         "bFilter": false
     } );
-} );
+});
 
 jQuery.fn.dataTableExt.oSort['dt-numeric-html-asc'] = function(a,b) {
     "use strict";

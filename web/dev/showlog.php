@@ -341,7 +341,7 @@
             </div>
         </div>
 
-        <div class="stat_table_container stat_table_container_medic">
+        <div class="stat_table_container stat_table_container_small">
             <div class="medic_stat_summary">
                 <table class="table table-bordered table-striped table-hover ll_table" id="medic_stats">
                     <thead>
