@@ -292,6 +292,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                             if cls.db_managers[log_id]._stat_difference_table:
                                 delta_update_dict = cls.db_managers[log_id].compressedUpdate()
                                 if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
+                                    logger.info("Sending update to client %s", client)
                                     client.write_message(delta_update_dict)
 
     def getLogStatus(self, log_ident):
@@ -328,11 +329,12 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             if live == True:
                 #add the client to the ordered_clients dict with correct log ident
                 logger.info("Log %s is live on refreshed status", self.LOG_IDENT)
-                self.write_message("LOG_IS_LIVE") #notify client the log is live
-                
-                logUpdateHandler.addToCache(self.LOG_IDENT, True)
-                logUpdateHandler.addDBManager(self.LOG_IDENT, self.application.db, self.application.update_rate)
-                logUpdateHandler.addToOrderedClients(self.LOG_IDENT, self)
+                if self:
+                    self.write_message("LOG_IS_LIVE") #notify client the log is live
+                    
+                    logUpdateHandler.addToCache(self.LOG_IDENT, True)
+                    logUpdateHandler.addDBManager(self.LOG_IDENT, self.application.db, self.application.update_rate)
+                    logUpdateHandler.addToOrderedClients(self.LOG_IDENT, self)
                 
             elif live == False:
                 logger.info("Log %s is not live", self.LOG_IDENT)
@@ -346,9 +348,10 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             self.closeLogUpdate()
                 
     def closeLogUpdate(self):
-        self.write_message("LOG_NOT_LIVE")
+        if self:
+            self.write_message("LOG_NOT_LIVE")
         
-        self.close()
+            self.close()
     
     @classmethod
     def _sendUpdateThread(cls, event):
