@@ -236,24 +236,19 @@ class dbManager(object):
 
         update_dict = {}
 
-        old_only_keys = [] #keys only present in the old table
-        new_only_keys = [] #keys only present in the new table
-
         for key in new_table:
             if key in old_table:
-                update_dict[key] = new_table[key] + old_table[key]
+                #table[key] can be another dict in the case of stat updates, because there's dicts with steamids, and then corresponding stats
+                if isinstance(new_table[key], dict) and isinstance(old_table[key], dict): #it's a stat update with key == steamid
+                    update_dict[key] = self.combineUpdateTable(old_table[key], new_table[key]) #recursively combine the lower levels
+                else:
+                    update_dict[key] = new_table[key] + old_table[key]
             else:
-                new_only_keys.append(key)
+                update_dict[key] = new_table[key]
 
         for key in old_table:
             if key not in new_table:
-                old_only_keys.append(key)
-
-        for key in new_only_keys:
-            update_dict[key] = new_table[key]
-
-        for key in old_only_keys:
-            update_dict[key] = old_table[key]
+                update_dict[key] = old_table[key]
 
         return update_dict
 
