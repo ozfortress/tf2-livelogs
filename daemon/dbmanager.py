@@ -231,7 +231,7 @@ class dbManager(object):
                 
         return stat_dict_updated
     
-    def combineUpdateTable(old_table, new_table):
+    def combineUpdateTable(self, old_table, new_table):
         #this will add two dictionaries together in the case that two updates occur before data is sent
 
         update_dict = {}
