@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" xml:lang="en">
 <head>
-    <title>Livelogs DEV - PASTLOGS</title>
+    <title>Livelogs - Archive</title>
 
     <?php
         include 'static/header.html';

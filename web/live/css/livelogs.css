@@ -1,64 +1,89 @@
-.ll_navbar {
+/*.ll_navbar {
     margin-bottom: 0.5em;
     padding: 6px;
+}*/
+.livelogs_nav_container {
+    margin-left: auto;
+    margin-right: auto;
+    width: 1170px; /*0.975*container width, so nav items are within page */
 }
 
 .livelogs_wrapper {
-    margin-left: auto;
-    margin-right: auto;
+    margin: 0% auto;
+    position: relative;
     overflow: auto;
-    width: 80%;
     border: 1px solid #dddddd;
-    /*border-left: 0;*/
+    width: 1200px; /*slightly bigger ipad width*/
     *border-collapse: collapse;
-    -webkit-border-radius: 4px;
+    /*-webkit-border-radius: 4px;
         -moz-border-radius: 4px;
-            border-radius: 4px;
+            border-radius: 4px;*/
             
     background-color: #FFFFFF;
 }
 
 .ll_body {
     background-color: #FFFFF0;
+    padding-top: 40px; /*padding for the nav bar*/
 }
 
-.ll_table{
+.ll_table {
     text-align: left;
     /*font-size: 10px;*/
     
 }
 
 .ll_table td {
-    white-space: nowrap;
+    white-space: nowrap; /*prevent wrapping of names*/
 }
 
 .ll_table thead {
     color: #339933;
     /*border-bottom: 2px solid #dddddd;*/
 }
+.ll_table .chat {
+    padding: 5px;
+}
 
 .stat_table_container {
-    width: 55%;
+    width: 1180px;
     margin-bottom: 5px;
     margin-left: 10px;
+    margin-right: 5px;
     /*border-radius: 10px;
     border: solid 1px black;*/
 }
 
-.stat_table_container_medic {
-    width: 100%;
+.stat_table_container_small {
+    width: 456px; /*0.38*1200*/
 }
 
 .log_details_container {
-    width: 20%;
-    padding: 3px;
+    width: 308px; /*0.8*1920*0.2*/
+    padding: 6px;
     border: 1px solid #dddddd;
     /*border-left: 0;*/
     *border-collapse: collapse;
     -webkit-border-radius: 4px;
         -moz-border-radius: 4px;
             border-radius: 4px;
-            
+
+    margin-top: 5px;            
+    margin-bottom: 5px;
+    margin-left: 10px;
+}
+
+.player_details_container {
+    width: 308px; /*0.8*1920*0.2*/
+    padding: 6px;
+    border: 1px solid #dddddd;
+    /*border-left: 0;*/
+    *border-collapse: collapse;
+    -webkit-border-radius: 4px;
+        -moz-border-radius: 4px;
+            border-radius: 4px;
+
+    margin-top: 5px;            
     margin-bottom: 5px;
     margin-left: 10px;
 }
@@ -119,34 +144,28 @@
     font-weight: bold;
 }
 
-/*.event_feed_container {
-    float:left;
-    width: 40%;
-    margin-bottom: 5px;
-    margin-left: 5px;
-    margin-right: 5px;
-}*/
-
-.left_float_feed_medic_container {
-    float:left;
-    width: 22%;
-    
+.player_chat {
+    font-weight: bold;
+    font-size: 10pt;
+    width: 180px;
+}
+.player_chat_message {
+    font-size: 10pt;
 }
 
-.left_float_sourcetv_container {
-    float: left;
-    width: 76%;
-    margin-left: 5px;
+.sourcetv_container {
+    width: 1180px; /*1200-margin*/
+    margin-left: 10px;
+    margin-bottom: 5px;
+    margin-right: 10px;
 }
 
 .live_feed_container {
-    float: left;
-    width: 40%;
     margin-bottom: 5px;
+    margin-right: 10px;
     margin-left: 10px;
-    overflow-x: hidden;
-    overflow-y: scroll;
-    height: 400px;
+    overflow: auto;
+    width: 900px; /*room for obnoxious names and messages*/
 }
 
 .sourcetv_controls {
@@ -154,27 +173,30 @@
 }
 
 .log_list_container {
-    float: left;
-    width: 49%;
+    width: 900px;
     margin-bottom: 5px;
-    margin-left: 10px;
 }
 
-.log_list {
-    width: 100%;
-}
-
-.log_table {
-    text-align: left;
+.log_list_past_container {
+    width: 900px;
+    margin-bottom: 5px;
+    padding: 10px;
 }
 
 .index_welcome {
     margin-left: 10px;
     width: 90%;
     text-align: center;
+    padding: 10px;
 }
 
 .pastlogs_searchfield {
     padding: 5px;
     margin-bottom: 5px;
+    margin-top: 5px;
+}
+
+.logo {
+    padding: 5px;
+    margin: 5px;
 }

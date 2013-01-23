@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en" xml:lang="en">
 <head>
-    <title>Livelogs DEV - SHOWLOG</title>
     <?php
         include 'static/header.html';
 
@@ -94,7 +93,6 @@
             $invalid_log_ident = false;
         }
         
-        
         //live or not
         if ($log_details["live"] === "f")
             $log_live = false;
@@ -102,6 +100,7 @@
             $log_live = true;
     ?>
 
+    <title>Livelogs - Log <?=$UNIQUE_IDENT?></title>
 </head>
 <body class="ll_body">
     <div class="navbar navbar-inverse navbar-fixed-top">

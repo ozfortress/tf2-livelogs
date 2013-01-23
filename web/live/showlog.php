@@ -1,12 +1,11 @@
 <!DOCTYPE html>
 <html lang="en" xml:lang="en">
 <head>
-    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-    
-    <title>Livelogs - View log</title>
     <?php
+        include 'static/header.html';
+
         require "../conf/ll_database.php";
-        require "../conf/ll_websocket.php";
+        require "../conf/ll_config.php";
         
         $UNIQUE_IDENT = $_GET["ident"];
         $escaped_ident = pg_escape_string($UNIQUE_IDENT);
@@ -42,8 +41,8 @@
             $stat_query = "SELECT * FROM {$escaped_stat_table}";
             $stat_result = pg_query($ll_db, $stat_query);
             
-            $event_query = "SELECT * FROM {$escaped_event_table}";
-            $event_result = pg_query($ll_db, $event_query);
+            //$event_query = "SELECT * FROM {$escaped_event_table}";
+            //$event_result = pg_query($ll_db, $event_query);
             
             $chat_query = "SELECT * FROM {$escaped_chat_table}";
             $chat_result = pg_query($ll_db, $chat_query);
@@ -52,7 +51,10 @@
             $team_result = pg_query($ll_db, $team_query);
             $team_array = pg_fetch_all($team_result);
             
-            if ((!$stat_result) || (!$event_result) || (!$chat_result))
+            $time_query = "SELECT event_time FROM {$escaped_event_table} WHERE eventid = '1' UNION SELECT event_time FROM {$escaped_event_table} WHERE eventid = (SELECT MAX(eventid) FROM {$escaped_event_table})";
+            $time_result = pg_query($ll_db, $time_query);        
+
+            if ((!$stat_result) || (!$team_result) || (!$chat_result) || (!$time_result))
             {
                 echo "PGSQL HAD ERROR: " . pg_last_error();
             }
@@ -74,9 +76,12 @@
                 $blue_score = 0;
             }
             
-            $event_array = pg_fetch_all($event_result);
-            $time_start = $event_array[0]["event_time"];
-            $time_last = $event_array[(sizeof($event_array) - 1)]["event_time"];
+            //$event_array = pg_fetch_all($event_result);
+
+            $time_array = pg_fetch_all($time_result);
+
+            $time_start = $time_array[0]["event_time"]; //starting time
+            $time_last = $time_array[1]["event_time"]; //latest time
             
             //time is in format "10/01/2012 21:38:18"
             $time_start_ctime = strtotime($time_start);
@@ -86,15 +91,7 @@
             $time_elapsed = sprintf("%02d minute(s) and %02d second(s)", ($time_elapsed_sec/60)%60, $time_elapsed_sec%60);
             
             $invalid_log_ident = false;
-            /*
-            $time_query = "SELECT event_time as start_last_time FROM {$escaped_event_table} WHERE eventid = '1' UNION SELECT event_time FROM {$escaped_event_table} WHERE eventid = (SELECT MAX(eventid) FROM {$escaped_event_table})";
-            $time_result = pg_query($ll_db, $time_query);
-            
-            $time_array = pg_fetch_array($time_result, 
-            
-            $time_elapsed = 0;*/
         }
-        
         
         //live or not
         if ($log_details["live"] === "f")
@@ -103,77 +100,80 @@
             $log_live = true;
     ?>
 
-    <link href="/images/favicon.ico" rel="shortcut icon">
-    <!--<link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">-->
-    <link rel="stylesheet" type="text/css" href="/css/jquery.dataTables.css">
-    <link rel="stylesheet" type="text/css" href="/css/bootstrap/bootstrap.css">
-    <link rel="stylesheet" type="text/css" href="/css/livelogs.css">
-    
+    <title>Livelogs - Log <?=$UNIQUE_IDENT?></title>
 </head>
 <body class="ll_body">
+    <div class="navbar navbar-inverse navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="livelogs_nav_container">
+                <ul class="nav">
+                    <li>
+                        <a href="/">Home</a>
+                    </li>
+                    <li>
+                        <a href="/past">Archive</a>
+                    </li>
+                    <li class="dropdown active">
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">View Settings <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="#" data-toggle="collapse" data-target="#chat_event_feed">Show Chat</a>
+                            </li>
+                            <?php 
+                            if (($log_live) && ($log_details["webtv_port"]))
+                            {
+                            ?>
+                            
+                            <li>
+                                <a href="#" data-toggle="collapse" data-target="#sourcetv2d">Show SourceTV 2D</a>
+                            </li>
+                            <?php
+                            }
+                            
+                            if (($log_live) && (!empty($ll_config["websock"]["server_ip"])))
+                            {
+                            ?>
+                            
+                            <li>
+                                <a href="javascript:llWSClient.toggleUpdate()">Auto Update Stats</a>
+                            </li>
+                            <?php
+                            }
+                            ?>
+                            
+                        </ul>
+                    </li>
+                </ul>
+                <ul class="nav pull-right">
+                    <li class="dropdown">
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="#about_modal" data-toggle="modal">About</a>
+                            </li>
+                            
+                            <li>
+                                <a href="#faq_modal" data-toggle="modal">FAQ</a>
+                            </li>
+                            <li class="disabled">
+                                <a href="#">Source</a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="disabled">
+                        <a href="#">Login</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
     <div class="livelogs_wrapper">
         <?php
         if ($invalid_log_ident)
         {
-            die("404</div>"); //die with an error if we have invalid log ident, but close the main div
+            die("404</div>"); //die with an error if we have invalid log ident and close the main div
         }
         ?>
-        
-        <div id="navigation" class="ll_navbar">
-            <ul class="nav nav-pills">
-                <li>
-                    <a href="/">Home</a>
-                </li>
-                <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">View Settings <b class="caret"></b></a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a href="#" data-toggle="collapse" data-target="#chat_event_feed">Show Chat</a>
-                        </li>
-                        <?php 
-                        if (($log_live) && ($log_details["webtv_port"]))
-                        {
-                        ?>
-                        
-                        <li>
-                            <a href="#" data-toggle="collapse" data-target="#sourcetv2d">Show SourceTV 2D</a>
-                        </li>
-                        <?php
-                        }
-                        
-                        if (($log_live) && (!empty($ll_websock["server_ip"])))
-                        {
-                        ?>
-                        
-                        <li>
-                            <a href="javascript:llWSClient.toggleUpdate()">Auto Update Stats</a>
-                        </li>
-                        <?php
-                        }
-                        ?>
-                        
-                    </ul>
-                </li>
-                <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a href="#">About</a>
-                        </li>
-                        
-                        <li>
-                            <a href="#">FAQ</a>
-                        </li>
-                        <li class="disabled">
-                            <a href="#">Source</a>
-                        </li>
-                    </ul>
-                </li>
-                <li class="disabled">
-                    <a href="#">Login</a>
-                </li>
-            </ul>
-        </div>
 
         <div class="log_details_container">
             <?php
@@ -202,22 +202,22 @@
             {
             ?>
             
-                <span class="log_status text-success">Live!</span><br>
-                <span class="time_elapsed_id">Time Elapsed: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
+                <span class="log_status text-success" id="log_status_span">Live!</span><br>
+                <span class="time_elapsed_id">Time Elapsed: </span><span id="time_elapsed" class="log_detail"><?=$time_elapsed?></span><br><br>
             <?php
             }
             else
             {
             ?>
             
-                <span class="log_status text-error">Complete</span><br>
-                <span class="time_elapsed_id">Total Time: </span><span class="log_detail" id="time_elasped"><?=$time_elapsed?></span><br><br>
+                <span class="log_status text-error" id="log_status_span">Complete</span><br>
+                <span class="time_elapsed_id">Total Time: </span><span id="time_elapsed" class="log_detail"><?=$time_elapsed?></span><br><br>
             <?php
             }
             ?>
             
-                <span class="red_score_tag">RED </span><span class="red_score" id="red_score_value"><?=(($red_score) ? $red_score : 0)?></span>
-                <span class="blue_score_tag">BLUE </span><span class="blue_score" id="blue_score_value"><?=(($blue_score) ? $blue_score : 0)?></span>
+                <span class="red_score_tag">RED </span><span id="red_score_value" class="red_score"><?=(($red_score) ? $red_score : 0)?></span>
+                <span class="blue_score_tag">BLUE </span><span id="blue_score_value" class="blue_score"><?=(($blue_score) ? $blue_score : 0)?></span>
             </div>
         </div>
         
@@ -303,19 +303,7 @@
                             $p_dpd = round($pstat["damage_dealt"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); //damage/death
                             $p_dpr = round($pstat["damage_dealt"] / (($red_score) ? ($red_score + $blue_score) : 1), 2); //num rounds are red score + blue score, damage/round
                             
-                            $team = get_player_team($team_array, $pstat["steamid"]);
-                            if ($team == "blue")
-                            {
-                                $team_class = "blue_player";
-                            }
-                            else if ($team == "red")
-                            {
-                                $team_class = "red_player";
-                            }
-                            else
-                            {
-                                $team_class = "no_team_player";
-                            }
+                            $team_class = get_player_team_class(get_player_team($team_array, $pstat["steamid"]));
                             
                             if (($pstat["healing_done"] > 0) || ($pstat["ubers_used"]) || ($pstat["ubers_lost"]))
                             {
@@ -351,108 +339,69 @@
                 </table>
             </div>
         </div>
-        <div class="left_float_feed_medic_container">
-            <div class="stat_table_container stat_table_container_medic">
-                <div class="medic_stat_summary">
-                    <table class="table table-bordered table-striped table-hover ll_table" id="medic_stats">
-                        <thead>
-                            <tr class="stat_summary_title_bar">
-                                <th class="stat_summary_col_title">
-                                    <abbr title="Player Name">Name</abbr>
-                                </th>
-                                <th class="stat_summary_col_title">
-                                    <abbr title="Healing Done">Healing</abbr>
-                                </th>
-                                <th class="stat_summary_col_title">
-                                    <abbr title="Ubers Used">U</abbr>
-                                </th>
-                                <th class="stat_summary_col_title">
-                                    <abbr title="Ubers Lost">UL</abbr>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php
-                            $num_med = sizeof($mstats);
-                            $i = 0;
+
+        <div class="stat_table_container stat_table_container_small">
+            <div class="medic_stat_summary">
+                <table class="table table-bordered table-striped table-hover ll_table" id="medic_stats">
+                    <thead>
+                        <tr class="stat_summary_title_bar">
+                            <th class="stat_summary_col_title">
+                                <abbr title="Player Name">Name</abbr>
+                            </th>
+                            <th class="stat_summary_col_title">
+                                <abbr title="Healing Done">Healing</abbr>
+                            </th>
+                            <th class="stat_summary_col_title">
+                                <abbr title="Ubers Used">U</abbr>
+                            </th>
+                            <th class="stat_summary_col_title">
+                                <abbr title="Ubers Lost">UL</abbr>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <?php
+                        $num_med = sizeof($mstats);
+                        $i = 0;
+                        
+                        while ($i < $num_med)
+                        {
+                            $community_id = steamid_to_bigint($mstats[$i]["steamid"]);
                             
-                            while ($i < $num_med)
-                            {
-                                $community_id = steamid_to_bigint($mstats[$i]["steamid"]);
-                                
-                                $team = get_player_team($team_array, $mstats[$i]["steamid"]);
-                                if ($team == "blue")
-                                {
-                                    $team_class = "blue_player";
-                                }
-                                else if ($team == "red")
-                                {
-                                    $team_class = "red_player";
-                                }
-                                else
-                                {
-                                    $team_class = "no_team_player";
-                                }
-                                
-                            ?>
+                            $team_class = get_player_team_class(get_player_team($team_array, $mstats[$i]["steamid"]));
                             
-                            <tr>
-                                <td><a class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=$mstats[$i]["name"]?></a></td>
-                                <td><span id="<?=$community_id . ".heal_done"?>"><?=$mstats[$i]["healing_done"]?></span></td>
-                                <td><span id="<?=$community_id . ".ubers_used"?>"><?=$mstats[$i]["ubers_used"]?></span></td>
-                                <td><span id="<?=$community_id . ".ubers_lost"?>"><?=$mstats[$i]["ubers_lost"]?></span></td>
-                            </tr>
-                        <?php
-                                $i++;
-                            }
                         ?>
                         
-                        </tbody>
-                        <caption>Summary of medic statistics</caption>
-                    </table>
-                </div>
-            </div>
-            
-            <div class="live_feed_container collapse in" id="chat_event_feed">
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
-                chat/event feed<br>
+                        <tr>
+                            <td><a class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=$mstats[$i]["name"]?></a></td>
+                            <td><span id="<?=$community_id . ".heal_done"?>"><?=$mstats[$i]["healing_done"]?></span></td>
+                            <td><span id="<?=$community_id . ".ubers_used"?>"><?=$mstats[$i]["ubers_used"]?></span></td>
+                            <td><span id="<?=$community_id . ".ubers_lost"?>"><?=$mstats[$i]["ubers_lost"]?></span></td>
+                        </tr>
+                    <?php
+                            $i++;
+                        }
+                    ?>
+                    
+                    </tbody>
+                    <caption>Summary of medic statistics</caption>
+                </table>
             </div>
         </div>
+        
         <?php
         if (($log_live) && ($log_details["webtv_port"]))
         {
         ?>
         
-        <div class="left_float_sourcetv_container collapse in">
+        <div class="sourcetv_container collapse in">
             <div class="sourcetv_controls">
                 <p class="text-info">STV 2D</p>
-                <button class="btn btn-success" onclick="stv2d_connect('<?=long2ip($log_details["server_ip"])?>', <?=$log_details["webtv_port"]?>)">Connect</button>
-                <button class="btn btn-danger" onclick="stv2d_disconnect()">Disconnect</button>
+                <button class="btn btn-success" onclick="SourceTV2D.connect('<?=long2ip($log_details["server_ip"])?>', <?=$log_details["webtv_port"]?>)">Connect</button>
+                <button class="btn btn-danger" onclick="SourceTV2D.disconnect()">Disconnect</button>
                 <div class="btn-group" data-toggle="buttons-checkbox">
                     <button class="btn btn-info" data-toggle="collapse" data-target="#sourcetv2d">Toggle STV</button>
-                    <button class="btn" onclick="stv2d_togglenames()">Toggle Names</button>
+                    <button class="btn" onclick="SourceTV2D.toggleNames()" id="stv_nametoggle">Toggle Names</button>
                 </div>
             </div>
             
@@ -466,16 +415,64 @@
         </div>
         <?php
         }
+
+        if (pg_num_rows($chat_result) > 0)
+        {
         ?>
-        
+
+        <div class="live_feed_container accordion" id="chat_accordion">
+            <div class="accordion-group">
+                <div class="accordion-heading" align="center">
+                    <a class="accordion-toggle" data-toggle="collapse" data-parent="#chat_accordion" href="#chat_event_feed">
+                        Game Chat
+                    </a>
+                </div>
+                <div class="collapse" id="chat_event_feed">
+                    <table class="table table-bordered table-hover ll_table chat" id="chat_table">
+                        <thead>
+                            <tr>
+                                <th>
+                                    <abbr title="Player Name">Name</abbr>
+                                </th>
+                                <th>
+                                    <abbr title="Player's message">Message</abbr>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php
+                        while ($pchat = pg_fetch_array($chat_result, NULL, PGSQL_ASSOC))
+                        {
+                            $community_id = steamid_to_bigint($pchat["steamid"]);
+
+                            $team_class = get_player_team_class(strtolower($pchat["team"]));
+
+                            $chat_type = $pchat["chat_type"];
+
+                        ?>
+
+                            <tr>
+                                <td class="player_chat"><span class="<?=$team_class?>"><?=$pchat["name"]?></span></td>
+                                <td><span class="player_chat">(<?=$chat_type?>)</span> <span class="player_chat_message"><?=$pchat["chat_message"]?></span></td>
+                            </tr>
+                        <?php
+                        }
+
+                        ?>
+
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <?php
+        }
+        include('static/logo.html');
+        ?>
     </div>
-        
-    <!-- LOAD SCRIPTS AT THE BOTOM FOR PERFORMANCE ++ -->
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
-    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.1/jquery-ui.min.js"></script>
-    <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
-    <script src="/js/bootstrap/bootstrap.js" type="text/javascript"></script>
-    
+    <?php include('static/footer.html'); ?>
+
+    <script src="/js/sprintf-0.7-beta1.js" type="text/javascript"></script>
     <script src="/js/viewlog.js" type="text/javascript"></script>
     <?php
     if ($log_live)
@@ -483,7 +480,7 @@
     ?>
     
     <script type="text/javascript">
-        llWSClient.init("<?=$ll_websock["server_ip"]?>", <?=$ll_websock["server_port"]?>, "<?=$UNIQUE_IDENT?>")
+        llWSClient.init("<?=$ll_config["websock"]["server_ip"]?>", <?=$ll_config["websock"]["server_port"]?>, "<?=$UNIQUE_IDENT?>")
     </script>
     <?php
     }
@@ -536,8 +533,25 @@
                 return $pteam["team"];
             }
         }
-        
+    
         return 0;
+    }
+
+    function get_player_team_class($team)
+    {
+        if ($team == "blue")
+        {
+            $team_class = "blue_player";
+        }
+        else if ($team == "red")
+        {
+            $team_class = "red_player";
+        }
+        else
+        {
+            $team_class = "no_team_player";
+        }
+        return $team_class;
     }
     
     pg_close($ll_db)

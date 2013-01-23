@@ -1,9 +1,19 @@
 <?php
     require "../../conf/ll_database.php";
+    require "../../conf/ll_config.php";
     
     if (!$ll_db)
     {
         die("Unable to connect to database");
+    }
+
+    if (!empty($ll_config["display"]["archive_num"]))
+    {
+        $num_logs = $ll_config["display"]["archive_num"];
+    }
+    else
+    {
+        $num_logs = 40;
     }
     
     $search_term = $_GET["term"];
@@ -19,7 +29,7 @@
         $search_query = "SELECT server_ip, server_port, log_ident, log_name, map 
                         FROM livelogs_servers 
                         WHERE (server_ip = '{$escaped_address}' AND server_port = CAST('{$escaped_port}' AS INT)) AND live='false'
-                        ORDER BY numeric_id DESC LIMIT 40";
+                        ORDER BY numeric_id DESC LIMIT {$num_logs}";
     }
     else
     {
@@ -38,7 +48,7 @@
         $search_query = "SELECT server_ip, server_port, log_ident, log_name, map 
                         FROM livelogs_servers 
                         WHERE (server_ip ~* '{$escaped_search_term}' OR log_name ~* '{$escaped_search_term}' OR map ~* '{$escaped_search_term}') AND live='false'
-                        ORDER BY numeric_id DESC LIMIT 40";
+                        ORDER BY numeric_id DESC LIMIT {$num_logs}";
     }
     
     $search_result = pg_query($ll_db, $search_query);

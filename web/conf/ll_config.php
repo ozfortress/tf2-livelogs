@@ -4,4 +4,6 @@
 
     $ll_config["display"]["index_num_past"] = 15; //number of past logs to display on index page
     $ll_config["display"]["archive_num"] = 40; //max number of logs to display in the archive
+
+    $ll_config["steam_api"]["key"] = "7CD8EC56801BD2F23A1A4184A1348ADD";
 ?>

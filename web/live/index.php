@@ -1,76 +1,87 @@
 <!DOCTYPE html>
 <html lang="en" xml:lang="en">
 <head>
-    <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
-    
-    <title>Livelogs - Index</title>
-
-    <link href="/images/favicon.ico" rel="shortcut icon">
-    <!--<link rel="stylesheet" type="text/css" href="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/css/jquery.dataTables.css">-->
-    <link rel="stylesheet" type="text/css" href="/css/jquery.dataTables.css">
-    <link rel="stylesheet" type="text/css" href="/css/bootstrap/bootstrap.css">
-    <link rel="stylesheet" type="text/css" href="/css/livelogs.css">
-
+    <title>Livelogs - Home</title>
     <?php
+        include 'static/header.html';
         require "../conf/ll_database.php";
+        require "../conf/ll_config.php";
         
         if (!$ll_db)
         {
             die("Unable to connect to database");
         }
+
+        if (!empty($ll_config["display"]["index_num_past"]))
+        {
+            $num_past = $ll_config["display"]["index_num_past"];
+        }
+        else
+        {
+            $num_past = 15;
+        }
     
         $live_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='true' ORDER BY numeric_id DESC";
         $live_res = pg_query($ll_db, $live_query);
     
-        $past_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='false' ORDER BY numeric_id DESC LIMIT 10";
+        $past_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='false' ORDER BY numeric_id DESC LIMIT {$num_past}";
         $past_res = pg_query($ll_db, $past_query);
     ?>
 
 </head>
 <body class="ll_body">
-    <div class="livelogs_wrapper">
-        <div id="navigation" class="ll_navbar">
-            <ul class="nav nav-pills">
-                <li class="active">
-                    <a href="/">Home</a>
-                </li>
-                <li class="dropdown">
-                    <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
-                    <ul class="dropdown-menu">
-                        <li>
-                            <a href="#">About</a>
-                        </li>
-                        
-                        <li>
-                            <a href="#">FAQ</a>
-                        </li>
-                        <li class="disabled">
-                            <a href="#">Source @ github</a>
-                        </li>
-                    </ul>
-                </li>
-                <li class="disabled">
-                    <a href="#">Login</a>
-                </li>
-            </ul>
+    <div class="navbar navbar-inverse navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="livelogs_nav_container">
+                <ul class="nav">
+                    <li class="active">
+                        <a href="/">Home</a>
+                    </li>
+                    <li>
+                        <a href="/past">Archive</a>
+                    </li>
+                </ul>
+                <ul class="nav pull-right">
+                    <li class="dropdown">
+                        <a class="dropdown-toggle" data-toggle="dropdown" href="#">Help <b class="caret"></b></a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <a href="#about_modal" data-toggle="modal">About</a>
+                            </li>
+                            
+                            <li>
+                                <a href="#faq_modal" data-toggle="modal">FAQ</a>
+                            </li>
+                            <li class="disabled">
+                                <a href="#">Source</a>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="disabled">
+                        <a href="#">Login</a>
+                    </li>
+                </ul>
+            </div>
         </div>
+    </div>
+    <div class="livelogs_wrapper">
         <div class="index_welcome">
             <p>Welcome to Livelogs! Below you will find a list of logs that are currently live (if any), and a list of past logs that you may view.</p>
         </div>
-        <?php
-        if (!$live_res)
-        {
-        ?>
-        
-        <p class="text-error">Unable to retrieve live status</p>
-        <?php
-        }
-        else if (pg_num_rows($live_res) > 0)
-        {
-        ?>
-        
-        <div class="log_list_container">
-            <div class="log_list">
+        <div align="center">
+            <?php
+            if (!$live_res)
+            {
+            ?>
+            
+            <p class="text-error">Unable to retrieve live status</p>
+            <?php
+            }
+            else if (pg_num_rows($live_res) > 0)
+            {
+            ?>
+            
+            <div class="log_list_container">
                 <table class="table table-bordered table-hover ll_table">
                     <thead>
                         <tr class="stat_summary_title_bar info">
@@ -100,46 +111,34 @@
                             <td class="server_port"><?=$live["server_port"]?></td>
                             <td class="log_map"><?=$live["map"]?></td>
                             <td class="log_name"><a href="/view/<?=$live["log_ident"]?>"><?=$live["log_name"]?></a></td>
-
                         </tr>
                     <?php
                     }
                     ?>
                     
                     </tbody>
-                    <caption>Logs that are currently live</caption>
+                    <caption>Live</caption>
                 </table>
             </div>
-        </div>
-    <?php
-        }
-        if (pg_num_rows($live_res) <= 0)
-        {
-    ?>
-    
-        <div class="log_list_container" align="center">
-    <?php
-        }
-        else 
-        {
-    ?>
-    
-        <div class="log_list_container">
         <?php
-        }
-            if (!$past_res)
-            {
-            ?>
-            
-            <p class="text-error">Unable to retrieve past logs</p>
-            <?php
             }
-            else
-            {
-            
-            ?>
-            
-            <div class="log_list">
+
+        ?>
+
+            <div class="log_list_container">
+            <?php
+                if (!$past_res)
+                {
+                ?>
+                
+                <p class="text-error">Unable to retrieve past logs</p>
+                <?php
+                }
+                else
+                {
+                
+                ?>
+                
                 <table class="table table-bordered table-hover ll_table">
                     <thead>
                         <tr class="stat_summary_title_bar info">
@@ -181,27 +180,23 @@
                     ?>
                     
                     </tbody>
-                    <caption>Past 10 Logs (<a href="/past/">See more</a>)</caption>
+                    <caption>Past <?=$num_past?> Logs (<a href="/past">See more</a>)</caption>
                 </table>
-                <p align="right"><a href="/past/">See more</a></p>
+                <p align="right"><a href="/past">See more</a></p>
+            <?php
+                }
+            ?>
+            
             </div>
-        <?php
-            }
-        ?>
-        
+            <div class="uploaded_logs">
+            
+            </div>
         </div>
-        <div class="uploaded_logs">
-        
-        </div>
-        
-    </div>
+        <?php include('static/logo.html'); ?>
 
-    <!-- LOAD SCRIPTS AT THE BOTOM FOR PERFORMANCE ++ -->
-    <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.2/jquery.min.js"></script>
-    <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.1/jquery-ui.min.js"></script>
-    <script type="text/javascript" charset="utf8" src="http://ajax.aspnetcdn.com/ajax/jquery.dataTables/1.9.4/jquery.dataTables.min.js"></script>
-    <script src="/js/bootstrap/bootstrap.js" type="text/javascript"></script>
-    
+    </div>
+    <?php include('static/footer.html'); ?>
+
 </body>
 
 </html>

@@ -20,7 +20,7 @@ $(document).ready(function()
         "bUseRendered": true,
         "bFilter": false
     } );
-} );
+});
 
 jQuery.fn.dataTableExt.oSort['dt-numeric-html-asc'] = function(a,b) {
     "use strict";
@@ -81,64 +81,170 @@ var llWSClient = llWSClient || (function() {
         },
         
         onOpen : function(event) {
-            console.log("Client websock opened");
+            console.log("Client websock opened. Sending connect message");
             client.send(JSON.stringify(connect_msg));
         },
         
         onClose : function(event) {
             console.log("Client websocket closed: %s", event);
+            client = null;
         },
         
         onError : function(event) {
-            console.log("Had WS error: " + event);
+            console.log("Had WS error: %s", event);
         },
         
         onMessage : function(msg) {
-            var msg_data = msg.data, full_update = null, delta_update = null;
+            var msg_data = msg.data, update_json, element;
             console.log("MESSAGE: " + msg_data);
             
             if (msg_data === "LOG_NOT_LIVE") {
                 console.log("Log not live. Closing connection");
-                //the server may have closed the connection before us, so it needs to be checked
-                if (client) {
-                    client.close(400);
-                }
-                
-                client = null;
+                //server will close client
+
             } else if (!auto_update) {
                 return;
                 
             } else if (msg_data === "LOG_IS_LIVE") {
                 HAD_FIRST_UPDATE = false;
-                
+
+            } else if (msg_data === "LOG_END") {
+                //update status element with "Complete"
+
+                element = document.getElementById("log_status_span");
+
+                if ($("#log_status_span").hasClass("text-success")) { //if it has the text-success class, remove it and add text-error (red)
+                    $("#log_status_span").removeClass("text-success");
+
+                    $("#log_status_span").addClass("text-error");
+                }
+
+                element.innerHTML = "Complete"; 
+
             } else {
                 //all other messages are json encoded packets
                 if (!HAD_FIRST_UPDATE) {
-                    //the first message sent is a full update, so the client and server are in sync
+                    //the first message sent is a full _STAT_ and _SCORE_ update, so the client and server are in sync
                     try {
-                        full_update = jQuery.parseJSON(msg_data);
+                        update_json = jQuery.parseJSON(msg_data);
                     }
                     catch (exception) {
                         console.log("Error trying to decode or parse json. Message: %s, ERROR: %s", msg_data, exception);
                         return;
                     }
-                    
-                    this.parseStatUpdate(full_update);
+                    if (update_json.score !== undefined) {
+                        this.parseScoreUpdate(update_json.score);
+                    }
+                    if (update_json.stat !== undefined) {
+                        this.parseStatUpdate(update_json.stat);
+                    }
                         
                     HAD_FIRST_UPDATE = true;
                     
                 } else {
+                    //every subsequent packet will contain more than just stat data
                     try {
-                        delta_update = jQuery.parseJSON(msg_data);
+                        update_json = jQuery.parseJSON(msg_data);
                     }
                     catch (exception) {
                         console.log("Error trying to decode or parse json. Message: %s, ERROR: %s", msg_data, exception);
                         return;
                     }
                     
-                    this.parseStatUpdate(delta_update);
+                    //update_json may contain any of the following structures:
+                    //first structure: [{"time": "unix timestamp"}] - the timestamp will be the time between the start and current log time
+                    //second structure: [{"score": [{"red": val}, {"blue": val}]}]
+                    //third structure: [{"chat": [{"name": {{"message": msg}, {"msg_type": team/all}, {"team": team colour}}}, repeat]}]
+                    //and finally, a stat object: [{"stat" : [{"sid": [{"type": val}, ...], {"sid": .....}, repeat]}]
+
+                    if (update_json.gametime !== undefined) {
+                        this.parseTimeUpdate(update_json.gametime);
+
+                    }
+                    if (update_json.score !== undefined) {
+                        this.parseScoreUpdate(update_json.score);
+
+                    }
+                    if (update_json.chat !== undefined) {
+                        this.parseChatUpdate(update_json.chat);
+                    }
+                    if (update_json.stat !== undefined) {
+                        this.parseStatUpdate(update_json.stat);
+                    }
                 }
             }
+        },
+
+        parseTimeUpdate : function(timestamp) {
+            //update the time. requires use of sprintf
+            var time_sec = Number(timestamp), new_time_disp; //make sure the timestamp is a number
+
+            new_time_disp = sprintf("%02d minute(s) and %02d second(s)", (time_sec/60)%60, time_sec%60);
+
+            console.log("Got timestamp message. Timestamp: %d Time display: %s", time_sec, new_time_disp);
+
+
+            document.getElementById("time_elapsed").innerHTML = new_time_disp;
+        },
+
+        parseScoreUpdate : function (score_obj) {
+            var red_score = 0, blue_score = 0, red_element, blue_element;
+
+            if (score_obj.red !== undefined) {
+                red_score = Number(score_obj.red);
+            }
+            if (score_obj.blue !== undefined) {
+                blue_score = Number(score_obj.blue);
+            }
+
+            console.log("SCORE UPDATE. RED: +%d BLUE: +%d", red_score, blue_score);
+            if (!HAD_FIRST_UPDATE) {
+                document.getElementById("red_score_value").innerHTML = red_score;
+                document.getElementById("blue_score_value").innerHTML = blue_score;
+
+            } else { //it's a delta compressed score update
+                if (red_score) {
+                    red_element = document.getElementById("red_score_value");
+                    if (red_element) {
+                        red_element.innerHTML = Number(red_element.innerHTML) + red_score;
+                    }
+                }
+                if (blue_score) {
+                    blue_element = document.getElementById("blue_score_value");
+                    if (blue_element) {
+                        blue_element.innerHTML = Number(blue_element.innerHTML) + blue_score;
+                    }
+                }
+
+            }
+        },
+
+        parseChatUpdate : function(chat_obj) {
+            var chat_name, chat_team, chat_type, chat_message, team_class;
+            //underneath "chat" is the player names and the message
+            $.each(chat_obj, function(sid, chat_data) {
+                //chat_data will be all the message shit
+                chat_name = chat_data.name;
+                chat_team = chat_data.team.toLowerCase();
+                chat_type = chat_data.msg_type;
+                chat_message = chat_data.msg;
+
+                if (chat_team === "red") {
+                    team_class = "red_player";
+                } else if (chat_team === "blue") {
+                    team_class = "blue_player";
+                } else {
+                    team_class = "no_team_player";
+                }
+
+                console.log("CHAT: player %s (team: %s) msg: (%s) %s", chat_name, chat_team, chat_type, chat_message);
+
+                $("table#chat_table tbody").append(
+                    '<tr>' +
+                        '<td><span class="' + team_class + ' player_chat">' + chat_name + '</span></td>' +
+                        '<td><span class="player_chat">(' + chat_type + ')</span> <span class="player_chat_message">' + chat_message + '</span></td>' +
+                    '</tr>');
+            });
         },
         
         parseStatUpdate : function(stat_obj) {
@@ -147,49 +253,55 @@ var llWSClient = llWSClient || (function() {
                 num_rounds = Number(document.getElementById("red_score_value").innerHTML) + Number(document.getElementById("blue_score_value").innerHTML);
                 
                 $.each(stat_obj, function(sid, stats) {
-                    $.each(stats, function(stat, value) {
-                        element_id = sid + "." + stat;
-                        
-                        console.log("SID: %s, STAT: %s, VALUE: %s, HTML ELEMENT: %s", sid, stat, value, element_id);
-                        
-                        element = document.getElementById(element_id);
-                        if (element) {
-                            console.log("Got element %s, VALUE: %s", element, element.innerHTML);
+                    //check if player exists on page already
+                    if (document.getElementById(sid + ".name")) {
+                        $.each(stats, function(stat, value) {
+                            element_id = sid + "." + stat;
                             
-                            if (HAD_FIRST_UPDATE) {                    
-                                element.innerHTML = Number(element.innerHTML) + Number(value);
-                            } else {
-                                element.innerHTML = Number(value);
-                            }
+                            console.log("SID: %s, STAT: %s, VALUE: %s, HTML ELEMENT: %s", sid, stat, value, element_id);
                             
-                            console.log("Element new value: %s", element.innerHTML);
-                        }
-                    });
-                    
-                    /*now that we've looped through all the stats, we need to edit the combo columns like kpd, dpd and dpr*/
-                    for (i = 0; i < special_element_tags.length; i++) {
-                        tmp = special_element_tags[i];
-                        element_id = sid + "." + tmp;
-                        element = document.getElementById(element_id);
+                            element = document.getElementById(element_id);
+                            if (element) {
+                                //console.log("Got element %s, VALUE: %s", element, element.innerHTML);
+                                
+                                if (HAD_FIRST_UPDATE) {                    
+                                    element.innerHTML = Number(element.innerHTML) + Number(value);
+                                } else {
+                                    element.innerHTML = Number(value);
+                                }
+                                
+                                //console.log("Element new value: %s", element.innerHTML);
+                            }
+                        });
                         
-                        console.log("SID: %s, HTML ELEMENT: %s", sid, element_id);
-                        
-                        
-                        deaths = Number(document.getElementById(sid + ".deaths").innerHTML);
-                        damage = Number(document.getElementById(sid + ".damage").innerHTML);
-                        
-                        if (element) {
-                            if (tmp === "kpd") {
-                                kills = Number(document.getElementById(sid + ".kills").innerHTML);
-                                element.innerHTML = Math.round(kills / (deaths || 1) * 100) / 100; //multiply by 100 and div by 100 for 2 dec places rounding
-                            } else if (tmp === "dpd") {
-                                element.innerHTML = Math.round(damage / (deaths || 1) * 100) / 100;
-                            } else if (tmp === "dpr") {
-                                element.innerHTML = Math.round(damage / (num_rounds || 1) * 100) / 100;
-                            } else {
-                                console.log("Invalid element %s in special element array", tmp);
+                        /*now that we've looped through all the stats, we need to edit the combo columns like kpd, dpd and dpr*/
+                        for (i = 0; i < special_element_tags.length; i++) {
+                            tmp = special_element_tags[i];
+                            element_id = sid + "." + tmp;
+                            element = document.getElementById(element_id);
+                            
+                            //console.log("SID: %s, HTML ELEMENT: %s", sid, element_id);
+                            
+                            
+                            deaths = Number(document.getElementById(sid + ".deaths").innerHTML);
+                            damage = Number(document.getElementById(sid + ".damage").innerHTML);
+                            
+                            if (element) {
+                                if (tmp === "kpd") {
+                                    kills = Number(document.getElementById(sid + ".kills").innerHTML);
+                                    element.innerHTML = Math.round(kills / (deaths || 1) * 100) / 100; //multiply by 100 and div by 100 for 2 dec places rounding
+                                } else if (tmp === "dpd") {
+                                    element.innerHTML = Math.round(damage / (deaths || 1) * 100) / 100;
+                                } else if (tmp === "dpr") {
+                                    element.innerHTML = Math.round(damage / (num_rounds || 1) * 100) / 100;
+                                } else {
+                                    console.log("Invalid element %s in special element array", tmp);
+                                }
                             }
                         }
+                    } else {
+                        //this means the player needs to be added to the table
+                        console.log("New player to be added. SID: %s", sid);
                     }
                 });
             }
@@ -215,6 +327,7 @@ var llWSClient = llWSClient || (function() {
 }());
 
 window.onbeforeunload = function() {
+    "use strict";
     if (llWSClient.client) {
         llWSClient.client.close();
     }

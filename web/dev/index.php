@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="en" xml:lang="en">
 <head>
-    <title>Livelogs DEV - INDEX</title>
+    <title>Livelogs - Home</title>
     <?php
         include 'static/header.html';
         require "../conf/ll_database.php";
