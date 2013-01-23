@@ -706,9 +706,6 @@ public Action:webtv_bufferProcessTimer(Handle:timer, any:data)
 {
     new Float:current_time = GetEngineTime(), Float:timediff;
     
-    //new iBufferSize = GetArraySize(livelogs_webtv_buffer);
-    new num_web_clients = GetArraySize(livelogs_webtv_children);
-    
     decl String:buf_split_array[3][4096];// String:strbuf[4096];
     
     for (new i = 0; i < livelogs_webtv_buffer_length; i++)
@@ -725,12 +722,13 @@ public Action:webtv_bufferProcessTimer(Handle:timer, any:data)
             //compare timestamps to see if tv_delay has passed
             timediff = current_time - StringToFloat(buf_split_array[0]);
             
-            if ((timediff > webtv_delay) && (num_web_clients > 0)) //i.e. delay seconds has past, time to send data
+            if (timediff > webtv_delay) //i.e. delay seconds has past, time to send data
             {
                 //if (DEBUG) { LogMessage("timestamp is outside of delay range. timediff: %f, sending. send msg: %s", timediff, buf_split_array[1]); }
-                sendToAllWebChildren(buf_split_array[1], num_web_clients);
+                sendToAllWebChildren(buf_split_array[1]);
             }
-            else {
+            else 
+            {
             //our timestamp is beyond the delay. therefore, everything following it will be as well. return before left shift
                 return Plugin_Continue;
             }
