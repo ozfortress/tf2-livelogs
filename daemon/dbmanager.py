@@ -231,6 +231,33 @@ class dbManager(object):
                 
         return stat_dict_updated
     
+    def combineUpdateTable(old_table, new_table):
+        #this will add two dictionaries together in the case that two updates occur before data is sent
+
+        update_dict = {}
+
+        old_only_keys = [] #keys only present in the old table
+        new_only_keys = [] #keys only present in the new table
+
+        for key in new_table:
+            if key in old_table:
+                update_dict[key] = new_table[key] + old_table[key]
+            else:
+                new_only_keys.append(key)
+
+        for key in old_table:
+            if key not in new_table:
+                old_only_keys.append(key)
+
+        for key in new_only_keys:
+            update_dict[key] = new_table[key]
+
+        for key in old_only_keys:
+            update_dict[key] = old_table[key]
+
+        return update_dict
+
+
     def getDatabaseUpdate(self):
         #executes the queries to obtain updates. called periodically
         if self._log_status_check == True:
@@ -345,7 +372,7 @@ class dbManager(object):
             stat_dict[sid] = row[1:] #splice the rest of the data and store it under the player's steamid
             
         
-        if not self._stat_complete_table:
+        if not self._stat_complete_table: #if this is the first callback
             self._stat_complete_table = stat_dict
         else:
             #we need to get the table difference before we update to the latest data
@@ -354,8 +381,14 @@ class dbManager(object):
                 self._update_no_diff += 1 #increment number of times there's been an update with no difference
 
             else:
-                self._stat_difference_table = temp_table
-                self._stat_complete_table = stat_dict
+                if self._new_stat_update:
+                    self.log.info("There is a stat update waiting to be sent. Combining tables")
+                    #there's already an update waiting to be sent. we should therefore combine updates
+                    self._stat_difference_table = self.combineUpdateTable(temp_table, self._stat_difference_table)
+
+                else:
+                    self._stat_difference_table = temp_table
+                    self._stat_complete_table = stat_dict
 
                 self._new_stat_update = True
             
@@ -401,8 +434,16 @@ class dbManager(object):
 
                 self.log.info("CHAT: ID: %s NAME: %s TEAM: %s MSG_TYPE: %s MSG: %s", sid, row[2], row[3], row[4], row[5])
 
-            self._chat_table = chat_dict
-            self._new_chat_update = True
+            if chat_dict:
+                if self._new_chat_update:
+                    self.log.info("There is a chat update waiting to be sent. Combining updates")
+
+                    self._chat_table = self.combineUpdateTable(self._chat_table, chat_dict)
+
+                else: #no updates waiting, just assign the new dict
+                    self._chat_table = chat_dict
+
+                self._new_chat_update = True
 
         self._chat_query_complete = True
 
@@ -448,10 +489,18 @@ class dbManager(object):
                     if score_diff:
                         score_diff_dict[team] = score_diff
 
-                        self._new_score_update = True
+                if score_diff_dict:
+                    if self._new_score_update:
+                        self.log.info("Score update waiting. Combining")
 
-                self._score_difference_table = score_diff_dict
+                        self._score_difference_table = self.combineUpdateTable(self._score_difference_table, score_diff_dict)
+                    else:
+                        self._score_difference_table = score_diff_dict
+
+
+                    self._new_score_update = True
                 self._score_table = score_dict
+                
         else:
             self._score_table = {
                     "red": 0,
