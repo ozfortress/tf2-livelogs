@@ -106,6 +106,7 @@
     <div class="navbar navbar-inverse navbar-fixed-top">
         <div class="navbar-inner">
             <div class="livelogs_nav_container">
+                <img class="pull-left" src="/images/livelogs-beta.png"></img>
                 <ul class="nav">
                     <li>
                         <a href="/">Home</a>
