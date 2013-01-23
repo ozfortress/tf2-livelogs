@@ -79,6 +79,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         logUpdateHandler.logUpdateThread = threading.Thread(target = logUpdateHandler._sendUpdateThread, args=(logUpdateHandler.logUpdateThreadEvent,))
         logUpdateHandler.logUpdateThread.daemon = True
+        logUpdateHandler.logUpdateThread.start()
         
         tornado.websocket.WebSocketHandler.__init__(self, application, request, **kwargs)
     
@@ -219,11 +220,6 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             cls.ordered_clients[log_id].add(client)
             
         cls.ordered_clients["none"].discard(client) #remove from unallocated set
-        
-        if not cls.logUpdateThread.isAlive():
-            logger.info("Starting send update thread")
-            
-            cls.logUpdateThread.start()
 
         if cls.logUpdateThreadEvent.is_set():
             cls.logUpdateThreadEvent.clear() #timer loop will start again
@@ -375,7 +371,10 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         while not event.is_set():
             event.wait(cls.update_rate)
             
+            logger.info("event is not set")
             cls.sendLogUpdates()
+
+        logger.info("event is set")
 
     @classmethod
     def _logFinishedCallback(cls, log_ident):
