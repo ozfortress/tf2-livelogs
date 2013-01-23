@@ -104,16 +104,6 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         #client disconnects
         logger.info("Client disconnected. IP: %s", self.request.remote_ip)
         logUpdateHandler.clients.remove(self)
-        
-        if (len(logUpdateHandler.clients) == 0) and logUpdateHandler.logUpdateThread.isAlive():
-            #no clients are connected. stop the update thread
-            logUpdateHandler.logUpdateThreadEvent.set()
-            
-            #while logUpdateHandler.logUpdateThread.isAlive():
-            #    logUpdateHandler.logUpdateThread.join(5)
-                
-            
-            logger.info("Ended sending update thread. No clients connected")
 
         logUpdateHandler.removeFromOrderedClients(self)
         
@@ -220,11 +210,6 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             cls.ordered_clients[log_id].add(client)
             
         cls.ordered_clients["none"].discard(client) #remove from unallocated set
-
-        if cls.logUpdateThreadEvent.is_set():
-            cls.logUpdateThreadEvent.clear() #timer loop will start again
-        
-        #cls.sendLogUpdates()
         
     @classmethod
     def removeFromOrderedClients(cls, client):
@@ -276,10 +261,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     @classmethod
     def sendLogUpdates(cls):
         if len(cls.clients) == 0:
-            logger.info("Sending thread is still active, but no clients are connected")
-            #there's nothing we can do from here to stop the thread, as this method is being invoked by the thread and is part of it
-            #hence, it cannot be joined by this method or have the event set by this method
-            #something in the main thread must ensure that the send thread is paused
+            logger.info("sendLogUpdates: No clients connected")
 
             return
         
@@ -370,11 +352,8 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         #this method is run in a thread, and acts as a timer
         while not event.is_set():
             event.wait(cls.update_rate)
-            
-            logger.info("event is not set")
-            cls.sendLogUpdates()
 
-        logger.info("event is set")
+            cls.sendLogUpdates()
 
     @classmethod
     def _logFinishedCallback(cls, log_ident):
