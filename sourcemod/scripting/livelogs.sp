@@ -39,13 +39,13 @@
 
 #include <sourcemod>
 #include <socket>
+#include <sdktools>
 
 #undef REQUIRE_PLUGIN
 
 #tryinclude <websocket>
 
 #if defined _websocket_included
-#include <sdktools>
 #include <tf2_stocks>
 #endif
 
@@ -238,7 +238,7 @@ public OnAllPluginsLoaded()
         if (DEBUG) { LogMessage("websocket.smx is not present. Not using SourceTV2D"); }
     #endif
 }
-
+#if defined _websocket_included
 public OnLibraryAdded(const String:name[])
 {
     //this forward is only fired if websocket is added
@@ -258,6 +258,7 @@ public OnLibraryRemoved(const String:name[])
         cleanUpWebSocket();
     }
 }
+#endif
 
 public OnMapStart()
 {
@@ -302,9 +303,9 @@ public toggleLoggingHook(Handle:cvar, const String:oldval[], const String:newval
     log_additional_stats = GetConVarBool(cvar);
 
     if (log_additional_stats)
-        PrintToServer("Livelogs now logging additional statistics");
+        PrintToServer("Livelogs now outputting additional statistics");
     else
-        PrintToServer("Livelogs no longer logging additional statistics");
+        PrintToServer("Livelogs no longer outputting additional statistics");
 
 }
 
@@ -985,7 +986,14 @@ requestListenerAddress()
     
     #if defined _websocket_included
     new webtv_port = GetConVarInt(livelogs_webtv_listenport);
-    Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s!%d", ll_api_key, server_ip, server_port, map, log_name, webtv_port);  
+    if (webtv_enabled)
+    {
+        Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s!%d", ll_api_key, server_ip, server_port, map, log_name, webtv_port);  
+    }
+    else
+    {
+        Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s", ll_api_key, server_ip, server_port, map, log_name);
+    }
     #else
     Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s", ll_api_key, server_ip, server_port, map, log_name);
     #endif

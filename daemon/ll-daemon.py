@@ -16,6 +16,8 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
     def __init__(self, request, client_address, server):
         self.logger = logging.getLogger('llDaemonHandler')
         self.logger.debug('Handler init. APIKEY: %s', server.LL_API_KEY)
+
+        self.newListen = None
         
         self.cip, self.cport = client_address
 
@@ -103,7 +105,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                     self.logger.debug("THREAD %s: Parser had error trying to initialise. Closing connection", t_name)
                     self.newListen.error_cleanup() #shutdown the listener
         else:
-            self.logger.debug("THREAD %s: Invalid data received. Exiting", t_name)
+            self.logger.debug("THREAD %s: Invalid data received", t_name)
 
         return
         
