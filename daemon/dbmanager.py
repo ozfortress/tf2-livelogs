@@ -314,10 +314,10 @@ class dbManager(object):
                 
                 self.log.info("Op error during database update")
                 
-            except Exception as e:
+            except Exception, e:
                 self._database_busy = False
                 
-                self.log.info("Unknown exception %s occurred during database update", e)
+                self.log.exception("Unknown exception occurred during database update")
         else:
             self.log.info("Busy getting database updates")
             
@@ -328,24 +328,28 @@ class dbManager(object):
             return
             
         self.log.info("databaseStatusCallback")   
-         
-        if cursor:
-            result = cursor.fetchone()
-            
-            if result and len(result) > 0:
-                live = result[0]
+        
+        try:
+            if cursor:
+                result = cursor.fetchone()
                 
-                if (live == True):
-                    self._update_no_diff = 0 #reset the increment, because the log is actually still live
-                    self._log_status_check = False
+                if result and len(result) > 0:
+                    live = result[0]
                     
-                    self.log.info("Log is still live. Continuing to update")
-                else:
-                    #the log is no longer live
-                    self.log.info("Log is no longer live")
-                    self.cleanup()
-                    
-                    self.end_callback(self.LOG_IDENT)
+                    if (live == True):
+                        self._update_no_diff = 0 #reset the increment, because the log is actually still live
+                        self._log_status_check = False
+                        
+                        self.log.info("Log is still live. Continuing to update")
+                    else:
+                        #the log is no longer live
+                        self.log.info("Log is no longer live")
+                        self.cleanup()
+                        
+                        self.end_callback(self.LOG_IDENT)
+
+        except Exception, e:
+            self.log.exception("Exception during databaseStatusCallback")
         
     def _databaseStatUpdateCallback(self, cursor, error):
         #the callback for stat update queries
@@ -357,36 +361,40 @@ class dbManager(object):
         
         self.log.info("Stat update callback")
 
-        stat_dict = {}
-        
-        #iterate over the cursor
-        for row in cursor:
-            #each row is a player's data as a tuple in the format of:
-            #SID:NAME:K:D:A:P:HD:HR:UU:UL:HS:BS:DMG:APsm:APmed:APlrg:MKsm:MKmed:MKlrg:CAP:CAPB:DOM:TDOM:REV:SUICD:BLD_DEST:EXTNG:KILL_STRK
-            sid = self.steamCommunityID(row[0]) #player's steamid as a community id
-            stat_dict[sid] = row[1:] #splice the rest of the data and store it under the player's steamid
+        try:
+            stat_dict = {}
             
-        
-        if not self._stat_complete_table: #if this is the first callback
-            self._stat_complete_table = stat_dict
-        else:
-            #we need to get the table difference before we update to the latest data
-            temp_table = self.updateStatTableDifference(self._stat_complete_table, stat_dict)
-            if temp_table == self._stat_difference_table:
-                self._update_no_diff += 1 #increment number of times there's been an update with no difference
-
+            #iterate over the cursor
+            for row in cursor:
+                #each row is a player's data as a tuple in the format of:
+                #SID:NAME:K:D:A:P:HD:HR:UU:UL:HS:BS:DMG:APsm:APmed:APlrg:MKsm:MKmed:MKlrg:CAP:CAPB:DOM:TDOM:REV:SUICD:BLD_DEST:EXTNG:KILL_STRK
+                sid = self.steamCommunityID(row[0]) #player's steamid as a community id
+                stat_dict[sid] = row[1:] #splice the rest of the data and store it under the player's steamid
+                
+            
+            if not self._stat_complete_table: #if this is the first callback
+                self._stat_complete_table = stat_dict
             else:
-                if self._new_stat_update:
-                    self.log.info("There is a stat update waiting to be sent. Combining tables")
-                    #there's already an update waiting to be sent. we should therefore combine updates
-                    self._stat_difference_table = self.combineUpdateTable(temp_table, self._stat_difference_table)
+                #we need to get the table difference before we update to the latest data
+                temp_table = self.updateStatTableDifference(self._stat_complete_table, stat_dict)
+                if temp_table == self._stat_difference_table:
+                    self._update_no_diff += 1 #increment number of times there's been an update with no difference
 
                 else:
-                    self._stat_difference_table = temp_table
-                    self._stat_complete_table = stat_dict
+                    if self._new_stat_update:
+                        self.log.info("There is a stat update waiting to be sent. Combining tables")
+                        #there's already an update waiting to be sent. we should therefore combine updates
+                        self._stat_difference_table = self.combineUpdateTable(temp_table, self._stat_difference_table)
 
-                self._new_stat_update = True
-            
+                    else:
+                        self._stat_difference_table = temp_table
+                        self._stat_complete_table = stat_dict
+
+                    self._new_stat_update = True
+
+        except Exception, e:
+            self.log.exception("Exception during _databaseStatUpdateCallback")
+                
         self._stat_query_complete = True
 
         self.checkManagerBusyStatus()
@@ -399,46 +407,49 @@ class dbManager(object):
             return
 
         self.log.info("Chat update callback")
+        try:
+            #if this is the first chat query, it is a query to get the most recent chat event id
+            #subsequent queries will contain chat after this id
+            if not self._chat_event_id:
+                if cursor:
+                    self._chat_event_id = cursor.fetchone()[0]
+                    if self._chat_event_id: #may be None, if unable to get any results
+                        self.log.info("First chat query. Latest chat event id: %d", self._chat_event_id)
+                else:
+                    self.log.info("Invalid result for chat query: %s", cursor.fetchone())
 
-        #if this is the first chat query, it is a query to get the most recent chat event id
-        #subsequent queries will contain chat after this id
-        if not self._chat_event_id:
-            if cursor:
-                self._chat_event_id = cursor.fetchone()[0]
-                if self._chat_event_id: #may be None, if unable to get any results
-                    self.log.info("First chat query. Latest chat event id: %d", self._chat_event_id)
             else:
-                self.log.info("Invalid result for chat query: %s", cursor.fetchone())
+                chat_dict = {}
 
-        else:
-            chat_dict = {}
+                for row in cursor:
+                    #each row will be a tuple in the format of:
+                    #eventid:steamid:name:team:chat_type:chat_msg
+                    self._chat_event_id = row[0] #set the latest chat event id
 
-            for row in cursor:
-                #each row will be a tuple in the format of:
-                #eventid:steamid:name:team:chat_type:chat_msg
-                self._chat_event_id = row[0] #set the latest chat event id
+                    sid = self.steamCommunityID(row[1]) #convert to community id
 
-                sid = self.steamCommunityID(row[1]) #convert to community id
+                    chat_dict[sid] = {
+                            "name": row[2], 
+                            "team": row[3], 
+                            "msg_type": row[4], 
+                            "msg": row[5]
+                        }
 
-                chat_dict[sid] = {
-                        "name": row[2], 
-                        "team": row[3], 
-                        "msg_type": row[4], 
-                        "msg": row[5]
-                    }
+                    self.log.info("CHAT: ID: %s NAME: %s TEAM: %s MSG_TYPE: %s MSG: %s", sid, row[2], row[3], row[4], row[5])
 
-                self.log.info("CHAT: ID: %s NAME: %s TEAM: %s MSG_TYPE: %s MSG: %s", sid, row[2], row[3], row[4], row[5])
+                if chat_dict:
+                    if self._new_chat_update:
+                        self.log.info("There is a chat update waiting to be sent. Combining updates")
 
-            if chat_dict:
-                if self._new_chat_update:
-                    self.log.info("There is a chat update waiting to be sent. Combining updates")
+                        self._chat_table = self.combineUpdateTable(self._chat_table, chat_dict)
 
-                    self._chat_table = self.combineUpdateTable(self._chat_table, chat_dict)
+                    else: #no updates waiting, just assign the new dict
+                        self._chat_table = chat_dict
 
-                else: #no updates waiting, just assign the new dict
-                    self._chat_table = chat_dict
+                    self._new_chat_update = True
 
-                self._new_chat_update = True
+        except Exception, e:
+            self.log.exception("Exception during _databaseChatUpdateCallback")
 
         self._chat_query_complete = True
 
@@ -455,52 +466,55 @@ class dbManager(object):
 
         #if there's data, data is in a tuple in the format: (red_score, blue_score)
         #or, it's in the format (null, null) and the scores are 0
+        try:
+            score_dict = {}
 
-        score_dict = {}
+            scores = cursor.fetchone() #a single tuple in the format described above
+            self.log.info("Score query returned %s", scores)
+            
+            if scores and len(scores) >= 1: 
+                if scores[0]:
+                    score_dict["red"] = scores[0]
+                else:
+                    score_dict["red"] = 0
 
-        scores = cursor.fetchone() #a single tuple in the format described above
-        self.log.info("Score query returned %s", scores)
-        
-        if scores and len(scores) >= 1: 
-            if scores[0]:
-                score_dict["red"] = scores[0]
+                if scores[1]:
+                    score_dict["blue"] = scores[1]
+                else:
+                    score_dict["blue"] = 0
+
+                if not self._score_table:
+                    self._score_table = score_dict
+                    self.log.info("FIRST SCORE UPDATE: Red: %d Blue: %d", score_dict["red"], score_dict["blue"])
+
+                else:
+                    score_diff_dict = {}
+                    for team in score_dict:
+                        #score_dict has the most recent version
+                        score_diff = score_dict[team] - self._score_table[team]
+                        if score_diff:
+                            score_diff_dict[team] = score_diff
+
+                    if score_diff_dict:
+                        if self._new_score_update:
+                            self.log.info("Score update waiting. Combining")
+
+                            self._score_difference_table = self.combineUpdateTable(self._score_difference_table, score_diff_dict)
+                        else:
+                            self._score_difference_table = score_diff_dict
+
+
+                        self._new_score_update = True
+                    self._score_table = score_dict
+                    
             else:
-                score_dict["red"] = 0
+                self._score_table = {
+                        "red": 0,
+                        "blue": 0
+                    }
 
-            if scores[1]:
-                score_dict["blue"] = scores[1]
-            else:
-                score_dict["blue"] = 0
-
-            if not self._score_table:
-                self._score_table = score_dict
-                self.log.info("FIRST SCORE UPDATE: Red: %d Blue: %d", score_dict["red"], score_dict["blue"])
-
-            else:
-                score_diff_dict = {}
-                for team in score_dict:
-                    #score_dict has the most recent version
-                    score_diff = score_dict[team] - self._score_table[team]
-                    if score_diff:
-                        score_diff_dict[team] = score_diff
-
-                if score_diff_dict:
-                    if self._new_score_update:
-                        self.log.info("Score update waiting. Combining")
-
-                        self._score_difference_table = self.combineUpdateTable(self._score_difference_table, score_diff_dict)
-                    else:
-                        self._score_difference_table = score_diff_dict
-
-
-                    self._new_score_update = True
-                self._score_table = score_dict
-                
-        else:
-            self._score_table = {
-                    "red": 0,
-                    "blue": 0
-                }
+        except Exception, e:
+            self.log.exception("Exception during _databaseScoreUpdateCallback")
 
         self._score_query_complete = True
 
@@ -517,27 +531,30 @@ class dbManager(object):
 
         #if there's data, data will be in the format (2 tuples inside a tuple): ((start_time,), (most_recent_time,))
         #times are in the format "10/01/2012 21:38:18", so we need to convert them to epoch to get the difference
+        try:
+            times = cursor.fetchall() #two tuples in the format above
+            self.log.info("Time query returned %s", times)
 
-        times = cursor.fetchall() #two tuples in the format above
-        self.log.info("Time query returned %s", times)
+            if len(times) == 2:
+                if (len(times[0]) > 0) and (len(times[1]) > 0): #we have our expected results!
+                    time_format = "%m/%d/%Y %H:%M:%S"
 
-        if len(times) == 2:
-            if (len(times[0]) > 0) and (len(times[1]) > 0): #we have our expected results!
-                time_format = "%m/%d/%Y %H:%M:%S"
+                    start_time = time.mktime(time.strptime(times[0][0], time_format))
 
-                start_time = time.mktime(time.strptime(times[0][0], time_format))
+                    latest_time =time.mktime(time.strptime(times[1][0], time_format))
 
-                latest_time =time.mktime(time.strptime(times[1][0], time_format))
+                    #time_diff is in seconds as a float
+                    time_diff =  latest_time - start_time
 
-                #time_diff is in seconds as a float
-                time_diff =  latest_time - start_time
+                    #self.log.info("Time update difference: %0.2f", time_diff)
 
-                #self.log.info("Time update difference: %0.2f", time_diff)
+                    self._time_stamp = time_diff
 
-                self._time_stamp = time_diff
+                    self._new_time_update = True
 
-                self._new_time_update = True
-
+        except Exception, e:
+            self.log.exception("Exception during _databaseTimeUpdateCallback")
+            
         self._time_query_complete = True
 
         self.checkManagerBusyStatus()
