@@ -355,7 +355,7 @@ var SourceTV2D = SourceTV2D || (function() {
                         this.infos[this.infos.length] = {'msg': this.players[idx].name + " changed team to " + this.team[this.players[idx].team], 'time': d.getTime()/1000};
                         
                         if (this.players[idx].team < 2) {
-                            this.players[idx].positions.clear();
+                            this.players[idx].positions.length = 0;
                         }
                         
                         //debug("Player #" + frame.userid + " changed team to: " + this.players[idx].team);
@@ -379,7 +379,7 @@ var SourceTV2D = SourceTV2D || (function() {
 
                     $.each(split, function(player_index, player_data) {
                         if (frame.positions[player_index] === undefined) {
-                            frame.positions[player_index] = ['', '', '', ''];
+                            frame.positions[player_index] = ['', '', '', '', ''];
                         }
 
                         var player_values = player_data.split(':');

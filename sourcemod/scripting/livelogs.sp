@@ -887,6 +887,12 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
             //now open websocket too
             if ((livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE) && (webtv_library_present) && (webtv_enabled))
             {
+                if (livelogs_webtv_cleanup_timer != INVALID_HANDLE)
+                {
+                    KillTimer(livelogs_webtv_cleanup_timer);
+                    livelogs_webtv_cleanup_timer = INVALID_HANDLE;
+                }
+
                 webtv_delay = GetConVarFloat(FindConVar("tv_delay"));
                 new webtv_lport = GetConVarInt(livelogs_webtv_listenport);
                 if (DEBUG) { LogMessage("websocket is present. initialising socket. Address: %s:%d", server_ip, webtv_lport); }
@@ -965,7 +971,7 @@ clearVars()
 requestListenerAddress()
 {
     //SEND STRUCTURE: LIVELOG!123test!192.168.35.1!27015!cp_granary!John
-    decl String:ll_request[128], String:ll_api_key[64], String:map[64], String:log_name[64];
+    decl String:ll_request[256], String:ll_api_key[64], String:map[64], String:log_name[64];
     
     GetCurrentMap(map, sizeof(map));
     
@@ -984,7 +990,7 @@ requestListenerAddress()
     
     #if defined _websocket_included
     new webtv_port = GetConVarInt(livelogs_webtv_listenport);
-    if (webtv_enabled)
+    if ((webtv_enabled) && (webtv_library_present))
     {
         Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s!%d", ll_api_key, server_ip, server_port, map, log_name, webtv_port);  
     }
