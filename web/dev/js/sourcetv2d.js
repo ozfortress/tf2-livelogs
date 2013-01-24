@@ -1389,8 +1389,8 @@ var SourceTV2D = SourceTV2D || (function() {
             // Load the background map image
             console.log("loadMapImageInfo game: %s map: %s", game, map);
 
-            SourceTV2D..background = new Image();
-            $(SourceTV2D..background).load(function() {
+            SourceTV2D.background = new Image();
+            $(SourceTV2D.background).load(function() {
                 SourceTV2D.canvas = document.createElement('canvas');
 
                 // Browser does not support canvas

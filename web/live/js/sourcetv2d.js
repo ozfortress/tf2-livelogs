@@ -1389,32 +1389,32 @@ var SourceTV2D = SourceTV2D || (function() {
             // Load the background map image
             console.log("loadMapImageInfo game: %s map: %s", game, map);
 
-            this.background = new Image();
-            $(this.background).load(function() {
-                this.canvas = document.createElement('canvas');
+            SourceTV2D.background = new Image();
+            $(SourceTV2D.background).load(function() {
+                SourceTV2D.canvas = document.createElement('canvas');
 
                 // Browser does not support canvas
-                if (!this.canvas.getContext)
+                if (!SourceTV2D.canvas.getContext)
                 {
                   $("#sourcetv2d").html("<h2>Your browser does not support the canvas element.</h2>");
-                  this.disconnect();
+                  SourceTV2D.disconnect();
                   return;
                 }
 
-                //this.scaling = 1.0;
+                //SourceTV2D.scaling = 1.0;
 
-                this.playerRadius = Math.round(5 * this.scaling);
-                this.width = this.background.width * this.scaling;
-                this.height = this.background.height * this.scaling;
-                this.canvas.setAttribute('width',this.width);  
-                this.canvas.setAttribute('height',this.height);
+                SourceTV2D.playerRadius = Math.round(5 * SourceTV2D.scaling);
+                SourceTV2D.width = SourceTV2D.background.width * SourceTV2D.scaling;
+                SourceTV2D.height = SourceTV2D.background.height * SourceTV2D.scaling;
+                SourceTV2D.canvas.setAttribute('width',SourceTV2D.width);  
+                SourceTV2D.canvas.setAttribute('height',SourceTV2D.height);
 
-                $("#sourcetv2d").append(this.canvas);
-                $("#sourcetv2d").mousemove(function (ev) { this.mouseMove(ev); });
-                $("#sourcetv2d").click(function (ev) { this.mouseClick(ev); });
+                $("#sourcetv2d").append(SourceTV2D.canvas);
+                $("#sourcetv2d").mousemove(function (ev) { SourceTV2D.mouseMove(ev); });
+                $("#sourcetv2d").click(function (ev) { SourceTV2D.mouseClick(ev); });
 
-                this.ctx = this.canvas.getContext('2d');
-                this.ctx.drawImage(this.background,0,0,this.width,this.height);
+                SourceTV2D.ctx = SourceTV2D.canvas.getContext('2d');
+                SourceTV2D.ctx.drawImage(SourceTV2D.background,0,0,SourceTV2D.width,SourceTV2D.height);
 
                 // Get the map config
                 $.ajax({
