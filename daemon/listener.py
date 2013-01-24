@@ -14,21 +14,22 @@ class llListenerHandler(SocketServer.BaseRequestHandler):
         sock = self.request[1]
 
         #print "LOG: %s" % data
-        if not self.server.parser.HAD_ERROR:
+        if self.server.parser and not self.server.parser.HAD_ERROR:
             self.server.parser.parse(data)
 
 
 class llListener(SocketServer.UDPServer):
     def __init__(self, listener_address, timeout, listener_object, handler_class=llListenerHandler):
-        SocketServer.UDPServer.__init__(self, listener_address, handler_class)
         print "Initialised log listener. Waiting for logs"
-
+        self.parser = None
         self.timeout = timeout
 
         self.timeoutTimer = threading.Timer(timeout, self.handle_server_timeout)
         self.timeoutTimer.start()
 
         self.listener_object = listener_object #llListenerObject address, which holds this listener. needed to end the listening thread, and remove the object from the daemon's set
+
+        SocketServer.UDPServer.__init__(self, listener_address, handler_class)
 
     def verify_request(self, request, client_address):
         """

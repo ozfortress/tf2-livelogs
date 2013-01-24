@@ -36,6 +36,9 @@ except ImportError:
     
 logging.basicConfig(filename="websocket-server.log", level=logging.DEBUG, format="%(asctime)s - %(name)s (%(levelname)s): %(message)s", datefmt="%Y-%m-%d %H-%M-%S")
 
+handler_logger = logging.getLogger("UPDATEHANDLER")
+handler_logger.addHandler(logging.StreamHandler())
+
 class llWSApplication(tornado.web.Application):
     def __init__(self):
         handlers = [
@@ -62,9 +65,6 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     db_managers = {} #a dictionary containing dbManager objects corresponding to log ids
     
     logUpdateThread = None
-    
-    handler_logger = logging.getLogger("UPDATEHANDLER")
-    handler_logger.addHandler(logging.StreamHandler())
 
     #def allow_draft76(self):
         #allow old versions of the websocket protocol, for legacy support. LESS SECURE

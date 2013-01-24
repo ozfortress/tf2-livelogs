@@ -155,15 +155,15 @@ class parserClass():
             self.LOG_FILE_HANDLE.write(logdata + "\n")
 
             #if (res):
-            #    print "Matching regex:"
-            #    pprint(res.groups())
+            #    #print "Matching regex:"
+            #    #pprint(res.groups())
 
             #log file start
             #RL 10/07/2012 - 01:13:34: Log file started (file "logs_pug/L1007104.log") (game "/games/tf2_pug/orangebox/tf") (version "5072")
             res = regex(r'L (\S+) - (\S+) Log file started \x28file "(.*?)"\x29', logdata)
             if (res):
-                print "Log file started"
-                pprint(res.groups())
+                #print "Log file started"
+                #pprint(res.groups())
                 #do shit with log file name?
                 
                 return
@@ -171,8 +171,8 @@ class parserClass():
             #log time
             res = regex(r'L (\S+) - (\S+):', logdata)
             if (res):
-                print "Time of current log"
-                pprint(res.groups())
+                #print "Time of current log"
+                #pprint(res.groups())
                 
                 event_time = regml(res, 1) + " " + regml(res, 2)
 
@@ -182,8 +182,8 @@ class parserClass():
                 #damage dealt
                 res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage" \x28damage "(\d+)"\x29', logdata)
                 if (res):
-                    print "Damage dealt"
-                    pprint(res.groups())
+                    #print "Damage dealt"
+                    #pprint(res.groups())
                     #('[v3] Kaki', '51', 'STEAM_0:1:35387674', 'Red', '40')
                     sid = regml(res, 3)
                     name = self.escapePlayerString(regml(res, 1))
@@ -200,8 +200,8 @@ class parserClass():
                 #"vsn.RynoCerus<6><STEAM_0:0:23192637><Blue>" triggered "healed" against "Hyperbrole<3><STEAM_0:1:22674758><Blue>" (healing "26")
                 res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "healed" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28healing "(\d+)"\x29', logdata)
                 if (res):
-                    print "Healing done"
-                    pprint(res.groups())
+                    #print "Healing done"
+                    #pprint(res.groups())
 
                     medic_sid = regml(res, 3)
                     medic_name = self.escapePlayerString(regml(res, 1))
@@ -223,8 +223,8 @@ class parserClass():
                 #"skae<14><STEAM_0:1:31647857><Red>" picked up item "ammopack_medium"
                 res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" picked up item "(.*)"', logdata)
                 if (res):
-                    print "Item picked up"
-                    pprint(res.groups())
+                    #print "Item picked up"
+                    #pprint(res.groups())
 
                     sid = regml(res, 3)
                     name = self.escapePlayerString(regml(res, 1))
@@ -242,8 +242,8 @@ class parserClass():
                 #player killed (normal)
                 res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" killed "(.*)<(\d+)><(.*)><(Red|Blue)>" with "(.*)" \x28attacker_position "(.*)"\x29 \x28victim_position "(.*)"\x29', logdata)
                 if (res):
-                    print "Player killed (normal kill)"
-                    pprint(res.groups())
+                    #print "Player killed (normal kill)"
+                    #pprint(res.groups())
                     k_sid = regml(res, 3)
                     k_name = self.escapePlayerString(regml(res, 1))
                     k_pos = regml(res, 10)
@@ -273,8 +273,8 @@ class parserClass():
                 #"Liquid'Time<41><STEAM_0:1:19238234><Blue>" killed "[v3] Roight<53><STEAM_0:0:8283620><Red>" with "knife" (customkill "backstab") (attacker_position "-1085 99 240") (victim_position "-1113 51 240")
                 res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" killed "(.*)<(\d+)><(.*)><(Red|Blue)>" with "(.*)" \x28customkill "(.*)"\x29 \x28attacker_position "(.*)"\x29 \x28victim_position "(.*)"\x29', logdata)
                 if (res):
-                    print "Player killed (customkill)"
-                    pprint(res.groups())
+                    #print "Player killed (customkill)"
+                    #pprint(res.groups())
             
                     ck_type = regml(res, 10)
 
@@ -305,7 +305,7 @@ class parserClass():
 
                         event_type = "kill_custom_headshot"
                     else:
-                        print "ERROR: UNKNOWN CUSTOM KILL TYPE \"%s\"" % ck_type
+                        #print "ERROR: UNKNOWN CUSTOM KILL TYPE \"%s\"" % ck_type
                         
                         return
 
@@ -319,8 +319,8 @@ class parserClass():
                 #"Iyvn<40><STEAM_0:1:41931908><Blue>" triggered "kill assist" against "[v3] Kaki<51><STEAM_0:1:35387674><Red>" (assister_position "-905 -705 187") (attacker_position "-1246 -478 237") (victim_position "-1221 -53 283")
                 res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "kill assist" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28assister_position "(.*)"\x29 \x28attacker_position "(.*)"\x29 \x28victim_position "(.*)"\x29', logdata)
                 if (res):
-                    print "Player assisted in kill"
-                    pprint(res.groups())
+                    #print "Player assisted in kill"
+                    #pprint(res.groups())
                     a_sid = regml(res, 3)
                     a_name = self.escapePlayerString(regml(res, 1))
                     a_pos = regml(res, 9)
@@ -340,8 +340,8 @@ class parserClass():
                 #"%s<%i><%s><%s>" triggered "medic_death" against "%s<%i><%s><%s>" (healing "%d") (ubercharge "%s")
                 res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "medic_death" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28healing "(.*)"\x29 \x28ubercharge "(.*)"\x29', logdata)
                 if (res):
-                    print "Medic death"
-                    pprint(res.groups())
+                    #print "Medic death"
+                    #pprint(res.groups())
                     m_sid = regml(res, 7)
                     m_name = self.escapePlayerString(regml(res, 5))
                     m_healing = regml(res, 9)
@@ -359,8 +359,8 @@ class parserClass():
                 #ubercharge used
                 res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "chargedeployed"', logdata)
                 if (res):
-                    print "Ubercharge used"
-                    pprint(res.groups())
+                    #print "Ubercharge used"
+                    #pprint(res.groups())
                     m_sid = regml(res, 3)
                     m_name = self.escapePlayerString(regml(res, 1))
 
@@ -375,8 +375,8 @@ class parserClass():
                 #domination
                 res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "domination" against "(.*)<(\d+)><(.*)><(Red|Blue)>"', logdata)
                 if (res):
-                    print "Player dominated"
-                    pprint(res.groups())
+                    #print "Player dominated"
+                    #pprint(res.groups())
 
                     p_sid = regml(res, 3)
                     p_name = self.escapePlayerString(regml(res, 1))
@@ -393,8 +393,8 @@ class parserClass():
                 #revenge
                 res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "revenge" against "(.*)<(\d+)><(.*)><(Red|Blue)>"', logdata)
                 if (res):
-                    print "Player got revenge"
-                    pprint(res.groups())
+                    #print "Player got revenge"
+                    #pprint(res.groups())
 
                     p_sid = regml(res, 3)
                     p_name = self.escapePlayerString(regml(res, 1))
@@ -407,8 +407,8 @@ class parserClass():
                 #"Hypnos<20><STEAM_0:0:24915059><Red>" committed suicide with "world" (customkill "train") (attacker_position "568 397 -511")
                 res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" committed suicide with "(.*)" \x28customkill "(.*?)"\x29', logdata)
                 if (res):
-                    print "Player committed suicide"
-                    pprint(res.groups())
+                    #print "Player committed suicide"
+                    #pprint(res.groups())
 
                     p_sid = regml(res, 3)
                     p_name = self.escapePlayerString(regml(res, 1))
@@ -421,8 +421,8 @@ class parserClass():
                 # 11/13/2012 - 23:03:29: "crixus of gaul<3><STEAM_0:1:10325827><Blue>" committed suicide with "tf_projectile_rocket" (attacker_position "-1233 5907 -385")
                 res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" committed suicide with "(.*)"', logdata)
                 if (res):
-                    print "Player committed suicide"
-                    pprint(res.groups())
+                    #print "Player committed suicide"
+                    #pprint(res.groups())
                     
                     p_sid = regml(res, 3)
                     p_name = self.escapePlayerString(regml(res, 1))
@@ -436,8 +436,8 @@ class parserClass():
                 #"dcup<109><STEAM_0:0:15236776><Red>" triggered "killedobject" (object "OBJ_SENTRYGUN") (weapon "tf_projectile_pipe") (objectowner "NsS. oLiVz<101><STEAM_0:1:15674014><Blue>") (attacker_position "551 2559 216")
                 res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "killedobject" \x28object "(.*)"\x29 \x28weapon "(.*)"\x29 \x28objectowner "(.*)<(\d+)><(.*)><(Blue|Red)>"\x29 \x28attacker_position "(.*)"\x29', logdata)
                 if (res):
-                    print "Player destroyed engineer building"
-                    pprint(res.groups())
+                    #print "Player destroyed engineer building"
+                    #pprint(res.groups())
 
                     p_sid = regml(res, 3)
                     p_name = self.escapePlayerString(regml(res, 1))
@@ -451,8 +451,8 @@ class parserClass():
             #chat
             res = regex(r'"(.+)<(\d+)><(.+)><(Red|Blue|Spectator)>" (say|say_team) "(.+)"', logdata)
             if (res):
-                print "Chat was said"
-                pprint(res.groups())
+                #print "Chat was said"
+                #pprint(res.groups())
 
                 c_sid = regml(res, 3)
                 c_name = self.escapePlayerString(regml(res, 1))
@@ -485,8 +485,8 @@ class parserClass():
             #Team "Red" triggered "pointcaptured" (cp "0") (cpname "#koth_viaduct_cap") (numcappers "5") (player1 "[v3] Faithless<47><STEAM_0:0:52150090><Red>") (position1 "-1370 59 229") (player2 "[v3] Chrome<48><STEAM_0:1:41365809><Red>") (position2 "-1539 87 231") (player3 "[v3] Jak<49><STEAM_0:0:18518582><Red>") (position3 "-1659 150 224") (player4 "[v3] Kaki<51><STEAM_0:1:35387674><Red>") (position4 "-1685 146 224") (player5 "[v3] taintedromance<52><STEAM_0:0:41933053><Red>") (position5 "-1418 182 236")
             res = regex(r'Team "(Blue|Red)" triggered "pointcaptured" \x28cp "(\d+)"\x29 \x28cpname "(.*)"\x29 \x28numcappers "(\d+)"', logdata)
             if (res):
-                print "Point captured"
-                pprint(res.groups())
+                #print "Point captured"
+                #pprint(res.groups())
                 #this is going to be tricky
                 cap_team = regml(res, 1)
                 cap_name = self.escapePlayerString(regml(res, 3))
@@ -502,8 +502,8 @@ class parserClass():
                 #OUTPUT: ('2', '[v3] Chrome', '48', 'STEAM_0:1:41365809', 'Red')            
 
                 for capper in capper_re.finditer(logdata):
-                    print "Capper:"
-                    pprint(capper.groups())
+                    #print "Capper:"
+                    #pprint(capper.groups())
 
                     c_sid = regml(capper, 4)
                     c_name = self.escapePlayerString(regml(capper, 2))
@@ -517,8 +517,8 @@ class parserClass():
             #"pvtx<103><STEAM_0:1:7540588><Red>" triggered "captureblocked" (cp "1") (cpname "Control Point B") (position "-2143 2284 156")
             res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "captureblocked" \x28cp "(\d+)"\x29 \x28cpname "#?(.*)"\x29 \x28position "(.*)"\x29', logdata)
             if (res):
-                print "Capture blocked"
-                pprint(res.groups())
+                #print "Capture blocked"
+                #pprint(res.groups())
 
                 cb_sid = regml(res, 3)
                 cb_name = self.escapePlayerString(regml(res, 1))
@@ -545,8 +545,8 @@ class parserClass():
             #Team "Blue" current score "3" with "4" players
             res = regex(r'Team "(Blue|Red)" current score "(\d+)" with "(\d+)" players', logdata)
             if (res):
-                print "Current scores"
-                pprint(res.groups())
+                #print "Current scores"
+                #pprint(res.groups())
 
                 team = regml(res, 1)
                 t_score = regml(res, 2)
@@ -565,8 +565,8 @@ class parserClass():
             #game over
             res = regex(r'World triggered "Game_Over" reason "(.*)"', logdata)
             if (res):
-                print "Game over"
-                pprint(res.groups())
+                #print "Game over"
+                #pprint(res.groups())
             
                 go_reason = regml(res, 1)
 
@@ -578,8 +578,8 @@ class parserClass():
             #final scores always comes after game_over
             res = regex(r'Team "(Blue|Red)" final score "(\d+)" with "(\d+)" players', logdata)
             if (res):
-                print "Final scores"
-                pprint(res.groups())
+                #print "Final scores"
+                #pprint(res.groups())
 
                 fs_team = regml(res, 1)
                 fs_score = regml(res, 2)
@@ -596,8 +596,8 @@ class parserClass():
             #rcon command
             res = regex(r'rcon from "(.*?)": command "(.*)"', logdata)
             if (res):
-                print "Someone issued rcon command"
-                pprint(res.groups())
+                #print "Someone issued rcon command"
+                #pprint(res.groups())
 
                 return
 
@@ -605,39 +605,39 @@ class parserClass():
             #disconnect RL 10/07/2012 - 01:13:44: "triple h<162><STEAM_0:1:33713004><Red>" disconnected (reason " #tf2pug")
             res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" disconnected \(reason "(.*)"\)', logdata)
             if (res):
-                print "Player disconnected"
-                pprint(res.groups())
+                #print "Player disconnected"
+                #pprint(res.groups())
                 
                 return
             
             #connect RL 10/07/2012 - 22:45:11: "GU | wm<3><STEAM_0:1:7175436><>" connected, address "124.168.51.7:27005"
             res = regex(r'"(.*)<(\d+)><(.*)><>" connected, address "(.*?):(.*)"', logdata)
             if (res):
-                print "Player connected"
-                pprint(res.groups())
+                #print "Player connected"
+                #pprint(res.groups())
 
                 return
             #validated "hipsterhipster<4><STEAM_0:1:22674758><>" STEAM USERID validated
             res = regex(r'"(.*)<(\d+)><(.*)><>" STEAM USERID validated', logdata)
             if (res):
-                print "Player validated"
-                pprint(res.groups())
+                #print "Player validated"
+                #pprint(res.groups())
 
                 return
             
             #class change    
             res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" changed role to "(.*)"', logdata)
             if (res):
-                print "Player changed class"
-                pprint(res.groups())
+                #print "Player changed class"
+                #pprint(res.groups())
 
                 return
 
             #round win
             res = regex(r'World triggered "Round_Win" \x28winner "(Blue|Red)"\x29', logdata)
             if (res):
-                print "Round won"
-                pprint(res.groups())
+                #print "Round won"
+                #pprint(res.groups())
 
                 event_insert_query = "INSERT INTO %s (event_time, event_type) VALUES (E'%s', '%s')" % (self.EVENT_TABLE, event_time, "round_end")
 
@@ -648,8 +648,8 @@ class parserClass():
             #overtime
             res = regex(r'World triggered "Round_Overtime"', logdata)
             if (res):
-                print "Overtime"
-                pprint(res.groups())
+                #print "Overtime"
+                #pprint(res.groups())
 
                 event_insert_query = "INSERT INTO %s (event_time, event_type) VALUES (E'%s', '%s')" % (self.EVENT_TABLE, event_time, "round_overtime")
 
@@ -661,8 +661,8 @@ class parserClass():
             #World triggered "Round_Length" (seconds "402.58")
             res = regex(r'World triggered "Round_Length" \x28seconds "(\d+\.\d+)\x29', logdata)
             if (res):
-                print "Round length"
-                pprint(res.groups())
+                #print "Round length"
+                #pprint(res.groups())
         
                 r_length = regml(res, 1)
 
@@ -675,8 +675,8 @@ class parserClass():
             #round start
             res = regex(r'World triggered "Round_Start"', logdata)
             if (res):
-                print "Round start"
-                pprint(res.groups())
+                #print "Round start"
+                #pprint(res.groups())
 
                 event_insert_query = "INSERT INTO %s (event_time, event_type) VALUES (E'%s', '%s')" % (self.EVENT_TABLE, event_time, "round_start")
 
@@ -689,8 +689,8 @@ class parserClass():
             #setup end UNUSED
             """res = regex(r'World triggered "Round_Setup_End"', logdata)
             if (res):
-                print "Round Setup End"
-                pprint(res.groups())
+                #print "Round Setup End"
+                #pprint(res.groups())
 
                 return
             """
@@ -698,16 +698,16 @@ class parserClass():
             #mini round win
             res = regex(r'World triggered "Mini_Round_Win" \x28winner "(Blue|Red)"\x29 \x28round "round_(\d+)"\x29', logdata)
             if (res):
-                print "Mini round win"
-                pprint(res.groups())
+                #print "Mini round win"
+                #pprint(res.groups())
 
                 return
 
             #mini round length
             res = regex(r'World triggered "Mini_Round_Length" \x28seconds "(\d+.\d+)"\x29', logdata)
             if (res):
-                print "Mini round length"
-                pprint(res.groups())
+                #print "Mini round length"
+                #pprint(res.groups())
 
                 return
         except Exception, e:
