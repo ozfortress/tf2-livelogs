@@ -79,7 +79,7 @@
             //$event_array = pg_fetch_all($event_result);
 
             $time_array = pg_fetch_all($time_result);
-            if (!empty($time_array))
+            if (sizeof($time_array) > 0)
             {
                 $time_start = $time_array[0]["event_time"]; //starting time
                 $time_last = $time_array[1]["event_time"]; //latest time
@@ -316,7 +316,7 @@
                             //$p_apd = round($pstat["assists"] / $pstat["deaths"], 3); // assists/death - useless statistic
                             $p_dpd = round($pstat["damage_dealt"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); //damage/death
                             $p_dpr = round($pstat["damage_dealt"] / (($red_score) ? ($red_score + $blue_score) : 1), 2); //num rounds are red score + blue score, damage/round
-                            $p_dpm = round((empty($pstat["damage_taken"]) ? 0 : $pstat["damage_taken"]) / ($time_elapsed_sec/60), 2)
+                            $p_dpm = round($pstat["damage_dealt"] / ($time_elapsed_sec/60), 2);
 
                             $team_class = get_player_team_class(get_player_team($team_array, $pstat["steamid"]));
                             
