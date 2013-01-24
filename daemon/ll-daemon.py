@@ -9,12 +9,13 @@ from pprint import pprint
 
 import listener
 
-logging.basicConfig(level=logging.DEBUG, format='%(name)s: %(message)s')
+logging.basicConfig(filename="daemon.log", level=logging.DEBUG, format="%(asctime)s - %(name)s (%(levelname)s): %(message)s", datefmt="%Y-%m-%d %H-%M-%S")
 
 class llDaemonHandler(SocketServer.BaseRequestHandler):
 
     def __init__(self, request, client_address, server):
         self.logger = logging.getLogger('llDaemonHandler')
+        self.logger.addHandler(logging.StreamHandler())
         self.logger.debug('Handler init. APIKEY: %s', server.LL_API_KEY)
 
         self.newListen = None
@@ -120,6 +121,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def __init__(self, server_ip, handler=llDaemonHandler):
         self.logger = logging.getLogger('llDaemon')
+        self.logger.addHandler(logging.StreamHandler())
         self.logger.debug('DAEMON INIT')
         
         self.allow_reuse_address = True
@@ -237,6 +239,7 @@ if __name__ == '__main__':
     sip, sport = llServer.server_address   
 
     logger = logging.getLogger('MAIN')
+    logger.addHandler(logging.StreamHandler())
     logger.info("Server on %s:%s under PID %s", sip, sport, os.getpid())
     
     try:

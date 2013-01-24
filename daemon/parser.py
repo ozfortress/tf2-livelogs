@@ -11,6 +11,7 @@ import struct
 import socket
 import re
 import os
+import sys
 import logging
 
 from pprint import pprint
@@ -21,18 +22,9 @@ class parserClass():
         self.HAD_ERROR = False
         self.LOG_FILE_HANDLE = None
         self.pgsqlConn = None
-        try:
-            if not os.path.exists("logs"):
-                os.mkdir("logs", 0644)
-        except OSError:
-            logger.error("Unable to create daemon logging directory")
-            self.HAD_ERROR = True
-            return
-
-        LOG_FILE = os.path.normpath(os.path.join("logs", "parser_log_%s.log" % unique_ident))
-        logging.basicConfig(filename = LOG_FILE, level = logging.DEBUG)
 
         self.logger = logging.getLogger("parser #%s" % unique_ident)
+        self.logger.addHandler(logging.StreamHandler())
 
         import ConfigParser
         cfg_parser = ConfigParser.SafeConfigParser()

@@ -12,7 +12,8 @@ class dbManager(object):
         #end_callback is the function to be called when the log is no longer live
         
         self.log = logging.getLogger("dbManager #%s" % log_id)
-        
+        self.log.addHandler(logging.StreamHandler())
+
         self.end_callback = end_callback
         self.LOG_IDENT = log_id
         self.db = db_conn
