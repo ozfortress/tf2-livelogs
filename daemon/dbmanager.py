@@ -119,18 +119,18 @@ class dbManager(object):
         #NAME:K:D:A:P:HD:HR:UU:UL:HS:BS:DMG:APsm:APmed:APlrg:MKsm:MKmed:MKlrg:CAP:CAPB:DOM:TDOM:REV:SUICD:BLD_DEST:EXTNG:KILL_STRK
         #and converts it to a simple dictionary
         
-        dict = {}
+        stat_dict = {}
         
         for idx, val in enumerate(stat_tuple):
             if idx >= 1: #skip stat_tuple[0], which is the player's name
                 if val > 0: #ignore zero values when sending updates
                     idx_name = self.statIdxToName(idx)
                     if idx == 4: #catch the points, which are auto converted Decimal, and aren't handled by tornado's json encoder
-                        dict[idx_name] = float(val)
+                        stat_dict[idx_name] = float(val)
                     else:
-                        dict[idx_name] = val
+                        stat_dict[idx_name] = val
                     
-        return dict
+        return stat_dict
     
     def firstUpdate(self):
         #constructs and returns a dictionary for a complete update to the client
