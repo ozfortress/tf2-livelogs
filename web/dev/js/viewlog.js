@@ -9,7 +9,8 @@ $(document).ready(function()
         "aaSorting": [[1, 'desc']],
         "aoColumnDefs": [
             { "sType": "html", "bSearchable": false, "aTargets": [0] },
-            { "sType": "dt-numeric-html", "bSearchable": false, "aTargets": ["_all"] }
+            { "sType": "dt-numeric-html", "bSearchable": false, "aTargets": ["_all"] },
+            { "aaSorting": [ "desc", "asc", "desc"], "aTargets": [ "_all" ] }
         ],
         "bPaginate": false,
         "bAutoWidth": false,
@@ -322,6 +323,13 @@ var llWSClient = llWSClient || (function() {
                 auto_update = true;
                 this.clientConnect(ws);
             }
+        },
+
+        addStatRow : function() {
+            $("#general_stats").dataTable().fnAddData([
+                    "row1",
+                    "row2"
+                ]);
         }
     };
 }());
