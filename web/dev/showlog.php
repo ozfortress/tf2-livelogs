@@ -252,19 +252,19 @@
                                 <abbr title="Backstabs">BS</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                <abbr title="Points">Points</abbr>
+                                <abbr title="Points">Pts</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                <abbr title="Damage Dealt">DMG</abbr>
+                                <abbr title="Damage Dealt">DD</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                <abbr title="Healing Received">HealR</abbr>
+                                <abbr title="Healing Received">HR</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                <abbr title="Dominations">DMN</abbr>
+                                <abbr title="Dominations">DOM</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                <abbr title="Times Dominated">TDMN</abbr>
+                                <abbr title="Times Dominated">TDOM</abbr>
                             </th>
                             <th class="stat_summary_col_title">
                                 <abbr title="Revenges">R</abbr>
