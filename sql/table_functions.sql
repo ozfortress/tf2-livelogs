@@ -24,7 +24,7 @@ BEGIN
 	
 	EXECUTE 'CREATE TABLE ' || table_name || ' (steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points decimal, 
 					     healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer, 
-					     headshots integer, backstabs integer, damage_dealt integer, 
+					     headshots integer, backstabs integer, damage_dealt integer, damage_taken integer,
 					     ap_small integer, ap_medium integer, ap_large integer,
 					     mk_small integer, mk_medium integer, mk_large integer, 
 					     captures integer, captures_blocked integer, 
@@ -80,7 +80,7 @@ BEGIN
 	ELSE
 		CREATE TABLE livelogs_player_stats (steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points decimal, 
 		                             healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer, 
-		                             headshots integer, backstabs integer, damage_dealt integer, 
+		                             headshots integer, backstabs integer, damage_dealt integer, damage_taken integer,
 		                             ap_small integer, ap_medium integer, ap_large integer,
 					     mk_small integer, mk_medium integer, mk_large integer,
 					     captures integer, captures_blocked integer, 
@@ -163,6 +163,7 @@ BEGIN
 		headshots = master.headshots + newlog.headshots,
 		backstabs = master.backstabs + newlog.backstabs,
 		damage_dealt = master.damage_dealt + newlog.damage_dealt,
+		damage_taken = master.damage_taken + newlog.damage_taken,
 		ap_small = master.ap_small + newlog.ap_small,
 		ap_medium = master.ap_medium + newlog.ap_medium,
 		ap_large = master.ap_large + newlog.ap_large,

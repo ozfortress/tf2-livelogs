@@ -47,6 +47,9 @@ BEGIN
 	IF NEW.damage_dealt IS NULL THEN
 		NEW.damage_dealt := 0;
 	END IF;
+	IF NEW.damage_taken IS NULL THEN
+		NEW.damage_taken := 0;
+	END IF;
 	IF NEW.ap_small IS NULL THEN
 		NEW.ap_small := 0;
 	END IF;
