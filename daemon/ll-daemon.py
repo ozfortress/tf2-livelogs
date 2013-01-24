@@ -250,3 +250,9 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt. Closing daemon")
         quit()
+
+
+def uncaught_excepthook(excType, excValue, traceback, logger=logging.getLogger(__name__)):
+    logger.error("Uncaught exception", exc_info=(excType, excValue, traceback))
+
+sys.excepthook = uncaught_excepthook

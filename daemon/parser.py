@@ -824,9 +824,3 @@ class parserClass():
         if self.pgsqlConn:    
             if not self.pgsqlConn.closed:
                 self.pgsqlConn.close()
-
-
-def uncaught_excepthook(excType, excValue, traceback, logger=logging.getLogger(__name__)):
-    logger.error("Uncaught exception", exc_info=(excType, excValue, traceback))
-
-sys.excepthook = uncaught_excepthook
