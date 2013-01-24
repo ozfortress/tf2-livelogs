@@ -79,15 +79,22 @@
             //$event_array = pg_fetch_all($event_result);
 
             $time_array = pg_fetch_all($time_result);
+            if (!empty($time_array))
+            {
+                $time_start = $time_array[0]["event_time"]; //starting time
+                $time_last = $time_array[1]["event_time"]; //latest time
+                
+                //time is in format "10/01/2012 21:38:18"
+                $time_start_ctime = strtotime($time_start);
+                $time_last_ctime = strtotime($time_last);
+                
+                $time_elapsed_sec = $time_last_ctime - $time_start_ctime;
+            }
+            else
+            {
+                $time_elapsed_sec = 0;
+            }
 
-            $time_start = $time_array[0]["event_time"]; //starting time
-            $time_last = $time_array[1]["event_time"]; //latest time
-            
-            //time is in format "10/01/2012 21:38:18"
-            $time_start_ctime = strtotime($time_start);
-            $time_last_ctime = strtotime($time_last);
-            
-            $time_elapsed_sec = $time_last_ctime - $time_start_ctime;
             $time_elapsed = sprintf("%02d minute(s) and %02d second(s)", ($time_elapsed_sec/60)%60, $time_elapsed_sec%60);
             
             $invalid_log_ident = false;
@@ -255,16 +262,19 @@
                                 <abbr title="Points">Pts</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                <abbr title="Damage Dealt">DD</abbr>
+                                <abbr title="Damage Dealt">DMG</abbr>
+                            </th>
+                            <th class="stat_summary_col_title">
+                                <abbr title="Damage Taken">DMGT</abbr>
                             </th>
                             <th class="stat_summary_col_title">
                                 <abbr title="Healing Received">HR</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                <abbr title="Dominations">DOM</abbr>
+                                <abbr title="Dominations">DM</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                <abbr title="Times Dominated">TDOM</abbr>
+                                <abbr title="Times Dominated">TD</abbr>
                             </th>
                             <th class="stat_summary_col_title">
                                 <abbr title="Revenges">R</abbr>
@@ -277,6 +287,9 @@
                             </th>
                             <th class="stat_summary_col_title">
                                 <abbr title="Damage per Round">DPR</abbr>
+                            </th>
+                            <th class="stat_summary_col_title">
+                                <abbr title="Damage per Minute">DPM</abbr>
                             </th>
                         </tr>
                     </thead>
@@ -294,7 +307,7 @@
                          */
                          
                         $mstats = Array();
-                        //NAME:K:D:A:P:DMG:HEAL:HS:BS:PC:PB:DMN:TDMN:R:KPD:DPD:DPR
+                        //NAME:K:D:A:P:DMG:DMGT:HEAL:HS:BS:PC:PB:DMN:TDMN:R:KPD:DPD:DPR:DPM
                         while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC))
                         {
                             $community_id = steamid_to_bigint($pstat["steamid"]);
@@ -303,7 +316,8 @@
                             //$p_apd = round($pstat["assists"] / $pstat["deaths"], 3); // assists/death - useless statistic
                             $p_dpd = round($pstat["damage_dealt"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); //damage/death
                             $p_dpr = round($pstat["damage_dealt"] / (($red_score) ? ($red_score + $blue_score) : 1), 2); //num rounds are red score + blue score, damage/round
-                            
+                            $p_dpm = round((empty($pstat["damage_taken"]) ? 0 : $pstat["damage_taken"]) / ($time_elapsed_sec/60), 2)
+
                             $team_class = get_player_team_class(get_player_team($team_array, $pstat["steamid"]));
                             
                             if (($pstat["healing_done"] > 0) || ($pstat["ubers_used"]) || ($pstat["ubers_lost"]))
@@ -323,6 +337,7 @@
                             <td><span id="<?=$community_id . ".backstabs"?>"><?=$pstat["backstabs"]?></span></td>
                             <td><span id="<?=$community_id . ".points"?>"><?=$pstat["points"]?></span></td>
                             <td><span id="<?=$community_id . ".damage"?>"><?=$pstat["damage_dealt"]?></span></td>
+                            <td><span id="<?=$community_id . ".damage_taken"?>"><?=empty($pstat["damage_taken"]) ? 0 : $pstat["damage_taken"]?></span></td>
                             <td><span id="<?=$community_id . ".heal_rcvd"?>"><?=$pstat["healing_received"]?></span></td>
                             <td><span id="<?=$community_id . ".dominations"?>"><?=$pstat["dominations"]?></span></td>
                             <td><span id="<?=$community_id . ".t_dominated"?>"><?=$pstat["times_dominated"]?></span></td>
@@ -330,6 +345,7 @@
                             <td><span id="<?=$community_id . ".kpd"?>"><?=$p_kpd?></span></td>
                             <td><span id="<?=$community_id . ".dpd"?>"><?=$p_dpd?></span></td>
                             <td><span id="<?=$community_id . ".dpr"?>"><?=$p_dpr?></span></td>
+                            <td><span id="<?=$community_id . ".dpm"?>"><?=$p_dpm?></span></td>
                         </tr>
                     <?php
                         }
