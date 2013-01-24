@@ -10,7 +10,7 @@ $(document).ready(function()
         "aoColumnDefs": [
             { "sType": "html", "bSearchable": false, "aTargets": [0] },
             { "sType": "dt-numeric-html", "bSearchable": false, "aTargets": ["_all"] },
-            { "aaSorting": [ "desc", "asc", "desc"], "aTargets": [ "_all" ] }
+            { "asSorting": [ "desc", "asc" ], "aTargets": [ "_all" ] }
         ],
         "bPaginate": false,
         "bAutoWidth": false,
