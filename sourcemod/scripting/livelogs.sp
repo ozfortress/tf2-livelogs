@@ -87,7 +87,6 @@ public Plugin:myinfo =
 new bool:tournament_state[2] = { false, false }; //Holds ready state for both teams
 new bool:live_at_restart = false;
 new bool:is_logging = false;
-new bool:log_additional_stats = true;
 new bool:late_loaded;
 
 new String:server_ip[64];
@@ -95,6 +94,7 @@ new String:livelogs_listener_address[128];
 new String:log_unique_ident[64];
 new String:client_index_cache[MAXPLAYERS+1][64];
 
+new log_additional_stats = 1;
 new server_port;
 
 //Handles for convars
@@ -166,7 +166,7 @@ public OnPluginStart()
     livelogs_server_name = CreateConVar("livelogs_name", "default", "The name by which logs are identified on the website", FCVAR_PROTECTED);
 
     livelogs_stat_toggle = CreateConVar("livelogs_additional_logging", "1", "Toggle whether or not livelogs should log additional statistics. Disable if running sup stats or other similar plugins",
-                                    FCVAR_NOTIFY, true, 0.0, true, 1.0); //convar has min value 0 and max value 1
+                                    FCVAR_NOTIFY, true, 0.0, true, 2.0); //allows levels of logging, 0 1 and 2
 
     HookConVarChange(livelogs_stat_toggle, toggleLoggingHook);
 
@@ -300,10 +300,16 @@ public toggleLoggingHook(Handle:cvar, const String:oldval[], const String:newval
 {
     if (DEBUG) { LogMessage("Additional logging toggled. old: %s new: %s", oldval, newval); }
     
-    log_additional_stats = GetConVarBool(cvar);
+    log_additional_stats = GetConVarInt(cvar); //going to have multiple levels of logging
 
-    if (log_additional_stats)
-        PrintToServer("Livelogs now outputting additional statistics");
+    if (log_additional_stats == 1) 
+    {
+        PrintToServer("Livelogs now outputting damage taken data");
+    }
+    else if (log_additional_stats == 2) 
+    {
+        PrintToServer("Livelogs now outputting damage taken, damage dealt, healing and item pickups");
+    }
     else
         PrintToServer("Livelogs no longer outputting additional statistics");
 
@@ -352,7 +358,7 @@ public gameOverEvent(Handle:event, const String:name[], bool:dontBroadcast)
 
 public itemPickupEvent(Handle:event, const String:name[], bool:dontBroadcast)
 {
-    if (log_additional_stats)
+    if (log_additional_stats == 2)
     {
         decl String:player_name[MAX_NAME_LENGTH], String:auth_id[64], String:team[16], String:item[64];
 
@@ -380,22 +386,23 @@ public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
     if (log_additional_stats) {
         decl String:player_name[MAX_NAME_LENGTH], String:auth_id[64], String:team[16];
 
-        new userid = GetEventInt(event, "userid");
-        new clientidx = GetClientOfUserId(userid);
+        new victimid = GetEventInt(event, "userid");
+        new victimidx = GetClientOfUserId(victimid);
 
         new attackerid = GetEventInt(event, "attacker");
         new attackeridx = GetClientOfUserId(attackerid);
 
         new damage = GetEventInt(event, "damageamount");
 
-        if (userid != attackerid && attackerid != 0)
+        if (log_additional_stats == 1)
         {
-            strcopy(auth_id, sizeof(auth_id), client_index_cache[attackeridx]); //get the player ID from the cache if it's in there
-            
-            GetClientName(attackeridx, player_name, sizeof(player_name));
-            GetTeamName(GetClientTeam(attackeridx), team, sizeof(team));
+            //output damage taken data. damage taken and damage dealt will be separate data unless log_additional_stats is set to '2'
+            strcopy(auth_id, sizeof(auth_id), client_index_cache[victimidx]); //get the player ID from the cache if it's in there
+        
+            GetClientName(victimidx, player_name, sizeof(player_name));
+            GetTeamName(GetClientTeam(victimidx), team, sizeof(team));
 
-            LogToGame("\"%s<%d><%s><%s>\" triggered \"damage\" (damage \"%d\")",
+            LogToGame("\"%s<%d><%s><%s>\" triggered \"damage_taken\" (damage \"%d\")",
                     player_name,
                     attackerid,
                     auth_id,
@@ -403,12 +410,41 @@ public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
                     damage
                 );
         }
+        else if (log_additional_stats == 2)
+        {
+            if (victimid != attackerid && attackerid != 0)
+            {
+                decl String:victim_name[MAX_NAME_LENGTH], String:victim_auth_id[64], String:victim_team[16];
+
+                strcopy(auth_id, sizeof(auth_id), client_index_cache[attackeridx]); //get the player ID from the cache if it's in there
+                strcopy(victim_auth_id, sizeof(victim_auth_id), client_index_cache[victimidx]);
+
+                GetClientName(attackeridx, player_name, sizeof(player_name));
+                GetClientName(victimidx, victim_name, sizeof(victim_name));
+
+                GetTeamName(GetClientTeam(attackeridx), team, sizeof(team));
+                GetTeamName(GetClientTeam(victimidx), victim_team, sizeof(victim_team));
+
+                LogToGame("\"%s<%d><%s><%s>\" triggered \"damage\" against \"%s<%d><%s><%s>\" (damage \"%d\")",
+                        player_name,
+                        attackerid,
+                        auth_id,
+                        team,
+                        victim_name,
+                        victimid,
+                        victim_auth_id,
+                        victim_team,
+                        damage
+                    );
+            
+            }
+        }
     }
 }
 
 public playerHealEvent(Handle:event, const String:name[], bool:dontBroadcast)
 {
-    if (log_additional_stats) {
+    if (log_additional_stats == 2) {
         decl String:healer_name[MAX_NAME_LENGTH], String:healer_auth[64], String:healer_team[16];
         decl String:patient_name[MAX_NAME_LENGTH], String:patient_auth[64], String:patient_team[16];
 

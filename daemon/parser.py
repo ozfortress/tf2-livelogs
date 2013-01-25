@@ -83,6 +83,8 @@ class parserClass():
         self.ROUND_PAUSE = False
         self.LOG_PARSING_ENDED = False
 
+        self._using_livelogs_output = False
+
         #if no map is specified (auto detect), set map to 0
         if (current_map == None):
             self.current_map = 0
@@ -181,7 +183,7 @@ class parserClass():
             #begin round_pause blocking
                 #damage dealt
                 res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage" \x28damage "(\d+)"\x29', logdata)
-                if (res):
+                if (res and not self._using_livelogs_output):
                     #print "Damage dealt"
                     #pprint(res.groups())
                     #('[v3] Kaki', '51', 'STEAM_0:1:35387674', 'Red', '40')
@@ -195,6 +197,37 @@ class parserClass():
                     self.insertPlayerTeam(sid, regml(res, 4).lower())
                     
                     return
+
+                #damage taken (if log level is 1 in livelogs) shouldn't get double ups, but have toggling variable just in case
+                res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage_taken" \x28damage "(\d+)"\x29', logdata)
+                if (res and not self._using_livelogs_output):
+                    sid = regml(res, 3)
+                    name = self.escapePlayerString(regml(res, 1))
+                    dmg = regml(res, 5)
+
+                    self.pg_statupsert(self.STAT_TABLE, "damage_taken", sid, name, dmg)
+
+                    self.insertPlayerTeam(sid, regml(res, 4).lower())
+
+                    return
+
+                #damage taken and dealt (if log level is 2 in livelogs)
+                res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28damage "(\d+)"\x29', logdata)
+                if (res):
+                    a_sid = regml(res, 3)
+                    a_name = self.escapePlayerString(regml(res, 1))
+
+                    v_sid = regml(res, 7)
+                    v_name = self.escapePlayerString(regml(res, 5))
+
+                    dmg = regml(res, 9)
+
+                    self.pg_statupsert(self.STAT_TABLE, "damage_dealt", a_sid, a_name, dmg)
+                    self.pg_statupsert(self.STAT_TABLE, "damage_taken", v_sid, v_name, dmg)
+
+                    self.insertPlayerTeam(a_sid, regml(res, 4).lower(), v_sid, regml(res, 8).lower())
+
+                    self._using_livelogs_output = True
 
                 #healing done
                 #"vsn.RynoCerus<6><STEAM_0:0:23192637><Blue>" triggered "healed" against "Hyperbrole<3><STEAM_0:1:22674758><Blue>" (healing "26")
