@@ -262,7 +262,7 @@ class dbManager(object):
             #each key is one of the column names in STAT_KEYS
             query_keys.append(colname)
 
-        query = "SELECT %s FROM %s" % (', '.join(query_keys), self.DB_STAT_TABLE)
+        query = "SELECT steamid, %s FROM %s" % (', '.join(query_keys), self.DB_STAT_TABLE)
 
         return query
 
