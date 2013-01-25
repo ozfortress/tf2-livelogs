@@ -11,15 +11,15 @@ except:
     quit()
  
 #testm = "LIVELOG!123test!124.168.96.208!27015!cp_granary!JIMBOBJUNIOR3"
-testm = "LIVELOG!123test!192.168.35.1!27015!cp_granary!newname!23142"
+testm = "LIVELOG!123test!192.168.35.1!27015!cp_granary!new name here!23142"
 slen = client.send(testm)
 
 rsp = client.recv(1024)
 
-client.close()
+#client.close()
  
 print "Server responded: %s" % rsp
- 
+
 #LIVELOG!123test!192.168.35.128!42276!UNIQUE_IDENT OR REUSE
 tokenized = rsp.split('!')
 #LIVELOG!123test!192.168.35.128!57221!3232244481_27015_1358162178
