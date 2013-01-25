@@ -198,3 +198,28 @@ BEGIN
 							--suicides, buildings_destroyed, extinguishes, kill_streak
 END;
 $_$ LANGUAGE 'plpgsql';
+
+CREATE OR REPLACE FUNCTION add_stat_column (col_name text, col_type regtype) RETURNS void AS $_$
+DECLARE
+	row RECORD;
+BEGIN
+	FOR row IN
+		SELECT table_name
+		FROM information_schema.tables 
+		WHERE table_catalog = 'livelogs' AND table_name ~* 'log_stat'
+	LOOP
+		IF EXISTS (
+			SELECT column_name
+			FROM information_schema.columns 
+			WHERE table_name = row.table_name AND column_name =  col_name
+			)
+		THEN
+			RAISE NOTICE 'Column % already exists', col_name;
+		ELSE
+			EXECUTE 'ALTER TABLE ' || row.table_name || ' ADD COLUMN ' || col_name || ' ' || col_type;
+		END IF;
+	END LOOP;
+END;
+$_$ LANGUAGE 'plpgsql';
+
+

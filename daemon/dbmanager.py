@@ -57,28 +57,29 @@ class dbManager(object):
                 2: "deaths",
                 3: "assists",
                 4: "points",
-                5: "heal_done",
-                6: "heal_rcvd",
+                5: "healing_done",
+                6: "healing_received",
                 7: "ubers_used",
                 8: "ubers_lost",
                 9: "headshots",
                 10: "backstabs",
-                11: "damage",
-                12: "aps",
-                13: "apm",
-                14: "apl",
-                15: "mks",
-                16: "mkm",
-                17: "mkl",
-                18: "pointcaps",
-                19: "pointblocks",
-                20: "dominations",
-                21: "t_dominated",
-                22: "revenges",
-                23: "suicides",
-                24: "build_dest",
-                25: "extinguish",
-                26: "kill_streak",
+                11: "damage_dealt",
+                12: "damage_taken",
+                13: "ap_small",
+                14: "ap_medium",
+                15: "ap_large",
+                16: "mk_small",
+                17: "mk_medium",
+                18: "mk_large",
+                19: "captures",
+                20: "captures_blocked",
+                21: "dominations",
+                22: "times_dominated",
+                23: "revenges",
+                24: "suicides",
+                25: "buildings_destroyed",
+                26: "extinguishes",
+                27: "kill_streak"
             }
 
         self.updateThreadEvent = threading.Event()
@@ -252,6 +253,18 @@ class dbManager(object):
 
         return update_dict
 
+    def constructStatQuery(self):
+        #constructs a select query from the STAT_KEYS dict, so we always know the order data is retrieved in
+        #this means that new columns can be added to tables on the fly, while retaining a known format
+        query_keys = []
+
+        for key in self.STAT_KEYS:
+            #each key is one of the column names in STAT_KEYS
+            query_keys.append(key)
+
+        query = "SELECT %s FROM %s" (', '.join(query_keys), self.DB_STAT_TABLE)
+
+        return query
 
     def getDatabaseUpdate(self):
         #executes the queries to obtain updates. called periodically
@@ -294,7 +307,8 @@ class dbManager(object):
             self._score_query_complete = False
             self._time_query_complete = False
             
-            stat_query = "SELECT * FROM %s" % self.DB_STAT_TABLE
+            stat_query = self.constructStatQuery()
+
             if not self._chat_event_id:
                 chat_query = "SELECT MAX(eventid) FROM %s" % self.DB_CHAT_TABLE #need to get the most recent id for first update, to prevent chat duplicates
             else:
@@ -554,7 +568,7 @@ class dbManager(object):
 
         except Exception, e:
             self.log.exception("Exception during _databaseTimeUpdateCallback")
-            
+
         self._time_query_complete = True
 
         self.checkManagerBusyStatus()

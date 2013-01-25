@@ -310,6 +310,8 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         handler_logger.info("Number of non-busy pSQL conns @ getLogStatus: %d", i)
         
+
+        #psycopg2 will automatically escape the string parameter, so we don't need to worry about sanity checking it for injections
         self.application.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (log_ident,), callback=self._logStatusCallback)
     
     @tornado.web.asynchronous
