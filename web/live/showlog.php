@@ -79,15 +79,22 @@
             //$event_array = pg_fetch_all($event_result);
 
             $time_array = pg_fetch_all($time_result);
+            if (sizeof($time_array) > 0)
+            {
+                $time_start = $time_array[0]["event_time"]; //starting time
+                $time_last = $time_array[1]["event_time"]; //latest time
+                
+                //time is in format "10/01/2012 21:38:18"
+                $time_start_ctime = strtotime($time_start);
+                $time_last_ctime = strtotime($time_last);
+                
+                $time_elapsed_sec = $time_last_ctime - $time_start_ctime;
+            }
+            else
+            {
+                $time_elapsed_sec = 0;
+            }
 
-            $time_start = $time_array[0]["event_time"]; //starting time
-            $time_last = $time_array[1]["event_time"]; //latest time
-            
-            //time is in format "10/01/2012 21:38:18"
-            $time_start_ctime = strtotime($time_start);
-            $time_last_ctime = strtotime($time_last);
-            
-            $time_elapsed_sec = $time_last_ctime - $time_start_ctime;
             $time_elapsed = sprintf("%02d minute(s) and %02d second(s)", ($time_elapsed_sec/60)%60, $time_elapsed_sec%60);
             
             $invalid_log_ident = false;
@@ -249,22 +256,19 @@
                                 <abbr title="Headshots">HS</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                <abbr title="Backstabs">BS</abbr>
-                            </th>
-                            <th class="stat_summary_col_title">
-                                <abbr title="Points">Points</abbr>
+                                <abbr title="Points">PTS</abbr>
                             </th>
                             <th class="stat_summary_col_title">
                                 <abbr title="Damage Dealt">DMG</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                <abbr title="Healing Received">HealR</abbr>
+                                <abbr title="Damage Taken">DT</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                <abbr title="Dominations">DMN</abbr>
+                                <abbr title="Healing Received">HR</abbr>
                             </th>
                             <th class="stat_summary_col_title">
-                                <abbr title="Times Dominated">TDMN</abbr>
+                                <abbr title="Dominations">DOM</abbr>
                             </th>
                             <th class="stat_summary_col_title">
                                 <abbr title="Revenges">R</abbr>
@@ -278,6 +282,9 @@
                             <th class="stat_summary_col_title">
                                 <abbr title="Damage per Round">DPR</abbr>
                             </th>
+                            <th class="stat_summary_col_title">
+                                <abbr title="Damage per Minute">DPM</abbr>
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
@@ -285,25 +292,28 @@
                         /*
                         Stat table columns: (steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points decimal, 
 					     healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer, 
-					     headshots integer, backstabs integer, damage_dealt integer, 
+					     headshots integer, backstabs integer, damage_dealt integer, damage_taken integer,
 					     ap_small integer, ap_medium integer, ap_large integer,
 					     mk_small integer, mk_medium integer, mk_large integer, 
 					     captures integer, captures_blocked integer, 
 					     dominations integer, times_dominated integer, revenges integer,
 					     suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer)'
                          */
-                         
+
+                        /*OLD COLS:
+                        <td><span id="<?=$community_id . ".backstabs"?>"><?=$pstat["backstabs"]?></span></td>
+                        <td><span id="<?=$community_id . ".t_dominated"?>"><?=$pstat["times_dominated"]?></span></td>
+                         */
                         $mstats = Array();
-                        //NAME:K:D:A:P:DMG:HEAL:HS:BS:PC:PB:DMN:TDMN:R:KPD:DPD:DPR
+                        //NAME:K:D:A:PC:PB:HS:PTS:DMG:DMGT:HEAL:DOM:R:KPD:DPD:DPR:DPM
                         while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC))
                         {
                             $community_id = steamid_to_bigint($pstat["steamid"]);
                             $p_kpd = round($pstat["kills"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); // kills/death
-                            //$p_ppd = round($pstat["points"] / $pstat["deaths"], 3); // points/death - useless statistic
-                            //$p_apd = round($pstat["assists"] / $pstat["deaths"], 3); // assists/death - useless statistic
                             $p_dpd = round($pstat["damage_dealt"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); //damage/death
-                            $p_dpr = round($pstat["damage_dealt"] / (($red_score) ? ($red_score + $blue_score) : 1), 2); //num rounds are red score + blue score, damage/round
-                            
+                            $p_dpr = round($pstat["damage_dealt"] / (($red_score || $blue_score) ? ($red_score + $blue_score) : 1), 2); //num rounds are red score + blue score, damage/round
+                            $p_dpm = round($pstat["damage_dealt"] / ($time_elapsed_sec/60), 2);
+
                             $team_class = get_player_team_class(get_player_team($team_array, $pstat["steamid"]));
                             
                             if (($pstat["healing_done"] > 0) || ($pstat["ubers_used"]) || ($pstat["ubers_lost"]))
@@ -317,19 +327,19 @@
                             <td><span id="<?=$community_id . ".kills"?>"><?=$pstat["kills"]?></span></td>
                             <td><span id="<?=$community_id . ".deaths"?>"><?=$pstat["deaths"]?></span></td>
                             <td><span id="<?=$community_id . ".assists"?>"><?=$pstat["assists"]?></span></td>
-                            <td><span id="<?=$community_id . ".pointcaps"?>"><?=$pstat["captures"]?></span></td>
-                            <td><span id="<?=$community_id . ".pointblocks"?>"><?=$pstat["captures_blocked"]?></span></td>
+                            <td><span id="<?=$community_id . ".captures"?>"><?=$pstat["captures"]?></span></td>
+                            <td><span id="<?=$community_id . ".captures_blocked"?>"><?=$pstat["captures_blocked"]?></span></td>
                             <td><span id="<?=$community_id . ".headshots"?>"><?=$pstat["headshots"]?></span></td>
-                            <td><span id="<?=$community_id . ".backstabs"?>"><?=$pstat["backstabs"]?></span></td>
                             <td><span id="<?=$community_id . ".points"?>"><?=$pstat["points"]?></span></td>
-                            <td><span id="<?=$community_id . ".damage"?>"><?=$pstat["damage_dealt"]?></span></td>
-                            <td><span id="<?=$community_id . ".heal_rcvd"?>"><?=$pstat["healing_received"]?></span></td>
+                            <td><span id="<?=$community_id . ".damage_dealt"?>"><?=$pstat["damage_dealt"]?></span></td>
+                            <td><span id="<?=$community_id . ".damage_taken"?>"><?=empty($pstat["damage_taken"]) ? 0 : $pstat["damage_taken"]?></span></td>
+                            <td><span id="<?=$community_id . ".healing_received"?>"><?=$pstat["healing_received"]?></span></td>
                             <td><span id="<?=$community_id . ".dominations"?>"><?=$pstat["dominations"]?></span></td>
-                            <td><span id="<?=$community_id . ".t_dominated"?>"><?=$pstat["times_dominated"]?></span></td>
                             <td><span id="<?=$community_id . ".revenges"?>"><?=$pstat["revenges"]?></span></td>
                             <td><span id="<?=$community_id . ".kpd"?>"><?=$p_kpd?></span></td>
                             <td><span id="<?=$community_id . ".dpd"?>"><?=$p_dpd?></span></td>
                             <td><span id="<?=$community_id . ".dpr"?>"><?=$p_dpr?></span></td>
+                            <td><span id="<?=$community_id . ".dpm"?>"><?=$p_dpm?></span></td>
                         </tr>
                     <?php
                         }
@@ -375,7 +385,7 @@
                         
                         <tr>
                             <td><a class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=$mstats[$i]["name"]?></a></td>
-                            <td><span id="<?=$community_id . ".heal_done"?>"><?=$mstats[$i]["healing_done"]?></span></td>
+                            <td><span id="<?=$community_id . ".healing_done"?>"><?=$mstats[$i]["healing_done"]?></span></td>
                             <td><span id="<?=$community_id . ".ubers_used"?>"><?=$mstats[$i]["ubers_used"]?></span></td>
                             <td><span id="<?=$community_id . ".ubers_lost"?>"><?=$mstats[$i]["ubers_lost"]?></span></td>
                         </tr>

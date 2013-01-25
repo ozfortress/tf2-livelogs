@@ -9,7 +9,8 @@ $(document).ready(function()
         "aaSorting": [[1, 'desc']],
         "aoColumnDefs": [
             { "sType": "html", "bSearchable": false, "aTargets": [0] },
-            { "sType": "dt-numeric-html", "bSearchable": false, "aTargets": ["_all"] }
+            { "sType": "dt-numeric-html", "bSearchable": false, "aTargets": ["_all"] },
+            { "asSorting": [ "desc", "asc" ], "aTargets": [ "_all" ] }
         ],
         "bPaginate": false,
         "bAutoWidth": false,
@@ -40,7 +41,7 @@ jQuery.fn.dataTableExt.oSort['dt-numeric-html-desc'] = function(a,b) {
 
 var llWSClient = llWSClient || (function() {
     "use strict";
-    var client = null, ws = null, connect_msg = {}, HAD_FIRST_UPDATE = false, auto_update = true; //our client socket and message that will be sent on connect, containing the log id
+    var client, ws, connect_msg = {}, HAD_FIRST_UPDATE = false, auto_update = true, time_elapsed_sec; //our client socket and message that will be sent on connect, containing the log id
 
     return {
         init : function(ip, port, log_id) {
@@ -177,11 +178,12 @@ var llWSClient = llWSClient || (function() {
 
         parseTimeUpdate : function(timestamp) {
             //update the time. requires use of sprintf
-            var time_sec = Number(timestamp), new_time_disp; //make sure the timestamp is a number
+            time_elapsed_sec = Number(timestamp);
+            var new_time_disp;
 
-            new_time_disp = sprintf("%02d minute(s) and %02d second(s)", (time_sec/60)%60, time_sec%60);
+            new_time_disp = sprintf("%02d minute(s) and %02d second(s)", (time_elapsed_sec/60)%60, time_elapsed_sec%60);
 
-            console.log("Got timestamp message. Timestamp: %d Time display: %s", time_sec, new_time_disp);
+            console.log("Got timestamp message. Timestamp: %d Time display: %s", time_elapsed_sec, new_time_disp);
 
 
             document.getElementById("time_elapsed").innerHTML = new_time_disp;
@@ -249,7 +251,7 @@ var llWSClient = llWSClient || (function() {
         
         parseStatUpdate : function(stat_obj) {
             try {
-                var element, element_id, special_element_tags = ["kpd", "dpd", "dpr"], i, tmp, num_rounds, deaths, damage, kills;
+                var element, element_id, special_element_tags = ["kpd", "dpd", "dpr", "dpm"], i, tmp, num_rounds, deaths, damage, kills;
                 num_rounds = Number(document.getElementById("red_score_value").innerHTML) + Number(document.getElementById("blue_score_value").innerHTML);
                 
                 $.each(stat_obj, function(sid, stats) {
@@ -284,16 +286,19 @@ var llWSClient = llWSClient || (function() {
                             
                             
                             deaths = Number(document.getElementById(sid + ".deaths").innerHTML);
-                            damage = Number(document.getElementById(sid + ".damage").innerHTML);
+                            damage = Number(document.getElementById(sid + ".damage_dealt").innerHTML);
                             
+                            //multiply by 100 and div by 100 for 2 dec places rounding
                             if (element) {
                                 if (tmp === "kpd") {
                                     kills = Number(document.getElementById(sid + ".kills").innerHTML);
-                                    element.innerHTML = Math.round(kills / (deaths || 1) * 100) / 100; //multiply by 100 and div by 100 for 2 dec places rounding
+                                    element.innerHTML = Math.round(kills / (deaths || 1) * 100) / 100;
                                 } else if (tmp === "dpd") {
                                     element.innerHTML = Math.round(damage / (deaths || 1) * 100) / 100;
                                 } else if (tmp === "dpr") {
                                     element.innerHTML = Math.round(damage / (num_rounds || 1) * 100) / 100;
+                                } else if (tmp === "dpm") {
+                                    element.innerHTML = Math.round(damage / (time_elapsed_sec/60) * 100) / 100;
                                 } else {
                                     console.log("Invalid element %s in special element array", tmp);
                                 }
@@ -322,6 +327,13 @@ var llWSClient = llWSClient || (function() {
                 auto_update = true;
                 this.clientConnect(ws);
             }
+        },
+
+        addStatRow : function() {
+            $("#general_stats").dataTable().fnAddData([
+                    "row1",
+                    "row2"
+                ]);
         }
     };
 }());
