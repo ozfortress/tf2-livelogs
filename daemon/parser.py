@@ -222,10 +222,16 @@ class parserClass():
 
                     dmg = regml(res, 9)
 
-                    self.pg_statupsert(self.STAT_TABLE, "damage_dealt", a_sid, a_name, dmg)
+                    if a_sid == v_sid: #players can deal self damage. if so, don't record damage_dealt for this
+                        self.insertPlayerTeam(a_sid, regml(res, 4).lower())
+
+                    else:
+                        self.pg_statupsert(self.STAT_TABLE, "damage_dealt", a_sid, a_name, dmg)
+                        self.insertPlayerTeam(a_sid, regml(res, 4).lower(), v_sid, regml(res, 8).lower())
+
                     self.pg_statupsert(self.STAT_TABLE, "damage_taken", v_sid, v_name, dmg)
 
-                    self.insertPlayerTeam(a_sid, regml(res, 4).lower(), v_sid, regml(res, 8).lower())
+                    
 
                     self._using_livelogs_output = True
 

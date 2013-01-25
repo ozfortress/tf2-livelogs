@@ -396,19 +396,22 @@ public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
 
         if (log_additional_stats == 1)
         {
-            //output damage taken data. damage taken and damage dealt will be separate data unless log_additional_stats is set to '2'
-            strcopy(auth_id, sizeof(auth_id), client_index_cache[victimidx]); //get the player ID from the cache if it's in there
-        
-            GetClientName(victimidx, player_name, sizeof(player_name));
-            GetTeamName(GetClientTeam(victimidx), team, sizeof(team));
+            if (victimid != attackerid)
+            {
+                //output damage taken data. damage taken and damage dealt will be separate data unless log_additional_stats is set to '2'
+                strcopy(auth_id, sizeof(auth_id), client_index_cache[victimidx]); //get the player ID from the cache if it's in there
+            
+                GetClientName(victimidx, player_name, sizeof(player_name));
+                GetTeamName(GetClientTeam(victimidx), team, sizeof(team));
 
-            LogToGame("\"%s<%d><%s><%s>\" triggered \"damage_taken\" (damage \"%d\")",
-                    player_name,
-                    attackerid,
-                    auth_id,
-                    team,
-                    damage
-                );
+                LogToGame("\"%s<%d><%s><%s>\" triggered \"damage_taken\" (damage \"%d\")",
+                        player_name,
+                        attackerid,
+                        auth_id,
+                        team,
+                        damage
+                    );
+            }
         }
         else if (log_additional_stats == 2)
         {
