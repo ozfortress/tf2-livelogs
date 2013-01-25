@@ -41,11 +41,9 @@ jQuery.fn.dataTableExt.oSort['dt-numeric-html-desc'] = function(a,b) {
 
 var llWSClient = llWSClient || (function() {
     "use strict";
-    var client = null, ws = null, connect_msg = {}, HAD_FIRST_UPDATE = false, auto_update = true; //our client socket and message that will be sent on connect, containing the log id
+    var client, ws, connect_msg = {}, HAD_FIRST_UPDATE = false, auto_update = true, time_elapsed_sec; //our client socket and message that will be sent on connect, containing the log id
 
     return {
-        var time_elapsed_sec;
-
         init : function(ip, port, log_id) {
             ws = "ws://" + ip + ":" + port + "/logupdate";
             
@@ -180,7 +178,7 @@ var llWSClient = llWSClient || (function() {
 
         parseTimeUpdate : function(timestamp) {
             //update the time. requires use of sprintf
-            this.time_elapsed_sec = Number(timestamp);
+            time_elapsed_sec = Number(timestamp);
             var new_time_disp;
 
             new_time_disp = sprintf("%02d minute(s) and %02d second(s)", (time_elapsed_sec/60)%60, time_elapsed_sec%60);

@@ -221,5 +221,3 @@ BEGIN
 	END LOOP;
 END;
 $_$ LANGUAGE 'plpgsql';
-
-
