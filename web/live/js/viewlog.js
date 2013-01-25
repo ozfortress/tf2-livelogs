@@ -298,7 +298,7 @@ var llWSClient = llWSClient || (function() {
                                 } else if (tmp === "dpr") {
                                     element.innerHTML = Math.round(damage / (num_rounds || 1) * 100) / 100;
                                 } else if (tmp === "dpm") {
-                                    element.innerHTML = Math.round(damage / (time_elapsed_sec/60) * 100) / 100;
+                                    element.innerHTML = Math.round(damage / (time_elapsed_sec/60 || 1) * 100) / 100;
                                 } else {
                                     console.log("Invalid element %s in special element array", tmp);
                                 }
