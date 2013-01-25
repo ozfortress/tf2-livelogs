@@ -799,8 +799,11 @@ class parserClass():
             
             if not self.HAD_ERROR:
                 #sets live to false, and merges the stat table with the master stat table
-                live_end_query = "UPDATE livelogs_servers SET live='false' WHERE log_ident = E'%s'; SELECT merge_stat_table('%s');" % (self.UNIQUE_IDENT, self.STAT_TABLE)
+                live_end_query = "UPDATE livelogs_servers SET live='false' WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT)
                 self.executeQuery(live_end_query)
+
+                stat_merge_query = "SELECT merge_stat_table('%s')" % (self.STAT_TABLE)
+                self.executeQuery(stat_merge_query)
                 
                 #begin ending timer
                 if ((self.closeListenerCallback != None) and (game_over)):

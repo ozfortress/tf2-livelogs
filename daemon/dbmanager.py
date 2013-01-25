@@ -258,11 +258,11 @@ class dbManager(object):
         #this means that new columns can be added to tables on the fly, while retaining a known format
         query_keys = []
 
-        for key in self.STAT_KEYS:
+        for idx, colname in self.STAT_KEYS.items():
             #each key is one of the column names in STAT_KEYS
-            query_keys.append(key)
+            query_keys.append(colname)
 
-        query = "SELECT %s FROM %s" (', '.join(query_keys), self.DB_STAT_TABLE)
+        query = "SELECT %s FROM %s" % (', '.join(query_keys), self.DB_STAT_TABLE)
 
         return query
 
