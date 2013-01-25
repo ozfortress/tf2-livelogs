@@ -1,4 +1,4 @@
-﻿
+
 CREATE OR REPLACE FUNCTION create_game_event_table (unique_id text) RETURNS void AS $_$
 DECLARE
 	table_name varchar(128);
