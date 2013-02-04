@@ -41,29 +41,15 @@
 #include <socket>
 #include <sdktools>
 
+#include "include/livelogs.h"
+
 #undef REQUIRE_PLUGIN
 
 #tryinclude <websocket>
 
 #if defined _websocket_included
 #include <tf2_stocks>
-#endif
-
-#define RED 0
-#define BLUE 1
-#define TEAM_OFFSET 2
-#define DEBUG true
-
-#if defined _websocket_included
-
-#define MAX_BUFFER_SIZE 750 //MATH: (1/WEBTV_POSITION_UPDATE_RATE)*(MAX_TV_DELAY) + MAX_POSSIBLE_ADDITIONAL_EVENTS
-                            //the maximum possible additional events is an (overly generous) educated guess at the number of events that could occur @ max tv_delay (90s)
-
-#define WEBTV_POSITION_UPDATE_RATE 0.25 /*rate at which position packets are added to the buffer. MAKE SURE TO BE SLOWER THAN THE PROCESS TIMER,
-                                       ELSE YOU WILL GET MULTIPLE POSITION UPDATES IN THE SAME PROCESSING FRAME (BAD) AND WASTE RESOURCES*/
-#define WEBTV_BUFFER_PROCESS_RATE 0.12 /*tf2 tickrate process time is 66.66 updates/sec = update every 15 ms. 
-                                        we process the buffer ~5 times slower (120ms). this will send position updates virtually instantly */
-#endif                                  
+#endif                           
 
 public Plugin:myinfo =
 {
@@ -88,13 +74,14 @@ new bool:tournament_state[2] = { false, false }; //Holds ready state for both te
 new bool:live_at_restart = false;
 new bool:is_logging = false;
 new bool:late_loaded;
+new bool:livelogs_bitmask_cache[64];
 
 new String:server_ip[64];
 new String:livelogs_listener_address[128];
 new String:log_unique_ident[64];
 new String:client_index_cache[MAXPLAYERS+1][64];
 
-new log_additional_stats = 2;
+new log_additional_stats;
 new server_port;
 
 //Handles for convars
@@ -169,8 +156,8 @@ public OnPluginStart()
 
     livelogs_server_name = CreateConVar("livelogs_name", "default", "The name by which logs are identified on the website", FCVAR_PROTECTED);
 
-    livelogs_stat_output = CreateConVar("livelogs_additional_logging", "2", "Toggle whether or not livelogs should log additional statistics. Disable if running sup stats or other similar plugins",
-                                    FCVAR_NOTIFY, true, 0.0, true, 2.0); //allows levels of logging, 0 1 and 2
+    livelogs_stat_output = CreateConVar("livelogs_additional_logging", "15.0", "Toggle whether or not livelogs should log additional statistics. Disable if running sup stats or other similar plugins",
+                                    FCVAR_NOTIFY, true, 0.0, true, 64.0); //allows levels of logging via a bitmask
 
     HookConVarChange(livelogs_stat_output, toggleLoggingHook);
 
@@ -244,12 +231,12 @@ public OnAllPluginsLoaded()
     if (LibraryExists("websocket"))
     {
         webtv_library_present = true;
-        if (DEBUG) { LogMessage("websocket.smx present. Using SourceTV2D"); }
+        if (DEBUG) { LogMessage("Websocket library present. Using SourceTV2D"); }
         
         cleanUpWebSocket();
     }
     else
-        if (DEBUG) { LogMessage("websocket.smx is not present. Not using SourceTV2D"); }
+        if (DEBUG) { LogMessage("Websocket library is not present. Not using SourceTV2D"); }
     #endif
 }
 #if defined _websocket_included
@@ -316,16 +303,20 @@ public toggleLoggingHook(Handle:cvar, const String:oldval[], const String:newval
     
     log_additional_stats = GetConVarInt(cvar); //going to have multiple levels of logging
 
-    if (log_additional_stats == 1) 
+    if (log_additional_stats > 0) 
     {
-        PrintToServer("Livelogs now outputting damage taken data");
-    }
-    else if (log_additional_stats == 2) 
-    {
-        PrintToServer("Livelogs now outputting damage taken, damage dealt, healing and item pickups");
+        PrintToServer("Livelogs now outputting additional logging");
     }
     else
+    {
         PrintToServer("Livelogs no longer outputting additional statistics");
+    }
+
+    //set all values in the bitmask cache to false
+    for (new i = 0; i < sizeof(livelogs_bitmask_cache); i++)
+    {
+        livelogs_bitmask_cache[i] = false;
+    }
 
 }
 
@@ -372,7 +363,7 @@ public gameOverEvent(Handle:event, const String:name[], bool:dontBroadcast)
 
 public itemPickupEvent(Handle:event, const String:name[], bool:dontBroadcast)
 {
-    if (log_additional_stats == 2)
+    if (log_additional_stats && logOptionEnabled(BITMASK_ITEM_PICKUP))
     {
         decl String:player_name[MAX_NAME_LENGTH], String:auth_id[64], String:team[16], String:item[64];
 
@@ -398,40 +389,21 @@ public itemPickupEvent(Handle:event, const String:name[], bool:dontBroadcast)
 public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
 {
     if (log_additional_stats) {
-        decl String:player_name[MAX_NAME_LENGTH], String:auth_id[64], String:team[16];
 
-        new victimid = GetEventInt(event, "userid");
-        new victimidx = GetClientOfUserId(victimid);
-
-        new attackerid = GetEventInt(event, "attacker");
-        new attackeridx = GetClientOfUserId(attackerid);
-
-        new damage = GetEventInt(event, "damageamount");
-
-        if (log_additional_stats == 1)
+        if (logOptionEnabled(BITMASK_DAMAGE_TAKEN) && logOptionEnabled(BITMASK_DAMAGE_DEALT))
         {
-            if (victimid != attackerid)
-            {
-                //output damage taken data. damage taken and damage dealt will be separate data unless log_additional_stats is set to '2'
-                strcopy(auth_id, sizeof(auth_id), client_index_cache[victimidx]); //get the player ID from the cache if it's in there
-            
-                GetClientName(victimidx, player_name, sizeof(player_name));
-                GetTeamName(GetClientTeam(victimidx), team, sizeof(team));
+            new victimid = GetEventInt(event, "userid");
+            new attackerid = GetEventInt(event, "attacker");
 
-                LogToGame("\"%s<%d><%s><%s>\" triggered \"damage_taken\" (damage \"%d\")",
-                        player_name,
-                        attackerid,
-                        auth_id,
-                        team,
-                        damage
-                    );
-            }
-        }
-        else if (log_additional_stats == 2)
-        {
             if (victimid != attackerid && attackerid != 0)
             {
                 decl String:victim_name[MAX_NAME_LENGTH], String:victim_auth_id[64], String:victim_team[16];
+                decl String:player_name[MAX_NAME_LENGTH], String:auth_id[64], String:team[16];
+
+                new attackeridx = GetClientOfUserId(attackerid);
+                new victimidx = GetClientOfUserId(victimid);
+
+                new damage = GetEventInt(event, "damageamount");
 
                 strcopy(auth_id, sizeof(auth_id), client_index_cache[attackeridx]); //get the player ID from the cache if it's in there
                 strcopy(victim_auth_id, sizeof(victim_auth_id), client_index_cache[victimidx]);
@@ -453,7 +425,57 @@ public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
                         victim_team,
                         damage
                     );
+            }
+        }
+        else if (logOptionEnabled(BITMASK_DAMAGE_TAKEN))
+        {
+            new victimid = GetEventInt(event, "userid");
+            new attackerid = GetEventInt(event, "attacker");
             
+            if (victimid != attackerid)
+            {
+                decl String:player_name[MAX_NAME_LENGTH], String:auth_id[64], String:team[16];
+
+                new victimidx = GetClientOfUserId(victimid);
+                new damage = GetEventInt(event, "damageamount");
+
+                strcopy(auth_id, sizeof(auth_id), client_index_cache[victimidx]); //get the player ID from the cache if it's in there
+            
+                GetClientName(victimidx, player_name, sizeof(player_name));
+                GetTeamName(GetClientTeam(victimidx), team, sizeof(team));
+
+                LogToGame("\"%s<%d><%s><%s>\" triggered \"damage_taken\" (damage \"%d\")",
+                        player_name,
+                        victimid,
+                        auth_id,
+                        team,
+                        damage
+                    );
+            }
+        }
+        else if (logOptionEnabled(BITMASK_DAMAGE_DEALT))
+        {
+            new victimid = GetEventInt(event, "userid");
+            new attackerid = GetEventInt(event, "attacker");
+            
+            if (victimid != attackerid)
+            {
+                decl String:player_name[MAX_NAME_LENGTH], String:auth_id[64], String:team[16];
+                new attackeridx = GetClientOfUserId(attackerid);
+
+                new damage = GetEventInt(event, "damageamount");
+
+                strcopy(auth_id, sizeof(auth_id), client_index_cache[attackeridx]);
+                GetClientName(attackeridx, player_name, sizeof(player_name));
+                GetTeamName(GetClientTeam(attackeridx), team, sizeof(team));
+
+                LogToGame("\"%s<%d><%s><%s>\" triggered \"damage\" (damage \"%d\")",
+                        player_name,
+                        attackerid,
+                        auth_id,
+                        team,
+                        damage
+                    );
             }
         }
     }
@@ -461,7 +483,7 @@ public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
 
 public playerHealEvent(Handle:event, const String:name[], bool:dontBroadcast)
 {
-    if (log_additional_stats == 2) {
+    if (log_additional_stats && logOptionEnabled(BITMASK_HEALING)) {
         decl String:healer_name[MAX_NAME_LENGTH], String:healer_auth[64], String:healer_team[16];
         decl String:patient_name[MAX_NAME_LENGTH], String:patient_auth[64], String:patient_team[16];
 
@@ -1082,6 +1104,52 @@ endLogging(bool:map_end = false)
         }
     }
     #endif
+}
+
+bool:logOptionEnabled(option_value)
+{
+    /*
+    option_value is a bitmask in the form of an int. we can use this to determine what logging options we should enable
+    values:
+
+    1 - damage taken
+    2 - damage dealt
+    4 - healing done
+    8 - item pickups
+
+    To set a level of logging the values are added together.
+    */
+
+    new bitmask = GetConVarInt(livelogs_stat_output); //a sum of whatever options are desired
+    if (livelogs_bitmask_cache[option_value]) //if the cached value is true
+    {
+        return true; //just return true here
+    }
+
+    if (option_value & bitmask)
+    {
+        /*bitwise AND the option with the bitmask. if the option is one of the values summed to obtain the bitmask, the result is the option
+        i.e 1 & 3 will return true, meaning damage taken is enabled. 
+        2 & 3 will return true, meaning damage dealt is enabled.
+        but 4 & 3 is false, so healing is disabled
+
+        logic in binary:
+        001 (1) & 011 (3) = 001 (1)
+        010 (2) & 011 (3) = 010 (2)
+        100 (4) & 011 (3) = 000 (0)
+        1000 (8) & 011 (3) = 0000 (0)
+
+        */
+        livelogs_bitmask_cache[option_value] = true;
+
+        return true;
+    }
+    else
+    {
+        livelogs_bitmask_cache[option_value] = false;
+        return false;
+    }
+
 }
 
 stock _:ConVarExists(const String:cvar_name[])
