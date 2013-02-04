@@ -149,6 +149,9 @@ public OnPluginStart()
     HookEvent("player_hurt", playerHurtEvent); //player is hurt
     HookEvent("player_healed", playerHealEvent); //player receives healing, from dispenser or medic
 
+    //Listen for chat commands
+    RegConsoleCmd("sm_livelogs", urlCommandCallback, "Displays the livelogs log URL to the client");
+
     //Convars
     livelogs_daemon_address = CreateConVar("livelogs_address", "192.168.35.128", "IP or hostname of the livelogs daemon", FCVAR_PROTECTED);
     livelogs_daemon_port = CreateConVar("livelogs_port", "61222", "Port of the livelogs daemon", FCVAR_PROTECTED);
@@ -156,10 +159,10 @@ public OnPluginStart()
 
     livelogs_server_name = CreateConVar("livelogs_name", "default", "The name by which logs are identified on the website", FCVAR_PROTECTED);
 
-    livelogs_stat_output = CreateConVar("livelogs_additional_logging", "15.0", "Toggle whether or not livelogs should log additional statistics. Disable if running sup stats or other similar plugins",
+    livelogs_stat_output = CreateConVar("livelogs_additional_logging", "15", "Toggle whether or not livelogs should log additional statistics. Disable if running sup stats or other similar plugins",
                                     FCVAR_NOTIFY, true, 0.0, true, 64.0); //allows levels of logging via a bitmask
 
-    HookConVarChange(livelogs_stat_output, toggleLoggingHook);
+    HookConVarChange(livelogs_stat_output, toggleLoggingHook); //hook convar so we can change logging options on the fly
 
     //variables for later sending. we should get the IP via hostip, because sometimes people don't set "ip"
     new longip = GetConVarInt(FindConVar("hostip")), ip_quad[4];
@@ -171,7 +174,6 @@ public OnPluginStart()
     Format(server_ip, sizeof(server_ip), "%d.%d.%d.%d", ip_quad[0], ip_quad[1], ip_quad[2], ip_quad[3]);
     
     server_port = GetConVarInt(FindConVar("hostport"));
-
 
     if (late_loaded)
     {
@@ -296,6 +298,31 @@ public OnClientDisconnect(client)
     }
     #endif
 }
+
+public Action:urlCommandCallback(client, args)
+{
+    //WE CAN IGNORE THE ARGS
+    if (client == 0) 
+    {
+        PrintToServer("Log URL: http://livelogs.ozfortress.com/view/%s", log_unique_ident);
+        return Plugin_Handled;
+    }
+
+    if (strlen(log_unique_ident) > 1)
+    {
+        //we have a log ident to print to the client
+
+        PrintToChat(client, "Log URL: http://livelogs.ozfortress.com/view/%s", log_unique_ident);
+    }
+    else
+    {
+        PrintToChat(client, "No log URL is available");
+    }
+
+    return Plugin_Handled;
+}
+
+
 
 public toggleLoggingHook(Handle:cvar, const String:oldval[], const String:newval[])
 {
@@ -458,7 +485,7 @@ public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
             new victimid = GetEventInt(event, "userid");
             new attackerid = GetEventInt(event, "attacker");
             
-            if (victimid != attackerid)
+            if (victimid != attackerid && attackerid != 0)
             {
                 decl String:player_name[MAX_NAME_LENGTH], String:auth_id[64], String:team[16];
                 new attackeridx = GetClientOfUserId(attackerid);
