@@ -94,7 +94,7 @@ new String:livelogs_listener_address[128];
 new String:log_unique_ident[64];
 new String:client_index_cache[MAXPLAYERS+1][64];
 
-new log_additional_stats = 1;
+new log_additional_stats = 2;
 new server_port;
 
 //Handles for convars
@@ -102,27 +102,31 @@ new Handle:livelogs_daemon_address = INVALID_HANDLE; //ip/dns of livelogs daemon
 new Handle:livelogs_daemon_port = INVALID_HANDLE; //port of livelogs daemon
 new Handle:livelogs_daemon_apikey = INVALID_HANDLE; //the key that must be specified when communicating with the ll daemon
 new Handle:livelogs_server_name = INVALID_HANDLE;
-new Handle:livelogs_stat_toggle = INVALID_HANDLE;
+new Handle:livelogs_stat_output = INVALID_HANDLE;
+new Handle:livelogs_ipgn_booking_name = INVALID_HANDLE;
 
 //if websocket is included, let's define the websocket stuff!
 #if defined _websocket_included
 new webtv_round_time;
+new livelogs_webtv_buffer_length = 0;
+
 new bool:webtv_library_present = false;
 new bool:webtv_enabled = true;
+
 new Float:webtv_delay;
 
 new WebsocketHandle:livelogs_webtv_listen_socket = INVALID_WEBSOCKET_HANDLE;
 new Handle:livelogs_webtv_listenport = INVALID_HANDLE;
-new Handle:livelogs_webtv_children;
-new Handle:livelogs_webtv_children_ip;
+new Handle:livelogs_webtv_children = INVALID_HANDLE;
+new Handle:livelogs_webtv_children_ip = INVALID_HANDLE;
 new Handle:livelogs_webtv_toggle = INVALID_HANDLE;
-
-new String:livelogs_webtv_buffer[MAX_BUFFER_SIZE][4096]; //string array buffer, MUCH faster than dynamic arrays
-new livelogs_webtv_buffer_length = 0;
-
 new Handle:livelogs_webtv_buffer_timer = INVALID_HANDLE; //timer to process the buffer every WEBTV_UPDATE_RATE seconds, only sends events that have time >= tv_delay
 new Handle:livelogs_webtv_positions_timer = INVALID_HANDLE;
 new Handle:livelogs_webtv_cleanup_timer = INVALID_HANDLE;
+new Handle:livelogs_server_hostname = INVALID_HANDLE; //for caching the hostname cvar handle
+new Handle:livelogs_server_tv_delay = INVALID_HANDLE; //for caching the tv_delay cvar handle
+
+new String:livelogs_webtv_buffer[MAX_BUFFER_SIZE][4096]; //string array buffer, MUCH faster than dynamic arrays
 #endif
 
 //------------------------------------------------------------------------------
@@ -165,10 +169,10 @@ public OnPluginStart()
 
     livelogs_server_name = CreateConVar("livelogs_name", "default", "The name by which logs are identified on the website", FCVAR_PROTECTED);
 
-    livelogs_stat_toggle = CreateConVar("livelogs_additional_logging", "1", "Toggle whether or not livelogs should log additional statistics. Disable if running sup stats or other similar plugins",
+    livelogs_stat_output = CreateConVar("livelogs_additional_logging", "2", "Toggle whether or not livelogs should log additional statistics. Disable if running sup stats or other similar plugins",
                                     FCVAR_NOTIFY, true, 0.0, true, 2.0); //allows levels of logging, 0 1 and 2
 
-    HookConVarChange(livelogs_stat_toggle, toggleLoggingHook);
+    HookConVarChange(livelogs_stat_output, toggleLoggingHook);
 
     //variables for later sending. we should get the IP via hostip, because sometimes people don't set "ip"
     new longip = GetConVarInt(FindConVar("hostip")), ip_quad[4];
@@ -207,6 +211,8 @@ public OnPluginStart()
     livelogs_webtv_children = CreateArray();
     livelogs_webtv_children_ip = CreateArray(ByteCountToCells(33));
 
+    livelogs_server_tv_delay = FindConVar("tv_delay");
+
     //add event hooks and shiz for websocket, self explanatory names and event hooks
     HookEvent("player_team", playerTeamChangeEvent);
     HookEvent("player_death", playerDeathEvent);
@@ -218,14 +224,22 @@ public OnPluginStart()
     HookEvent("teamplay_round_win", roundEndEvent);
     
     HookConVarChange(livelogs_webtv_toggle, toggleWebTVHook);
-    HookConVarChange(FindConVar("tv_delay"), delayChangeHook); //hook tv_delay so we can adjust the delay dynamically
+    HookConVarChange(livelogs_server_tv_delay, delayChangeHook); //hook tv_delay so we can adjust the delay dynamically
 #endif
 }
 
 
 public OnAllPluginsLoaded()
 {
-    //maybe check other stuff later?
+    //check convar settings & update
+    new cvar_val = GetConVarInt(livelogs_stat_output);
+    log_additional_stats = cvar_val;
+
+    if (livelogs_ipgn_booking_name == INVALID_HANDLE)
+    {
+        livelogs_ipgn_booking_name = ConVarExists("mr_ipgnbooker");
+    }
+
     #if defined _websocket_included
     if (LibraryExists("websocket"))
     {
@@ -676,7 +690,12 @@ public onWebSocketReadyStateChange(WebsocketHandle:sock, WebsocketReadyState:rea
     GetCurrentMap(map, sizeof(map));
     GetGameFolderName(game, sizeof(game));
     
-    GetConVarString(FindConVar("hostname"), hostname, sizeof(hostname));
+    if (livelogs_server_hostname == INVALID_HANDLE)
+    {
+        livelogs_server_hostname = FindConVar("hostname");
+    }
+
+    GetConVarString(livelogs_server_hostname, hostname, sizeof(hostname));
     
     new red_score = GetTeamScore(RED+TEAM_OFFSET);
     new blue_score = GetTeamScore(BLUE+TEAM_OFFSET);
@@ -932,7 +951,7 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
                     livelogs_webtv_cleanup_timer = INVALID_HANDLE;
                 }
 
-                webtv_delay = GetConVarFloat(FindConVar("tv_delay"));
+                webtv_delay = GetConVarFloat(livelogs_server_tv_delay);
                 new webtv_lport = GetConVarInt(livelogs_webtv_listenport);
                 if (DEBUG) { LogMessage("websocket is present. initialising socket. Address: %s:%d", server_ip, webtv_lport); }
             
@@ -1014,11 +1033,9 @@ requestListenerAddress()
     
     GetCurrentMap(map, sizeof(map));
     
-    new Handle:ipgn_booker_handle = ConVarExists("mr_ipgnbooker");
-    
-    if (ipgn_booker_handle != INVALID_HANDLE)
+    if (livelogs_ipgn_booking_name != INVALID_HANDLE)
     {
-        GetConVarString(ipgn_booker_handle, log_name, sizeof(log_name));
+        GetConVarString(livelogs_ipgn_booking_name, log_name, sizeof(log_name));
     }
     else
     {
@@ -1061,7 +1078,7 @@ endLogging(bool:map_end = false)
     {
         if ((webtv_library_present) && (livelogs_webtv_listen_socket != INVALID_WEBSOCKET_HANDLE))
         {
-            livelogs_webtv_cleanup_timer = CreateTimer(GetConVarFloat(FindConVar("tv_delay")) + 10.0, cleanUpWebSocketTimer, TIMER_FLAG_NO_MAPCHANGE);
+            livelogs_webtv_cleanup_timer = CreateTimer(GetConVarFloat(livelogs_server_tv_delay) + 10.0, cleanUpWebSocketTimer, TIMER_FLAG_NO_MAPCHANGE);
         }
     }
     #endif
