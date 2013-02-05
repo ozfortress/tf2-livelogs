@@ -176,33 +176,50 @@
         </div>
     </div>
     <div class="livelogs_wrapper">
+    <?php
+    if ($invalid_log_ident)
+    {
+        die("404</div>"); //die with an error if we have invalid log ident and close the main div
+    }
+    ?>
+
+        <div class="log_details_container">
         <?php
-        if ($invalid_log_ident)
+        if ($log_live) 
         {
-            die("404</div>"); //die with an error if we have invalid log ident and close the main div
+        ?>
+            
+            <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="#"><?=$UNIQUE_IDENT?></a></span><br>
+        <?php
+        }
+        else
+        {
+        ?>
+            
+            <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="/download/<?=$UNIQUE_IDENT?>"><?=$UNIQUE_IDENT?></a></span><br>
+        <?php
+        }
+
+        if ($ll_config["ozfortress"]["active"])
+        {
+        ?>
+
+            <span class="log_name_id">Name: </span><span class="log_detail"><a href="//heavy.ozfortress.com/demos/pub/<?=hash_hmac($ll_config["ozfortress"]["hashtype"], strtolower($log_details["log_name"]), $ll_config["ozfortress"]["hashkey"])?>"><?=$log_details["log_name"]?></a></span><br>
+        <?php
+        }
+        else 
+        {
+        ?>
+
+            <span class="log_name_id">Name: </span><span class="log_detail"><?=$log_details["log_name"]?></span><br>
+        <?php
         }
         ?>
 
-        <div class="log_details_container">
-            <?php
-            if ($log_live) {
-            ?>
             
-            <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="#"><?=$UNIQUE_IDENT?></a></span><br>
-            <?php
-            }
-            else
-            {
-            ?>
-            
-            <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="/download/<?=$UNIQUE_IDENT?>"><?=$UNIQUE_IDENT?></a></span><br>
-            <?php
-            }
-            ?>
-            
-            <span class="log_name_id">Name: </span><span class="log_detail"><?=$log_details["log_name"]?></span><br>
             <span class="server_details_id">Server: </span><span class="log_detail"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span><br>
             <span class="log_map_id">Map: </span><span class="log_detail"><?=$log_details["map"]?></span><br>
+
             <div>
                 <span class="live_id">Status: </span>
             <?php
