@@ -60,8 +60,8 @@ public Plugin:myinfo =
     #endif
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
-	version = "0.1.2",
-	url = "http://livelogs.unknown.ip"
+	version = "0.2.0",
+	url = "http://livelogs.ozfortress.com"
 };
 
 
@@ -1153,12 +1153,12 @@ bool:logOptionEnabled(option_value)
         return true; //just return true here
     }
 
-    if (option_value & bitmask)
+    if ((option_value & bitmask) == option_value)
     {
         /*bitwise AND the option with the bitmask. if the option is one of the values summed to obtain the bitmask, the result is the option
-        i.e 1 & 3 will return true, meaning damage taken is enabled. 
-        2 & 3 will return true, meaning damage dealt is enabled.
-        but 4 & 3 is false, so healing is disabled
+        i.e 1 & 3 = 3, will return true, meaning damage taken is enabled. 
+        2 & 3 = 2, will return true, meaning damage dealt is enabled.
+        but 4 & 3 = 0, is false, so healing is disabled
 
         logic in binary:
         001 (1) & 011 (3) = 001 (1)
