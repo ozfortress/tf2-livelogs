@@ -3,6 +3,7 @@ import threading
 import time
 import socket
 import struct
+import logging
 from pprint import pprint
 
 import parser
@@ -13,14 +14,14 @@ class llListenerHandler(SocketServer.BaseRequestHandler):
         data = self.request[0].strip()
         sock = self.request[1]
 
-        #print "LOG: %s" % data
         if self.server.parser and not self.server.parser.HAD_ERROR:
             self.server.parser.parse(data)
 
 
 class llListener(SocketServer.UDPServer):
-    def __init__(self, listener_address, timeout, listener_object, handler_class=llListenerHandler):
-        print "Initialised log listener. Waiting for logs"
+    def __init__(self, logger, listener_address, timeout, listener_object, handler_class=llListenerHandler):
+        self.logger = logger
+        self.logger.info("Initialised log listener. Waiting for logs")
         self.parser = None
         self.timeout = timeout
 
@@ -53,7 +54,7 @@ class llListener(SocketServer.UDPServer):
     
     def handle_server_timeout(self, game_over=False):
         if game_over:
-            print "Game over. Closing listening socket"
+            self.logger.info("Game over. Closing listening socket")
             #put the shutdown in a timer to prevent a race condition
             
             self.timeoutTimer.cancel()
@@ -62,7 +63,7 @@ class llListener(SocketServer.UDPServer):
             self.gameOverTimer.start()
             
         else:
-            print "Server timeout (no logs received in %0.2f seconds). Exiting" % self.timeout
+            self.logger.info("Server timeout (no logs received in %0.2f seconds). Exiting", self.timeout)
             
             #toggle log's status and stop recording
             if not self.parser.HAD_ERROR:
@@ -85,15 +86,20 @@ class llListener(SocketServer.UDPServer):
         self.listener_object.close_object()
 
 class llListenerObject(object):
-    def __init__(self, listenIP, client_address, current_map, log_name, end_function, webtv_port=None, timeout=90.0):
+    def __init__(self, loggers, listenIP, client_address, current_map, log_name, end_function, webtv_port=None, timeout=90.0):
+        self.unique_parser_ident = "%s_%s_%s" % (self.ip2long(client_address[0]), client_address[1], int(round(time.time())))
+
+        self.logger = logging.getLogger("LISTENER #%s" % self.unique_parser_ident)
+        self.logger.setLevel(logging.DEBUG)
+        self.logger.addHandler(loggers[0])
+        self.logger.addHandler(loggers[1])
+
         self.listenIP = listenIP
 
         self.listenAddress = (self.listenIP, 0)
-        self.listener = llListener(self.listenAddress, timeout, self, handler_class=llListenerHandler)
+        self.listener = llListener(self.logger, self.listenAddress, timeout, self, handler_class=llListenerHandler)
 
-        print "Initialising parser"
-        
-        self.unique_parser_ident = "%s_%s_%s" % (self.ip2long(client_address[0]), client_address[1], int(round(time.time())))
+        self.logger.info("Initialising parser")
         
         self.listener.parser = parser.parserClass(self.unique_parser_ident, server_address = client_address, current_map = current_map, log_name = log_name, endfunc = self.listener.handle_server_timeout, webtv_port = webtv_port)
         
@@ -111,11 +117,6 @@ class llListenerObject(object):
         self.lthread.daemon = True
         self.lthread.start()
         
-        #try:
-        #    self.listener.serve_forever()
-        #except KeyboardInterrupt:
-        #    self.listener.server_close()
-        
     def returnClientAddress(self):
         return self.client_address
 
@@ -130,6 +131,6 @@ class llListenerObject(object):
         while self.lthread.isAlive(): #attempt to join the thread
             self.lthread.join(5)
         
-        print "Listener thread joined. Removing listener object from set"
+        self.logger.info("Listener thread joined. Removing listener object from set")
         
-        self.end_function(self) #self _should_ be the same as the newListen object added by the daemon
+        self.end_function(self) #self is the same as the newListen object added by the daemon

@@ -17,6 +17,7 @@ except ImportError:
     quit()
     
 import logging
+import logging.handlers
 import time
 import threading
 import ConfigParser
@@ -34,9 +35,9 @@ except ImportError:
     
     quit()
 
-log_message_format = logging.Formatter(fmt="%(asctime)s - %(name)s (%(levelname)s): %(message)s", datefmt="%Y-%m-%d %H-%M-%S")
+log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(funcName)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
 
-log_file_handler = logging.TimedRotatingFileHandler("websocket-server.log", when="midnight")
+log_file_handler = logging.handlers.TimedRotatingFileHandler("websocket-server.log", when="midnight")
 log_file_handler.setFormatter(log_message_format)
 log_file_handler.setLevel(logging.WARNING)
 
@@ -45,6 +46,7 @@ log_console_handler.setFormatter(log_message_format)
 log_console_handler.setLevel(logging.DEBUG)
 
 handler_logger = logging.getLogger("UPDATEHANDLER")
+handler_logger.setLevel(logging.DEBUG)
 handler_logger.addHandler(log_file_handler)
 handler_logger.addHandler(log_console_handler)
 
@@ -56,10 +58,11 @@ class llWSApplication(tornado.web.Application):
         ]
         
         settings = {
-            cookie_secret = "12345"
+            "cookie_secret": "12345"
         }
 
         self.logger = logging.getLogger("WS APP")
+        self.logger.setLevel(logging.DEBUG)
         self.logger.addHandler(log_file_handler)
         self.logger.addHandler(log_console_handler)
         
@@ -71,7 +74,7 @@ class llWSApplication(tornado.web.Application):
         self.log_cache = [] #holds a set of tuples containing log idents, the last time they were updated, and the status (live/not live) | [(cache_time, log_ident, status<t/f>), (cache_time, log_ident, status<t/f>)]
 
         self.log_update_thread_event = threading.Event()
-        self.log_update_thread = threading.Thread(target = self._sendUpdateThread, args=(self.logUpdateThreadEvent,))
+        self.log_update_thread = threading.Thread(target = self._sendUpdateThread, args=(self.log_update_thread_event,))
         self.log_update_thread.daemon = True
 
         tornado.web.Application.__init__(self, handlers, **settings)
@@ -118,11 +121,17 @@ class llWSApplication(tornado.web.Application):
         
         self.logger.info("Removed cache item (%s, %s, %s)", cache_item[0], cache_item[1], cache_item[2])
     
-    def addDBManager(self, log_ident, database = self.db, update_rate = self.update_rate):
+    def addDBManager(self, log_ident, database = None, update_rate = None):
         if log_ident not in self.log_db_managers:
             self.logger.info("Adding %s to dbManager dict", log_ident)
             #now we need to create a new dbManager for this log id. the database handle is the momoko pool created @ startup
             #and is the same for all clients
+
+            if not database:
+                database = self.db
+            if not update_rate:
+                update_rate = self.update_rate
+
             self.log_db_managers[log_ident] = dbManager(log_ident, database, update_rate, end_callback = self._logFinishedCallback)
     
     def delDBManager(self, log_ident):
@@ -398,7 +407,9 @@ if __name__ == "__main__":
         quit()
     
     logger = logging.getLogger('WS MAIN')
-    logger.addHandler(logging.StreamHandler())
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(log_file_handler)
+    logger.addHandler(log_console_handler)
 
     logger.info("Successfully read config")
     

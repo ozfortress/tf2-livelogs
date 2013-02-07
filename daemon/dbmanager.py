@@ -1,6 +1,17 @@
 import threading
 import logging
+import logging.handlers
 import time
+
+log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(funcName)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
+
+log_file_handler = logging.handlers.TimedRotatingFileHandler("websocket-server-dbmanager.log", when="midnight")
+log_file_handler.setFormatter(log_message_format)
+log_file_handler.setLevel(logging.WARNING)
+
+log_console_handler = logging.StreamHandler()
+log_console_handler.setFormatter(log_message_format)
+log_console_handler.setLevel(logging.DEBUG)
 
 
 """
@@ -11,7 +22,10 @@ class dbManager(object):
     def __init__(self, log_id, db_conn, update_rate, end_callback = None):
         #end_callback is the function to be called when the log is no longer live
         
-        self.log = logging.getLogger("dbManager #%s" % log_id)
+        self.log = logging.getLogger("ID %s" % log_id)
+        self.log.setLevel(logging.DEBUG)
+        self.log.addHandler(log_console_handler)
+        self.log.addHandler(log_file_handler)
 
         self.end_callback = end_callback
         self.LOG_IDENT = log_id

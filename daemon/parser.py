@@ -13,8 +13,19 @@ import re
 import os
 import sys
 import logging
+import logging.handlers
 
 from pprint import pprint
+
+log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(funcName)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
+
+log_file_handler = logging.handlers.TimedRotatingFileHandler("parser.log", when="midnight")
+log_file_handler.setFormatter(log_message_format)
+log_file_handler.setLevel(logging.ERROR)
+
+log_console_handler = logging.StreamHandler()
+log_console_handler.setFormatter(log_message_format)
+log_console_handler.setLevel(logging.DEBUG)
 
 class parserClass():
     def __init__(self, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc = None, webtv_port=None):
@@ -24,7 +35,9 @@ class parserClass():
         self.pgsqlConn = None
 
         self.logger = logging.getLogger("parser #%s" % unique_ident)
-        self.logger.addHandler(logging.StreamHandler())
+        self.logger.setLevel(logging.DEBUG)
+        self.logger.addHandler(log_file_handler)
+        self.logger.addHandler(log_console_handler)
 
         import ConfigParser
         cfg_parser = ConfigParser.SafeConfigParser()

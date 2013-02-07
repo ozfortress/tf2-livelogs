@@ -9,9 +9,9 @@ from pprint import pprint
 
 import listener
 
-log_message_format = logging.Formatter(fmt="%(asctime)s - %(name)s (%(levelname)s): %(message)s", datefmt="%Y-%m-%d %H-%M-%S")
+log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(funcName)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
 
-log_file_handler = logging.TimedRotatingFileHandler("daemon.log", when="midnight")
+log_file_handler = logging.handlers.TimedRotatingFileHandler("daemon.log", when="midnight")
 log_file_handler.setFormatter(log_message_format)
 log_file_handler.setLevel(logging.WARNING)
 
@@ -22,6 +22,7 @@ log_console_handler.setLevel(logging.DEBUG)
 class llDaemonHandler(SocketServer.BaseRequestHandler):
     def __init__(self, request, client_address, server):
         self.logger = logging.getLogger('llDaemonHandler')
+        self.logger.setLevel(logging.DEBUG)
         self.logger.addHandler(log_file_handler)
         self.logger.addHandler(log_console_handler)
 
@@ -93,7 +94,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 elif (tokLen == 7):
                     webtv_port = tokenized[6]
 
-                self.newListen = listener.llListenerObject(sip, (self.ll_clientip, self.ll_client_server_port), tokenized[4], tokenized[5], self.server.removeListenerObject,
+                self.newListen = listener.llListenerObject((log_file_handler, log_console_handler), sip, (self.ll_clientip, self.ll_client_server_port), tokenized[4], tokenized[5], self.server.removeListenerObject,
                                                             timeout=self.server.listener_timeout, webtv_port = webtv_port)
                 
                 if not self.newListen.listener.parser.HAD_ERROR: #check if the parser had an error during init or not
@@ -248,9 +249,10 @@ if __name__ == '__main__':
     sip, sport = llServer.server_address   
 
     logger = logging.getLogger('MAIN')
+    logger.setLevel(logging.DEBUG)
     logger.addHandler(log_console_handler)
     logger.addHandler(log_file_handler)
-    
+
     logger.info("Server on %s:%s under PID %s", sip, sport, os.getpid())
     
     try:
