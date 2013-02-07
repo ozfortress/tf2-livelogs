@@ -17,7 +17,7 @@ import logging.handlers
 
 from pprint import pprint
 
-log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(funcName)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
+log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
 
 log_file_handler = logging.handlers.TimedRotatingFileHandler("parser.log", when="midnight")
 log_file_handler.setFormatter(log_message_format)
@@ -25,7 +25,7 @@ log_file_handler.setLevel(logging.ERROR)
 
 log_console_handler = logging.StreamHandler()
 log_console_handler.setFormatter(log_message_format)
-log_console_handler.setLevel(logging.DEBUG)
+log_console_handler.setLevel(logging.INFO)
 
 class parserClass():
     def __init__(self, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc = None, webtv_port=None):
@@ -34,7 +34,7 @@ class parserClass():
         self.LOG_FILE_HANDLE = None
         self.pgsqlConn = None
 
-        self.logger = logging.getLogger("parser #%s" % unique_ident)
+        self.logger = logging.getLogger(unique_ident)
         self.logger.setLevel(logging.DEBUG)
         self.logger.addHandler(log_file_handler)
         self.logger.addHandler(log_console_handler)
@@ -52,7 +52,7 @@ class parserClass():
                 log_dir = cfg_parser.get('log-listener', 'log_directory')
                 
             except:
-                self.logger.debug("Unable to read options from config file")
+                self.logger.error("Unable to read options from config file")
                 self.HAD_ERROR = True
                 return
         else:
@@ -158,11 +158,11 @@ class parserClass():
 
 
     def parse(self, logdata):
-        if not logdata or not self.pgsqlConn or self.GAME_OVER or self.HAD_ERROR:
+        if not logdata or not self.pgsqlConn or self.GAME_OVER or self.HAD_ERROR or self.LOG_PARSING_ENDED:
             return
 
         try:
-            self.logger.info("PARSING LOG: %s", logdata)
+            self.logger.debug("PARSING LOG: %s", logdata)
 
             regex = self.regex #avoid having to use fucking self.regex every time (ANNOYING++++)
             regml = self.regml #local def for regml ^^^
@@ -848,6 +848,7 @@ class parserClass():
     def endLogParsing(self, game_over=False):
         if not self.LOG_PARSING_ENDED:
             self.logger.info("Ending log parsing")
+            self.LOG_PARSING_ENDED = True
             
             if not self.HAD_ERROR:
                 #sets live to false, and merges the stat table with the master stat table
@@ -865,8 +866,6 @@ class parserClass():
                 if not self.pgsqlConn.closed:
                     self.pgsqlConn.close()
             
-            self.LOG_PARSING_ENDED = True
-            
             if self.LOG_FILE_HANDLE:
                 if not self.LOG_FILE_HANDLE.closed:
                     self.LOG_FILE_HANDLE.close()
@@ -878,4 +877,5 @@ class parserClass():
         
         if self.pgsqlConn:    
             if not self.pgsqlConn.closed:
-                self.pgsqlConn.close()
+                self.endLogParsing()
+                #self.pgsqlConn.close()

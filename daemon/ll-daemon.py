@@ -9,7 +9,7 @@ from pprint import pprint
 
 import listener
 
-log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(funcName)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
+log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
 
 log_file_handler = logging.handlers.TimedRotatingFileHandler("daemon.log", when="midnight")
 log_file_handler.setFormatter(log_message_format)
