@@ -7,11 +7,11 @@ log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(ascti
 
 log_file_handler = logging.handlers.TimedRotatingFileHandler("websocket-server-dbmanager.log", when="midnight")
 log_file_handler.setFormatter(log_message_format)
-log_file_handler.setLevel(logging.WARNING)
+log_file_handler.setLevel(logging.DEBUG)
 
 log_console_handler = logging.StreamHandler()
 log_console_handler.setFormatter(log_message_format)
-log_console_handler.setLevel(logging.DEBUG)
+log_console_handler.setLevel(logging.INFO)
 
 
 """
@@ -182,20 +182,20 @@ class dbManager(object):
         update_dict = {}
 
         if update_stat_dict and self._new_stat_update:
-            self.log.info("Have stat update diff in compressedUpdate")
+            self.log.debug("Have stat update diff in compressedUpdate")
             update_dict["stat"] = update_stat_dict
 
             self._new_stat_update = False
 
         if self._chat_table and self._new_chat_update:
-            self.log.info("Have chat update dict in compressedUpdate")
+            self.log.debug("Have chat update dict in compressedUpdate")
             update_dict["chat"] = self._chat_table
             self._chat_table = None #clear the chat table, so it cannot be duplicated on next send if update fails
 
             self._new_chat_update = False
 
         if self._score_difference_table and self._new_score_update:
-            self.log.info("Have score update dict in compressedUpdate")
+            self.log.debug("Have score update dict in compressedUpdate")
             update_dict["score"] = self._score_difference_table
 
             self._score_difference_table = None #clear score table to prevent duplicates
@@ -294,7 +294,7 @@ class dbManager(object):
             if not conn.busy():
                 i += 1
             
-        self.log.info("Number of non-busy pSQL connections: %d", i)
+        self.log.debug("Number of non-busy pSQL connections: %d", i)
             
         if self._update_no_diff > 10:
             self.log.info("Had 10 updates since there's been a difference. Checking log status")
@@ -305,11 +305,11 @@ class dbManager(object):
                 self.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (self.LOG_IDENT,), callback = self._databaseStatusCallback)
                 
             except psycopg2.OperationalError:
-                self.log.info("Operational error during log status check")
+                self.log.exception("Operational error during log status check")
                 self._log_status_check = False
                 
             except Exception as e:
-                self.log.info("Unknown exception %s occurred during database update", e)
+                self.log.exception("Unknown exception %s occurred during database update", e)
                 
         elif not self._database_busy:    
             self.log.info("Getting database update on table %s", self.DB_STAT_TABLE)
@@ -340,7 +340,7 @@ class dbManager(object):
             except psycopg2.OperationalError:
                 self._database_busy = False
                 
-                self.log.info("Op error during database update")
+                self.log.exception("Op error during database update")
                 
             except Exception, e:
                 self._database_busy = False
@@ -351,11 +351,11 @@ class dbManager(object):
             
     def _databaseStatusCallback(self, cursor, error):
         if error:
-            self.log.info("Error querying database for log status: %s", error)
+            self.log.error("Error querying database for log status: %s", error)
             self._log_status_check = False
             return
             
-        self.log.info("databaseStatusCallback")   
+        self.log.debug("databaseStatusCallback")   
         
         try:
             if cursor:
@@ -382,12 +382,12 @@ class dbManager(object):
     def _databaseStatUpdateCallback(self, cursor, error):
         #the callback for stat update queries
         if error:
-            self.log.info("Error querying database for stat data: %s", error)
+            self.log.error("Error querying database for stat data: %s", error)
             self._stat_query_complete = True
             self.checkManagerBusyStatus()
             return
         
-        self.log.info("Stat update callback")
+        self.log.debug("Stat update callback")
 
         try:
             stat_dict = {}
@@ -410,7 +410,7 @@ class dbManager(object):
 
                 else:
                     if self._new_stat_update:
-                        self.log.info("There is a stat update waiting to be sent. Combining tables")
+                        self.log.debug("There is a stat update waiting to be sent. Combining tables")
                         #there's already an update waiting to be sent. we should therefore combine updates
                         self._stat_difference_table = self.combineUpdateTable(temp_table, self._stat_difference_table)
 
@@ -429,12 +429,12 @@ class dbManager(object):
         
     def _databaseChatUpdateCallback(self, cursor, error):
         if error:
-            self.log.info("Error querying database for chat data: %s", error)
+            self.log.error("Error querying database for chat data: %s", error)
             self._chat_query_complete = True
             self.checkManagerBusyStatus()
             return
 
-        self.log.info("Chat update callback")
+        self.log.debug("Chat update callback")
         try:
             #if this is the first chat query, it is a query to get the most recent chat event id
             #subsequent queries will contain chat after this id
@@ -442,9 +442,9 @@ class dbManager(object):
                 if cursor:
                     self._chat_event_id = cursor.fetchone()[0]
                     if self._chat_event_id: #may be None, if unable to get any results
-                        self.log.info("First chat query. Latest chat event id: %d", self._chat_event_id)
+                        self.log.debug("First chat query. Latest chat event id: %d", self._chat_event_id)
                 else:
-                    self.log.info("Invalid result for chat query: %s", cursor.fetchone())
+                    self.log.error("Invalid result for chat query: %s", cursor.fetchone())
 
             else:
                 chat_dict = {}
@@ -463,11 +463,11 @@ class dbManager(object):
                             "msg": row[5]
                         }
 
-                    self.log.info("CHAT: ID: %s NAME: %s TEAM: %s MSG_TYPE: %s MSG: %s", sid, row[2], row[3], row[4], row[5])
+                    self.log.debug("CHAT: ID: %s NAME: %s TEAM: %s MSG_TYPE: %s MSG: %s", sid, row[2], row[3], row[4], row[5])
 
                 if chat_dict:
                     if self._new_chat_update:
-                        self.log.info("There is a chat update waiting to be sent. Combining updates")
+                        self.log.debug("There is a chat update waiting to be sent. Combining updates")
 
                         self._chat_table = self.combineUpdateTable(self._chat_table, chat_dict)
 
@@ -485,12 +485,12 @@ class dbManager(object):
 
     def _databaseScoreUpdateCallback(self, cursor, error):
         if error:
-            self.log.info("Error querying database for score data: %s", error)
+            self.log.error("Error querying database for score data: %s", error)
             self._score_query_complete = True
             self.checkManagerBusyStatus()
             return
 
-        self.log.info("Score update callback")
+        self.log.debug("Score update callback")
 
         #if there's data, data is in a tuple in the format: (red_score, blue_score)
         #or, it's in the format (null, null) and the scores are 0
@@ -498,7 +498,7 @@ class dbManager(object):
             score_dict = {}
 
             scores = cursor.fetchone() #a single tuple in the format described above
-            self.log.info("Score query returned %s", scores)
+            self.log.debug("Score query returned %s", scores)
             
             if scores and len(scores) >= 1: 
                 if scores[0]:
@@ -513,7 +513,7 @@ class dbManager(object):
 
                 if not self._score_table:
                     self._score_table = score_dict
-                    self.log.info("FIRST SCORE UPDATE: Red: %d Blue: %d", score_dict["red"], score_dict["blue"])
+                    self.log.debug("FIRST SCORE UPDATE: Red: %d Blue: %d", score_dict["red"], score_dict["blue"])
 
                 else:
                     score_diff_dict = {}
@@ -525,7 +525,7 @@ class dbManager(object):
 
                     if score_diff_dict:
                         if self._new_score_update:
-                            self.log.info("Score update waiting. Combining")
+                            self.log.debug("Score update waiting. Combining")
 
                             self._score_difference_table = self.combineUpdateTable(self._score_difference_table, score_diff_dict)
                         else:
@@ -550,18 +550,18 @@ class dbManager(object):
 
     def _databaseTimeUpdateCallback(self, cursor, error):
         if error:
-            self.log.info("Error querying database for time data: %s", error)
+            self.log.error("Error querying database for time data: %s", error)
             self._time_query_complete = True
             self.checkManagerBusyStatus()
             return
 
-        self.log.info("Time update callback")
+        self.log.debug("Time update callback")
 
         #if there's data, data will be in the format (2 tuples inside a tuple): ((start_time,), (most_recent_time,))
         #times are in the format "10/01/2012 21:38:18", so we need to convert them to epoch to get the difference
         try:
             times = cursor.fetchall() #two tuples in the format above
-            self.log.info("Time query returned %s", times)
+            self.log.debug("Time query returned %s", times)
 
             if len(times) == 2:
                 if (len(times[0]) > 0) and (len(times[1]) > 0): #we have our expected results!
@@ -574,7 +574,7 @@ class dbManager(object):
                     #time_diff is in seconds as a float
                     time_diff =  latest_time - start_time
 
-                    #self.log.info("Time update difference: %0.2f", time_diff)
+                    #self.log.debug("Time update difference: %0.2f", time_diff)
 
                     self._time_stamp = time_diff
 

@@ -21,7 +21,7 @@ log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(ascti
 
 log_file_handler = logging.handlers.TimedRotatingFileHandler("parser.log", when="midnight")
 log_file_handler.setFormatter(log_message_format)
-log_file_handler.setLevel(logging.ERROR)
+log_file_handler.setLevel(logging.DEBUG)
 
 log_console_handler = logging.StreamHandler()
 log_console_handler.setFormatter(log_message_format)
@@ -162,7 +162,7 @@ class parserClass():
             return
 
         try:
-            self.logger.debug("PARSING LOG: %s", logdata)
+            #self.logger.debug("PARSING LOG: %s", logdata)
 
             regex = self.regex #avoid having to use fucking self.regex every time (ANNOYING++++)
             regml = self.regml #local def for regml ^^^

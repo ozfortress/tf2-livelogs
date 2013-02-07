@@ -13,7 +13,7 @@ log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(ascti
 
 log_file_handler = logging.handlers.TimedRotatingFileHandler("daemon.log", when="midnight")
 log_file_handler.setFormatter(log_message_format)
-log_file_handler.setLevel(logging.WARNING)
+log_file_handler.setLevel(logging.DEBUG)
 
 log_console_handler = logging.StreamHandler()
 log_console_handler.setFormatter(log_message_format)

@@ -39,11 +39,11 @@ log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(ascti
 
 log_file_handler = logging.handlers.TimedRotatingFileHandler("websocket-server.log", when="midnight")
 log_file_handler.setFormatter(log_message_format)
-log_file_handler.setLevel(logging.WARNING)
+log_file_handler.setLevel(logging.DEBUG)
 
 log_console_handler = logging.StreamHandler()
 log_console_handler.setFormatter(log_message_format)
-log_console_handler.setLevel(logging.DEBUG)
+log_console_handler.setLevel(logging.INFO)
 
 handler_logger = logging.getLogger("UPDATEHANDLER")
 handler_logger.setLevel(logging.DEBUG)
@@ -82,12 +82,12 @@ class llWSApplication(tornado.web.Application):
     def addToOrderedClients(self, log_id, client):
         if log_id in self.log_ordered_clients:
             #log_id key exists, just need client to add to set
-            self.logger.info("log_id '%s' key exists. Adding client to list", log_id)
+            self.logger.debug("log_id '%s' key exists. Adding client to list", log_id)
             self.log_ordered_clients[log_id].add(client)
             
         else:
             #key doesn't exist with a set, so create the set and add the client to it
-            self.logger.info("log_id '%s' key doesn't exist in ordered_clients. Creating", log_id)
+            self.logger.debug("log_id '%s' key doesn't exist in ordered_clients. Creating", log_id)
             self.log_ordered_clients[log_id] = set()
             self.log_ordered_clients[log_id].add(client)
             
@@ -100,11 +100,11 @@ class llWSApplication(tornado.web.Application):
         for key, client_set in self.log_ordered_clients.iteritems():
             #key is a log ident, and set is the set of clients listening for this log ident
             if client in client_set:
-                self.logger.info("Client has key %s. Removing", key)
+                self.logger.debug("Client has key %s. Removing", key)
                 
                 client_set.remove(client)
                 if (len(client_set) == 0) and (key != "none"):
-                    self.logger.info("key %s has empty set. deleting key", key)
+                    self.logger.debug("key %s has empty set. deleting key", key)
                     del self.log_ordered_clients[key]
                     
                     #we know the set is now empty of clients, so we don't need the dbManager for this log id anymore
@@ -119,11 +119,11 @@ class llWSApplication(tornado.web.Application):
     def removeFromCache(self, cache_item):
         self.log_cache.remove(cache_item) #cache_item has same structure as shown in the addToCache method
         
-        self.logger.info("Removed cache item (%s, %s, %s)", cache_item[0], cache_item[1], cache_item[2])
+        self.logger.debug("Removed cache item (%s, %s, %s)", cache_item[0], cache_item[1], cache_item[2])
     
     def addDBManager(self, log_ident, database = None, update_rate = None):
         if log_ident not in self.log_db_managers:
-            self.logger.info("Adding %s to dbManager dict", log_ident)
+            self.logger.debug("Adding %s to dbManager dict", log_ident)
             #now we need to create a new dbManager for this log id. the database handle is the momoko pool created @ startup
             #and is the same for all clients
 
@@ -138,10 +138,10 @@ class llWSApplication(tornado.web.Application):
         if log_ident in self.log_db_managers:
             #log_ident key in db_managers corresponds to a dbManager object
             
-            self.logger.info("Cleaning up dbManager object for log id %s", log_ident)
+            self.logger.debug("Cleaning up dbManager object for log id %s", log_ident)
             self.log_db_managers[log_ident].cleanup() #run the cleanup method, which ends the update thread. everything else is garbage collected
             
-            self.logger.info("Removing dbManager object for log id %s", log_ident)
+            self.logger.debug("Removing dbManager object for log id %s", log_ident)
             del self.log_db_managers[log_ident]
     
     def sendLogUpdates(self):
@@ -150,7 +150,7 @@ class llWSApplication(tornado.web.Application):
 
             return
         
-        self.logger.info("%d: Sending updates. Number of clients: %d", int(round(time.time())), len(self.log_clients))
+        self.logger.debug("%d: Sending updates. Number of clients: %d", int(round(time.time())), len(self.log_clients))
         for log_id in self.log_ordered_clients:
             if log_id != "none":
                 #the key will correspond to a set of client objects which are listening for updates on this log id
@@ -159,7 +159,7 @@ class llWSApplication(tornado.web.Application):
                     if client: #make sure the client still exists
                         #client is a websocket client object, which data can be sent to using client.write_message, etc
                         #client.write_message("HELLO!")
-                        self.logger.info("Checking for updates for client %s on id %s", client, log_id)
+                        self.logger.debug("Checking for updates for client %s on id %s", client, log_id)
                         if log_id in self.log_db_managers:
                             if not client.HAD_FIRST_UPDATE:
                             #need to send complete values on first update to keep clients in sync with the server
@@ -172,9 +172,9 @@ class llWSApplication(tornado.web.Application):
                                 
                             else:
                                 delta_update_dict = self.log_db_managers[log_id].compressedUpdate()
-                                self.logger.info("Got update dict for %s", log_id)
+                                self.logger.debug("Got update dict for %s", log_id)
                                 if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
-                                    self.logger.info("Sending update to client %s", client)
+                                    self.logger.debug("Sending update to client %s", client)
                                     client.write_message(delta_update_dict)
     
     def _sendUpdateThread(self, event):
@@ -237,7 +237,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         handler_logger.info("Client %s sent msg: %s", self.request.remote_ip, msg)
         
         if (self.LOG_IDENT_RECEIVED):
-            handler_logger.info("Client %s has already sent log ident \"%s\"", self.request.remote_ip, self.LOG_IDENT)
+            handler_logger.debug("Client %s has already sent log ident \"%s\"", self.request.remote_ip, self.LOG_IDENT)
             return
         
         #a standard message will be a json encoded message with key "ident"
@@ -246,7 +246,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             parsed_msg = tornado.escape.json_decode(msg) 
             
         except ValueError:
-            handler_logger.info("ValueError trying to decode message")
+            handler_logger.exception("ValueError trying to decode message")
             
             self.close()
             
@@ -264,27 +264,27 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         log_id = str(log_id)
         
-        handler_logger.info("Received log ident '%s'. Checking cache", log_id)
+        handler_logger.debug("Received log ident '%s'. Checking cache", log_id)
         
         #now we check if the log id exists, and if the game is still live
         #first, check the cache. invalid log idents will never be in the cache
         for cache_info in self.application.log_cache:
             #cache_info = (cache_time, log_ident, status<t/f>)
             #check for ident first
-            handler_logger.info("Cache info: %s", cache_info)
+            handler_logger.debug("Cache info: %s", cache_info)
             
             if cache_info[1] == log_id:
-                handler_logger.info("Log ident is in the cache. Checking live status")
+                handler_logger.debug("Log ident is in the cache. Checking live status")
                 log_cached = True
                 
                 #was the log live @ last cache? (logs will never go live again after ending)
                 if (cache_info[2] == True):
                     #need to check if the cache is outdated
                     time_ctime = int(round(time.time()))
-                    handler_logger.info("Log id %s is cached as live", log_id)
+                    handler_logger.debug("Log id %s is cached as live", log_id)
                     
                     if ((time_ctime - cache_info[0]) > 60): #20 seconds have passed since last log check, so we need to refresh the cache
-                        handler_logger.info("Cache has expired for log id %s. Refreshing status", log_id)
+                        handler_logger.debug("Cache has expired for log id %s. Refreshing status", log_id)
                         
                         self.application.removeFromCache(cache_info)
                         
@@ -293,7 +293,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                     else:
                         #cached status is accurate enough
                         #add the client to the ordered_clients dict with correct log ident
-                        handler_logger.info("Cache for %s is recent. Using cached status", log_id)
+                        handler_logger.debug("Cache for %s is recent. Using cached status", log_id)
                         
                         self.write_message("LOG_IS_LIVE") #notify client the log is live
                         
@@ -305,7 +305,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                     
                     #TODO: Add something to prevent repeat invalid connections from same IP
                     
-                    handler_logger.info("Log id %s is not live. Closing connection", log_id)
+                    handler_logger.debug("Log id %s is not live. Closing connection", log_id)
                     
                     self.write_message("LOG_NOT_LIVE")
                     self.close()
@@ -314,7 +314,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         #couldn't find the log in the cache, so it's either fresh or invalid
         if not log_cached:
-            handler_logger.info("Log id %s is not cached. Getting status", log_id)
+            handler_logger.debug("Log id %s is not cached. Getting status", log_id)
             self.getLogStatus(log_id) #getLogStatus adds the ident to the cache if it is valid
 
     def getLogStatus(self, log_ident):
@@ -345,7 +345,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     def _logStatusCallback(self, cursor, error):
         if error:
             self.write_message("LOG_ERROR")
-            handler_logger.info("Error querying database for log status")
+            handler_logger.error("Error querying database for log status")
             
             self.close()
             return
@@ -360,7 +360,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
             if live == True:
                 #add the client to the ordered_clients dict with correct log ident
-                handler_logger.info("Log %s is live on refreshed status", self.LOG_IDENT)
+                handler_logger.debug("Log %s is live on refreshed status", self.LOG_IDENT)
                 if self:
                     self.write_message("LOG_IS_LIVE") #notify client the log is live
                     
@@ -369,7 +369,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
                     self.application.addToOrderedClients(self.LOG_IDENT, self)
                 
             elif live == False:
-                handler_logger.info("Log %s is not live", self.LOG_IDENT)
+                handler_logger.debug("Log %s is not live", self.LOG_IDENT)
                 self.application.addToCache(self.LOG_IDENT, False)
                 
                 self.closeLogUpdate()
