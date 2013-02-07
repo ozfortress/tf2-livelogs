@@ -24,7 +24,7 @@ class dbManager(object):
         
         self.log = logging.getLogger(log_id)
         self.log.setLevel(logging.DEBUG)
-        self.log.addHandler(log_console_handler)
+        #self.log.addHandler(log_console_handler)
         self.log.addHandler(log_file_handler)
 
         self.end_callback = end_callback
@@ -285,9 +285,6 @@ class dbManager(object):
         if self._log_status_check == True:
             self.log.info("Currently checking log status. Waiting before more updates")
             return
-        
-        if not self.updateThread.isAlive():
-            self.updateThread.start()
             
         i = 0
         for conn in self.db._pool:

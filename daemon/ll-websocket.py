@@ -59,7 +59,7 @@ class llWSApplication(tornado.web.Application):
         self.logger = logging.getLogger("WS APP")
         self.logger.setLevel(logging.DEBUG)
         self.logger.addHandler(log_file_handler)
-        self.logger.addHandler(log_console_handler)
+        #self.logger.addHandler(log_console_handler)
         
         self.log_clients = set() #set of ALL connected clients
         self.log_ordered_clients = { "none": set() } #ordered clients dict will have data in the form of: [ "log ident": (client, client, client) ], where the clients are in a set corresponding to
