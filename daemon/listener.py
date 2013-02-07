@@ -63,17 +63,20 @@ class llListener(SocketServer.UDPServer):
             self.gameOverTimer.start()
             
         else:
-            self.logger.info("Server timeout (no logs received in %0.2f seconds). Exiting", self.timeout)
-            
-            #toggle log's status and stop recording
-            if not self.parser.HAD_ERROR:
-                self.parser.endLogParsing()
-            
-            self.shutdown()
+            if not self.parser.LOG_PARSING_ENDED:
+                self.logger.info("Server timeout (no logs received in %0.2f seconds). Exiting", self.timeout)
+                
+                #toggle log's status and stop recording
+                if not self.parser.HAD_ERROR:
+                    self.parser.endLogParsing()
+                
+                self.shutdown()
        
         return
 
     def shutdown(self):
+        self.logger.info("Shutting down listener on %s:%s", self.server_address[0], self.server_address[1])
+
         #need to close the parser's database connection
         if self.parser.pgsqlConn:
             if not self.parser.pgsqlConn.closed: #cancel current operations and end the log
