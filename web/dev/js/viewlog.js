@@ -5,7 +5,7 @@
 $(document).ready(function()
 {
     "use strict";
-    $('#general_stats').dataTable( {
+    stat_table = $('#general_stats').dataTable( {
         "aaSorting": [[1, 'desc']],
         "aoColumnDefs": [
             { "sType": "html", "bSearchable": false, "aTargets": [0] },
@@ -20,7 +20,7 @@ $(document).ready(function()
         "bJQueryUI": true,
         "bUseRendered": true,
         "bFilter": false
-    } );
+    });
 });
 
 jQuery.fn.dataTableExt.oSort['dt-numeric-html-asc'] = function(a,b) {
@@ -267,8 +267,9 @@ var llWSClient = llWSClient || (function() {
                                 //console.log("Got element %s, VALUE: %s", element, element.innerHTML);
                                 
                                 if (HAD_FIRST_UPDATE) {                    
-                                    element.innerHTML = Number(element.innerHTML) + Number(value);
-                                    $(element).effect("highlight", {color: "#66FF66"}, 1300);
+                                    //element.innerHTML = Number(element.innerHTML) + Number(value);
+                                    this.updateStatCell(element, Number(element.innerHTML) + Number(value));
+                                    this.highlight(element);
 
                                 } else {
                                     element.innerHTML = Number(value);
@@ -295,12 +296,16 @@ var llWSClient = llWSClient || (function() {
                                 if (tmp === "kpd") {
                                     kills = Number(document.getElementById(sid + ".kills").innerHTML);
                                     element.innerHTML = Math.round(kills / (deaths || 1) * 100) / 100;
+                                    this.highlight(element);
                                 } else if (tmp === "dpd") {
                                     element.innerHTML = Math.round(damage / (deaths || 1) * 100) / 100;
+                                    this.highlight(element);
                                 } else if (tmp === "dpr") {
                                     element.innerHTML = Math.round(damage / (num_rounds || 1) * 100) / 100;
+                                    this.highlight(element);
                                 } else if (tmp === "dpm") {
                                     element.innerHTML = Math.round(damage / (time_elapsed_sec/60 || 1) * 100) / 100;
+                                    this.highlight(element);
                                 } else {
                                     console.log("Invalid element %s in special element array", tmp);
                                 }
@@ -316,6 +321,12 @@ var llWSClient = llWSClient || (function() {
                 console.log("Exception trying to parse stat update. Error: %s", exception);
             }
         },
+
+        highlight : function(element, highlight_colour) {
+            highlight_colour = typeof highlight_colour !== 'undefined' ? highlight_colour : "#CCFF66";
+
+            $(element).effect("highlight", {color: highlight_colour}, 2500);
+        },
         
         toggleUpdate : function() {
             if (auto_update) {
@@ -329,6 +340,15 @@ var llWSClient = llWSClient || (function() {
                 auto_update = true;
                 this.clientConnect(ws);
             }
+        },
+
+        updateStatCell : function (element, new_value) {
+            var table = $("#general_stats").dataTable();
+            //cell_pos = [row index, col index (visible), col index (all)]
+            var cell_pos = table.fnGetPosition(element);
+
+            //fnUpdate(data, row, column)
+            table.fnUpdate(new_value, cell_pos[0], cell_pos[2])
         },
 
         addStatRow : function() {

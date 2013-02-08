@@ -402,9 +402,9 @@
                         
                         <tr>
                             <td><a class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=$mstats[$i]["name"]?></a></td>
-                            <td><span id="<?=$community_id . ".healing_done"?>"><?=$mstats[$i]["healing_done"]?></span></td>
-                            <td><span id="<?=$community_id . ".ubers_used"?>"><?=$mstats[$i]["ubers_used"]?></span></td>
-                            <td><span id="<?=$community_id . ".ubers_lost"?>"><?=$mstats[$i]["ubers_lost"]?></span></td>
+                            <td id="<?=$community_id . ".healing_done"?>"><?=$mstats[$i]["healing_done"]?></td>
+                            <td id="<?=$community_id . ".ubers_used"?>"><?=$mstats[$i]["ubers_used"]?></td>
+                            <td id="<?=$community_id . ".ubers_lost"?>"><?=$mstats[$i]["ubers_lost"]?></td>
                         </tr>
                     <?php
                             $i++;
