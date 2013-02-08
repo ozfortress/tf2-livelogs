@@ -5,11 +5,11 @@
 $(document).ready(function()
 {
     "use strict";
-    stat_table = $('#general_stats').dataTable( {
+    var stat_table = $('#general_stats').dataTable( {
         "aaSorting": [[1, 'desc']],
         "aoColumnDefs": [
             { "sType": "html", "bSearchable": false, "aTargets": [0] },
-            { "sType": "dt-numeric-html", "bSearchable": false, "aTargets": ["_all"] },
+            { "sType": "numeric", "bSearchable": false, "aTargets": ["_all"] },
             { "asSorting": [ "desc", "asc" ], "aTargets": [ "_all" ] }
         ],
         "bPaginate": false,
@@ -251,8 +251,10 @@ var llWSClient = llWSClient || (function() {
         
         parseStatUpdate : function(stat_obj) {
             try {
-                var element, element_id, special_element_tags = ["kpd", "dpd", "dpr", "dpm"], i, tmp, num_rounds, deaths, damage, kills;
+                var element, element_id, special_element_tags = ["kpd", "dpd", "dpr", "dpm"], i, tmp, num_rounds, deaths, damage, kills, table;
                 num_rounds = Number(document.getElementById("red_score_value").innerHTML) + Number(document.getElementById("blue_score_value").innerHTML);
+
+                //table = $("#general_stats").dataTable();
                 
                 $.each(stat_obj, function(sid, stats) {
                     //check if player exists on page already
@@ -267,12 +269,20 @@ var llWSClient = llWSClient || (function() {
                                 //console.log("Got element %s, VALUE: %s", element, element.innerHTML);
                                 
                                 if (HAD_FIRST_UPDATE) {                    
-                                    //element.innerHTML = Number(element.innerHTML) + Number(value);
-                                    this.updateStatCell(element, Number(element.innerHTML) + Number(value));
-                                    this.highlight(element);
+                                    if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost") {
+                                        element.innerHTML = Number(element.innerHTML) + Number(value);
+                                    } else {
+                                        llWSClient.updateStatCell(element, Number(element.innerHTML) + Number(value));
+                                    }
+
+                                    llWSClient.highlight(element);
 
                                 } else {
-                                    element.innerHTML = Number(value);
+                                    if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost") {
+                                        element.innerHTML = Number(value);
+                                    } else {
+                                        llWSClient.updateStatCell(element, Number(value));
+                                    }
                                 }
                                 
                                 //console.log("Element new value: %s", element.innerHTML);
@@ -295,17 +305,17 @@ var llWSClient = llWSClient || (function() {
                             if (element) {
                                 if (tmp === "kpd") {
                                     kills = Number(document.getElementById(sid + ".kills").innerHTML);
-                                    element.innerHTML = Math.round(kills / (deaths || 1) * 100) / 100;
-                                    this.highlight(element);
+                                    llWSClient.updateStatCell(element, Math.round(kills / (deaths || 1) * 100) / 100);
+                                    llWSClient.highlight(element);
                                 } else if (tmp === "dpd") {
-                                    element.innerHTML = Math.round(damage / (deaths || 1) * 100) / 100;
-                                    this.highlight(element);
+                                    llWSClient.updateStatCell(element, Math.round(damage / (deaths || 1) * 100) / 100);
+                                    llWSClient.highlight(element);
                                 } else if (tmp === "dpr") {
-                                    element.innerHTML = Math.round(damage / (num_rounds || 1) * 100) / 100;
-                                    this.highlight(element);
+                                    llWSClient.updateStatCell(element, Math.round(damage / (num_rounds || 1) * 100) / 100);
+                                    llWSClient.highlight(element);
                                 } else if (tmp === "dpm") {
-                                    element.innerHTML = Math.round(damage / (time_elapsed_sec/60 || 1) * 100) / 100;
-                                    this.highlight(element);
+                                    llWSClient.updateStatCell(element, Math.round(damage / (time_elapsed_sec/60 || 1) * 100) / 100);
+                                    llWSClient.highlight(element);
                                 } else {
                                     console.log("Invalid element %s in special element array", tmp);
                                 }
@@ -325,7 +335,7 @@ var llWSClient = llWSClient || (function() {
         highlight : function(element, highlight_colour) {
             highlight_colour = typeof highlight_colour !== 'undefined' ? highlight_colour : "#CCFF66";
 
-            $(element).effect("highlight", {color: highlight_colour}, 2500);
+            $(element).effect("highlight", {color: highlight_colour}, 3800);
         },
         
         toggleUpdate : function() {
@@ -342,13 +352,15 @@ var llWSClient = llWSClient || (function() {
             }
         },
 
-        updateStatCell : function (element, new_value) {
+        updateStatCell : function (cell, new_value) {
             var table = $("#general_stats").dataTable();
+
             //cell_pos = [row index, col index (visible), col index (all)]
-            var cell_pos = table.fnGetPosition(element);
+            var cell_pos = table.fnGetPosition(cell);
+
 
             //fnUpdate(data, row, column)
-            table.fnUpdate(new_value, cell_pos[0], cell_pos[2])
+            table.fnUpdate(new_value, cell_pos[0], cell_pos[2], false, false)
         },
 
         addStatRow : function() {

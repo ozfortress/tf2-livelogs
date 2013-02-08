@@ -176,33 +176,50 @@
         </div>
     </div>
     <div class="livelogs_wrapper">
+    <?php
+    if ($invalid_log_ident)
+    {
+        die("404</div>"); //die with an error if we have invalid log ident and close the main div
+    }
+    ?>
+
+        <div class="log_details_container">
         <?php
-        if ($invalid_log_ident)
+        if ($log_live) 
         {
-            die("404</div>"); //die with an error if we have invalid log ident and close the main div
+        ?>
+            
+            <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="#"><?=$UNIQUE_IDENT?></a></span><br>
+        <?php
+        }
+        else
+        {
+        ?>
+            
+            <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="/download/<?=$UNIQUE_IDENT?>"><?=$UNIQUE_IDENT?></a></span><br>
+        <?php
+        }
+
+        if ($ll_config["ozfortress"]["active"])
+        {
+        ?>
+
+            <span class="log_name_id">Name: </span><span class="log_detail"><a href="//heavy.ozfortress.com/demos/pub/<?=hash_hmac($ll_config["ozfortress"]["hashtype"], strtolower($log_details["log_name"]), $ll_config["ozfortress"]["hashkey"])?>"><?=$log_details["log_name"]?></a></span><br>
+        <?php
+        }
+        else 
+        {
+        ?>
+
+            <span class="log_name_id">Name: </span><span class="log_detail"><?=$log_details["log_name"]?></span><br>
+        <?php
         }
         ?>
 
-        <div class="log_details_container">
-            <?php
-            if ($log_live) {
-            ?>
             
-            <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="#"><?=$UNIQUE_IDENT?></a></span><br>
-            <?php
-            }
-            else
-            {
-            ?>
-            
-            <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="/download/<?=$UNIQUE_IDENT?>"><?=$UNIQUE_IDENT?></a></span><br>
-            <?php
-            }
-            ?>
-            
-            <span class="log_name_id">Name: </span><span class="log_detail"><?=$log_details["log_name"]?></span><br>
             <span class="server_details_id">Server: </span><span class="log_detail"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span><br>
             <span class="log_map_id">Map: </span><span class="log_detail"><?=$log_details["map"]?></span><br>
+
             <div>
                 <span class="live_id">Status: </span>
             <?php
@@ -324,22 +341,22 @@
                         
                         <tr>
                             <td><a id="<?=$community_id . ".name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=$pstat["name"]?></a></td>
-                            <td><span id="<?=$community_id . ".kills"?>"><?=$pstat["kills"]?></span></td>
-                            <td><span id="<?=$community_id . ".deaths"?>"><?=$pstat["deaths"]?></span></td>
-                            <td><span id="<?=$community_id . ".assists"?>"><?=$pstat["assists"]?></span></td>
-                            <td><span id="<?=$community_id . ".captures"?>"><?=$pstat["captures"]?></span></td>
-                            <td><span id="<?=$community_id . ".captures_blocked"?>"><?=$pstat["captures_blocked"]?></span></td>
-                            <td><span id="<?=$community_id . ".headshots"?>"><?=$pstat["headshots"]?></span></td>
-                            <td><span id="<?=$community_id . ".points"?>"><?=$pstat["points"]?></span></td>
-                            <td><span id="<?=$community_id . ".damage_dealt"?>"><?=$pstat["damage_dealt"]?></span></td>
-                            <td><span id="<?=$community_id . ".damage_taken"?>"><?=empty($pstat["damage_taken"]) ? 0 : $pstat["damage_taken"]?></span></td>
-                            <td><span id="<?=$community_id . ".healing_received"?>"><?=$pstat["healing_received"]?></span></td>
-                            <td><span id="<?=$community_id . ".dominations"?>"><?=$pstat["dominations"]?></span></td>
-                            <td><span id="<?=$community_id . ".revenges"?>"><?=$pstat["revenges"]?></span></td>
-                            <td><span id="<?=$community_id . ".kpd"?>"><?=$p_kpd?></span></td>
-                            <td><span id="<?=$community_id . ".dpd"?>"><?=$p_dpd?></span></td>
-                            <td><span id="<?=$community_id . ".dpr"?>"><?=$p_dpr?></span></td>
-                            <td><span id="<?=$community_id . ".dpm"?>"><?=$p_dpm?></span></td>
+                            <td id="<?=$community_id . ".kills"?>"><?=$pstat["kills"]?></td>
+                            <td id="<?=$community_id . ".deaths"?>"><?=$pstat["deaths"]?></td>
+                            <td id="<?=$community_id . ".assists"?>"><?=$pstat["assists"]?></td>
+                            <td id="<?=$community_id . ".captures"?>"><?=$pstat["captures"]?></td>
+                            <td id="<?=$community_id . ".captures_blocked"?>"><?=$pstat["captures_blocked"]?></td>
+                            <td id="<?=$community_id . ".headshots"?>"><?=$pstat["headshots"]?></td>
+                            <td id="<?=$community_id . ".points"?>"><?=$pstat["points"]?></td>
+                            <td id="<?=$community_id . ".damage_dealt"?>"><?=$pstat["damage_dealt"]?></td>
+                            <td id="<?=$community_id . ".damage_taken"?>"><?=empty($pstat["damage_taken"]) ? 0 : $pstat["damage_taken"]?></td>
+                            <td id="<?=$community_id . ".healing_received"?>"><?=$pstat["healing_received"]?></td>
+                            <td id="<?=$community_id . ".dominations"?>"><?=$pstat["dominations"]?></td>
+                            <td id="<?=$community_id . ".revenges"?>"><?=$pstat["revenges"]?></td>
+                            <td id="<?=$community_id . ".kpd"?>"><?=$p_kpd?></td>
+                            <td id="<?=$community_id . ".dpd"?>"><?=$p_dpd?></td>
+                            <td id="<?=$community_id . ".dpr"?>"><?=$p_dpr?></td>
+                            <td id="<?=$community_id . ".dpm"?>"><?=$p_dpm?></td>
                         </tr>
                     <?php
                         }
@@ -385,9 +402,9 @@
                         
                         <tr>
                             <td><a class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=$mstats[$i]["name"]?></a></td>
-                            <td><span id="<?=$community_id . ".healing_done"?>"><?=$mstats[$i]["healing_done"]?></span></td>
-                            <td><span id="<?=$community_id . ".ubers_used"?>"><?=$mstats[$i]["ubers_used"]?></span></td>
-                            <td><span id="<?=$community_id . ".ubers_lost"?>"><?=$mstats[$i]["ubers_lost"]?></span></td>
+                            <td id="<?=$community_id . ".healing_done"?>"><?=$mstats[$i]["healing_done"]?></td>
+                            <td id="<?=$community_id . ".ubers_used"?>"><?=$mstats[$i]["ubers_used"]?></td>
+                            <td id="<?=$community_id . ".ubers_lost"?>"><?=$mstats[$i]["ubers_lost"]?></td>
                         </tr>
                     <?php
                             $i++;
