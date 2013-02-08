@@ -341,7 +341,7 @@
                         
                         <tr>
                             <td><a id="<?=$community_id . ".name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=$pstat["name"]?></a></td>
-                            <td><span id="<?=$community_id . ".kills"?>"><?=$pstat["kills"]?></span></td>
+                            <td id="<?=$community_id . ".kills"?>"><?=$pstat["kills"]?></td>
                             <td><span id="<?=$community_id . ".deaths"?>"><?=$pstat["deaths"]?></span></td>
                             <td><span id="<?=$community_id . ".assists"?>"><?=$pstat["assists"]?></span></td>
                             <td><span id="<?=$community_id . ".captures"?>"><?=$pstat["captures"]?></span></td>
