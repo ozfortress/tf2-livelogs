@@ -270,6 +270,7 @@ var llWSClient = llWSClient || (function() {
                                     element.innerHTML = Number(element.innerHTML) + Number(value);
                                 } else {
                                     element.innerHTML = Number(value);
+                                    $(element).highlight();
                                 }
                                 
                                 //console.log("Element new value: %s", element.innerHTML);
@@ -345,3 +346,18 @@ window.onbeforeunload = function() {
     }
 };
     
+jQuery.fn.highlight = function() {
+   $(this).each(function() {
+        var el = $(this);
+        el.before("<div/>")
+        el.prev()
+            .width(el.width())
+            .height(el.height())
+            .css({
+                "position": "absolute",
+                "background-color": "#ffff99",
+                "opacity": ".9"   
+            })
+            .fadeOut(500);
+    });
+}
