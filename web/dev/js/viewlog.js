@@ -268,8 +268,8 @@ var llWSClient = llWSClient || (function() {
                                 
                                 if (HAD_FIRST_UPDATE) {                    
                                     element.innerHTML = Number(element.innerHTML) + Number(value);
-                                    $(element).effect("highlight", {}, 1300);
-                                    
+                                    $(element).effect("highlight", {color: "#66FF66"}, 1300);
+
                                 } else {
                                     element.innerHTML = Number(value);
                                 }
