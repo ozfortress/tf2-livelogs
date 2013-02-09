@@ -61,8 +61,10 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
             self.logger.info("Client details: %s", client_details)
 
             if client_details is not None and msg[1] == client_details[2]:
+                client_api_key = client_details[2]
+
                 self.logger.debug('Key is correct for client %s (%s) @ %s. Establishing listen socket and returning info', client_details[0], client_details[1], self.cip)
-                
+                        
                 try:
                     socket.inet_pton(socket.AF_INET, msg[2]) #if we can do this, it is a valid ipv4 address
                     #socket.inet_pton(socket.AF_INET6, client_ip) srcds does not at this stage support ipv6, and nor do i
@@ -85,7 +87,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                     dict_key = "c" + self.ll_clientip + self.ll_client_server_port
                     listen_ip, listen_port = self.server.clientDict[dict_key]
                     
-                    returnMsg = "LIVELOG!%s!%s!%s!REUSE" % (self.server.LL_API_KEY, listen_ip, listen_port)
+                    returnMsg = "LIVELOG!%s!%s!%s!REUSE" % (client_api_key, listen_ip, listen_port)
                     self.logger.debug("RESENDING LISTENER INFO: %s", returnMsg)
                     self.request.send(returnMsg)
                     return    
@@ -113,7 +115,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                     self.logger.debug("Listener port: %s", lport)
                     
                     #REPLY FORMAT: LIVELOG!KEY!LISTEN_IP!LISTEN_PORT!UNIQUE_IDENT
-                    returnMsg = "LIVELOG!%s!%s!%s!%s" % (self.server.LL_API_KEY, sip, lport, self.newListen.unique_parser_ident)
+                    returnMsg = "LIVELOG!%s!%s!%s!%s" % (client_api_key, sip, lport, self.newListen.unique_parser_ident)
                     
                     self.logger.debug("RESPONSE: %s", returnMsg)
                     self.request.send(returnMsg)
@@ -130,6 +132,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
             else:
                 #invalid API key, or unable to obtain user details
                 self.logger.error("Client %s:%s sent invalid API key, or client is invalid", self.cip, self.cport)
+                self.request.send("INVALID_API_KEY")
         else:
             self.logger.debug("Invalid data received")
 
@@ -265,7 +268,6 @@ if __name__ == '__main__':
             server_ip = cfg_parser.get('log-listener', 'server_ip')
                 
             serverAddr = (server_ip, cfg_parser.getint('log-listener', 'server_port'))
-            api_key = cfg_parser.get('log-listener', 'api_key')
             l_timeout = cfg_parser.getfloat('log-listener', 'listener_timeout')
             
         except:
@@ -279,7 +281,6 @@ if __name__ == '__main__':
         sys.exit("Configuration file generated. Please edit it before running the daemon again")
     
     llServer = llDaemon(serverAddr, llDaemonHandler)
-    llServer.LL_API_KEY = api_key   
     llServer.clientDict = dict()
     llServer.listener_timeout = l_timeout
 
@@ -315,7 +316,6 @@ def make_new_config():
     cfg_parser.set('log-listener', 'server_ip', '')
     cfg_parser.set('log-listener', 'server_port', '61222')
     cfg_parser.set('log-listener', 'listener_timeout', '90.0')
-    cfg_parser.set('log-listener', 'api_key', '123test')
     cfg_parser.set('log-listener', 'log_directory', 'logs')
     
     cfg_parser.add_section('websocket-server')
