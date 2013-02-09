@@ -352,7 +352,7 @@ var llWSClient = llWSClient || (function() {
             }
         },
 
-        updateStatCell : function (cell, new_value) {
+        updateStatCell : function(cell, new_value) {
             var table = $("#general_stats").dataTable();
 
             //cell_pos = [row index, col index (visible), col index (all)]

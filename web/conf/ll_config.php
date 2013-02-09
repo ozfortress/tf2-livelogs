@@ -8,6 +8,6 @@
     $ll_config["steam_api"]["key"] = "7CD8EC56801BD2F23A1A4184A1348ADD";
 
     $ll_config["ozfortress"]["active"] = true;
-    $ll_config["ozfortress"]["hashkey"] = "lucyfire";
+    $ll_config["ozfortress"]["hashkey"] = "";
     $ll_config["ozfortress"]["hashtype"] = "sha1";
 ?>

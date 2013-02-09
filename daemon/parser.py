@@ -5,7 +5,7 @@ except ImportError:
     Install using `pip install psycopg2` or visit http://initd.org/psycopg/
     """
     quit()
-    
+
 import time
 import struct
 import socket
@@ -28,11 +28,11 @@ log_console_handler.setFormatter(log_message_format)
 log_console_handler.setLevel(logging.INFO)
 
 class parserClass():
-    def __init__(self, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc = None, webtv_port=None):
+    def __init__(self, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc=None, webtv_port=None):
         #ALWAYS REQUIRE A UNIQUE IDENT, OTHER PARAMS ARE OPTIONAL
         self.HAD_ERROR = False
         self.LOG_FILE_HANDLE = None
-        self.pgsqlConn = None
+        self.db = None
 
         self.logger = logging.getLogger(unique_ident)
         self.logger.setLevel(logging.DEBUG)
@@ -79,7 +79,7 @@ class parserClass():
             return
             
         try:
-            self.pgsqlConn = psycopg2.connect(host=db_host, port=db_port, database=db_name, user=db_user, password=db_pass)
+            self.db = psycopg2.connect(host=db_host, port=db_port, database=db_name, user=db_user, password=db_pass)
 
         except Exception, e:
             self.logger.exception("Had exception while trying to connect to psql database")
@@ -110,7 +110,7 @@ class parserClass():
             
         self.logger.info("PARSER UNIQUE IDENT: " + self.UNIQUE_IDENT)
         
-        dbCursor = self.pgsqlConn.cursor()
+        dbCursor = self.db.cursor()
         
         dbCursor.execute("SELECT create_global_stat_table()")
         dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
@@ -128,7 +128,7 @@ class parserClass():
             #TODO: Create an indexing method for logs that were manually uploaded and parsed
             pass
 
-        self.pgsqlConn.commit()
+        self.db.commit()
 
         self.EVENT_TABLE = "log_event_" + self.UNIQUE_IDENT
         self.STAT_TABLE = "log_stat_" + self.UNIQUE_IDENT
@@ -158,7 +158,7 @@ class parserClass():
 
 
     def parse(self, logdata):
-        if not logdata or not self.pgsqlConn or self.GAME_OVER or self.HAD_ERROR or self.LOG_PARSING_ENDED:
+        if not logdata or not self.db or self.GAME_OVER or self.HAD_ERROR or self.LOG_PARSING_ENDED:
             return
 
         try:
@@ -517,7 +517,7 @@ class parserClass():
                 self.executeQuery(event_insert_query)
 
                 #now we need to get the event ID and put it into chat!
-                curs = self.pgsqlConn.cursor()
+                curs = self.db.cursor()
                 eventid_query = "SELECT eventid FROM %s WHERE event_type = 'chat' ORDER BY eventid DESC LIMIT 1" % self.EVENT_TABLE
                 curs.execute(eventid_query)
                 eventid = curs.fetchone()[0]
@@ -527,7 +527,7 @@ class parserClass():
 
                 curs.execute(chat_insert_query)
                 
-                self.pgsqlConn.commit()
+                self.db.commit()
                 curs.close()
 
                 return        
@@ -785,19 +785,19 @@ class parserClass():
         insert_query = "INSERT INTO %s (steamid, name, %s) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, steamid, name, value)
         update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE steamid = E'%s'" % (self.STAT_TABLE, column, column, value, steamid)
 
-        curs = self.pgsqlConn.cursor()
+        curs = self.db.cursor()
         
         try:
             curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
-            self.pgsqlConn.commit()
+            self.db.commit()
         except psycopg2.DataError, e:
             self.logger.exception("DB DATA ERROR INSERTING DATA %s", query)
             
-            self.pgsqlConn.rollback()
+            self.db.rollback()
         except Exception, e:
             self.logger.exception("DB ERROR")
             
-            self.pgsqlConn.rollback()
+            self.db.rollback()
             
         curs.close()
 
@@ -820,7 +820,7 @@ class parserClass():
                 team_insert_list.append((b_sid, b_team))
         
         if len(team_insert_list) > 0:
-            curs = self.pgsqlConn.cursor()
+            curs = self.db.cursor()
             team_insert_args = ','.join(curs.mogrify("(%s, %s)", team_tuple) for team_tuple in team_insert_list)
             
             
@@ -829,19 +829,19 @@ class parserClass():
                     
     def executeQuery(self, query, curs=None):
         if not curs:
-            curs = self.pgsqlConn.cursor()
+            curs = self.db.cursor()
             
         try:
             curs.execute(query)
-            self.pgsqlConn.commit()
+            self.db.commit()
         except psycopg2.DataError, e:
             self.logger.exception("DB DATA ERROR INSERTING DATA %s", query)
             
-            self.pgsqlConn.rollback()
+            self.db.rollback()
         except Exception, e:
             self.logger.exception("DB ERROR")
             
-            self.pgsqlConn.rollback()
+            self.db.rollback()
 
         curs.close()
 
@@ -862,9 +862,9 @@ class parserClass():
                 if ((self.closeListenerCallback != None) and (game_over)):
                     self.closeListenerCallback(game_over);
 
-            if self.pgsqlConn:
-                if not self.pgsqlConn.closed:
-                    self.pgsqlConn.close()
+            if self.db:
+                if not self.db.closed:
+                    self.db.close()
             
             if self.LOG_FILE_HANDLE:
                 if not self.LOG_FILE_HANDLE.closed:
@@ -875,7 +875,7 @@ class parserClass():
             if not self.LOG_FILE_HANDLE.closed:
                 self.LOG_FILE_HANDLE.close()
         
-        if self.pgsqlConn:    
-            if not self.pgsqlConn.closed:
+        if self.db:    
+            if not self.db.closed:
                 self.endLogParsing()
-                #self.pgsqlConn.close()
+                #self.db.close()

@@ -421,11 +421,11 @@ if __name__ == "__main__":
     llWebSocketServer = llWSApplication()
         
     llWebSocketServer.db = momoko.Pool(
-        dsn = db_details,
-        minconn = 2, #minimum number of connections for the momoko pool to maintain
-        maxconn = 50, #max number of conns that will be opened
-        cleanup_timeout = 10, #how often (in seconds) connections are closed (cleaned up) when number of connections > minconn
-    )
+            dsn = db_details,
+            minconn = 2, #minimum number of connections for the momoko pool to maintain
+            maxconn = 50, #max number of conns that will be opened
+            cleanup_timeout = 10, #how often (in seconds) connections are closed (cleaned up) when number of connections > minconn
+        )
     
     llWebSocketServer.update_rate = tornado.options.options.update_rate
     
