@@ -1,8 +1,9 @@
 try:
-    import momoko
+    import psycopg2
+    import psycopg2.pool
 except ImportError:
-    print """Momoko is missing from the daemon directory, or is not installed in the python library
-    Visit https://github.com/FSX/momoko to obtain the latest revision
+    print """You are missing psycopg2.
+    Install using `pip install psycopg2` or visit http://initd.org/psycopg/
     """
     quit()
 
@@ -35,7 +36,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         self.logger.addHandler(log_file_handler)
         self.logger.addHandler(log_console_handler)
 
-        self.logger.debug('Handler init. APIKEY: %s', server.LL_API_KEY)
+        #self.logger.debug('Handler init. APIKEY: %s', server.LL_API_KEY)
 
         self.newListen = None
         
@@ -44,8 +45,6 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
         
     def handle(self):
-        self.logger.debug('Daemon Handler Handling')
-        
         rcvd = self.request.recv(1024) #read 1024 bytes of data
 
         self.logger.debug('Received "%s" from client %s:%s', rcvd, self.cip, self.cport)
@@ -131,9 +130,9 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
             else:
                 #invalid API key, or unable to obtain user details
-                self.log.error("Client %s:%s sent invalid API key, or client is invalid", self.cip, self.cport)
+                self.logger.error("Client %s:%s sent invalid API key, or client is invalid", self.cip, self.cport)
         else:
-            self.logger.debug("THREAD %s: Invalid data received", t_name)
+            self.logger.debug("Invalid data received")
 
         return
         
@@ -165,16 +164,14 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 db_pass = cfg_parser.get('database', 'db_password')
                 db_name = cfg_parser.get('database', 'db_name')
 
-                #using the momoko psycopg2 wrapper for tornado, because it's just good and allows proper asynch connections without any more work on my part
-
+                #using psycopg2 pool wrapper
                 db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
                             db_name, db_user, db_pass, db_host, db_port)
 
-                self.db = momoko.Pool(
-                        dsn = db_details,
-                        minconn = 1, #minimum number of connections for the momoko pool to maintain
-                        maxconn = 20, #max number of conns that will be opened
-                        cleanup_timeout = 10, #how often (in seconds) connections are closed (cleaned up) when number of connections > minconn
+                self.db = psycopg2.pool.ThreadedConnectionPool(
+                    minconn = 1,
+                    maxconn = 10,
+                    args = db_details #the dsn is passed to the .connect() method
                     )
 
             except:
@@ -242,21 +239,29 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
     def getClientInfo(self, ip):
         #gets the API key for client with IP ip, so IPs will require unique keys, preventing unauthorised users
+        if not self.db.closed:
+            try:
+                conn = self.db.getconn() #get a connection object from the psycopg2.pool
+                curs = conn.cursor()
 
-        try:
+                curs.execute("SELECT user_name, user_email, user_key FROM livelogs_auth_keys WHERE user_ip = %s", (ip,))
 
-            curs = yield momoko.Op(self.db.execute, "SELECT user_name, user_email, user_key FROM livelogs_auth_keys WHERE user_ip = %s", (ip,))
+                user_details = curs.fetchone()
 
-            user_details = curs.fetchone() #a tuple containing (user_name, user_email, user_key)
+                curs.close()
 
-            curs.close()
+                self.db.putconn(conn) #put the connection back into the pool. if num conns > minconn, the connection is closed
 
-        except:
-            self.logger.exception("Exception trying to get api key for ip %s", ip)
+            except:
+                self.logger.exception("Exception trying to get api key for ip %s", ip)
+                return None
+
+            finally:
+                return user_details
+
+        else:
+            self.logger.error("Database pool is closed")
             return None
-
-
-        return user_details
 
 
 if __name__ == '__main__':
@@ -300,6 +305,7 @@ if __name__ == '__main__':
         
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt. Closing daemon")
+        llServer.db.closeall() #close all database connections in the pool
 
         llServer.shutdown()
 
