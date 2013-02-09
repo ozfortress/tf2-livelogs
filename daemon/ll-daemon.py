@@ -1,3 +1,9 @@
+import logging
+import logging.handlers
+
+logging.basicConfig(level=logging.DEBUG, format="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
+
+
 try:
     import psycopg2
     import psycopg2.pool
@@ -9,8 +15,6 @@ except ImportError:
 
 import SocketServer
 import socket
-import logging
-import logging.handlers
 import sys
 import os
 import threading
@@ -25,16 +29,11 @@ log_file_handler = logging.handlers.TimedRotatingFileHandler("daemon.log", when=
 log_file_handler.setFormatter(log_message_format)
 log_file_handler.setLevel(logging.DEBUG)
 
-log_console_handler = logging.StreamHandler()
-log_console_handler.setFormatter(log_message_format)
-log_console_handler.setLevel(logging.DEBUG)
-
 class llDaemonHandler(SocketServer.BaseRequestHandler):
     def __init__(self, request, client_address, server):
         self.logger = logging.getLogger('handler')
         self.logger.setLevel(logging.DEBUG)
         self.logger.addHandler(log_file_handler)
-        self.logger.addHandler(log_console_handler)
 
         #self.logger.debug('Handler init. APIKEY: %s', server.LL_API_KEY)
 
@@ -106,7 +105,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                         self.logger.exception("Unknown exception casting webtv_port to int")
                         return
 
-                self.newListen = listener.llListenerObject((log_file_handler, log_console_handler), sip, (self.ll_clientip, self.ll_client_server_port), msg[4], msg[5], 
+                self.newListen = listener.llListenerObject(log_file_handler, sip, (self.ll_clientip, self.ll_client_server_port), msg[4], msg[5], 
                                                             self.server.removeListenerObject, timeout=self.server.listener_timeout, webtv_port = webtv_port)
                 
                 if not self.newListen.listener.parser.HAD_ERROR: #check if the parser had an error during init or not
@@ -147,7 +146,6 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def __init__(self, server_ip, handler=llDaemonHandler):
         self.logger = logging.getLogger('daemon')
-        self.logger.addHandler(log_console_handler)
         self.logger.debug('DAEMON INIT')
         
         self.allow_reuse_address = True
@@ -168,11 +166,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
                             db_name, db_user, db_pass, db_host, db_port)
 
-                self.db = psycopg2.pool.ThreadedConnectionPool(
-                    minconn = 1,
-                    maxconn = 10,
-                    args = db_details #the dsn is passed to the .connect() method
-                    )
+                self.db = psycopg2.pool.ThreadedConnectionPool(minconn = 1, maxconn = 10, dsn = db_details) #dsn is passed to psycopg2.connect()
 
             except:
                 self.logger.exception("Unable to read database options from config file, or unable to connect to database")
@@ -293,7 +287,6 @@ if __name__ == '__main__':
 
     logger = logging.getLogger('MAIN')
     logger.setLevel(logging.DEBUG)
-    logger.addHandler(log_console_handler)
     logger.addHandler(log_file_handler)
 
     logger.info("Server on %s:%s under PID %s", sip, sport, os.getpid())

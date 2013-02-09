@@ -9,10 +9,6 @@ log_file_handler = logging.handlers.TimedRotatingFileHandler("websocket-server-d
 log_file_handler.setFormatter(log_message_format)
 log_file_handler.setLevel(logging.DEBUG)
 
-log_console_handler = logging.StreamHandler()
-log_console_handler.setFormatter(log_message_format)
-log_console_handler.setLevel(logging.INFO)
-
 
 """
 The database manager class holds copies of a log's data. It provides functions to calculate the difference between
@@ -24,7 +20,6 @@ class dbManager(object):
         
         self.log = logging.getLogger(log_id)
         self.log.setLevel(logging.DEBUG)
-        #self.log.addHandler(log_console_handler)
         self.log.addHandler(log_file_handler)
 
         self.end_callback = end_callback

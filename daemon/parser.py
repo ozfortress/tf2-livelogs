@@ -23,10 +23,6 @@ log_file_handler = logging.handlers.TimedRotatingFileHandler("parser.log", when=
 log_file_handler.setFormatter(log_message_format)
 log_file_handler.setLevel(logging.DEBUG)
 
-log_console_handler = logging.StreamHandler()
-log_console_handler.setFormatter(log_message_format)
-log_console_handler.setLevel(logging.INFO)
-
 class parserClass():
     def __init__(self, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc=None, webtv_port=None):
         #ALWAYS REQUIRE A UNIQUE IDENT, OTHER PARAMS ARE OPTIONAL
@@ -37,7 +33,6 @@ class parserClass():
         self.logger = logging.getLogger(unique_ident)
         self.logger.setLevel(logging.DEBUG)
         self.logger.addHandler(log_file_handler)
-        self.logger.addHandler(log_console_handler)
 
         import ConfigParser
         cfg_parser = ConfigParser.SafeConfigParser()

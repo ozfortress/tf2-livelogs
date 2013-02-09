@@ -41,10 +41,6 @@ log_file_handler = logging.handlers.TimedRotatingFileHandler("websocket-server.l
 log_file_handler.setFormatter(log_message_format)
 log_file_handler.setLevel(logging.DEBUG)
 
-log_console_handler = logging.StreamHandler()
-log_console_handler.setFormatter(log_message_format)
-log_console_handler.setLevel(logging.INFO)
-
 class llWSApplication(tornado.web.Application):
     def __init__(self):
         handlers = [
@@ -59,7 +55,6 @@ class llWSApplication(tornado.web.Application):
         self.logger = logging.getLogger("WS APP")
         self.logger.setLevel(logging.DEBUG)
         self.logger.addHandler(log_file_handler)
-        #self.logger.addHandler(log_console_handler)
         
         self.log_clients = set() #set of ALL connected clients
         self.log_ordered_clients = { "none": set() } #ordered clients dict will have data in the form of: [ "log ident": (client, client, client) ], where the clients are in a set corresponding to
@@ -404,7 +399,6 @@ if __name__ == "__main__":
     logger = logging.getLogger('WS MAIN')
     logger.setLevel(logging.DEBUG)
     logger.addHandler(log_file_handler)
-    logger.addHandler(log_console_handler)
 
     logger.info("Successfully read config")
     

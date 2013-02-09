@@ -78,9 +78,9 @@ class llListener(SocketServer.UDPServer):
         self.logger.info("Shutting down listener on %s:%s", self.server_address[0], self.server_address[1])
 
         #need to close the parser's database connection
-        if self.parser.pgsqlConn:
-            if not self.parser.pgsqlConn.closed: #cancel current operations and end the log
-                #self.parser.pgsqlConn.cancel()
+        if self.parser.db:
+            if not self.parser.db.closed: #cancel current operations and end the log
+                #self.parser.db.cancel()
                 self.parser.endLogParsing()
                   
         SocketServer.UDPServer.shutdown(self)
@@ -89,13 +89,12 @@ class llListener(SocketServer.UDPServer):
         self.listener_object.close_object()
 
 class llListenerObject(object):
-    def __init__(self, loggers, listenIP, client_address, current_map, log_name, end_function, webtv_port=None, timeout=90.0):
+    def __init__(self, log_file_handler, listenIP, client_address, current_map, log_name, end_function, webtv_port=None, timeout=90.0):
         self.unique_parser_ident = "%s_%s_%s" % (self.ip2long(client_address[0]), client_address[1], int(round(time.time())))
 
         self.logger = logging.getLogger("LISTENER #%s" % self.unique_parser_ident)
         self.logger.setLevel(logging.DEBUG)
-        self.logger.addHandler(loggers[0])
-        self.logger.addHandler(loggers[1])
+        self.logger.addHandler(log_file_handler)
 
         self.listenIP = listenIP
 
