@@ -54,13 +54,13 @@
 public Plugin:myinfo =
 {
     #if defined _websocket_included
-	name = "Livelogs (SourceTV2D Enabled)",
+	name = "Livelogs (SourceTV2D Capable)",
     #else
     name = "Livelogs (SourceTV2D Disabled)",
     #endif
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
-	version = "0.2.0",
+	version = "0.4.0",
 	url = "http://livelogs.ozfortress.com"
 };
 
@@ -71,13 +71,14 @@ public Plugin:myinfo =
 //------------------------------------------------------------------------------
 
 new bool:tournament_state[2] = { false, false }; //Holds ready state for both teams
-new bool:live_at_restart = false;
+new bool:live_on_restart = false;
 new bool:is_logging = false;
 new bool:late_loaded;
 new bool:livelogs_bitmask_cache[64];
+new bool:create_new_log_file = false;
 
 new String:server_ip[64];
-new String:livelogs_listener_address[128];
+new String:listener_address[128];
 new String:log_unique_ident[64];
 new String:client_index_cache[MAXPLAYERS+1][64];
 
@@ -87,10 +88,12 @@ new server_port;
 //Handles for convars
 new Handle:livelogs_daemon_address = INVALID_HANDLE; //ip/dns of livelogs daemon
 new Handle:livelogs_daemon_port = INVALID_HANDLE; //port of livelogs daemon
-new Handle:livelogs_daemon_apikey = INVALID_HANDLE; //the key that must be specified when communicating with the ll daemon
+new Handle:livelogs_daemon_api_key = INVALID_HANDLE; //the key that must be specified when communicating with the ll daemon
 new Handle:livelogs_server_name = INVALID_HANDLE;
-new Handle:livelogs_stat_output = INVALID_HANDLE;
+new Handle:livelogs_logging_level = INVALID_HANDLE;
 new Handle:livelogs_ipgn_booking_name = INVALID_HANDLE;
+new Handle:livelogs_new_log_file = INVALID_HANDLE;
+new Handle:livelogs_enabled = INVALID_HANDLE;
 
 //if websocket is included, let's define the websocket stuff!
 #if defined _websocket_included
@@ -103,10 +106,10 @@ new bool:webtv_enabled = true;
 new Float:webtv_delay;
 
 new WebsocketHandle:livelogs_webtv_listen_socket = INVALID_WEBSOCKET_HANDLE;
-new Handle:livelogs_webtv_listenport = INVALID_HANDLE;
+new Handle:livelogs_webtv_listen_port = INVALID_HANDLE;
 new Handle:livelogs_webtv_children = INVALID_HANDLE;
 new Handle:livelogs_webtv_children_ip = INVALID_HANDLE;
-new Handle:livelogs_webtv_toggle = INVALID_HANDLE;
+new Handle:livelogs_webtv_enabled = INVALID_HANDLE;
 new Handle:livelogs_webtv_buffer_timer = INVALID_HANDLE; //timer to process the buffer every WEBTV_UPDATE_RATE seconds, only sends events that have time >= tv_delay
 new Handle:livelogs_webtv_positions_timer = INVALID_HANDLE;
 new Handle:livelogs_webtv_cleanup_timer = INVALID_HANDLE;
@@ -154,15 +157,23 @@ public OnPluginStart()
 
     //Convars
     livelogs_daemon_address = CreateConVar("livelogs_address", "192.168.35.128", "IP or hostname of the livelogs daemon", FCVAR_PROTECTED);
+    
     livelogs_daemon_port = CreateConVar("livelogs_port", "61222", "Port of the livelogs daemon", FCVAR_PROTECTED);
-    livelogs_daemon_apikey = CreateConVar("livelogs_api_key", "123test", "API key for livelogs daemon", FCVAR_PROTECTED|FCVAR_DONTRECORD|FCVAR_UNLOGGED);
+    
+    livelogs_daemon_api_key = CreateConVar("livelogs_api_key", "123test", "API key for livelogs daemon", FCVAR_PROTECTED|FCVAR_DONTRECORD|FCVAR_UNLOGGED);
 
     livelogs_server_name = CreateConVar("livelogs_name", "default", "The name by which logs are identified on the website", FCVAR_PROTECTED);
 
-    livelogs_stat_output = CreateConVar("livelogs_additional_logging", "15", "Toggle whether or not livelogs should log additional statistics. Disable if running sup stats or other similar plugins",
-                                    FCVAR_NOTIFY, true, 0.0, true, 64.0); //allows levels of logging via a bitmask
+    livelogs_logging_level = CreateConVar("livelogs_additional_logging", "15", "Set logging level. See FAQ for logging bitmask values",
+                                            FCVAR_NOTIFY, true, 0.0, true, 64.0); //allows levels of logging via a bitmask
 
-    HookConVarChange(livelogs_stat_output, toggleLoggingHook); //hook convar so we can change logging options on the fly
+    livelogs_new_log_file = CreateConVar("livelogs_new_log_file", "0", "Whether to initiate console logging using 'log on'. Disable if you have another method of enabling logging", 
+                                            FCVAR_NOTIFY, true, 0.0, true, 1.0);
+
+    livelogs_enabled = CreateConVar("livelogs_enabled", "1", "Enable or disable Livelogs", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+
+    HookConVarChange(livelogs_new_log_file, logFileToggleHook);
+    HookConVarChange(livelogs_logging_level, loggingLevelChangeHook); //hook convar so we can change logging options on the fly
 
     //variables for later sending. we should get the IP via hostip, because sometimes people don't set "ip"
     new longip = GetConVarInt(FindConVar("hostip")), ip_quad[4];
@@ -175,32 +186,19 @@ public OnPluginStart()
     
     server_port = GetConVarInt(FindConVar("hostport"));
 
-    if (late_loaded)
-    {
-        decl String:auth[64];
-        for (new i = 1; i <= MaxClients; i++)
-        {
-            if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
-            {
-                GetClientAuthString(i, auth, sizeof(auth));
-                OnClientAuthorized(i, auth); //call to onclientauth, which will cache the auth for us
-            }
-        }
-    }
-    
 #if defined _websocket_included
     new String:default_web_port[12];
     Format(default_web_port, sizeof(default_web_port), "%d", server_port + 2);
     
-    livelogs_webtv_listenport = CreateConVar("livelogs_webtv_port", default_web_port, "The port to listen on for SourceTV 2D connections", FCVAR_PROTECTED);
-    livelogs_webtv_toggle = CreateConVar("livelogs_enable_sourcetv", "1", "Toggle whether or not SourceTV2D will run",
+    livelogs_webtv_listen_port = CreateConVar("livelogs_webtv_port", default_web_port, "The port to listen on for SourceTV 2D connections", FCVAR_PROTECTED);
+    livelogs_webtv_enabled = CreateConVar("livelogs_enable_webtv", "1", "Toggle whether or not SourceTV2D will run",
                                     FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
 
     livelogs_webtv_children = CreateArray();
     livelogs_webtv_children_ip = CreateArray(ByteCountToCells(33));
 
-    livelogs_server_tv_delay = FindConVar("tv_delay");
+    livelogs_server_tv_delay = FindConVar("tv_delay"); //cache the tv_delay convar handle
 
     //add event hooks and shiz for websocket, self explanatory names and event hooks
     HookEvent("player_team", playerTeamChangeEvent);
@@ -212,16 +210,31 @@ public OnPluginStart()
     HookEvent("teamplay_round_start", roundStartEvent);
     HookEvent("teamplay_round_win", roundEndEvent);
     
-    HookConVarChange(livelogs_webtv_toggle, toggleWebTVHook);
+    HookConVarChange(livelogs_webtv_enabled, toggleWebTVHook); //hook the webtv enable cvar, so we can enable/disable on the fly
     HookConVarChange(livelogs_server_tv_delay, delayChangeHook); //hook tv_delay so we can adjust the delay dynamically
 #endif
+
+    if (late_loaded)
+    {
+        decl String:auth[64];
+        for (new i = 1; i <= MaxClients; i++)
+        {
+            if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
+            {
+                GetClientAuthString(i, auth, sizeof(auth));
+                OnClientAuthorized(i, auth); //call to onclientauth, which will cache the auth for us
+            }
+        }
+        
+        getConVarValues(); //we need to get the value of convars that are already set if the plugin is loading late
+    }
 }
 
 
 public OnAllPluginsLoaded()
 {
     //check convar settings & update
-    new cvar_val = GetConVarInt(livelogs_stat_output);
+    new cvar_val = GetConVarInt(livelogs_logging_level);
     log_additional_stats = cvar_val;
 
     if (livelogs_ipgn_booking_name == INVALID_HANDLE)
@@ -241,6 +254,18 @@ public OnAllPluginsLoaded()
         if (DEBUG) { LogMessage("Websocket library is not present. Not using SourceTV2D"); }
     #endif
 }
+
+public OnMapStart()
+{
+	clearVars();
+    
+#if defined _websocket_included
+    livelogs_webtv_buffer_timer = INVALID_HANDLE;
+    livelogs_webtv_positions_timer = INVALID_HANDLE;
+    livelogs_webtv_cleanup_timer = INVALID_HANDLE;
+#endif
+}
+
 #if defined _websocket_included
 public OnLibraryAdded(const String:name[])
 {
@@ -262,17 +287,6 @@ public OnLibraryRemoved(const String:name[])
     }
 }
 #endif
-
-public OnMapStart()
-{
-	clearVars();
-    
-#if defined _websocket_included
-    livelogs_webtv_buffer_timer = INVALID_HANDLE;
-    livelogs_webtv_positions_timer = INVALID_HANDLE;
-    livelogs_webtv_cleanup_timer = INVALID_HANDLE;
-#endif
-}
 
 //------------------------------------------------------------------------------
 // Callbacks
@@ -322,9 +336,21 @@ public Action:urlCommandCallback(client, args)
     return Plugin_Handled;
 }
 
+public logFileToggleHook(Handle:cvar, const String:oldval[], const String:newval[])
+{
+    create_new_log_file = GetConVarBool(cvar);
 
+    if (create_new_log_file)
+    {
+        PrintToServer("Livelogs will enable logging using 'log on' on match start");
+    }
+    else
+    {
+        PrintToServer("Livelogs will not enable console log output on match start (no 'log on')");
+    }
+}
 
-public toggleLoggingHook(Handle:cvar, const String:oldval[], const String:newval[])
+public loggingLevelChangeHook(Handle:cvar, const String:oldval[], const String:newval[])
 {
     if (DEBUG) { LogMessage("Additional logging toggled. old: %s new: %s", oldval, newval); }
     
@@ -360,11 +386,11 @@ public tournamentStateChangeEvent(Handle:event, const String:name[], bool:dontBr
         //we're ready to begin logging at round restart if both teams are ready
         if (tournament_state[RED] && tournament_state[BLUE])
         {
-            live_at_restart = true;
+            live_on_restart = true;
         }
         else
         {
-            live_at_restart = false;
+            live_on_restart = false;
         }
     }
 }
@@ -372,10 +398,15 @@ public tournamentStateChangeEvent(Handle:event, const String:name[], bool:dontBr
 public gameRestartEvent(Handle:event, const String:name[], bool:dontBroadcast)
 {
     //if teams are ready, get log listener address
-    if (live_at_restart)
+    if (live_on_restart)
     {
+        if (create_new_log_file)
+        {
+            ServerCommand("log on"); //create new log file, enable console log output
+        }
+
         requestListenerAddress();
-        live_at_restart = false;
+        live_on_restart = false;
         tournament_state[RED] = false;
         tournament_state[BLUE] = false;
 
@@ -568,6 +599,8 @@ public toggleWebTVHook(Handle:cvar, const String:oldval[], const String:newval[]
     else
     {
         PrintToServer("SourceTV2D disabled");
+
+        cleanUpWebSocket();
     }
 }
 
@@ -898,8 +931,6 @@ public OnMapEnd()
         livelogs_webtv_cleanup_timer = INVALID_HANDLE;
     }
     #endif
-
-
 }
 
 #if defined _websocket_included
@@ -962,7 +993,7 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
 
     decl String:ll_api_key[64];
 
-    GetConVarString(livelogs_daemon_apikey, ll_api_key, sizeof(ll_api_key));
+    GetConVarString(livelogs_daemon_api_key, ll_api_key, sizeof(ll_api_key));
 
     decl String:split_buffer[5][64];
     new response_len = ExplodeString(rcvd, "!", split_buffer, 6, 64);
@@ -975,7 +1006,7 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
 
         if ((StrEqual("LIVELOG", split_buffer[0])) && (StrEqual(ll_api_key, split_buffer[1])))
         {            
-            Format(livelogs_listener_address, sizeof(livelogs_listener_address), "%s:%s", split_buffer[2], split_buffer[3]);
+            Format(listener_address, sizeof(listener_address), "%s:%s", split_buffer[2], split_buffer[3]);
             
             if (!StrEqual(split_buffer[4], "REUSE"))
             {
@@ -983,8 +1014,8 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
                 strcopy(log_unique_ident, sizeof(log_unique_ident), split_buffer[4]);
             }
             
-            ServerCommand("logaddress_add %s", livelogs_listener_address);
-            if (DEBUG) { LogMessage("Added address %s to logaddress list", livelogs_listener_address); }
+            ServerCommand("logaddress_add %s", listener_address);
+            if (DEBUG) { LogMessage("Added address %s to logaddress list", listener_address); }
             
             #if defined _websocket_included
             
@@ -1001,7 +1032,7 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
                 }
 
                 webtv_delay = GetConVarFloat(livelogs_server_tv_delay);
-                new webtv_lport = GetConVarInt(livelogs_webtv_listenport);
+                new webtv_lport = GetConVarInt(livelogs_webtv_listen_port);
                 if (DEBUG) { LogMessage("websocket is present. initialising socket. Address: %s:%d", server_ip, webtv_lport); }
             
                 livelogs_webtv_listen_socket = Websocket_Open(server_ip, webtv_lport, onWebSocketConnection, onWebSocketListenError, onWebSocketListenClose);
@@ -1012,7 +1043,7 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
         }
     }
     
-    CloseHandle(socket);
+    CloseHandle(socket); //don't need to do any more, close socket handle
 }
 
 public onSocketDisconnect(Handle:socket, any:arg)
@@ -1069,7 +1100,7 @@ public Action:Test_SockSend(client, args)
 clearVars()
 {
     is_logging = false;
-    live_at_restart = false;
+    live_on_restart = false;
 
     tournament_state[RED] = false;
     tournament_state[BLUE] = false;
@@ -1091,10 +1122,10 @@ requestListenerAddress()
         GetConVarString(livelogs_server_name, log_name, sizeof(log_name));
     }
     
-    GetConVarString(livelogs_daemon_apikey, ll_api_key, sizeof(ll_api_key));
+    GetConVarString(livelogs_daemon_api_key, ll_api_key, sizeof(ll_api_key));
     
     #if defined _websocket_included
-    new webtv_port = GetConVarInt(livelogs_webtv_listenport);
+    new webtv_port = GetConVarInt(livelogs_webtv_listen_port);
     if ((webtv_enabled) && (webtv_library_present))
     {
         Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s!%d", ll_api_key, server_ip, server_port, map, log_name, webtv_port);  
@@ -1115,7 +1146,7 @@ endLogging(bool:map_end = false)
     {
         is_logging = false;
 
-        ServerCommand("logaddress_del %s", livelogs_listener_address);
+        ServerCommand("logaddress_del %s", listener_address);
     }
     
     #if defined _websocket_included
@@ -1147,7 +1178,7 @@ bool:logOptionEnabled(option_value)
     To set a level of logging the values are added together.
     */
 
-    new bitmask = GetConVarInt(livelogs_stat_output); //a sum of whatever options are desired
+    new bitmask = GetConVarInt(livelogs_logging_level); //a sum of whatever options are desired
     if (livelogs_bitmask_cache[option_value]) //if the cached value is true
     {
         return true; //just return true here
@@ -1178,6 +1209,21 @@ bool:logOptionEnabled(option_value)
     }
 
 }
+
+getConVarValues()
+{
+    //updates convars with values that are already set
+    //i.e if logging is set to 0 on reload, the plugin will still think that it's set to 15 because of the reload
+
+    log_additional_stats = GetConVarInt(livelogs_logging_level);
+    create_new_log_file = GetConVarBool(livelogs_new_log_file);
+
+#if defined _websocket_included
+    webtv_enabled = GetConVarBool(livelogs_webtv_enabled);
+
+#endif
+}
+
 
 stock _:ConVarExists(const String:cvar_name[])
 {
@@ -1311,6 +1357,5 @@ public Action:cleanUpWebSocketTimer(Handle:timer, any:data)
     
     return Plugin_Stop;
 }
-
 
 #endif
