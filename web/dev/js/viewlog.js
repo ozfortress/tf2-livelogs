@@ -271,12 +271,10 @@ var llWSClient = llWSClient || (function() {
                                 if (HAD_FIRST_UPDATE) {                    
                                     if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost") {
                                         element.innerHTML = Number(element.innerHTML) + Number(value);
+                                        llWSClient.highlight(element);
                                     } else {
                                         llWSClient.updateStatCell(element, Number(element.innerHTML) + Number(value));
                                     }
-
-                                    llWSClient.highlight(element);
-
                                 } else {
                                     if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost") {
                                         element.innerHTML = Number(value);
@@ -306,16 +304,12 @@ var llWSClient = llWSClient || (function() {
                                 if (tmp === "kpd") {
                                     kills = Number(document.getElementById(sid + ".kills").innerHTML);
                                     llWSClient.updateStatCell(element, Math.round(kills / (deaths || 1) * 100) / 100);
-                                    llWSClient.highlight(element);
                                 } else if (tmp === "dpd") {
                                     llWSClient.updateStatCell(element, Math.round(damage / (deaths || 1) * 100) / 100);
-                                    llWSClient.highlight(element);
                                 } else if (tmp === "dpr") {
                                     llWSClient.updateStatCell(element, Math.round(damage / (num_rounds || 1) * 100) / 100);
-                                    llWSClient.highlight(element);
                                 } else if (tmp === "dpm") {
                                     llWSClient.updateStatCell(element, Math.round(damage / (time_elapsed_sec/60 || 1) * 100) / 100);
-                                    llWSClient.highlight(element);
                                 } else {
                                     console.log("Invalid element %s in special element array", tmp);
                                 }
@@ -360,7 +354,9 @@ var llWSClient = llWSClient || (function() {
 
 
             //fnUpdate(data, row, column)
-            table.fnUpdate(new_value, cell_pos[0], cell_pos[2], false, false)
+            table.fnUpdate(new_value, cell_pos[0], cell_pos[2], true, false);
+
+            this.highlight(cell);
         },
 
         addStatRow : function() {
