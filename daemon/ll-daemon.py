@@ -94,20 +94,17 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
                 sip, sport = self.server.server_address #get our server info, so we know what IP to listen on
 
-                if (msg_len == 6):
-                    webtv_port = None
+                webtv_port = None
 
-                elif (msg_len == 7):
+                if (msg_len == 7):
                     try:
                         webtv_port = int(msg[6])
                     except ValueError:
-                        self.logger.exception("Invalid webtv port sent")
-                        return
+                        self.logger.exception("Invalid webtv port sent. Defaulting to None")
                     except:
-                        self.logger.exception("Unknown exception casting webtv_port to int")
-                        return
+                        self.logger.exception("Unknown exception casting webtv_port to int. Defaulting to None")
 
-                self.newListen = listener.llListenerObject(log_file_handler, sip, (self.ll_clientip, self.ll_client_server_port), msg[4], msg[5], 
+                self.newListen = listener.llListenerObject(log_file_handler, client_api_key, sip, (self.ll_clientip, self.ll_client_server_port), msg[4], msg[5], 
                                                             self.server.removeListenerObject, timeout=self.server.listener_timeout, webtv_port = webtv_port)
                 
                 if not self.newListen.listener.parser.HAD_ERROR: #check if the parser had an error during init or not

@@ -38,6 +38,9 @@ class llListener(SocketServer.UDPServer):
         Likely won't be from the same port every time, so we'll just check by IP
         """
         #print "Current client addr: " + client_address[0] + ". Expected addr: " + self.client_address[0]
+
+        logging.debug("Request: %s", request)
+
         if (client_address[0] == self.client_server_address[0]):
             #print "Client address is same as initial client. Accepting log"
             #reset the timeout timer
@@ -89,16 +92,16 @@ class llListener(SocketServer.UDPServer):
         self.listener_object.close_object()
 
 class llListenerObject(object):
-    def __init__(self, log_file_handler, listenIP, client_address, current_map, log_name, end_function, webtv_port=None, timeout=90.0):
+    def __init__(self, log_file_handler, client_api_key, listen_ip, client_address, current_map, log_name, end_function, webtv_port=None, timeout=90.0):
         self.unique_parser_ident = "%s_%s_%s" % (self.ip2long(client_address[0]), client_address[1], int(round(time.time())))
 
         self.logger = logging.getLogger("LISTENER #%s" % self.unique_parser_ident)
         self.logger.setLevel(logging.DEBUG)
         self.logger.addHandler(log_file_handler)
 
-        self.listenIP = listenIP
+        self.listen_ip = listen_ip
 
-        self.listenAddress = (self.listenIP, 0)
+        self.listenAddress = (self.listen_ip, 0)
         self.listener = llListener(self.logger, self.listenAddress, timeout, self, handler_class=llListenerHandler)
 
         self.logger.info("Initialising parser")
@@ -106,6 +109,7 @@ class llListenerObject(object):
         self.listener.parser = parser.parserClass(self.unique_parser_ident, server_address = client_address, current_map = current_map, log_name = log_name, endfunc = self.listener.handle_server_timeout, webtv_port = webtv_port)
         
         self.listener.client_server_address = client_address #tuple containing the client's server IP and PORT
+        self.listener.client_api_key = client_api_key
         
         self.lip, self.lport = self.listener.server_address #get the listener's address, so it can be sent to the client
 
