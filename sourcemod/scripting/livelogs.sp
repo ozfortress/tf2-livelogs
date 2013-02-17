@@ -175,7 +175,7 @@ public OnPluginStart()
     HookConVarChange(livelogs_new_log_file, logFileToggleHook);
     HookConVarChange(livelogs_logging_level, loggingLevelChangeHook); //hook convar so we can change logging options on the fly
 
-    //variables for later sending. we should get the IP via hostip, because sometimes people don't set "ip"
+    //variables for later sending. we should get the IP via hostip, because sometimes people may not set "ip"
     new longip = GetConVarInt(FindConVar("hostip")), ip_quad[4];
     ip_quad[0] = (longip >> 24) & 0x000000FF;
     ip_quad[1] = (longip >> 16) & 0x000000FF;
@@ -405,12 +405,16 @@ public gameRestartEvent(Handle:event, const String:name[], bool:dontBroadcast)
             ServerCommand("log on"); //create new log file, enable console log output
         }
 
-        requestListenerAddress();
+        if (GetConVarInt(livelogs_enabled))
+        {
+            requestListenerAddress();
+
+            is_logging = true;
+        }
+
         live_on_restart = false;
         tournament_state[RED] = false;
         tournament_state[BLUE] = false;
-
-        is_logging = true;
     }
 }
 
@@ -584,6 +588,10 @@ public Action:tournamentRestartHook(client, const String:command[], arg)
         endLogging();
     }
 }
+
+//------------------------------------------------------------------------------
+// WEBSOCKET CALLBACKS (STV2D)
+//------------------------------------------------------------------------------
 
 #if defined _websocket_included
 
@@ -1084,14 +1092,17 @@ public sendSocketData(String:msg[])
 
     SocketConnect(socket, onSocketConnected, onSocketReceive, onSocketDisconnect, ll_ip, ll_port);
 
-    if (DEBUG) { LogMessage("Attempting to connect to %s:%d (DATA: %s)", ll_ip, ll_port, msg); }
+    if (DEBUG) { LogMessage("Attempting to connect to %s:%d)", ll_ip, ll_port); }
 }
 
+#if DEBUG
 //Command for testing socket sending
 public Action:Test_SockSend(client, args)
 {
-	requestListenerAddress();
+    if (client == 0)
+	   requestListenerAddress();
 }
+#endif
 
 //------------------------------------------------------------------------------
 // Private functions
