@@ -39,7 +39,7 @@ class llListener(SocketServer.UDPServer):
         """
         #print "Current client addr: " + client_address[0] + ". Expected addr: " + self.client_address[0]
 
-        logging.debug("Request: %s", request)
+        #logging.debug("Request: %s", request)
 
         if (client_address[0] == self.client_server_address[0]):
             #print "Client address is same as initial client. Accepting log"
