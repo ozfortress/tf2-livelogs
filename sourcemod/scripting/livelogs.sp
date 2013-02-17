@@ -41,7 +41,7 @@
 #include <socket>
 #include <sdktools>
 
-#include "include/livelogs.h"
+#include <livelogs>
 
 #undef REQUIRE_PLUGIN
 
@@ -1248,11 +1248,11 @@ stock String:GetTFTeamName(index)
     switch (index)
     {
         case 2:
-            team = "Red";
+            strcopy(team, sizeof(team), "Red");
         case 3:
-            team = "Blue";
+            strcopy(team, sizeof(team), "Blue");
         default:
-            team = "unknown";
+            strcopy(team, sizeof(team), "unknown");
     }
 
     return team;
