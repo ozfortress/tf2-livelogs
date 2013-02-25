@@ -36,28 +36,35 @@
 //---------------------- EVENT AND CVAR CALLBACKS/HOOKS ----------------------
 ////
 
-public toggleWebTVHook(Handle:cvar, const String:oldval[], const String:newval[])
+public websocketConVarChangeHook(Handle:cvar, const String:oldval[], const String:newval[])
 {
-    if (DEBUG) { LogMessage("webtv toggled"); }
-    webtv_enabled = GetConVarBool(cvar);
-
-    if (webtv_enabled) 
+    /*
+    ConVars:
+    HookConVarChange(livelogs_webtv_enabled, websocketConVarChangeHook); //hook the webtv enable cvar, so we can enable/disable on the fly
+    HookConVarChange(livelogs_server_tv_delay_cache, websocketConVarChangeHook); //hook tv_delay so we can adjust the delay dynamically
+    */
+    if (cvar == livelogs_webtv_enabled)
     {
-        PrintToServer("SourceTV2D enabled");
+        if (debug_enabled) { LogMessage("webtv toggled"); }
+        webtv_enabled = GetConVarBool(cvar);
+
+        if (webtv_enabled) 
+        {
+            PrintToServer("SourceTV2D enabled");
+        }
+        else
+        {
+            PrintToServer("SourceTV2D disabled");
+
+            cleanUpWebSocket();
+        }
     }
-    else
+    else if (cvar == livelogs_server_tv_delay_cache)
     {
-        PrintToServer("SourceTV2D disabled");
-
-        cleanUpWebSocket();
+        if (debug_enabled) { LogMessage("delay changed. old: %s new: %s", oldval, newval); }
+        
+        webtv_delay = StringToFloat(newval);
     }
-}
-
-public delayChangeHook(Handle:cvar, const String:oldval[], const String:newval[])
-{
-    if (DEBUG) { LogMessage("delay changed. old: %s new: %s", oldval, newval); }
-    
-    webtv_delay = StringToFloat(newval);
 }
 
 public OnClientPutInServer(client)
@@ -194,7 +201,7 @@ public nameChangeEvent(Handle:event, const String:name[], bool:dontBroadcast)
 
 public Action:onWebSocketConnection(WebsocketHandle:listen_sock, WebsocketHandle:child_sock, const String:remoteIP[], remotePort, String:protocols[256])
 {
-    if (DEBUG) { LogMessage("Incoming connection from %s:%d", remoteIP, remotePort); }
+    if (debug_enabled) { LogMessage("Incoming connection from %s:%d", remoteIP, remotePort); }
     Websocket_HookChild(child_sock, onWebSocketChildReceive, onWebSocketChildDisconnect, onWebSocketChildError);
     Websocket_HookReadyStateChange(child_sock, onWebSocketReadyStateChange);
     
@@ -206,7 +213,7 @@ public Action:onWebSocketConnection(WebsocketHandle:listen_sock, WebsocketHandle
 
 public onWebSocketReadyStateChange(WebsocketHandle:sock, WebsocketReadyState:readystate)
 {
-    if (DEBUG) { LogMessage("r state change"); }
+    if (debug_enabled) { LogMessage("client ready state change (client is ready to receive data)"); }
 
     new child_index = FindValueInArray(livelogs_webtv_children, sock);
     if (child_index == -1)
@@ -221,12 +228,12 @@ public onWebSocketReadyStateChange(WebsocketHandle:sock, WebsocketReadyState:rea
     GetCurrentMap(map, sizeof(map));
     GetGameFolderName(game, sizeof(game));
     
-    if (livelogs_server_hostname == INVALID_HANDLE)
+    if (livelogs_server_hostname_cache == INVALID_HANDLE)
     {
-        livelogs_server_hostname = FindConVar("hostname");
+        livelogs_server_hostname_cache = FindConVar("hostname");
     }
 
-    GetConVarString(livelogs_server_hostname, hostname, sizeof(hostname));
+    GetConVarString(livelogs_server_hostname_cache, hostname, sizeof(hostname));
     
     new red_score = GetTeamScore(RED+TEAM_OFFSET);
     new blue_score = GetTeamScore(BLUE+TEAM_OFFSET);
@@ -300,7 +307,7 @@ public Action:webtv_bufferProcessTimer(Handle:timer, any:data)
     for (new i = 0; i < livelogs_webtv_buffer_length; i++)
     {
         
-        //if (DEBUG) { LogMessage("Processing buffer. Buf string: %s @ idx %d", livelogs_webtv_buffer[i], i); }
+        //if (debug_enabled) { LogMessage("Processing buffer. Buf string: %s @ idx %d", livelogs_webtv_buffer[i], i); }
         
         //contains strings like timestamp@O3:blah:blah:blah
         new num_tok = ExplodeString(livelogs_webtv_buffer[i], "@", buf_split_array, 3, 4096); //now we have the timestamp and buffered data split
@@ -313,7 +320,7 @@ public Action:webtv_bufferProcessTimer(Handle:timer, any:data)
             
             if (timediff > webtv_delay) //i.e. delay seconds has past, time to send data
             {
-                //if (DEBUG) { LogMessage("timestamp is outside of delay range. timediff: %f, sending. send msg: %s", timediff, buf_split_array[1]); }
+                //if (debug_enabled) { LogMessage("timestamp is outside of delay range. timediff: %f, sending. send msg: %s", timediff, buf_split_array[1]); }
                 sendToAllWebChildren(buf_split_array[1]);
             }
             else 
@@ -339,7 +346,7 @@ public onWebSocketChildReceive(WebsocketHandle:sock, WebsocketSendType:send_type
     if (send_type != SendType_Text)
         return;
         
-    if (DEBUG) { LogMessage("Child %d received msg %s (len: %d)", _:sock, rcvd, dataSize); }
+    if (debug_enabled) { LogMessage("Child %d received msg %s (len: %d)", _:sock, rcvd, dataSize); }
     
     return;
         
@@ -352,7 +359,7 @@ public onWebSocketChildDisconnect(WebsocketHandle:sock)
     if (client_index < 0)
         return;
     
-    if (DEBUG) { LogMessage("child disconnect. client_index: %d", client_index); }
+    if (debug_enabled) { LogMessage("child disconnect. client_index: %d", client_index); }
     
     RemoveFromArray(livelogs_webtv_children, client_index);
     RemoveFromArray(livelogs_webtv_children_ip, client_index);
@@ -367,7 +374,7 @@ public onWebSocketChildDisconnect(WebsocketHandle:sock)
 
 public onWebSocketListenClose(WebsocketHandle:listen_sock)
 {
-    if (DEBUG) { LogMessage("webtv listen sock close"); }
+    if (debug_enabled) { LogMessage("webtv listen sock close"); }
     livelogs_webtv_listen_socket = INVALID_WEBSOCKET_HANDLE;
     
     new num_web_clients = GetArraySize(livelogs_webtv_children);
@@ -413,12 +420,12 @@ addToWebBuffer(const String:msg[])
     
     if (livelogs_webtv_buffer_length >= MAX_BUFFER_SIZE-1)
     {
-        if (DEBUG) { LogMessage("number of buffer items (%d) is >= the max buffer elements", livelogs_webtv_buffer_length); }
+        if (debug_enabled) { LogMessage("number of buffer items (%d) is >= the max buffer elements", livelogs_webtv_buffer_length); }
 
         //if this is occuring, perhaps the process timer is not active?
         if (livelogs_webtv_buffer_timer == INVALID_HANDLE)
         {
-            if (DEBUG) { LogMessage("Buffer is full and process timer is not running. Starting process timer"); }
+            if (debug_enabled) { LogMessage("Buffer is full and process timer is not running. Starting process timer"); }
             livelogs_webtv_buffer_timer = CreateTimer(WEBTV_BUFFER_PROCESS_RATE, webtv_bufferProcessTimer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
         }
         return;
@@ -453,7 +460,7 @@ sendToAllWebChildren(const String:data[], num_web_clients = -1)
     {
         send_sock = WebsocketHandle:GetArrayCell(livelogs_webtv_children, i);
         
-        //if (DEBUG) { LogMessage("data to be sent: %s", data); }
+        //if (debug_enabled) { LogMessage("data to be sent: %s", data); }
         
         if (Websocket_GetReadyState(send_sock) == State_Open)
             Websocket_Send(send_sock, SendType_Text, data);
@@ -473,7 +480,7 @@ shiftBufferLeft()
         strcopy(livelogs_webtv_buffer[i], sizeof(livelogs_webtv_buffer[]), livelogs_webtv_buffer[i+1]);
     }
     livelogs_webtv_buffer_length--;
-    //if (DEBUG) { LogMessage("left shift. buffer length: %d", livelogs_webtv_buffer_length); }
+    //if (debug_enabled) { LogMessage("left shift. buffer length: %d", livelogs_webtv_buffer_length); }
 }
 
 emptyWebBuffer()
@@ -483,7 +490,7 @@ emptyWebBuffer()
         strcopy(livelogs_webtv_buffer[i], sizeof(livelogs_webtv_buffer[]), "\0");
     }
     livelogs_webtv_buffer_length = 0;
-    if (DEBUG) { LogMessage("cleared buffer"); }
+    if (debug_enabled) { LogMessage("cleared buffer"); }
 }
 
 cleanUpWebSocket()

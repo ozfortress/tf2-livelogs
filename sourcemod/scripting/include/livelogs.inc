@@ -1,7 +1,6 @@
 #define RED 0
 #define BLUE 1
 #define TEAM_OFFSET 2
-#define DEBUG true
 
 #define MAX_BUFFER_SIZE 750 //MATH: (1/WEBTV_POSITION_UPDATE_RATE)*(MAX_TV_DELAY) + MAX_POSSIBLE_ADDITIONAL_EVENTS
                             //the maximum possible additional events is an (overly generous) educated guess at the number of events that could occur @ max tv_delay (90s)

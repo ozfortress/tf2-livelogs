@@ -4,6 +4,7 @@
     To Cinq, Annuit Coeptis and Jean-Denis Caron for additional statistic logging such as damage done, heals, items and pausing/unpausing
 */
 
+#define DEBUG true
 
 #pragma semicolon 1 //must use semicolon to end lines
 
@@ -30,7 +31,7 @@ public Plugin:myinfo =
 #endif
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
-	version = "0.5.1",
+	version = "0.6.1",
 	url = "http://livelogs.ozfortress.com"
 };
 
@@ -46,6 +47,7 @@ new bool:is_logging = false;
 new bool:late_loaded;
 new bool:livelogs_bitmask_cache[65];
 new bool:create_new_log_file = false;
+new bool:debug_enabled = true;
 
 new String:server_ip[64];
 new String:listener_address[128];
@@ -59,11 +61,16 @@ new server_port;
 new Handle:livelogs_daemon_address = INVALID_HANDLE; //ip/dns of livelogs daemon
 new Handle:livelogs_daemon_port = INVALID_HANDLE; //port of livelogs daemon
 new Handle:livelogs_daemon_api_key = INVALID_HANDLE; //the key that must be specified when communicating with the ll daemon
-new Handle:livelogs_server_name = INVALID_HANDLE;
-new Handle:livelogs_logging_level = INVALID_HANDLE;
-new Handle:livelogs_ipgn_booking_name = INVALID_HANDLE;
-new Handle:livelogs_new_log_file = INVALID_HANDLE;
-new Handle:livelogs_enabled = INVALID_HANDLE;
+new Handle:livelogs_server_name = INVALID_HANDLE; //the name used for the server (as shown on the website)
+new Handle:livelogs_logging_level = INVALID_HANDLE; //bitmask for logging levels
+new Handle:livelogs_ipgn_booking_name = INVALID_HANDLE; //support ipgn's match recorder which uses names from a server booking bot
+new Handle:livelogs_new_log_file = INVALID_HANDLE; //determine if this plugin should enable the server's logging functionality, or leave it to a config/other plugin
+new Handle:livelogs_tournament_ready_only =  INVALID_HANDLE; //support the option of only logging when teams ready up, and not on mp_restartgame or equivalent command
+new Handle:livelogs_enable_debugging = INVALID_HANDLE; //toggle debug messages
+new Handle:livelogs_enabled = INVALID_HANDLE; //enable/disable livelogs
+
+new Handle:livelogs_tournament_mode_cache = INVALID_HANDLE; //for caching the mp_tournament cvar handle
+new Handle:livelogs_mp_restartgame_cache = INVALID_HANDLE;
 
 //if websocket is included, let's define the websocket stuff!
 #if defined _websocket_included
@@ -83,8 +90,9 @@ new Handle:livelogs_webtv_enabled = INVALID_HANDLE;
 new Handle:livelogs_webtv_buffer_timer = INVALID_HANDLE; //timer to process the buffer every WEBTV_UPDATE_RATE seconds, only sends events that have time >= tv_delay
 new Handle:livelogs_webtv_positions_timer = INVALID_HANDLE;
 new Handle:livelogs_webtv_cleanup_timer = INVALID_HANDLE;
-new Handle:livelogs_server_hostname = INVALID_HANDLE; //for caching the hostname cvar handle
-new Handle:livelogs_server_tv_delay = INVALID_HANDLE; //for caching the tv_delay cvar handle
+
+new Handle:livelogs_server_hostname_cache = INVALID_HANDLE; //for caching the hostname cvar handle
+new Handle:livelogs_server_tv_delay_cache = INVALID_HANDLE; //for caching the tv_delay cvar handle
 
 new String:livelogs_webtv_buffer[MAX_BUFFER_SIZE][4096]; //string array buffer, MUCH faster than dynamic arrays
 #endif
@@ -102,7 +110,9 @@ public APLRes:AskPluginLoad2(Handle:myself, bool:late, String:error[], err_max)
 public OnPluginStart()
 {
     // Console command to test socket sending
+#if defined DEBUG
     RegConsoleCmd("test_livelogs", Test_SockSend);
+#endif
 
     // Tournament state change
     HookEvent("tournament_stateupdate", tournamentStateChangeEvent);
@@ -114,38 +124,55 @@ public OnPluginStart()
     HookEvent("tf_game_over", gameOverEvent); //mp_windifference_limit
     HookEvent("teamplay_game_over", gameOverEvent); //mp_maxrounds, mp_timelimit, mp_winlimit
 
-    // Hook into mp_tournament_restart
-    AddCommandListener(tournamentRestartHook, "mp_tournament_restart");
-
     //Hook events for additional statistic display
     HookEvent("item_pickup", itemPickupEvent); //item is picked up
     HookEvent("player_hurt", playerHurtEvent); //player is hurt
     HookEvent("player_healed", playerHealEvent); //player receives healing, from dispenser or medic
 
-    //Listen for chat commands
+    // Hook into mp_tournament_restart
+    AddCommandListener(tournamentRestartHook, "mp_tournament_restart");
+
+    // Hook mp_restartgame, mp_switchteams and mp_scrambleteams. ALl these commands restart the game completely, which means a new log file is required
+    //mp_switchteams and mp_scrambleteams both use mp_restartgame
+    livelogs_mp_restartgame_cache = FindConVar("mp_restartgame");
+    HookConVarChange(livelogs_mp_restartgame_cache, conVarChangeHook); //this STUPID AS FUCK command is treated as a cvar for some FUCKED reason
+
+    // Client commands
     RegConsoleCmd("sm_livelogs", urlCommandCallback, "Displays the livelogs log URL to the client");
 
-    //Convars
-    livelogs_daemon_address = CreateConVar("livelogs_address", "192.168.35.128", "IP or hostname of the livelogs daemon", FCVAR_PROTECTED);
+
+    // Convars
+    livelogs_daemon_address = CreateConVar("livelogs_address", "192.168.35.128", "IP or hostname of the livelogs daemon", FCVAR_PROTECTED|FCVAR_DONTRECORD|FCVAR_UNLOGGED);
     
-    livelogs_daemon_port = CreateConVar("livelogs_port", "61222", "Port of the livelogs daemon", FCVAR_PROTECTED);
+    livelogs_daemon_port = CreateConVar("livelogs_port", "61222", "Port of the livelogs daemon", FCVAR_PROTECTED|FCVAR_DONTRECORD|FCVAR_UNLOGGED);
     
     livelogs_daemon_api_key = CreateConVar("livelogs_api_key", "123test", "API key for livelogs daemon", FCVAR_PROTECTED|FCVAR_DONTRECORD|FCVAR_UNLOGGED);
 
     livelogs_server_name = CreateConVar("livelogs_name", "default", "The name by which logs are identified on the website", FCVAR_PROTECTED);
 
-    livelogs_logging_level = CreateConVar("livelogs_additional_logging", "15", "Set logging level. See FAQ for logging bitmask values",
+    livelogs_logging_level = CreateConVar("livelogs_additional_logging", "15", "Set logging level. See FAQ/readme.txt for logging bitmask values",
                                             FCVAR_NOTIFY, true, 0.0, true, 64.0); //allows levels of logging via a bitmask
 
     livelogs_new_log_file = CreateConVar("livelogs_new_log_file", "0", "Whether to initiate console logging using 'log on'. Disable if you have another method of enabling logging", 
                                             FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
+    livelogs_tournament_ready_only = CreateConVar("livelogs_tournament_ready_only", "0", "Whether livelogs should only log when teams ready up or not (mp_restartgame does not ready the teams up)", 
+                                            FCVAR_NOTIFY, true, 0.0, true, 1.0);
+
+    livelogs_enable_debugging = CreateConVar("livelogs_enable_debugging", "1", "Enable or disable debug messages", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+
     livelogs_enabled = CreateConVar("livelogs_enabled", "1", "Enable or disable Livelogs", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
-    HookConVarChange(livelogs_new_log_file, logFileToggleHook);
-    HookConVarChange(livelogs_logging_level, loggingLevelChangeHook); //hook convar so we can change logging options on the fly
+    livelogs_tournament_mode_cache = FindConVar("mp_tournament"); //cache mp_tournament convar
 
-    //variables for later sending. we should get the IP via hostip, because sometimes people may not set "ip"
+
+    // convar change hooks
+    HookConVarChange(livelogs_new_log_file, conVarChangeHook);
+    HookConVarChange(livelogs_logging_level, conVarChangeHook); //hook convar so we can change logging options on the fly
+    HookConVarChange(livelogs_enable_debugging, conVarChangeHook);
+
+
+    //variables for later sending. we should get the IP via hostip, because people may not set "ip"
     new longip = GetConVarInt(FindConVar("hostip")), ip_quad[4];
     ip_quad[0] = (longip >> 24) & 0x000000FF;
     ip_quad[1] = (longip >> 16) & 0x000000FF;
@@ -168,7 +195,7 @@ public OnPluginStart()
     livelogs_webtv_children = CreateArray();
     livelogs_webtv_children_ip = CreateArray(ByteCountToCells(33));
 
-    livelogs_server_tv_delay = FindConVar("tv_delay"); //cache the tv_delay convar handle
+    livelogs_server_tv_delay_cache = FindConVar("tv_delay"); //cache the tv_delay convar handle
 
     //add event hooks and shiz for websocket, self explanatory names and event hooks
     HookEvent("player_team", playerTeamChangeEvent);
@@ -180,8 +207,8 @@ public OnPluginStart()
     HookEvent("teamplay_round_start", roundStartEvent);
     HookEvent("teamplay_round_win", roundEndEvent);
     
-    HookConVarChange(livelogs_webtv_enabled, toggleWebTVHook); //hook the webtv enable cvar, so we can enable/disable on the fly
-    HookConVarChange(livelogs_server_tv_delay, delayChangeHook); //hook tv_delay so we can adjust the delay dynamically
+    HookConVarChange(livelogs_webtv_enabled, websocketConVarChangeHook); //hook the webtv enable cvar, so we can enable/disable on the fly
+    HookConVarChange(livelogs_server_tv_delay_cache, websocketConVarChangeHook); //hook tv_delay so we can adjust the delay dynamically
 #endif
 
     if (late_loaded)
@@ -220,12 +247,12 @@ public OnAllPluginsLoaded()
     if (LibraryExists("websocket"))
     {
         webtv_library_present = true;
-        if (DEBUG) { LogMessage("Websocket library present. Using SourceTV2D"); }
+        if (debug_enabled) { LogMessage("Websocket library present. Using SourceTV2D"); }
         
         cleanUpWebSocket();
     }
     else
-        if (DEBUG) { LogMessage("Websocket library is not present. Not using SourceTV2D"); }
+        if (debug_enabled) { LogMessage("Websocket library is not present. Not using SourceTV2D"); }
 #endif
 }
 
@@ -310,41 +337,72 @@ public Action:urlCommandCallback(client, args)
     return Plugin_Handled;
 }
 
-public logFileToggleHook(Handle:cvar, const String:oldval[], const String:newval[])
+public conVarChangeHook(Handle:cvar, const String:oldval[], const String:newval[])
 {
-    create_new_log_file = GetConVarBool(cvar);
+    /*
+    ConVar handles:
+    HookConVarChange(livelogs_new_log_file, conVarChangeHook);
+    HookConVarChange(livelogs_logging_level, conVarChangeHook); //hook convar so we can change logging options on the fly
+    HookConVarChange(livelogs_enable_debugging, conVarChangeHook);
+    HookConVarChange(livelogs_mp_restartgame_cache, conVarChangeHook);
+    */
 
-    if (create_new_log_file)
+    if (cvar == livelogs_new_log_file)
     {
-        PrintToServer("Livelogs will enable logging (create a new log file) using 'log on' on match start");
-    }
-    else
-    {
-        PrintToServer("Livelogs will not enable console log output on match start (no 'log on'). Ensure you have another method of enabling console logging");
-    }
-}
+        create_new_log_file = GetConVarBool(cvar);
 
-public loggingLevelChangeHook(Handle:cvar, const String:oldval[], const String:newval[])
-{
-    if (DEBUG) { LogMessage("Additional logging toggled. old: %s new: %s", oldval, newval); }
-    
-    log_additional_stats = GetConVarInt(cvar);
-
-    if (log_additional_stats > 0) 
-    {
-        PrintToServer("Livelogs now outputting additional logging");
+        if (create_new_log_file)
+        {
+            PrintToServer("Livelogs will enable logging (create a new log file) using 'log on' on match start");
+        }
+        else
+        {
+            PrintToServer("Livelogs will not enable console log output on match start (no 'log on'). Ensure you have another method of enabling console logging");
+        }
     }
-    else
+    else if (cvar == livelogs_logging_level)
     {
-        PrintToServer("Livelogs no longer outputting additional statistics");
-    }
+        log_additional_stats = GetConVarInt(cvar);
 
-    //recache bitmask
-    for (new i = 1; i < sizeof(livelogs_bitmask_cache); i++)
+        if (log_additional_stats > 0)
+        {
+            PrintToServer("Livelogs now outputting additional logging");
+        }
+        else
+        {
+            PrintToServer("Livelogs no longer outputting additional statistics");
+        }
+
+        //recache bitmask
+        for (new i = 1; i < sizeof(livelogs_bitmask_cache); i++)
+        {
+            logOptionEnabled(i);
+        }
+    }
+    else if (cvar == livelogs_enable_debugging)
     {
-        logOptionEnabled(i);
-    }
+        debug_enabled = GetConVarBool(cvar);
 
+        if (debug_enabled)
+        {
+            PrintToServer("Livelogs debug messages enabled");
+        }
+        else
+        {
+            PrintToServer("Livelogs debug messages disabled");
+        }
+    }
+    else if (cvar == livelogs_mp_restartgame_cache)
+    {
+        if (debug_enabled) { LogMessage("mp_restartgame changed. old: %s, new %s", oldval, newval); }
+        new restart_time = GetConVarInt(cvar);
+
+        if ((restart_time > 0) && (!live_on_restart)) //prevent multiple mp_restartgames starting/ending logs
+        {
+            //we have a restart command!
+            newLogOnRestartCheck();
+        }
+    }
 }
 
 public tournamentStateChangeEvent(Handle:event, const String:name[], bool:dontBroadcast)
@@ -563,6 +621,11 @@ public Action:tournamentRestartHook(client, const String:command[], arg)
     }
 }
 
+public Action:restartCommandHook(client, const String:command[], arg)
+{
+    //one of the restart commands was used (mp_switchteams/mp_scrambleteams)
+    newLogOnRestartCheck();
+}
 
 //---------------------------
 //Include all the sourcetv2d event hooks, timers and functions
@@ -603,15 +666,15 @@ public onSocketConnected(Handle:socket, any:arg)
     ReadPackString(arg, msg, sizeof(msg)); //msg now contains what we want to send
 
     SocketSend(socket, msg);
-    if (DEBUG) { LogMessage("Sent data '%s'", msg); }
+    if (debug_enabled) { LogMessage("Sent data '%s'", msg); }
 }
 
 public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
 {
     //Livelogs response packet: LIVELOG!api_key!listener_address!listener_port!UNIQUE_IDENT OR REUSE
-    if (DEBUG) { LogMessage("Data received: %s", rcvd); }
+    if (debug_enabled) { LogMessage("Data received: %s", rcvd); }
 
-    decl String:ll_api_key[64];
+    decl String:ll_api_key[128];
 
     GetConVarString(livelogs_daemon_api_key, ll_api_key, sizeof(ll_api_key));
 
@@ -622,7 +685,7 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
     
     if (response_len == 5)
     {
-        if (DEBUG) { LogMessage("Have tokenized response with len > 1. APIKEY: %s, SPECIFIED: %s", ll_api_key, split_buffer[1]); }
+        if (debug_enabled) { LogMessage("Have tokenized response with len > 1. APIKEY: %s, SPECIFIED: %s", ll_api_key, split_buffer[1]); }
 
         if ((StrEqual("LIVELOG", split_buffer[0])) && (StrEqual(ll_api_key, split_buffer[1])))
         {            
@@ -630,19 +693,19 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
             
             if (!StrEqual(split_buffer[4], "REUSE"))
             {
-                if (DEBUG) { LogMessage("LL LOG_UNIQUE_IDENT: %s", split_buffer[4]); }
+                if (debug_enabled) { LogMessage("LL LOG_UNIQUE_IDENT: %s", split_buffer[4]); }
                 strcopy(log_unique_ident, sizeof(log_unique_ident), split_buffer[4]);
             }
             
-            ServerCommand("logaddress_add %s", listener_address);
-            if (DEBUG) { LogMessage("Added address %s to logaddress list", listener_address); }
+            ServerCommand("sv_logsecret %s; logaddress_add %s", ll_api_key, listener_address);
+            if (debug_enabled) { LogMessage("Added address %s to logaddress list", listener_address); }
             
         #if defined _websocket_included
             
             //if the previous websocket is yet to be cleaned up, clean it up now
             cleanUpWebSocket();
             
-            //now open websocket too
+            //now open new websocket
             if ((livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE) && (webtv_library_present) && (webtv_enabled))
             {
                 if (livelogs_webtv_cleanup_timer != INVALID_HANDLE)
@@ -651,15 +714,19 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
                     livelogs_webtv_cleanup_timer = INVALID_HANDLE;
                 }
 
-                webtv_delay = GetConVarFloat(livelogs_server_tv_delay);
+                webtv_delay = GetConVarFloat(livelogs_server_tv_delay_cache);
                 new webtv_lport = GetConVarInt(livelogs_webtv_listen_port);
-                if (DEBUG) { LogMessage("websocket is present. initialising socket. Address: %s:%d", server_ip, webtv_lport); }
+                if (debug_enabled) { LogMessage("websocket is present. initialising socket. Address: %s:%d", server_ip, webtv_lport); }
             
                 livelogs_webtv_listen_socket = Websocket_Open(server_ip, webtv_lport, onWebSocketConnection, onWebSocketListenError, onWebSocketListenClose);
                 
                 livelogs_webtv_positions_timer = CreateTimer(WEBTV_POSITION_UPDATE_RATE, updatePlayerPositionTimer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
             }
         #endif
+        }
+        else
+        {
+            if (debug_enabled) { LogMessage("Invalid message returned by server"); }
         }
     }
     
@@ -669,14 +736,14 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
 public onSocketDisconnect(Handle:socket, any:arg)
 {
 	CloseHandle(socket);
-	if (DEBUG) { LogMessage("Livelogs socket disconnected and closed"); }
+	if (debug_enabled) { LogMessage("Livelogs socket disconnected and closed"); }
 }
 
 public onSocketSendQueueEmpty(Handle:socket, any:arg) 
 {
 	//SocketDisconnect(socket);
 	//CloseHandle(socket);
-	if (DEBUG) { LogMessage("Send queue is empty"); }
+	if (debug_enabled) { LogMessage("Send queue is empty"); }
 }
 
 public onSocketError(Handle:socket, const errorType, const errorNum, any:arg)
@@ -704,10 +771,10 @@ public sendSocketData(String:msg[])
 
     SocketConnect(socket, onSocketConnected, onSocketReceive, onSocketDisconnect, ll_ip, ll_port);
 
-    if (DEBUG) { LogMessage("Attempting to connect to %s:%d)", ll_ip, ll_port); }
+    if (debug_enabled) { LogMessage("Attempting to connect to %s:%d)", ll_ip, ll_port); }
 }
 
-#if DEBUG
+#if defined DEBUG
 //Command for testing socket sending
 public Action:Test_SockSend(client, args)
 {
@@ -781,10 +848,41 @@ endLogging(bool:map_end = false)
     {
         if ((webtv_library_present) && (livelogs_webtv_listen_socket != INVALID_WEBSOCKET_HANDLE))
         {
-            livelogs_webtv_cleanup_timer = CreateTimer(GetConVarFloat(livelogs_server_tv_delay) + 10.0, cleanUpWebSocketTimer, TIMER_FLAG_NO_MAPCHANGE);
+            livelogs_webtv_cleanup_timer = CreateTimer(GetConVarFloat(livelogs_server_tv_delay_cache) + 10.0, cleanUpWebSocketTimer, TIMER_FLAG_NO_MAPCHANGE);
         }
     }
     #endif
+}
+
+newLogOnRestartCheck()
+{
+    //called by the callbacks for restart commands (mp_restartgame, mp_switchteams, mp_scrambleteams)
+    if (debug_enabled) { LogMessage("Restart command. treadyonly: %d, mp_tournament: %d", GetConVarBool(livelogs_tournament_ready_only), GetConVarBool(livelogs_tournament_mode_cache)); }
+
+    if (is_logging)
+    {
+        if (debug_enabled) { LogMessage("Restart command issued while currently logging. Ending log"); }
+        LogToGame("LIVELOG_GAME_RESTART"); //tell the daemon that the current log needs to be closed, so a new one can be opened
+        endLogging();
+
+        //if we're already logging, we should be logging on a restart too
+        live_on_restart = true;
+    }
+    else
+    {
+        //check whether we should only start logging on tournament ready or not
+        if (!GetConVarBool(livelogs_tournament_ready_only) && GetConVarBool(livelogs_tournament_mode_cache))
+        {
+            /*
+            Since logging isn't just enabled on tournament ready, we should start logging on the next restart (provided mp_tournament is set)
+
+            This means that an mp_restartgame that is initiated without teams readying up will still start logs properly
+            */
+            if (debug_enabled) { LogMessage("logging will start on next restart"); }
+
+            live_on_restart = true;
+        }
+    }
 }
 
 bool:logOptionEnabled(option_value)
@@ -840,6 +938,7 @@ getConVarValues()
 
     log_additional_stats = GetConVarInt(livelogs_logging_level);
     create_new_log_file = GetConVarBool(livelogs_new_log_file);
+    debug_enabled = GetConVarBool(livelogs_enable_debugging);
 
 #if defined _websocket_included
     webtv_enabled = GetConVarBool(livelogs_webtv_enabled);
