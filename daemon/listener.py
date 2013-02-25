@@ -129,6 +129,12 @@ class llListenerObject(object):
     def ip2long(self, ip):
         return struct.unpack('!L', socket.inet_aton(ip))[0]
 
+    def had_error(self):
+        if self.listener.parser is not None:
+            return self.listener.parser.HAD_ERROR
+        else:
+            return True
+
     def error_cleanup(self):
         self.listener.timeoutTimer.cancel()
         self.listener.shutdown()

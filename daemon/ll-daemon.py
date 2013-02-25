@@ -49,21 +49,23 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         self.logger.debug('Received "%s" from client %s:%s', rcvd, self.cip, self.cport)
 
         #FORMAT OF LOG REQUEST: LIVELOG!KEY!SIP!SPORT!MAP!NAME!WEBTV_PORT(OPTIONAL)
+        
         try:
             msg = rcvd.split('!')
         except:
             self.logger.debug("Invalid data received")
             return
-            
+
         msg_len = len(msg)
-        if (msg_len >= 6) and (msg[0] == "LIVELOG"):
+
+        if (msg_len >= 6 and msg[0] == "LIVELOG"):
             client_details = self.server.getClientInfo(self.cip)
             self.logger.info("Client details: %s", client_details)
 
             if client_details is not None and msg[1] == client_details[2]:
                 client_api_key = client_details[2]
 
-                self.logger.debug('Key is correct for client %s (%s) @ %s. Establishing listen socket and returning info', client_details[0], client_details[1], self.cip)
+                self.logger.debug("Key is correct for client %s (%s) @ %s", client_details[0], client_details[1], self.cip)
                         
                 try:
                     socket.inet_pton(socket.AF_INET, msg[2]) #if we can do this, it is a valid ipv4 address
@@ -107,7 +109,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 self.newListen = listener.llListenerObject(log_file_handler, client_api_key, sip, (self.ll_clientip, self.ll_client_server_port), msg[4], msg[5], 
                                                             self.server.removeListenerObject, timeout=self.server.listener_timeout, webtv_port = webtv_port)
                 
-                if not self.newListen.listener.parser.HAD_ERROR: #check if the parser had an error during init or not
+                if not self.newListen.had_error(): #check if the parser had an error during init or not
                     lport = self.newListen.lport #port the listener is on
                     self.logger.debug("Listener port: %s", lport)
                     
