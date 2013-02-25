@@ -125,10 +125,10 @@ class parserClass():
 
         self.db.commit()
 
-        self.EVENT_TABLE = "log_event_" + self.UNIQUE_IDENT
-        self.STAT_TABLE = "log_stat_" + self.UNIQUE_IDENT
-        self.CHAT_TABLE = "log_chat_" + self.UNIQUE_IDENT
-        self.TEAM_TABLE = "log_team_" + self.UNIQUE_IDENT
+        self.EVENT_TABLE = "log_event_%s" % self.UNIQUE_IDENT
+        self.STAT_TABLE = "log_stat_%s" % self.UNIQUE_IDENT
+        self.CHAT_TABLE = "log_chat_%s" % self.UNIQUE_IDENT
+        self.TEAM_TABLE = "log_team_%s" % self.UNIQUE_IDENT
 
         dbCursor.close()
 
@@ -157,6 +157,7 @@ class parserClass():
             return
 
         try:
+            event_time = None
             #self.logger.debug("PARSING LOG: %s", logdata)
 
             regex = self.regex #avoid having to use fucking self.regex every time (ANNOYING++++)
@@ -184,7 +185,10 @@ class parserClass():
                 #print "Time of current log"
                 #pprint(res.groups())
                 
-                event_time = regml(res, 1) + " " + regml(res, 2)
+                event_time = "%s %s" % (regml(res, 1), regml(res, 2))
+            
+            if not event_time:
+                return
 
             #don't want to record stats that happen after round_win (bonustime kills and shit)
             if not self.ROUND_PAUSE:
@@ -219,7 +223,7 @@ class parserClass():
 
                     return
 
-                #damage taken and dealt (if log level is 2 in livelogs)
+                #damage taken and dealt (if appropriate log level is set (damage taken and damage dealt))
                 res = regex(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28damage "(\d+)"\x29', logdata)
                 if (res):
                     a_sid = regml(res, 3)
