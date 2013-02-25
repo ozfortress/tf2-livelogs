@@ -62,8 +62,8 @@ class llListener(SocketServer.UDPServer):
             
             self.timeoutTimer.cancel()
             
-            self.gameOverTimer = threading.Timer(8.0, self.shutdown)
-            self.gameOverTimer.start()
+            time.sleep(1) #sleep for 1 second to prevent a race condition
+            self.shutdown()
             
         else:
             if not self.parser.LOG_PARSING_ENDED:

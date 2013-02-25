@@ -862,7 +862,7 @@ newLogOnRestartCheck()
     if (is_logging)
     {
         if (debug_enabled) { LogMessage("Restart command issued while currently logging. Ending log"); }
-        LogToGame("LIVELOG_GAME_RESTART"); //tell the daemon that the current log needs to be closed, so a new one can be opened
+        LogToGame("\"LIVELOG_GAME_RESTART\""); //tell the daemon that the current log needs to be closed, so a new one can be opened
         endLogging();
 
         //if we're already logging, we should be logging on a restart too

@@ -190,6 +190,15 @@ class parserClass():
             if not event_time:
                 return
 
+
+            #log restart, sent when a mp_restartgame is issued (need a new log file, so we end this one)
+            res = regex(r'"LIVELOG_GAME_RESTART"')
+            if (res):
+                #end the log
+
+                self.GAME_OVER = True
+                self.endLogParsing(True)
+
             #don't want to record stats that happen after round_win (bonustime kills and shit)
             if not self.ROUND_PAUSE:
             #begin round_pause blocking
