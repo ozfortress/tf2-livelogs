@@ -51,7 +51,8 @@ livelogs_tournament_ready_only - Whether to start logging on tournament readies 
     Originally, using mp_restartgame used to set the teams' tournament state to ready (and hence would trigger the plugin). However, this was changed at some point in the past.
     This convar gives you the option of whether to start a log when mp_restartgame is used or not.
 
-    Setting this convar to "1" will make it so that logs are ONLY started when teams READY UP using F4. Setting it to "0" will cause new logs to be started on mp_restartgame, provided mp_tournament is enabled.
+    Setting this convar to "1" will make it so that logs are ONLY started when teams READY UP using F4. Setting it to "0" will cause new logs to be started on mp_restartgame, provided mp_tournament 
+    is enabled, as well as ready up.
 
 
 livelogs_enable_debugging - Enable/disable debug messages.
