@@ -31,7 +31,7 @@ public Plugin:myinfo =
 #endif
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
-	version = "0.6.1",
+	version = "0.6.2",
 	url = "http://livelogs.ozfortress.com"
 };
 
@@ -706,7 +706,7 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
             cleanUpWebSocket();
             
             //now open new websocket
-            if ((livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE) && (webtv_library_present) && (webtv_enabled))
+            if ((webtv_library_present) && (webtv_enabled) && (livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE))
             {
                 if (livelogs_webtv_cleanup_timer != INVALID_HANDLE)
                 {
