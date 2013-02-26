@@ -36,6 +36,12 @@
 //---------------------- EVENT AND CVAR CALLBACKS/HOOKS ----------------------
 ////
 
+
+public OnPluginEnd()
+{
+    cleanUpWebSocket();
+}
+
 public websocketConVarChangeHook(Handle:cvar, const String:oldval[], const String:newval[])
 {
     /*
