@@ -187,7 +187,7 @@ public OnPluginStart()
     new String:default_web_port[12];
     Format(default_web_port, sizeof(default_web_port), "%d", server_port + 2);
     
-    livelogs_webtv_listen_port = CreateConVar("livelogs_webtv_port", default_web_port, "The port to listen on for SourceTV 2D connections. Defaults to server port + 2", FCVAR_PROTECTED|FCVAR_DONTRECORD);
+    livelogs_webtv_listen_port = CreateConVar("livelogs_webtv_port", default_web_port, "The port to listen on for SourceTV 2D connections. Defaults to server port + 2", FCVAR_PROTECTED);
     livelogs_webtv_enabled = CreateConVar("livelogs_enable_webtv", "1", "Toggle whether or not SourceTV2D will run",
                                     FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
