@@ -1,6 +1,6 @@
 /*
     Livelogs server plugin
-    
+
     Copyright (C) 2012 Prithu "bladez" Parker
 
     This program is free software: you can redistribute it and/or modify
@@ -781,6 +781,33 @@ public onSocketError(Handle:socket, const errorType, const errorNum, any:arg)
 public sendSocketData(String:msg[])
 {
     new Handle:socket = SocketCreate(SOCKET_TCP, onSocketError);
+
+
+    new bind_port = 50000;
+    new bool:socket_bound = false;
+
+    while ((!socket_bound) && (bind_port < 65000))
+    {
+        if (!SocketBind(socket, server_ip, bind_port))
+        {
+            if (debug_enabled) { LogMessage("ERROR: Unable to bind request socket to port %d", bind_port); }
+
+            bind_port += 1;
+        }
+        else
+        {
+            socket_bound = true;
+        }
+        
+    }
+
+    //if the socket still isn't bound after the loop, we need to return
+    if (!socket_bound)
+    {
+        if (debug_enabled) { LogMessage("ERROR: Unable to bind request socket. Not getting logger details"); }
+        CloseHandle(socket);
+        return;
+    }
 
     SocketSetSendqueueEmptyCallback(socket, onSocketSendQueueEmpty); //define the callback function for empty send queue
 
