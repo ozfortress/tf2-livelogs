@@ -51,7 +51,7 @@ public Plugin:myinfo =
 #endif
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
-	version = "0.6.3",
+	version = "0.6.4",
 	url = "http://livelogs.ozfortress.com"
 };
 
