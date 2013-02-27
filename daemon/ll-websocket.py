@@ -42,7 +42,7 @@ log_file_handler.setFormatter(log_message_format)
 log_file_handler.setLevel(logging.DEBUG)
 
 class llWSApplication(tornado.web.Application):
-    def __init__(self):
+    def __init__(self, update_rate=10):
         handlers = [
             (r"/logupdate", logUpdateHandler),
             (r"/webrelay", webtvRelayHandler),
@@ -55,6 +55,8 @@ class llWSApplication(tornado.web.Application):
         self.logger = logging.getLogger("WS APP")
         self.logger.setLevel(logging.DEBUG)
         self.logger.addHandler(log_file_handler)
+
+        self.update_rate = update_rate
         
         self.log_clients = set() #set of ALL connected clients
         self.log_ordered_clients = { "none": set() } #ordered clients dict will have data in the form of: [ "log ident": (client, client, client) ], where the clients are in a set corresponding to
@@ -411,7 +413,7 @@ if __name__ == "__main__":
     
     tornado.options.parse_command_line()
     
-    llWebSocketServer = llWSApplication()
+    llWebSocketServer = llWSApplication(update_rate = tornado.options.options.update_rate)
         
     llWebSocketServer.db = momoko.Pool(
             dsn = db_details,
@@ -419,8 +421,6 @@ if __name__ == "__main__":
             maxconn = 50, #max number of conns that will be opened
             cleanup_timeout = 10, #how often (in seconds) connections are closed (cleaned up) when number of connections > minconn
         )
-    
-    llWebSocketServer.update_rate = tornado.options.options.update_rate
     
     llWebSocketServer.listen(tornado.options.options.port, tornado.options.options.ip)
     logger.info("Websocket server listening on %s:%s", tornado.options.options.ip, tornado.options.options.port)
