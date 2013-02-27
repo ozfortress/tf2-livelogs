@@ -101,7 +101,7 @@ class dbManager(object):
     
     def steamCommunityID(self, steam_id):
         #takes a steamid in the format STEAM_x:x:xxxxx and converts it to a 64bit community id
-        self.logger.debug("Converting SteamID %s to community id", steam_id)
+        self.log.debug("Converting SteamID %s to community id", steam_id)
 
         auth_server = 0;
         auth_id = 0;
