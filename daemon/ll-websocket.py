@@ -67,6 +67,8 @@ class llWSApplication(tornado.web.Application):
         self.log_update_thread = threading.Thread(target = self._sendUpdateThread, args=(self.log_update_thread_event,))
         self.log_update_thread.daemon = True
 
+        self.log_update_thread.start()
+
         tornado.web.Application.__init__(self, handlers, **settings)
         
     def addToOrderedClients(self, log_id, client):
@@ -82,9 +84,6 @@ class llWSApplication(tornado.web.Application):
             self.log_ordered_clients[log_id].add(client)
             
         self.log_ordered_clients["none"].discard(client) #remove from unallocated set
-
-        if not self.log_update_thread.isAlive():
-            self.log_update_thread.start()
         
     def removeFromOrderedClients(self, client):
         for key, client_set in self.log_ordered_clients.iteritems():
