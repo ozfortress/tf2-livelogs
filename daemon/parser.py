@@ -516,12 +516,16 @@ class parserClass():
             #end round_pause blocking
             
             #chat
-            res = regex(r'"(.+)<(\d+)><(.+)><(Red|Blue|Spectator)>" (say|say_team) "(.+)"', logdata)
+            #"Console<0><Console><Console>" say "blah"
+            res = regex(r'"(.+)<(\d+)><(.+)><(Red|Blue|Spectator|Console)>" (say|say_team) "(.+)"', logdata)
             if (res):
                 #print "Chat was said"
                 #pprint(res.groups())
 
                 c_sid = regml(res, 3)
+                if c_sid is "Console":
+                    c_sid = "STEAM_0:0:0"
+                    
                 c_name = self.escapePlayerString(regml(res, 1))
                 c_team = regml(res, 4)
 
