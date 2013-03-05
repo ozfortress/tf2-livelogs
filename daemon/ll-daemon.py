@@ -241,10 +241,8 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 conn = self.db.getconn() #get a connection object from the psycopg2.pool
                 
                 if conn.closed:
-                    self.db.putconn(conn)
-
-                    while conn.closed:
-                        conn = self.db.getconn()
+                    self.db.putconn(conn) #garbage the closed connection, and try get a new one
+                    conn = self.db.getconn()
 
                 curs = conn.cursor()
 
