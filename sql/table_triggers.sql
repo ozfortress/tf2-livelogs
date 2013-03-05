@@ -6,7 +6,7 @@ BEGIN
 
         --steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points decimal,
         --                                   healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer,
-        --                                   headshots integer, backstabs integer, damage_dealt integer,
+        --                                   headshots integer, backstabs integer, damage_taken integer, damage_dealt integer,
         --                                   ap_small integer, ap_medium integer, ap_large integer,
         --                                   mk_small integer, mk_medium integer, mk_large integer,
         --                                   captures integer, captures_blocked integer,
