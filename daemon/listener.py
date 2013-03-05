@@ -58,7 +58,6 @@ class llListener(SocketServer.UDPServer):
     def handle_server_timeout(self, game_over=False):
         if game_over:
             self.logger.info("Game over. Closing listening socket")
-            #put the shutdown in a timer to prevent a race condition
             
             self.timeoutTimer.cancel()
             

@@ -236,8 +236,16 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def getClientInfo(self, ip):
         #gets the API key for client with IP ip, so IPs will require unique keys, preventing unauthorised users
         if not self.db.closed:
+            user_details = None
             try:
                 conn = self.db.getconn() #get a connection object from the psycopg2.pool
+                
+                if conn.closed:
+                    self.db.putconn(conn)
+
+                    while conn.closed:
+                        conn = self.db.getconn()
+
                 curs = conn.cursor()
 
                 curs.execute("SELECT user_name, user_email, user_key FROM livelogs_auth_keys WHERE user_ip = %s", (ip,))

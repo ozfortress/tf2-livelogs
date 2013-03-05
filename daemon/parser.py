@@ -917,13 +917,13 @@ class parserClass():
             self.reconnectThread = threading.Thread(target = self._databaseReconnect)
             self.reconnectThread.daemon = True
 
-            time.sleep(5) #wait 5 seconds before starting the reconnect thread, so the database has time to close properly if it was shut down
             self.reconnectThread.start()
 
     def _databaseReconnect(self):
         loops = 0
 
         new_connection = None
+        time.sleep(5) #wait 5 seconds before starting loop, so the database has time to close properly if it was shut down
 
         while self.db.closed:
             #loop X times while the DB is closed
