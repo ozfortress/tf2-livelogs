@@ -19,6 +19,7 @@ import sys
 import os
 import threading
 import ConfigParser
+from HTMLParser import HTMLParser
 from pprint import pprint
 
 import listener

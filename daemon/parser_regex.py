@@ -1,4 +1,5 @@
 #preg = re.compile(expression, re.IGNORECASE | re.MULTILINE)
+import re
 
 def re_compiler(preg):
     return re.compile(preg, re.IGNORECASE | re.MULTILINE)
@@ -7,7 +8,7 @@ log_file_started = re_compiler(r'L (\S+) - (\S+) Log file started \x28file "(.*?
 log_timestamp = re_compiler(r'L (\S+) - (\S+):')
 game_restart = re_compiler(r'"LIVELOG_GAME_RESTART"')
 damage_dealt = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage" \x28damage "(\d+)"\x29')
-damage_taken = re.compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage_taken" \x28damage "(\d+)"\x29')
+damage_taken = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage_taken" \x28damage "(\d+)"\x29')
 player_damage = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28damage "(\d+)"\x29')
 healing_done = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "healed" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28healing "(\d+)"\x29')
 item_pickup = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" picked up item "(.*)"')
@@ -28,7 +29,7 @@ team_score = re_compiler(r'Team "(Blue|Red)" current score "(\d+)" with "(\d+)" 
 final_team_score = re_compiler(r'Team "(Blue|Red)" final score "(\d+)" with "(\d+)" players')
 game_over = re_compiler(r'World triggered "Game_Over" reason "(.*)"')
 rcon_command = re_compiler(r'rcon from "(.*?)": command "(.*)"')
-player_disconnect = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" disconnected \x28reason "(.*)"\x29)')
+player_disconnect = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" disconnected \x28reason "(.*)"\x29')
 player_connect = re_compiler(r'"(.*)<(\d+)><(.*)><>" connected, address "(.*?):(.*)"')
 player_validated = re_compiler(r'"(.*)<(\d+)><(.*)><>" STEAM USERID validated')
 player_class_change = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" changed role to "(.*)"')
