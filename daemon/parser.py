@@ -12,6 +12,7 @@ import socket
 import re
 import os
 import sys
+import threading
 import logging
 import logging.handlers
 
@@ -46,6 +47,9 @@ class parserClass():
                 
                 log_dir = cfg_parser.get('log-listener', 'log_directory')
                 
+
+                self._db_dsn = 'dbname=%s user=%s password=%s host=%s port=%s' % (
+                            db_name, db_user, db_pass, db_host, db_port)
             except:
                 self.logger.error("Unable to read options from config file")
                 self.HAD_ERROR = True
@@ -62,7 +66,7 @@ class parserClass():
                 #need to make the directory
                 os.makedirs(log_dir, 0755)
                 
-            log_file_name = "%s.log" % unique_ident    
+            log_file_name = "%s.log" % unique_ident
             log_file = os.path.normpath(os.path.join(log_dir, log_file_name))
             
             self.LOG_FILE_HANDLE = open(log_file, 'w')
@@ -74,7 +78,7 @@ class parserClass():
             return
             
         try:
-            self.db = psycopg2.connect(host=db_host, port=db_port, database=db_name, user=db_user, password=db_pass)
+            self.db = psycopg2.connect(self._db_dsn)
 
         except Exception, e:
             self.logger.exception("Had exception while trying to connect to psql database")
@@ -90,8 +94,11 @@ class parserClass():
         self.GAME_OVER = False
         self.ROUND_PAUSE = False
         self.LOG_PARSING_ENDED = False
+        self.RECONNECTING_TO_DATABASE = False
 
         self._using_livelogs_output = False
+
+        self._query_queue = [] #a list of queryQueueDataObject objects, to be processed on a reconnect
 
         #if no map is specified (auto detect), set map to 0
         if (current_map == None):
@@ -192,7 +199,7 @@ class parserClass():
 
 
             #log restart, sent when a mp_restartgame is issued (need a new log file, so we end this one)
-            res = regex(r'"LIVELOG_GAME_RESTART"')
+            res = regex(r'"LIVELOG_GAME_RESTART"', logdata)
             if (res):
                 #end the log
 
@@ -793,21 +800,28 @@ class parserClass():
         insert_query = "INSERT INTO %s (steamid, name, %s) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, steamid, name, value)
         update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE steamid = E'%s'" % (self.STAT_TABLE, column, column, value, steamid)
 
-        curs = self.db.cursor()
-        
-        try:
-            curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
-            self.db.commit()
-        except psycopg2.DataError, e:
-            self.logger.exception("DB DATA ERROR INSERTING DATA %s", query)
+        if not self.db.closed:
+            curs = self.db.cursor()
             
-            self.db.rollback()
-        except Exception, e:
-            self.logger.exception("DB ERROR")
-            
-            self.db.rollback()
-            
-        curs.close()
+            try:
+                curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
+                self.db.commit()
+            except psycopg2.DataError, e:
+                self.logger.exception("DB DATA ERROR INSERTING DATA %s", query)
+                
+                self.db.rollback()
+            except Exception, e:
+                self.logger.exception("DB ERROR")
+                
+                self.db.rollback()
+            finally:
+                curs.close()
+
+        else:
+            if not self.RECONNECTING_TO_DATABASE:
+                self.reconnectToDatabase()
+
+            self.addToQueryQueue("upsert", insert_query, update_query)
 
     def escapePlayerString(self, unescaped_string):
         return unescaped_string.replace("'", "''").replace("\\", "\\\\");
@@ -836,22 +850,29 @@ class parserClass():
             self.executeQuery(team_insert_query, curs)
                     
     def executeQuery(self, query, curs=None):
-        if not curs:
-            curs = self.db.cursor()
-            
-        try:
-            curs.execute(query)
-            self.db.commit()
-        except psycopg2.DataError, e:
-            self.logger.exception("DB DATA ERROR INSERTING DATA %s", query)
-            
-            self.db.rollback()
-        except Exception, e:
-            self.logger.exception("DB ERROR")
-            
-            self.db.rollback()
+        if not self.db.closed:
+            if not curs:
+                curs = self.db.cursor()
+                
+            try:
+                curs.execute(query)
+                self.db.commit()
+            except psycopg2.DataError, e:
+                self.logger.exception("DB DATA ERROR INSERTING DATA %s", query)
+                
+                self.db.rollback()
+            except Exception, e:
+                self.logger.exception("DB ERROR")
+                
+                self.db.rollback()
+            finally:
+                curs.close()
 
-        curs.close()
+        else:
+            if not self.RECONNECTING_TO_DATABASE:
+                self.reconnectToDatabase()
+
+            self.addToQueryQueue("insert", query)
 
     def endLogParsing(self, game_over=False):
         if not self.LOG_PARSING_ENDED:
@@ -877,6 +898,59 @@ class parserClass():
             if self.LOG_FILE_HANDLE:
                 if not self.LOG_FILE_HANDLE.closed:
                     self.LOG_FILE_HANDLE.close()
+
+    def reconnectToDatabase(self):
+        if self.db.closed and not self.RECONNECTING_TO_DATABASE:
+            self._processing_queue = False
+            self.RECONNECTING_TO_DATABASE = True
+
+            self.reconnectThread = threading.Thread(target = self._databaseReconnect)
+            self.reconnectThread.daemon = True
+            self.reconnectThread.start()
+
+    def _databaseReconnect(self):
+        loops = 0
+
+        while self.db.closed:
+            #loop X times while the DB is closed
+            if loops < 10:
+                try:
+                    new_connection = psycopg2.connect(self._db_dsn)
+
+                except:
+                    self.logger.exception("Exception trying to reconnect to database")
+
+                finally:
+                    if not new_connection.closed:
+                        #we have the connection! now we need to assign it
+                        self.db = new_connection
+
+                        self.RECONNECTING_TO_DATABASE = False
+
+                        #process the queue... this has to block. not going to worry about it for now. just need to get this fix out
+                        #TODO: process the queue!
+                        self._query_queue = [] #just empty the queue for now
+
+                        break #break out of the while loop, terminating the thread
+
+                    else:
+                        #wait 10 seconds before trying to connect again
+                        loops += 1
+                        time.sleep(10)
+            else:
+                break
+
+    def addToQueryQueue(self, query_type, insert_query, update_query=None):
+        #adds the query to the query queue
+        if not self._processing_queue:
+
+            self._query_queue.append(queryQueueDataObject(query_type, insert_query, update_query))
+
+    def processQueryQueue(self):
+        #called once the parser has reconnected to the database. will process the query queue, adding all data to the appropriate tables
+        self._processing_queue = True
+
+        pass
     
     def __del__(self):
         if self.LOG_FILE_HANDLE:
@@ -887,3 +961,10 @@ class parserClass():
             if not self.db.closed:
                 self.endLogParsing()
                 #self.db.close()
+
+class queryQueueDataObject(object):
+    #this class is just a data structure to hold query information for the query queue
+    def __init__(self, query_type, insert_query, update_query=None):
+        self.query_type = query_type
+        self.insert_query = insert_query
+        self.update_query = update_query

@@ -300,7 +300,13 @@ if __name__ == '__main__':
         logger.info("Keyboard interrupt. Closing daemon")
         llServer.db.closeall() #close all database connections in the pool
 
+        for listenobj in llServer.listen_set:
+            logger.info("Ending log with ident %s", listenobj.unique_parser_ident)
+            listenobj.listener.parser.endLogParsing()
+
         llServer.shutdown()
+
+        logger.info("Shutdown successful")
 
         sys.exit("KeyboardInterrupt")
 

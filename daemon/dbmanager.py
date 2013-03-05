@@ -604,8 +604,9 @@ class dbManager(object):
         
         #NOTE: WE DO ____NOT____ CLOSE THE DATABASE. IT IS THE MOMOKO POOL, AND IS RETAINED THROUGHOUT THE APPLICATION
         if self.updateThread.isAlive():
-            self.updateThreadEvent.set()
+            self.updateThreadEvent.set() #trigger the threading event, terminating the update thread
             
+            #the join loop is so that we wait for the last update to run before closing the thread. we don't want the thread to remain running while the dbManager object is closed, so we need to wait
             while self.updateThread.isAlive(): 
                 self.updateThread.join(5)
                 
