@@ -531,19 +531,22 @@ class parserClass():
                 event_insert_query = "INSERT INTO %s (event_time, event_type) VALUES (E'%s', '%s')" % (self.EVENT_TABLE, event_time, "chat")
                 self.executeQuery(event_insert_query)
 
-                #now we need to get the event ID and put it into chat!
-                curs = self.db.cursor()
-                eventid_query = "SELECT eventid FROM %s WHERE event_type = 'chat' ORDER BY eventid DESC LIMIT 1" % self.EVENT_TABLE
-                curs.execute(eventid_query)
-                eventid = curs.fetchone()[0]
+                if not self.db.closed:
+                    curs = self.db.cursor()
+                    try:
+                        #now we need to get the event ID and put it into chat!
+                        
+                        eventid_query = "SELECT eventid FROM %s WHERE event_type = 'chat' ORDER BY eventid DESC LIMIT 1" % self.EVENT_TABLE
+                        curs.execute(eventid_query)
+                        eventid = curs.fetchone()[0]
 
-                chat_insert_query = "INSERT INTO %s (eventid, steamid, name, team, chat_type, chat_message) VALUES ('%s', E'%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, 
-                                                        eventid, c_sid, c_name, c_team, chat_type, chat_message)
+                        chat_insert_query = "INSERT INTO %s (eventid, steamid, name, team, chat_type, chat_message) VALUES ('%s', E'%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, 
+                                                                eventid, c_sid, c_name, c_team, chat_type, chat_message)
 
-                curs.execute(chat_insert_query)
-                
-                self.db.commit()
-                curs.close()
+                        self.executeQuery(chat_insert_query, curs=curs) #execute query will perform the insert query, commit, and close the cursor
+
+                    except Exception, e:
+                        self.logger.exception("Exception trying to get chat eventid")
 
                 return        
             
@@ -815,7 +818,8 @@ class parserClass():
                 
                 self.db.rollback()
             finally:
-                curs.close()
+                if not self.db.closed: #the cursor will auto close if the db closes for whatever reason
+                    curs.close()
 
         else:
             if not self.RECONNECTING_TO_DATABASE:
@@ -866,7 +870,8 @@ class parserClass():
                 
                 self.db.rollback()
             finally:
-                curs.close()
+                if not self.db.closed: #the cursor will auto close if the db closes for whatever reason
+                    curs.close()
 
         else:
             if not self.RECONNECTING_TO_DATABASE:
@@ -911,8 +916,11 @@ class parserClass():
     def _databaseReconnect(self):
         loops = 0
 
+        new_connection = None
+
         while self.db.closed:
             #loop X times while the DB is closed
+            self.logger.info("Attempting to reconnect to the database...")
             if loops < 10:
                 try:
                     new_connection = psycopg2.connect(self._db_dsn)
@@ -921,8 +929,9 @@ class parserClass():
                     self.logger.exception("Exception trying to reconnect to database")
 
                 finally:
-                    if not new_connection.closed:
+                    if new_connection not new_connection.closed:
                         #we have the connection! now we need to assign it
+                        self.logger.info("Successfully reconnected to the database")
                         self.db = new_connection
 
                         self.RECONNECTING_TO_DATABASE = False
