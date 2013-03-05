@@ -111,6 +111,9 @@
                             <abbr title="Damage Dealt">DMG</abbr>
                         </th>
                         <th class="stat_summary_col_title">
+                            <abbr title="Damage Taken">DT</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
                             <abbr title="Healing Received">HealR</abbr>
                         </th>
                         <th class="stat_summary_col_title">

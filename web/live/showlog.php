@@ -480,7 +480,7 @@
                         ?>
 
                             <tr>
-                                <td class="player_chat"><span class="<?=$team_class?>"><?=htmlentities($pchat["name"]?, ENT_QUOTES, "UTF-8")></span></td>
+                                <td class="player_chat"><span class="<?=$team_class?>"><?=htmlentities($pchat["name"], ENT_QUOTES, "UTF-8")?></span></td>
                                 <td><span class="player_chat">(<?=$chat_type?>)</span> <span class="player_chat_message"><?=htmlentities($pchat["chat_message"], ENT_QUOTES, "UTF-8")?></span></td>
                             </tr>
                         <?php
