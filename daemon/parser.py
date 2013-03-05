@@ -802,30 +802,32 @@ class parserClass():
         #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
         insert_query = "INSERT INTO %s (steamid, name, %s) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, steamid, name, value)
         update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE steamid = E'%s'" % (self.STAT_TABLE, column, column, value, steamid)
-
-        if not self.db.closed:
-            curs = self.db.cursor()
-            
-            try:
-                curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
-                self.db.commit()
-            except psycopg2.DataError, e:
-                self.logger.exception("DB DATA ERROR INSERTING DATA %s", query)
+        try:
+            if not self.db.closed:
+                curs = self.db.cursor()
                 
-                self.db.rollback()
-            except Exception, e:
-                self.logger.exception("DB ERROR")
-                
-                self.db.rollback()
-            finally:
-                if not self.db.closed: #the cursor will auto close if the db closes for whatever reason
-                    curs.close()
+                try:
+                    curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
+                    self.db.commit()
+                except psycopg2.DataError, e:
+                    self.logger.exception("DB DATA ERROR INSERTING DATA %s", query)
+                    
+                    self.db.rollback()
+                except Exception, e:
+                    self.logger.exception("DB ERROR")
+                    
+                    self.db.rollback()
+                finally:
+                    if not self.db.closed: #the cursor will auto close if the db closes for whatever reason
+                        curs.close()
 
-        else:
-            if not self.RECONNECTING_TO_DATABASE:
-                self.reconnectToDatabase()
+            else:
+                if not self.RECONNECTING_TO_DATABASE:
+                    self.reconnectToDatabase()
 
-            self.addToQueryQueue("upsert", insert_query, update_query)
+                self.addToQueryQueue("upsert", insert_query, update_query)
+        except:
+            self.logger.exception("Exception occurred rolling back the connection")
 
     def escapePlayerString(self, unescaped_string):
         return unescaped_string.replace("'", "''").replace("\\", "\\\\");
@@ -854,30 +856,33 @@ class parserClass():
             self.executeQuery(team_insert_query, curs)
                     
     def executeQuery(self, query, curs=None):
-        if not self.db.closed:
-            if not curs:
-                curs = self.db.cursor()
-                
-            try:
-                curs.execute(query)
-                self.db.commit()
-            except psycopg2.DataError, e:
-                self.logger.exception("DB DATA ERROR INSERTING DATA %s", query)
-                
-                self.db.rollback()
-            except Exception, e:
-                self.logger.exception("DB ERROR")
-                
-                self.db.rollback()
-            finally:
-                if not self.db.closed: #the cursor will auto close if the db closes for whatever reason
-                    curs.close()
+        try:
+            if not self.db.closed:
+                if not curs:
+                    curs = self.db.cursor()
+                    
+                try:
+                    curs.execute(query)
+                    self.db.commit()
+                except psycopg2.DataError, e:
+                    self.logger.exception("DB DATA ERROR INSERTING DATA %s", query)
+                    
+                    self.db.rollback()
+                except Exception, e:
+                    self.logger.exception("DB ERROR")
+                    
+                    self.db.rollback()
+                finally:
+                    if not self.db.closed: #the cursor will auto close if the db closes for whatever reason
+                        curs.close()
 
-        else:
-            if not self.RECONNECTING_TO_DATABASE:
-                self.reconnectToDatabase()
+            else:
+                if not self.RECONNECTING_TO_DATABASE:
+                    self.reconnectToDatabase()
 
-            self.addToQueryQueue("insert", query)
+                self.addToQueryQueue("insert", query)
+        except:
+            self.logger.exception("Exception occurred rolling back the connection")
 
     def endLogParsing(self, game_over=False):
         if not self.LOG_PARSING_ENDED:
@@ -911,6 +916,8 @@ class parserClass():
 
             self.reconnectThread = threading.Thread(target = self._databaseReconnect)
             self.reconnectThread.daemon = True
+
+            time.sleep(5) #wait 5 seconds before starting the reconnect thread, so the database has time to close properly if it was shut down
             self.reconnectThread.start()
 
     def _databaseReconnect(self):
@@ -929,7 +936,7 @@ class parserClass():
                     self.logger.exception("Exception trying to reconnect to database")
 
                 finally:
-                    if new_connection not new_connection.closed:
+                    if new_connection and not new_connection.closed:
                         #we have the connection! now we need to assign it
                         self.logger.info("Successfully reconnected to the database")
                         self.db = new_connection
