@@ -340,7 +340,7 @@
                     ?>
                         
                         <tr>
-                            <td><a id="<?=$community_id . ".name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=$pstat["name"]?></a></td>
+                            <td><a id="<?=$community_id . ".name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=htmlentities($pstat["name"], ENT_QUOTES, "UTF-8")?></a></td>
                             <td id="<?=$community_id . ".kills"?>"><?=$pstat["kills"]?></td>
                             <td id="<?=$community_id . ".deaths"?>"><?=$pstat["deaths"]?></td>
                             <td id="<?=$community_id . ".assists"?>"><?=$pstat["assists"]?></td>
@@ -401,7 +401,7 @@
                         ?>
                         
                         <tr>
-                            <td><a class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=$mstats[$i]["name"]?></a></td>
+                            <td><a class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=htmlentities($mstats[$i]["name"], ENT_QUOTES, "UTF-8")?></a></td>
                             <td id="<?=$community_id . ".healing_done"?>"><?=$mstats[$i]["healing_done"]?></td>
                             <td id="<?=$community_id . ".ubers_used"?>"><?=$mstats[$i]["ubers_used"]?></td>
                             <td id="<?=$community_id . ".ubers_lost"?>"><?=$mstats[$i]["ubers_lost"]?></td>
@@ -480,8 +480,8 @@
                         ?>
 
                             <tr>
-                                <td class="player_chat"><span class="<?=$team_class?>"><?=$pchat["name"]?></span></td>
-                                <td><span class="player_chat">(<?=$chat_type?>)</span> <span class="player_chat_message"><?=$pchat["chat_message"]?></span></td>
+                                <td class="player_chat"><span class="<?=$team_class?>"><?=htmlentities($pchat["name"]?, ENT_QUOTES, "UTF-8")></span></td>
+                                <td><span class="player_chat">(<?=$chat_type?>)</span> <span class="player_chat_message"><?=htmlentities($pchat["chat_message"], ENT_QUOTES, "UTF-8")?></span></td>
                             </tr>
                         <?php
                         }

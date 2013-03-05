@@ -29,6 +29,25 @@ log_file_handler = logging.handlers.TimedRotatingFileHandler("daemon.log", when=
 log_file_handler.setFormatter(log_message_format)
 log_file_handler.setLevel(logging.DEBUG)
 
+#this class is used to remove all HTML tags from player strings
+class HTMLStripper(HTMLParser):
+    def __init__(self):
+        self.reset()
+        self.fed = [] #fed is what is fed to the class by the function
+
+    def handle_data(self, d):
+        self.fed.append(d)
+
+    def get_data(self):
+        return ''.join(self.fed)
+
+def stripHTMLTags(string):
+    stripper = HTMLStripper()
+    stripper.feed(string)
+
+    return stripper.get_data() #get the text out
+
+
 class llDaemonHandler(SocketServer.BaseRequestHandler):
     def __init__(self, request, client_address, server):
         self.logger = logging.getLogger('handler')
@@ -106,7 +125,9 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                     except:
                         self.logger.exception("Unknown exception casting webtv_port to int. Defaulting to None")
 
-                self.newListen = listener.llListenerObject(log_file_handler, client_api_key, sip, (self.ll_clientip, self.ll_client_server_port), msg[4], msg[5], 
+                log_name = self.escapeString(msg[5])
+
+                self.newListen = listener.llListenerObject(log_file_handler, client_api_key, sip, (self.ll_clientip, self.ll_client_server_port), msg[4], log_name, 
                                                             self.server.removeListenerObject, timeout=self.server.listener_timeout, webtv_port = webtv_port)
                 
                 if not self.newListen.had_error(): #check if the parser had an error during init or not
@@ -137,6 +158,12 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
         return
         
+    def escapeString(self, string):
+        escaped_string = string.replace("'", "''").replace("\\", "\\\\")
+        escaped_string = stripHTMLTags(escaped_string)
+
+        return escaped_string
+
     def finish(self):
         if self.newListen:
             self.logger.debug("Finished handling request from %s:%s. Listener established", self.cip, self.cport)
@@ -144,7 +171,8 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
             self.logger.debug("Finished handling request from %s:%s. Listener not running", self.cip, self.cport)
 
         self.request.close() #close the connection, as we've finished the request
-        
+
+
 class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def __init__(self, server_ip, handler=llDaemonHandler):
         self.logger = logging.getLogger('daemon')

@@ -11,8 +11,10 @@ import struct
 import socket
 import re
 import os
-import sys
 import threading
+from HTMLParser import HTMLParser
+
+
 import logging
 import logging.handlers
 
@@ -107,7 +109,7 @@ class parserClass():
             self.current_map = current_map
 
         if (webtv_port == None):
-            webtv_port = 0;
+            webtv_port = 0
             
             
         self.logger.info("PARSER UNIQUE IDENT: " + self.UNIQUE_IDENT)
@@ -525,7 +527,7 @@ class parserClass():
                 c_sid = regml(res, 3)
                 if c_sid is "Console":
                     c_sid = "STEAM_0:0:0"
-                    
+
                 c_name = self.escapePlayerString(regml(res, 1))
                 c_team = regml(res, 4)
 
@@ -834,7 +836,10 @@ class parserClass():
             self.logger.exception("Exception occurred rolling back the connection")
 
     def escapePlayerString(self, unescaped_string):
-        return unescaped_string.replace("'", "''").replace("\\", "\\\\");
+        escaped_string = unescaped_string.replace("'", "''").replace("\\", "\\\\")
+        escaped_string = stripHTMLTags(escaped_string)
+
+        return escaped_string
 
     #this method can take up to two players and insert their teams into the database
     def insertPlayerTeam(self, a_sid, a_team, b_sid = None, b_team = None):
@@ -903,7 +908,7 @@ class parserClass():
                 
                 #begin ending timer
                 if ((self.closeListenerCallback != None) and (game_over)):
-                    self.closeListenerCallback(game_over);
+                    self.closeListenerCallback(game_over)
 
             if self.db:
                 if not self.db.closed:
@@ -971,7 +976,7 @@ class parserClass():
         self._processing_queue = True
 
         pass
-    
+
     def __del__(self):
         if self.LOG_FILE_HANDLE:
             if not self.LOG_FILE_HANDLE.closed:
@@ -988,3 +993,21 @@ class queryQueueDataObject(object):
         self.query_type = query_type
         self.insert_query = insert_query
         self.update_query = update_query
+
+#this class is used to remove all HTML tags from player strings
+class HTMLStripper(HTMLParser):
+    def __init__(self):
+        self.reset()
+        self.fed = [] #fed is what is fed to the class by the function
+
+    def handle_data(self, d):
+        self.fed.append(d)
+
+    def get_data(self):
+        return ''.join(self.fed)
+
+def stripHTMLTags(string):
+    stripper = HTMLStripper()
+    stripper.feed(string)
+
+    return stripper.get_data() #get the text out

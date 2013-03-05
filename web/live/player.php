@@ -27,7 +27,7 @@
         }
     ?>
 
-    <title>Livelogs - <?=$pstat["name"]?>'s stats</title>
+    <title>Livelogs - <?=htmlentities($pstat["name"], ENT_QUOTES, "UTF-8")?>'s stats</title>
 
 </head>
 <body class="ll_body">
@@ -75,7 +75,7 @@
         ?>
 
         <div class="player_details_container">
-            <span class="log_name_id">Name:</span> <span><a href="//steamcommunity.com/profiles/<?=$community_id?>"><?=$pstat["name"]?></a></span> <br>
+            <span class="log_name_id">Name:</span> <span><a href="//steamcommunity.com/profiles/<?=$community_id?>"><?=htmlentities($pstat["name"], ENT_QUOTES, "UTF-8")?></a></span> <br>
             <span class="log_name_id">Steam ID:</span> <span><?=$steamid?></span> <br>
         </div>
 
@@ -164,6 +164,7 @@
                         <td><span id="<?=$community_id . ".backstabs"?>"><?=$pstat["backstabs"]?></span></td>
                         <td><span id="<?=$community_id . ".points"?>"><?=$pstat["points"]?></span></td>
                         <td><span id="<?=$community_id . ".damage"?>"><?=$pstat["damage_dealt"]?></span></td>
+                        <td><span id="<?=$community_id . ".damage_taken"?>"><?=$pstat["damage_taken"]?></span></td>
                         <td><span id="<?=$community_id . ".heal_rcvd"?>"><?=$pstat["healing_received"]?></span></td>
                         <td><span id="<?=$community_id . ".dominations"?>"><?=$pstat["dominations"]?></span></td>
                         <td><span id="<?=$community_id . ".t_dominated"?>"><?=$pstat["times_dominated"]?></span></td>
