@@ -339,7 +339,11 @@ if __name__ == '__main__':
 
         for listenobj in llServer.listen_set:
             logger.info("Ending log with ident %s", listenobj.unique_parser_ident)
-            listenobj.listener.parser.endLogParsing()
+
+            if not listenobj.listener.parser.LOG_PARSING_ENDED:
+                listenobj.listener.parser.endLogParsing()
+            else:
+                logger.info("\tListen object is still present, but the log has actually ended")
 
         llServer.shutdown()
 

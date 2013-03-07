@@ -30,7 +30,7 @@ class llListener(SocketServer.UDPServer):
 
         self.listener_object = listener_object #llListenerObject address, which holds this listener. needed to end the listening thread, and remove the object from the daemon's set
 
-        self.timeoutTimer = threading.Timer(self.timeout, self.handle_server_timeout)
+
 
         SocketServer.UDPServer.__init__(self, listener_address, handler_class)
 
@@ -49,6 +49,8 @@ class llListener(SocketServer.UDPServer):
             self.timeoutTimer.cancel()
 
             #restart the timeout timer, so it doesn't prematurely timeout the listener
+            self.timeoutTimer = threading.Timer(self.timeout, self.handle_server_timeout) #we have to re-assign it, because threads can only be started once.
+            #TODO: IMPLEMENT BETTER TIMEOUT METHOD THAT DOES NOT START A NEW THREAD EVERY OTHER SECOND
             self.timeoutTimer.start()
 
             return True
