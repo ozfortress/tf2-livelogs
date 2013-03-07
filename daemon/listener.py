@@ -70,7 +70,7 @@ class llListener(SocketServer.UDPServer):
             we need to call the shutdown in a THREAD, otherwise the method will deadlock the current thread
             this is only needed when game_over is set, because if game_over is not set this method is being called from a timer (which is in a thread)
             """
-            newthread = threading.Thread(target=self.__listener_shutdown()) 
+            newthread = threading.Thread(target=self.__listener_shutdown) 
             newthread.daemon = True
             newthread.start()
             
