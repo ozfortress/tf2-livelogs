@@ -65,7 +65,14 @@ class llListener(SocketServer.UDPServer):
             self.timeoutTimer.cancel()
             
             time.sleep(1) #sleep for 1 second to prevent a race condition
-            self.shutdown()
+
+            """
+            we need to call the shutdown in a THREAD, otherwise the method will deadlock the current thread
+            this is only needed when game_over is set, because if game_over is not set this method is being called from a timer (which is in a thread)
+            """
+            newthread = threading.Thread(target=self.__listener_shutdown()) 
+            newthread.daemon = True
+            newthread.start()
             
         else:
             if not self.parser.LOG_PARSING_ENDED:
@@ -75,11 +82,17 @@ class llListener(SocketServer.UDPServer):
                 if not self.parser.HAD_ERROR:
                     self.parser.endLogParsing()
                 
-                self.shutdown()
+                self.__listener_shutdown()
        
         return
 
-    def shutdown(self):
+    def __listener_shutdown(self):
+        if threading.current_thread() is self.listener_object.lthread:
+            self.logger.error("__listener_shutdown called from the same thread as the listener. will cause deadlock")
+
+            return
+
+
         self.logger.info("Shutting down listener on %s:%s", self.server_address[0], self.server_address[1])
 
         #need to close the parser's database connection
@@ -88,7 +101,7 @@ class llListener(SocketServer.UDPServer):
                 #self.parser.db.cancel()
                 self.parser.endLogParsing()
                   
-        SocketServer.UDPServer.shutdown(self)
+        self.shutdown() #call the class's in-built shutdown method, which closes the socket and cleans up
         
         #should no longer be listening or anything now, so we can call close_object, which will join the thread and remove llListenerObject from the daemon's set
         self.listener_object.close_object()
@@ -138,10 +151,10 @@ class llListenerObject(object):
 
     def error_cleanup(self):
         self.listener.timeoutTimer.cancel()
-        self.listener.shutdown()
+        self.listener.__listener_shutdown()
         
-    def close_object(self): #only ever called by listener.shutdown()
-        while self.lthread.isAlive(): #attempt to join the thread
+    def close_object(self): #only ever called by listener.__listener_shutdown()
+        while self.lthread.isAlive(): #attempt to join the socket thread, which will indicate that the listener has properly stopped. this is called from a separate thread to the listener, so it will not block or deadlock
             self.lthread.join(5)
         
         self.logger.info("Listener thread joined. Removing listener object from set")

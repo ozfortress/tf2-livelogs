@@ -209,6 +209,8 @@ class parserClass():
                 self.GAME_OVER = True
                 self.endLogParsing(True)
 
+                return
+
             #don't want to record stats that happen after round_win (bonustime kills and shit)
             if not self.ROUND_PAUSE:
             #begin round_pause blocking
@@ -614,7 +616,7 @@ class parserClass():
 
                 return
                 
-            #current score (shown after round win/round length
+            #current score (shown after round win/round length)
             #L 10/21/2012 - 01:23:48: World triggered "Round_Win" (winner "Blue")
             #L 10/21/2012 - 01:23:48: World triggered "Round_Length" (seconds "88.26")
             #L 10/21/2012 - 01:23:48: Team "Red" current score "0" with "6" players
@@ -737,12 +739,14 @@ class parserClass():
 
             #round length
             #World triggered "Round_Length" (seconds "402.58")
+            #World triggered "Round_Length" \x28seconds "(\d+\.\d+)\x29
+            #World triggered "Round_length" \x28seconds "(\d+)\.(\d+)"\x29
             res = regex(parser_regex.round_length, logdata)
             if (res):
                 #print "Round length"
                 #pprint(res.groups())
         
-                r_length = regml(res, 1)
+                r_length = "%s.%s" % (regml(res, 1), regml(res, 2))
 
                 event_update_query = "UPDATE %s SET round_length = '%s' WHERE eventid = (SELECT eventid FROM %s WHERE event_type = 'round_end' ORDER BY eventid DESC LIMIT 1)" % (self.EVENT_TABLE, r_length, self.EVENT_TABLE)
 
@@ -798,8 +802,8 @@ class parserClass():
 
                 return
 
-
-            self.logger.info("Reached end of regex checks with no match. Log data: %s", logdata)
+            if not self.ROUND_PAUSE:
+                self.logger.info("Reached end of regex checks with no match. Log data: %s", self.ROUND_PAUSE, logdata)
 
         except Exception, e:
             self.logger.exception("Exception parsing log data: %s", logdata)
