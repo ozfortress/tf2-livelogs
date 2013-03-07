@@ -30,7 +30,7 @@ log_file_handler = logging.handlers.TimedRotatingFileHandler("daemon.log", when=
 log_file_handler.setFormatter(log_message_format)
 log_file_handler.setLevel(logging.DEBUG)
 
-logging.addHandler(log_file_handler)
+logging.getLogger().addHandler(log_file_handler)
 
 #this class is used to remove all HTML tags from player strings
 class HTMLStripper(HTMLParser):
@@ -55,7 +55,6 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
     def __init__(self, request, client_address, server):
         self.logger = logging.getLogger('handler')
         self.logger.setLevel(logging.DEBUG)
-        self.logger.addHandler(log_file_handler)
 
         #self.logger.debug('Handler init. APIKEY: %s', server.LL_API_KEY)
 
@@ -130,7 +129,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
                 log_name = self.escapeString(msg[5])
 
-                self.newListen = listener.llListenerObject(log_file_handler, client_api_key, sip, (self.ll_clientip, self.ll_client_server_port), msg[4], log_name, 
+                self.newListen = listener.llListenerObject(client_api_key, sip, (self.ll_clientip, self.ll_client_server_port), msg[4], log_name, 
                                                             self.server.removeListenerObject, timeout=self.server.listener_timeout, webtv_port = webtv_port)
                 
                 if not self.newListen.had_error(): #check if the parser had an error during init or not
@@ -326,7 +325,6 @@ if __name__ == '__main__':
 
     logger = logging.getLogger('MAIN')
     logger.setLevel(logging.DEBUG)
-    logger.addHandler(log_file_handler)
 
     logger.info("Server on %s:%s under PID %s", sip, sport, os.getpid())
     

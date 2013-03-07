@@ -22,11 +22,11 @@ from pprint import pprint
 import parser_regex
 
 
-log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
+"""log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
 
 log_file_handler = logging.handlers.TimedRotatingFileHandler("parser.log", when="midnight")
 log_file_handler.setFormatter(log_message_format)
-log_file_handler.setLevel(logging.DEBUG)
+log_file_handler.setLevel(logging.DEBUG)"""
 
 class parserClass():
     def __init__(self, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc=None, webtv_port=None):
@@ -37,7 +37,6 @@ class parserClass():
 
         self.logger = logging.getLogger(unique_ident)
         self.logger.setLevel(logging.DEBUG)
-        #self.logger.addHandler(log_file_handler)
 
         import ConfigParser
         cfg_parser = ConfigParser.SafeConfigParser()

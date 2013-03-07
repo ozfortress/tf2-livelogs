@@ -30,6 +30,8 @@ class llListener(SocketServer.UDPServer):
 
         self.listener_object = listener_object #llListenerObject address, which holds this listener. needed to end the listening thread, and remove the object from the daemon's set
 
+        self.timeoutTimer = threading.Timer(self.timeout, self.handle_server_timeout)
+
         SocketServer.UDPServer.__init__(self, listener_address, handler_class)
 
     def verify_request(self, request, client_address):
@@ -47,7 +49,6 @@ class llListener(SocketServer.UDPServer):
             self.timeoutTimer.cancel()
 
             #restart the timeout timer, so it doesn't prematurely timeout the listener
-            self.timeoutTimer = threading.Timer(self.timeout, self.handle_server_timeout)
             self.timeoutTimer.start()
 
             return True
@@ -91,12 +92,11 @@ class llListener(SocketServer.UDPServer):
         self.listener_object.close_object()
 
 class llListenerObject(object):
-    def __init__(self, log_file_handler, client_api_key, listen_ip, client_address, current_map, log_name, end_function, webtv_port=None, timeout=90.0):
+    def __init__(self, client_api_key, listen_ip, client_address, current_map, log_name, end_function, webtv_port=None, timeout=90.0):
         self.unique_parser_ident = "%s_%s_%s" % (self.ip2long(client_address[0]), client_address[1], int(round(time.time())))
 
         self.logger = logging.getLogger("LISTENER #%s" % self.unique_parser_ident)
         self.logger.setLevel(logging.DEBUG)
-        #self.logger.addHandler(log_file_handler)
 
         self.listen_ip = listen_ip
 
