@@ -40,3 +40,8 @@ round_start = re_compiler(r'World triggered "Round_Start"')
 round_setup_end = re_compiler(r'World triggered "Round_Setup_End"')
 mini_round_win = re_compiler(r'World triggered "Mini_Round_Win" \x28winner "(Blue|Red)"\x29 \x28round "round_(\d+)"\x29')
 mini_round_length = re_compiler(r'World triggered "Mini_Round_Length" \x28seconds "(\d+.\d+)"\x29')
+
+#L 03/07/2013 - 18:00:26: Loading map "cp_granary"
+#L 03/07/2013 - 18:00:27: Started map "cp_granary" (CRC "4f34345d09eff7fc96af9a421e81a4b8")
+#L 03/07/2013 - 18:00:27: -------- Mapchange to cp_granary --------
+map_change = re_compiler(r'Started map "(.*)" \x28CRC "(.*)"\x29')

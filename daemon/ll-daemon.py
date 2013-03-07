@@ -30,6 +30,8 @@ log_file_handler = logging.handlers.TimedRotatingFileHandler("daemon.log", when=
 log_file_handler.setFormatter(log_message_format)
 log_file_handler.setLevel(logging.DEBUG)
 
+logging.addHandler(log_file_handler)
+
 #this class is used to remove all HTML tags from player strings
 class HTMLStripper(HTMLParser):
     def __init__(self):

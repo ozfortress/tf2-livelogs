@@ -96,14 +96,14 @@ class llListenerObject(object):
 
         self.logger = logging.getLogger("LISTENER #%s" % self.unique_parser_ident)
         self.logger.setLevel(logging.DEBUG)
-        self.logger.addHandler(log_file_handler)
+        #self.logger.addHandler(log_file_handler)
 
         self.listen_ip = listen_ip
 
         self.listenAddress = (self.listen_ip, 0)
         self.listener = llListener(self.logger, self.listenAddress, timeout, self, handler_class=llListenerHandler)
 
-        self.logger.info("Initialising parser")
+        self.logger.info("Initialising parser. Log name: %s, Map: %s, WebTV port: %s", log_name, current_map, webtv_port)
         
         self.listener.parser = parser.parserClass(self.unique_parser_ident, server_address = client_address, current_map = current_map, log_name = log_name, endfunc = self.listener.handle_server_timeout, webtv_port = webtv_port)
         

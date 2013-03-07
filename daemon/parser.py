@@ -37,7 +37,7 @@ class parserClass():
 
         self.logger = logging.getLogger(unique_ident)
         self.logger.setLevel(logging.DEBUG)
-        self.logger.addHandler(log_file_handler)
+        #self.logger.addHandler(log_file_handler)
 
         import ConfigParser
         cfg_parser = ConfigParser.SafeConfigParser()
@@ -789,6 +789,19 @@ class parserClass():
                 #pprint(res.groups())
 
                 return
+
+            res = regex(parser_regex.map_change, logdata)
+            if res:
+                self.logger.info("Map changed to %s. Ending this log", regml(res, 1))
+
+                self.GAME_OVER = True
+                self.endLogParsing(True)
+
+                return
+
+
+            self.logger.info("Reached end of regex checks with no match. Log data: %s", logdata)
+
         except Exception, e:
             self.logger.exception("Exception parsing log data: %s", logdata)
 
