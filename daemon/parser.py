@@ -175,14 +175,14 @@ class parserClass():
 
             self.LOG_FILE_HANDLE.write(logdata + "\n")
 
-            #if (res):
+            #if res:
             #    #print "Matching regex:"
             #    #pprint(res.groups())
 
             #log file start
             #RL 10/07/2012 - 01:13:34: Log file started (file "logs_pug/L1007104.log") (game "/games/tf2_pug/orangebox/tf") (version "5072")
             res = regex(parser_regex.log_file_started, logdata)
-            if (res):
+            if res:
                 #print "Log file started"
                 #pprint(res.groups())
                 #do shit with log file name?
@@ -191,7 +191,7 @@ class parserClass():
 
             #log time
             res = regex(parser_regex.log_timestamp, logdata)
-            if (res):
+            if res:
                 #print "Time of current log"
                 #pprint(res.groups())
                 
@@ -203,7 +203,7 @@ class parserClass():
 
             #log restart, sent when a mp_restartgame is issued (need a new log file, so we end this one)
             res = regex(parser_regex.game_restart, logdata)
-            if (res):
+            if res:
                 #end the log
 
                 self.logger.info("Game restart message received. Closing this log file")
@@ -218,7 +218,7 @@ class parserClass():
             #begin round_pause blocking
                 #damage dealt
                 res = regex(parser_regex.damage_dealt, logdata)
-                if (res and not self._using_livelogs_output):
+                if (not self._using_livelogs_output and res):
                     #print "Damage dealt"
                     #pprint(res.groups())
                     #('[v3] Kaki', '51', 'STEAM_0:1:35387674', 'Red', '40')
@@ -235,7 +235,7 @@ class parserClass():
 
                 #damage taken (if log level is 1 in livelogs) shouldn't get double ups, but have toggling variable just in case
                 res = regex(parser_regex.damage_taken, logdata)
-                if (res and not self._using_livelogs_output):
+                if (not self._using_livelogs_output and res):
                     sid = regml(res, 3)
                     name = self.escapePlayerString(regml(res, 1))
                     dmg = regml(res, 5)
@@ -247,8 +247,9 @@ class parserClass():
                     return
 
                 #damage taken and dealt (if appropriate log level is set (damage taken and damage dealt))
+                #"Cinderella:wu<5><STEAM_0:1:18947653><Blue>" triggered "damage" against "jmh<19><STEAM_0:1:101867><Red>" (damage "56")
                 res = regex(parser_regex.player_damage, logdata)
-                if (res):
+                if res:
                     a_sid = regml(res, 3)
                     a_name = self.escapePlayerString(regml(res, 1))
 
@@ -266,14 +267,14 @@ class parserClass():
 
                     self.pg_statupsert(self.STAT_TABLE, "damage_taken", v_sid, v_name, dmg)
 
-                    
-
                     self._using_livelogs_output = True
+
+                    return
 
                 #healing done
                 #"vsn.RynoCerus<6><STEAM_0:0:23192637><Blue>" triggered "healed" against "Hyperbrole<3><STEAM_0:1:22674758><Blue>" (healing "26")
                 res = regex(parser_regex.healing_done, logdata)
-                if (res):
+                if res:
                     #print "Healing done"
                     #pprint(res.groups())
 
@@ -296,7 +297,7 @@ class parserClass():
                 #item picked up
                 #"skae<14><STEAM_0:1:31647857><Red>" picked up item "ammopack_medium"
                 res = regex(parser_regex.item_pickup, logdata)
-                if (res):
+                if res:
                     #print "Item picked up"
                     #pprint(res.groups())
 
@@ -315,7 +316,7 @@ class parserClass():
 
                 #player killed (normal)
                 res = regex(parser_regex.player_kill, logdata)
-                if (res):
+                if res:
                     #print "Player killed (normal kill)"
                     #pprint(res.groups())
                     k_sid = regml(res, 3)
@@ -346,7 +347,7 @@ class parserClass():
                 #player killed (special kill) 
                 #"Liquid'Time<41><STEAM_0:1:19238234><Blue>" killed "[v3] Roight<53><STEAM_0:0:8283620><Red>" with "knife" (customkill "backstab") (attacker_position "-1085 99 240") (victim_position "-1113 51 240")
                 res = regex(parser_regex.player_kill_special, logdata)
-                if (res):
+                if res:
                     #print "Player killed (customkill)"
                     #pprint(res.groups())
             
@@ -392,7 +393,7 @@ class parserClass():
                 #player assist
                 #"Iyvn<40><STEAM_0:1:41931908><Blue>" triggered "kill assist" against "[v3] Kaki<51><STEAM_0:1:35387674><Red>" (assister_position "-905 -705 187") (attacker_position "-1246 -478 237") (victim_position "-1221 -53 283")
                 res = regex(parser_regex.player_assist, logdata)
-                if (res):
+                if res:
                     #print "Player assisted in kill"
                     #pprint(res.groups())
                     a_sid = regml(res, 3)
@@ -413,7 +414,7 @@ class parserClass():
                 #medic death ubercharge = 0 or 1, healing = amount healed in that life. kill message comes directly after
                 #"%s<%i><%s><%s>" triggered "medic_death" against "%s<%i><%s><%s>" (healing "%d") (ubercharge "%s")
                 res = regex(parser_regex.medic_death, logdata)
-                if (res):
+                if res:
                     #print "Medic death"
                     #pprint(res.groups())
                     m_sid = regml(res, 7)
@@ -432,7 +433,7 @@ class parserClass():
 
                 #ubercharge used
                 res = regex(parser_regex.uber_used, logdata)
-                if (res):
+                if res:
                     #print "Ubercharge used"
                     #pprint(res.groups())
                     m_sid = regml(res, 3)
@@ -448,7 +449,7 @@ class parserClass():
 
                 #domination
                 res = regex(parser_regex.player_dominated, logdata)
-                if (res):
+                if res:
                     #print "Player dominated"
                     #pprint(res.groups())
 
@@ -466,7 +467,7 @@ class parserClass():
 
                 #revenge
                 res = regex(parser_regex.player_revenge, logdata)
-                if (res):
+                if res:
                     #print "Player got revenge"
                     #pprint(res.groups())
 
@@ -480,7 +481,7 @@ class parserClass():
                 #suicide
                 #"Hypnos<20><STEAM_0:0:24915059><Red>" committed suicide with "world" (customkill "train") (attacker_position "568 397 -511")
                 res = regex(parser_regex.player_death_custom, logdata)
-                if (res):
+                if res:
                     #print "Player committed suicide"
                     #pprint(res.groups())
 
@@ -494,7 +495,7 @@ class parserClass():
 
                 # 11/13/2012 - 23:03:29: "crixus of gaul<3><STEAM_0:1:10325827><Blue>" committed suicide with "tf_projectile_rocket" (attacker_position "-1233 5907 -385")
                 res = regex(parser_regex.player_death, logdata)
-                if (res):
+                if res:
                     #print "Player committed suicide"
                     #pprint(res.groups())
                     
@@ -509,7 +510,7 @@ class parserClass():
                 #engi building destruction
                 #"dcup<109><STEAM_0:0:15236776><Red>" triggered "killedobject" (object "OBJ_SENTRYGUN") (weapon "tf_projectile_pipe") (objectowner "NsS. oLiVz<101><STEAM_0:1:15674014><Blue>") (attacker_position "551 2559 216")
                 res = regex(parser_regex.building_destroyed, logdata)
-                if (res):
+                if res:
                     #print "Player destroyed engineer building"
                     #pprint(res.groups())
 
@@ -525,7 +526,7 @@ class parserClass():
             #chat
             #"Console<0><Console><Console>" say "blah"
             res = regex(parser_regex.chat_message, logdata)
-            if (res):
+            if res:
                 #print "Chat was said"
                 #pprint(res.groups())
 
@@ -565,7 +566,7 @@ class parserClass():
             #/Team "(Blue|Red)" triggered "pointcaptured" \x28cp "(\d+)"\x29 \x28cpname "(.+)"\x29 \x28numcappers "(\d+)".+/
             #Team "Red" triggered "pointcaptured" (cp "0") (cpname "#koth_viaduct_cap") (numcappers "5") (player1 "[v3] Faithless<47><STEAM_0:0:52150090><Red>") (position1 "-1370 59 229") (player2 "[v3] Chrome<48><STEAM_0:1:41365809><Red>") (position2 "-1539 87 231") (player3 "[v3] Jak<49><STEAM_0:0:18518582><Red>") (position3 "-1659 150 224") (player4 "[v3] Kaki<51><STEAM_0:1:35387674><Red>") (position4 "-1685 146 224") (player5 "[v3] taintedromance<52><STEAM_0:0:41933053><Red>") (position5 "-1418 182 236")
             res = regex(parser_regex.point_capture, logdata)
-            if (res):
+            if res:
                 #print "Point captured"
                 #pprint(res.groups())
                 #this is going to be tricky
@@ -597,7 +598,7 @@ class parserClass():
             #capture block
             #"pvtx<103><STEAM_0:1:7540588><Red>" triggered "captureblocked" (cp "1") (cpname "Control Point B") (position "-2143 2284 156")
             res = regex(parser_regex.capture_blocked, logdata)
-            if (res):
+            if res:
                 #print "Capture blocked"
                 #pprint(res.groups())
 
@@ -625,7 +626,7 @@ class parserClass():
             #L 10/21/2012 - 01:23:48: Team "Blue" current score "4" with "6" players
             #Team "Blue" current score "3" with "4" players
             res = regex(parser_regex.team_score, logdata)
-            if (res):
+            if res:
                 #print "Current scores"
                 #pprint(res.groups())
 
@@ -645,7 +646,7 @@ class parserClass():
 
             #game over
             res = regex(parser_regex.game_over, logdata)
-            if (res):
+            if res:
                 #print "Game over"
                 #pprint(res.groups())
             
@@ -658,7 +659,7 @@ class parserClass():
 
             #final scores always comes after game_over
             res = regex(parser_regex.final_team_score, logdata)
-            if (res):
+            if res:
                 #print "Final scores"
                 #pprint(res.groups())
 
@@ -676,7 +677,7 @@ class parserClass():
 
             #rcon command
             res = regex(parser_regex.rcon_command, logdata)
-            if (res):
+            if res:
                 #print "Someone issued rcon command"
                 #pprint(res.groups())
 
@@ -685,7 +686,7 @@ class parserClass():
 
             #disconnect RL 10/07/2012 - 01:13:44: "triple h<162><STEAM_0:1:33713004><Red>" disconnected (reason " #tf2pug")
             res = regex(parser_regex.player_disconnect, logdata)
-            if (res):
+            if res:
                 #print "Player disconnected"
                 #pprint(res.groups())
                 
@@ -693,7 +694,7 @@ class parserClass():
             
             #connect RL 10/07/2012 - 22:45:11: "GU | wm<3><STEAM_0:1:7175436><>" connected, address "124.168.51.7:27005"
             res = regex(parser_regex.player_connect, logdata)
-            if (res):
+            if res:
                 #print "Player connected"
                 #pprint(res.groups())
 
@@ -701,7 +702,7 @@ class parserClass():
 
             #validated "hipsterhipster<4><STEAM_0:1:22674758><>" STEAM USERID validated
             res = regex(parser_regex.player_validated, logdata)
-            if (res):
+            if res:
                 #print "Player validated"
                 #pprint(res.groups())
 
@@ -709,7 +710,7 @@ class parserClass():
             
             #class change    
             res = regex(parser_regex.player_class_change, logdata)
-            if (res):
+            if res:
                 #print "Player changed class"
                 #pprint(res.groups())
 
@@ -717,7 +718,7 @@ class parserClass():
 
             #round win
             res = regex(parser_regex.round_win, logdata)
-            if (res):
+            if res:
                 #print "Round won"
                 #pprint(res.groups())
 
@@ -729,7 +730,7 @@ class parserClass():
 
             #overtime
             res = regex(parser_regex.round_overtime, logdata)
-            if (res):
+            if res:
                 #print "Overtime"
                 #pprint(res.groups())
 
@@ -744,7 +745,7 @@ class parserClass():
             #World triggered "Round_Length" \x28seconds "(\d+\.\d+)\x29
             #World triggered "Round_length" \x28seconds "(\d+)\.(\d+)"\x29
             res = regex(parser_regex.round_length, logdata)
-            if (res):
+            if res:
                 #print "Round length"
                 #pprint(res.groups())
         
@@ -758,7 +759,7 @@ class parserClass():
                 
             #round start
             res = regex(parser_regex.round_start, logdata)
-            if (res):
+            if res:
                 #print "Round start"
                 #pprint(res.groups())
 
@@ -772,7 +773,7 @@ class parserClass():
                 
             #setup end UNUSED
             """res = regex(parser_regex.round_setup_end, logdata)
-            if (res):
+            if res:
                 #print "Round Setup End"
                 #pprint(res.groups())
 
@@ -781,7 +782,7 @@ class parserClass():
 
             #mini round win
             res = regex(parser_regex.mini_round_win, logdata)
-            if (res):
+            if res:
                 #print "Mini round win"
                 #pprint(res.groups())
 
@@ -789,7 +790,7 @@ class parserClass():
 
             #mini round length
             res = regex(parser_regex.mini_round_length, logdata)
-            if (res):
+            if res:
                 #print "Mini round length"
                 #pprint(res.groups())
 
@@ -805,7 +806,7 @@ class parserClass():
                 return
 
             if not self.ROUND_PAUSE:
-                self.logger.info("Reached end of regex checks with no match. Log data: %s", logdata)
+                self.logger.info("Reached end of regex checks with no match. Round pause: %d. Log data: %s", self.ROUND_PAUSE, logdata)
 
         except Exception, e:
             self.logger.exception("Exception parsing log data: %s", logdata)

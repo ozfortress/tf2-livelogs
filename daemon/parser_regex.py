@@ -9,7 +9,10 @@ log_timestamp = re_compiler(r'L (\S+) - (\S+):')
 game_restart = re_compiler(r'"LIVELOG_GAME_RESTART"')
 damage_dealt = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage" \x28damage "(\d+)"\x29')
 damage_taken = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage_taken" \x28damage "(\d+)"\x29')
+
+#"Cinderella:wu<5><STEAM_0:1:18947653><Blue>" triggered "damage" against "jmh<19><STEAM_0:1:101867><Red>" (damage "56")
 player_damage = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28damage "(\d+)"\x29')
+
 healing_done = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "healed" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28healing "(\d+)"\x29')
 item_pickup = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" picked up item "(.*)"')
 player_kill = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" killed "(.*)<(\d+)><(.*)><(Red|Blue)>" with "(.*)" \x28attacker_position "(.*)"\x29 \x28victim_position "(.*)"\x29')
