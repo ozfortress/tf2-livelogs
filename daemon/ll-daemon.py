@@ -263,6 +263,8 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             self.removeClient(client_ip, client_server_port)
             
             self.listen_set.discard(listener_object)
+        else:
+            self.logger.info("There was an attempt to remove a listener object that is not in the listener set")
 
     def getClientInfo(self, ip):
         #gets the API key for client with IP ip, so IPs will require unique keys, preventing unauthorised users
