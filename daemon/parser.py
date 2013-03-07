@@ -206,6 +206,8 @@ class parserClass():
             if (res):
                 #end the log
 
+                self.logger.info("Game restart message received. Closing this log file")
+
                 self.GAME_OVER = True
                 self.endLogParsing(True)
 
@@ -803,7 +805,7 @@ class parserClass():
                 return
 
             if not self.ROUND_PAUSE:
-                self.logger.info("Reached end of regex checks with no match. Log data: %s", self.ROUND_PAUSE, logdata)
+                self.logger.info("Reached end of regex checks with no match. Log data: %s", logdata)
 
         except Exception, e:
             self.logger.exception("Exception parsing log data: %s", logdata)
