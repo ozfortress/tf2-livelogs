@@ -2,10 +2,15 @@
 
 var log_search = log_search || (function() {
     "use strict";
-    var search, past_search;
+    var search, past_search, state_obj = {}, search_field = null;
     return {
         searchLogs : function() {
-            search = $("#search_field").val();
+            if (search_field === null) {
+                search_field = $("#search_field");
+            }
+
+            search = search_field.val();
+
             if (search === past_search) {
                 return;
             }
@@ -14,6 +19,9 @@ var log_search = log_search || (function() {
             }
 
             if (search !== "") {
+                state_obj.search = search;
+                history.pushState(state_obj, "Search result for " + search, "/past/" + search.replace(" ", "%20"));
+
                 $.get("/func/logsearch.php?term=" + search, function(result) {
                     if (result) {
                         $("#pastLogs").html(result); //result is in form of <tr><td></td>...</tr>
@@ -45,7 +53,7 @@ $(document).ready(function()
     we use jquery.get() to call a php script that will return the results (if there are any)
     */
     
-    $("#search_field").bindWithDelay("keyup", {when: "delay", optional: "eventData"}, log_search.keyupCallback, 500);
+    $("#search_field").bindWithDelay("keyup", {when: "delay", optional: "eventData"}, log_search.keyupCallback, 300);
 
     $("#search_form").submit(function(e) {
         log_search.submitCallback();
