@@ -23,6 +23,11 @@
             $stat_query = "SELECT * FROM livelogs_player_stats WHERE steamid='{$escaped_steamid}'";
             $stat_result = pg_query($ll_db, $stat_query);
 
+            if (!$stat_result)
+            {
+                $invalid_player = true;
+            }
+
             $player_logs_query = "SELECT * FROM get_user_logs('{$escaped_steamid}', {$ll_config["display"]["player_num_past"]})"; //get all the logs that a user has been in
             $player_logs_result = pg_query($ll_db, $player_logs_query);
 
@@ -253,7 +258,7 @@
                 <caption>Total item pickups</caption>
             </table>
         </div>
-        <div class="log_list_container">
+        <div class="log_list_past_container">
             <?php
             if (pg_num_rows($player_logs_result) > 0)
             {
@@ -297,7 +302,7 @@
                 ?>
 
                 </tbody>
-                <caption>Past <?=$ll_config["display"]["player_num_past"]?> logs</caption>
+                <caption><?=htmlentities($pstat["name"], ENT_QUOTES, "UTF-8")?>'s past <?=$ll_config["display"]["player_num_past"]?> logs</caption>
             </table>
 
             <?php
