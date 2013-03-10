@@ -116,30 +116,41 @@ class parserClass():
         self.logger.info("PARSER UNIQUE IDENT: " + self.UNIQUE_IDENT)
         
         dbCursor = self.db.cursor()
-        
-        dbCursor.execute("SELECT create_global_stat_table()")
-        dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
+        try:
+            dbCursor.execute("SELECT create_global_stat_table()")
+            dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
 
-        if (server_address != None):
-            dbCursor.execute("SELECT create_global_server_table()")
-        
-            if not log_name:
-                log_name = "log-%s" % time.strftime("%Y-%m-%d-%H-%M") #log-year-month-day-hour-minute
+            if (server_address != None):
+                dbCursor.execute("SELECT create_global_server_table()")
             
-            dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name, live, webtv_port) VALUES (%s, %s, %s, %s, %s, 'true', %s)", 
-                                        (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map, log_name, webtv_port,))
+                if not log_name:
+                    log_name = "log-%s" % time.strftime("%Y-%m-%d-%H-%M") #log-year-month-day-hour-minute
+                
+                dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name, live, webtv_port) VALUES (%s, %s, %s, %s, %s, 'true', %s)", 
+                                            (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map, log_name, webtv_port,))
+
+            self.db.commit()
+        except:
+            self.logger.exception("Exception during table init")
+
+            self.HAD_ERROR = True
+
+            dbCursor.close()
+            self.db.close()
+
+            self.LOG_FILE_HANDLE.close()
+
+            return
 
         if (log_uploaded):
             #TODO: Create an indexing method for logs that were manually uploaded and parsed
             pass
-
-        self.db.commit()
+        
+        dbCursor.close()
 
         self.EVENT_TABLE = "log_event_%s" % self.UNIQUE_IDENT
         self.STAT_TABLE = "log_stat_%s" % self.UNIQUE_IDENT
         self.CHAT_TABLE = "log_chat_%s" % self.UNIQUE_IDENT
-
-        dbCursor.close()
 
         self.ITEM_DICT = {
             'ammopack_small': 'ap_small',
@@ -894,7 +905,7 @@ class parserClass():
                 except:
                     self.logger.exception("Error during team insertion")
                     self.db.rollback()
-                    
+
                 finally:
                     curs.close()
 
