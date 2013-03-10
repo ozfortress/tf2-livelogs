@@ -138,7 +138,6 @@ class parserClass():
         self.EVENT_TABLE = "log_event_%s" % self.UNIQUE_IDENT
         self.STAT_TABLE = "log_stat_%s" % self.UNIQUE_IDENT
         self.CHAT_TABLE = "log_chat_%s" % self.UNIQUE_IDENT
-        self.TEAM_TABLE = "log_team_%s" % self.UNIQUE_IDENT
 
         dbCursor.close()
 
@@ -866,25 +865,27 @@ class parserClass():
     #this method can take up to two players and insert their teams into the database
     def insertPlayerTeam(self, a_sid, a_team, b_sid = None, b_team = None):
         team_insert_list = []
-                
+
         if a_sid not in self.PLAYER_TEAMS:
             self.PLAYER_TEAMS[a_sid] = a_team
             
-            team_insert_list.append((a_sid, a_team))
+            team_insert_list.append((self.STAT_TABLE, a_sid, a_team))
         
         if b_sid and b_team:
             if b_sid not in self.PLAYER_TEAMS:
                 self.PLAYER_TEAMS[b_sid] = b_team
             
-                team_insert_list.append((b_sid, b_team))
+                team_insert_list.append((self.STAT_TABLE, b_sid, b_team))
         
         if len(team_insert_list) > 0:
-            curs = self.db.cursor()
-            team_insert_args = ','.join(curs.mogrify("(%s, %s)", team_tuple) for team_tuple in team_insert_list)
+            #curs = self.db.cursor()
+            team_insert_query = ';'.join(("UPDATE %s SET team = E'%s' WHERE steamid = E'%s'" % team_tuple) for team_tuple in team_insert_list)
+            self.executeQuery(team_insert_query)
             
+            #team_insert_args = ','.join(curs.mogrify("(%s, %s)", team_tuple) for team_tuple in team_insert_list)
+            #team_insert_query = "INSERT INTO %s (steamid, team) VALUES %s" % (self.STAT_TABLE, team_insert_args)
             
-            team_insert_query = "INSERT INTO %s (steamid, team) VALUES %s" % (self.TEAM_TABLE, team_insert_args)
-            self.executeQuery(team_insert_query, curs)
+            #self.executeQuery(team_insert_query, curs)
                     
     def executeQuery(self, query, curs=None):
         try:
@@ -922,11 +923,8 @@ class parserClass():
             
             if not self.HAD_ERROR:
                 #sets live to false, and merges the stat table with the master stat table
-                live_end_query = "UPDATE livelogs_servers SET live='false' WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT)
+                live_end_query = "UPDATE livelogs_servers SET live = false WHERE log_ident = E'%s'; SELECT merge_stat_table('%s')" % (self.UNIQUE_IDENT, self.STAT_TABLE)
                 self.executeQuery(live_end_query)
-
-                stat_merge_query = "SELECT merge_stat_table('%s')" % (self.STAT_TABLE)
-                self.executeQuery(stat_merge_query)
                 
                 #begin ending timer
                 if ((self.closeListenerCallback != None) and (game_over)):
