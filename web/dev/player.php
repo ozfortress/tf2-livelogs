@@ -23,6 +23,9 @@
             $stat_query = "SELECT * FROM livelogs_player_stats WHERE steamid='{$escaped_steamid}'";
             $stat_result = pg_query($ll_db, $stat_query);
 
+            $player_logs_query = "SELECT * FROM get_user_logs('{$escaped_steamid}', {$ll_config["display"]["player_num_past"]})"; //get all the logs that a user has been in
+            $player_logs_result = pg_query($ll_db, $player_logs_query);
+
             $pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC);
         }
     ?>
@@ -249,6 +252,57 @@
                 </tbody>
                 <caption>Total item pickups</caption>
             </table>
+
+            <?php
+            if (pg_num_rows($player_logs_result) > 0)
+            {
+            ?>
+            <table class="table table-bordered table-hover ll_table">
+                <thead>
+                    <tr class="stat_summary_title_bar info">
+                        <th class="log_list_col_title">
+                            Server IP
+                        </th>
+                        <th class="log_list_col_title">
+                            Server Port
+                        </th>
+                        <th class="log_list_col_title">
+                            Map
+                        </th>
+                        <th class="log_list_col_title">
+                            Log Name
+                        </th>
+                        <th class="log_list_col_title">
+                            Date
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php
+                while ($log = pg_fetch_array($player_logs_result, NULL, PGSQL_ASSOC))
+                {
+                    $log_split = explode("_", $log["log_ident"]);
+                ?>
+
+                    <tr>
+                        <td class="server_ip"><?=$log["server_ip"]?></td>
+                        <td class="server_port"><?=$log["server_port"]?></td>
+                        <td class="log_map"><?=$log["map"]?></td>
+                        <td class="log_name"><a href="/view/<?=$log["log_ident"]?>"><?=htmlentities($log["log_name"], ENT_QUOTES, "UTF-8")?></a></td>
+                        <td class="log_date"><?=($log["live"] === "t") ? "LIVE" : date("d/m/Y H:i:s", $log_split[2])?></td>
+                    </tr>
+                <?php
+                }
+                ?>
+
+                </tbody>
+                <caption>Past <?=$ll_config["display"]["player_num_past"]?> logs</caption>
+            </table>
+
+            <?php
+            }
+            ?>
+
         </div>
 
         <?php include('static/logo.html'); ?>
