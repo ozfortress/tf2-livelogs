@@ -252,7 +252,8 @@
                 </tbody>
                 <caption>Total item pickups</caption>
             </table>
-
+        </div>
+        <div class="log_list_container">
             <?php
             if (pg_num_rows($player_logs_result) > 0)
             {
@@ -285,7 +286,7 @@
                 ?>
 
                     <tr>
-                        <td class="server_ip"><?=$log["server_ip"]?></td>
+                        <td class="server_ip"><?=long2ip($log["server_ip"])?></td>
                         <td class="server_port"><?=$log["server_port"]?></td>
                         <td class="log_map"><?=$log["map"]?></td>
                         <td class="log_name"><a href="/view/<?=$log["log_ident"]?>"><?=htmlentities($log["log_name"], ENT_QUOTES, "UTF-8")?></a></td>
