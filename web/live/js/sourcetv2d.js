@@ -153,7 +153,7 @@ var SourceTV2D = SourceTV2D || (function() {
                     split = msg_data.split(':');
                     
                     frame.game = split[0];
-                    frame.map = split[1];
+                    frame.map = split[1].toLowerCase();
                     frame.team1 = split[2];
                     frame.team2 = split[3];
                     frame.team1score = split[4];
