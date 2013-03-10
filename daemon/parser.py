@@ -145,7 +145,7 @@ class parserClass():
         if (log_uploaded):
             #TODO: Create an indexing method for logs that were manually uploaded and parsed
             pass
-        
+
         dbCursor.close()
 
         self.EVENT_TABLE = "log_event_%s" % self.UNIQUE_IDENT
@@ -162,6 +162,7 @@ class parserClass():
             }
             
         self.PLAYER_TEAMS = {}
+        self._player_logs = {} #whether this user has been added to the log index or not
         
         self.logger.info("Parser initialised")
 
@@ -240,6 +241,8 @@ class parserClass():
                     self.pg_statupsert(self.STAT_TABLE, "damage_dealt", sid, name, dmg)        
                     
                     self.insertPlayerTeam(sid, regml(res, 4).lower())
+
+                    self.playerLogIndex(sid)
                     
                     return
 
@@ -253,6 +256,7 @@ class parserClass():
                     self.pg_statupsert(self.STAT_TABLE, "damage_taken", sid, name, dmg)
 
                     self.insertPlayerTeam(sid, regml(res, 4).lower())
+                    self.playerLogIndex(sid)
 
                     return
 
@@ -276,6 +280,8 @@ class parserClass():
                         self.insertPlayerTeam(a_sid, regml(res, 4).lower(), v_sid, regml(res, 8).lower())
 
                     self.pg_statupsert(self.STAT_TABLE, "damage_taken", v_sid, v_name, dmg)
+
+                    self.playerLogIndex(a_sid, v_sid)
 
                     self._using_livelogs_output = True
 
@@ -301,7 +307,8 @@ class parserClass():
                     self.pg_statupsert(self.STAT_TABLE, "healing_received", healt_sid, healt_name, medic_healing)
 
                     self.insertPlayerTeam(medic_sid, regml(res, 4).lower(), healt_sid, regml(res, 8).lower())
-                    
+                    self.playerLogIndex(medic_sid, healt_sid)
+
                     return
 
                 #item picked up
@@ -351,6 +358,7 @@ class parserClass():
                     self.executeQuery(event_insert_query)
 
                     self.insertPlayerTeam(k_sid, regml(res, 4).lower(), v_sid, regml(res, 8).lower())
+                    self.playerLogIndex(k_sid, v_sid)
                     
                     return
 
@@ -418,6 +426,9 @@ class parserClass():
                     assist_update_query = "UPDATE %s SET kill_assister_id = E'%s', kill_assister_pos = E'%s' WHERE eventid = (SELECT eventid FROM %s WHERE event_type = 'kill' ORDER BY eventid DESC LIMIT 1)" % (self.EVENT_TABLE, 
                                                                 a_sid, a_pos, self.EVENT_TABLE)
                     self.executeQuery(assist_update_query)
+
+                    self.insertPlayerTeam(a_sid, regml(res, 4).lower())
+                    self.playerLogIndex(a_sid)
 
                     return
 
@@ -914,7 +925,30 @@ class parserClass():
             #team_insert_query = "INSERT INTO %s (steamid, team) VALUES %s" % (self.STAT_TABLE, team_insert_args)
             
             #self.executeQuery(team_insert_query, curs)
-                    
+    
+    def playerLogIndex(self, a_sid, b_sid = None):
+        insert_list = []
+
+        if a_sid not in self._player_logs:
+            self._player_logs[a_sid] = True
+
+            insert_list.append(a_sid)
+
+        if b_sid and b_sid not in self._player_logs:
+            self._player_logs[b_sid] = True
+
+            insert_list.append(b_sid)
+
+        if len(insert_list) > 0:
+            if not self.db.closed:
+                curs = self.db.cursor()
+
+                insert_args = ','.join(curs.mogrify("(%s, %s)", insert_tuple) for insert_tuple in insert_list)
+                insert_query = "INSERT INTO livelogs_player_logs (steamid, log_ident) VALUES %s" % (insert_args)
+
+                self.executeQuery(insert_query, curs)
+
+
     def executeQuery(self, query, curs=None):
         try:
             if not self.db.closed:
