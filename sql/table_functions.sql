@@ -337,6 +337,8 @@ BEGIN
     DROP TABLE IF EXISTS livelogs_player_logs;
     PERFORM create_global_userlog_table();
 
+    RAISE NOTICE 'Warning: This will take a while on a large database!';
+
     FOR row IN
         SELECT steamid FROM livelogs_player_stats
     LOOP

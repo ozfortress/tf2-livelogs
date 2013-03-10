@@ -16,7 +16,7 @@
         ////server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
         $log_details = pg_fetch_array($log_detail_res, 0, PGSQL_ASSOC);
         
-        if (!$log_details["log_name"])
+        if (empty($log_details["log_name"]) || empty($log_details["server_ip"]))
         {
             $invalid_log_ident = true;
         }
@@ -50,11 +50,11 @@
             $team_query = "SELECT * FROM {$escaped_team_table}";
             $team_result = pg_query($ll_db, $team_query);
             $team_array = pg_fetch_all($team_result);
-            
+
             $time_query = "SELECT event_time FROM {$escaped_event_table} WHERE eventid = '1' UNION SELECT event_time FROM {$escaped_event_table} WHERE eventid = (SELECT MAX(eventid) FROM {$escaped_event_table})";
             $time_result = pg_query($ll_db, $time_query);        
 
-            if ((!$stat_result) || (!$team_result) || (!$chat_result) || (!$time_result))
+            if ((!$stat_result) || (!$chat_result) || (!$time_result))
             {
                 echo "PGSQL HAD ERROR: " . pg_last_error();
             }
@@ -331,7 +331,14 @@
                             $p_dpr = round($pstat["damage_dealt"] / (($red_score || $blue_score) ? ($red_score + $blue_score) : 1), 2); //num rounds are red score + blue score, damage/round
                             $p_dpm = round($pstat["damage_dealt"] / ($time_elapsed_sec/60), 2);
 
-                            $team_class = get_player_team_class(get_player_team($team_array, $pstat["steamid"]));
+                            if (empty($team_array))
+                            {
+                                $team_class = get_player_team_class(strtolower($pstat["team"]));
+                            }
+                            else
+                            {
+                                $team_class = get_player_team_class(get_player_team($team_array, $pstat["steamid"]));
+                            }
                             
                             if (($pstat["healing_done"] > 0) || ($pstat["ubers_used"]) || ($pstat["ubers_lost"]))
                             {
@@ -394,9 +401,17 @@
                         
                         while ($i < $num_med)
                         {
-                            $community_id = steamid_to_bigint($mstats[$i]["steamid"]);
+                            $sid = $mstats[$i]["steamid"];
+                            $community_id = steamid_to_bigint($sid);
                             
-                            $team_class = get_player_team_class(get_player_team($team_array, $mstats[$i]["steamid"]));
+                            if (empty($team_array))
+                            {
+                                $team_class = get_player_team_class(strtolower($mstats[$i]["team"]));
+                            }
+                            else
+                            {
+                                $team_class = get_player_team_class(get_player_team($team_array, $sid));
+                            }
                             
                         ?>
                         
@@ -561,7 +576,7 @@
                 return $pteam["team"];
             }
         }
-    
+        
         return 0;
     }
 
