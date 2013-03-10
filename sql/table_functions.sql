@@ -23,7 +23,7 @@ DECLARE
 BEGIN
     table_name := 'log_stat_' || unique_id;
     
-    EXECUTE 'CREATE TABLE ' || table_name || ' (steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points decimal, 
+    EXECUTE 'CREATE TABLE ' || table_name || ' (steamid varchar(64) PRIMARY KEY, team text, name text, kills integer, deaths integer, assists integer, points decimal, 
                          healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer, 
                          headshots integer, backstabs integer, damage_dealt integer, damage_taken integer,
                          ap_small integer, ap_medium integer, ap_large integer,
@@ -65,16 +65,15 @@ BEGIN
     PERFORM create_game_event_table(unique_id);
     PERFORM create_game_stat_table(unique_id);
     PERFORM create_game_chat_table(unique_id);
-    PERFORM create_game_team_table(unique_id);
 END;
 $_$ LANGUAGE 'plpgsql';
 
 CREATE OR REPLACE FUNCTION create_global_stat_table () RETURNS void AS $_$
 BEGIN
     IF EXISTS (
-        SELECT * 
-        FROM pg_catalog.pg_tables
-        WHERE tablename = 'livelogs_player_stats'
+        SELECT 1 
+        FROM information_schema.tables
+        WHERE table_name = 'livelogs_player_stats' AND table_catalog = 'livelogs'
         )
     THEN
         RAISE NOTICE 'Table livelogs.livelogs_player_stats already exists';
@@ -83,11 +82,11 @@ BEGIN
                                      healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer, 
                                      headshots integer, backstabs integer, damage_dealt integer, damage_taken integer,
                                      ap_small integer, ap_medium integer, ap_large integer,
-                         mk_small integer, mk_medium integer, mk_large integer,
-                         captures integer, captures_blocked integer, 
-                         dominations integer, times_dominated integer, revenges integer,
-                         suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer,
-                         wins integer, losses integer, draws integer);
+                                     mk_small integer, mk_medium integer, mk_large integer,
+                                     captures integer, captures_blocked integer, 
+                                     dominations integer, times_dominated integer, revenges integer,
+                                     suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer,
+                                     wins integer, losses integer, draws integer);
 
         
     END IF;
@@ -103,14 +102,29 @@ $_$ LANGUAGE 'plpgsql';
 CREATE OR REPLACE FUNCTION create_global_server_table () RETURNS void AS $_$
 BEGIN
     IF EXISTS (
-        SELECT *
-        FROM pg_catalog.pg_tables
-        WHERE tablename = 'livelogs_servers'
+        SELECT 1 
+        FROM information_schema.tables
+        WHERE table_name = 'livelogs_servers' AND table_catalog = 'livelogs'
         )
     THEN
         RAISE NOTICE 'Table livelogs.livelogs_servers already exists';
     ELSE
         CREATE TABLE livelogs_servers (numeric_id serial, server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64), map varchar(64) NOT NULL, log_name text, live boolean, webtv_port integer, PRIMARY KEY (numeric_id, log_ident));
+    END IF;
+END;
+$_$ LANGUAGE 'plpgsql';
+
+CREATE OR REPLACE FUNCTION create_global_userlog_table () RETURNS void AS $_$
+BEGIN
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.tables
+        WHERE tablename = 'livelogs_player_logs' AND table_catalog = 'livelogs'
+        )
+    THEN
+        RAISE NOTICE 'Table livelogs.livelogs_player_logs already exists';
+    ELSE
+        CREATE TABLE livelogs_player_logs (index serial PRIMARY KEY, steamid varchar(64), log_ident varchar(64));
     END IF;
 END;
 $_$ LANGUAGE 'plpgsql';
@@ -149,54 +163,75 @@ CREATE OR REPLACE FUNCTION merge_stat_table (tablename text) RETURNS void AS $_$
 --                         captures integer, captures_blocked integer, 
 --                         dominations integer, times_dominated integer, revenges integer,
 --                         suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer)';
+DECLARE
+    statrow RECORD;
+
 BEGIN
-    EXECUTE 'UPDATE livelogs_player_stats master SET
-    
-        name = newlog.name,
-        kills = master.kills + newlog.kills,
-        deaths = master.deaths + newlog.deaths,
-        assists = master.assists + newlog.assists,
-        points = master.points + newlog.points,
-        healing_done = master.healing_done + newlog.healing_done,
-        healing_received = master.healing_received + newlog.healing_received,
-        ubers_used = master.ubers_used + newlog.ubers_used,
-        ubers_lost = master.ubers_lost + newlog.ubers_lost,
-        headshots = master.headshots + newlog.headshots,
-        backstabs = master.backstabs + newlog.backstabs,
-        damage_dealt = master.damage_dealt + newlog.damage_dealt,
-        damage_taken = master.damage_taken + newlog.damage_taken,
-        ap_small = master.ap_small + newlog.ap_small,
-        ap_medium = master.ap_medium + newlog.ap_medium,
-        ap_large = master.ap_large + newlog.ap_large,
-        mk_small = master.mk_small + newlog.mk_small,
-        mk_medium = master.mk_medium + newlog.mk_medium,
-        mk_large = master.mk_large + newlog.mk_large,
-        captures = master.captures + newlog.captures,
-        captures_blocked = master.captures_blocked + newlog.captures_blocked,
-        dominations = master.dominations + newlog.dominations,
-        times_dominated = master.times_dominated + newlog.times_dominated,
-        revenges = master.revenges + newlog.revenges,
-        suicides = master.suicides + newlog.suicides,
-        buildings_destroyed = master.buildings_destroyed + newlog.buildings_destroyed,
-        extinguishes = master.extinguishes + newlog.extinguishes,
-        kill_streak = newlog.kill_streak
+    IF EXISTS (
+        SELECT 1 FROM information_schema.tables WHERE table_catalog = 'livelogs' AND table_name = tablename
+        )
+    THEN
+        EXECUTE 'UPDATE livelogs_player_stats master SET
         
-    FROM ' || tablename || ' newlog
-    WHERE master.steamid = newlog.steamid';
+            name = newlog.name,
+            kills = master.kills + newlog.kills,
+            deaths = master.deaths + newlog.deaths,
+            assists = master.assists + newlog.assists,
+            points = master.points + newlog.points,
+            healing_done = master.healing_done + newlog.healing_done,
+            healing_received = master.healing_received + newlog.healing_received,
+            ubers_used = master.ubers_used + newlog.ubers_used,
+            ubers_lost = master.ubers_lost + newlog.ubers_lost,
+            headshots = master.headshots + newlog.headshots,
+            backstabs = master.backstabs + newlog.backstabs,
+            damage_dealt = master.damage_dealt + newlog.damage_dealt,
+            damage_taken = master.damage_taken + newlog.damage_taken,
+            ap_small = master.ap_small + newlog.ap_small,
+            ap_medium = master.ap_medium + newlog.ap_medium,
+            ap_large = master.ap_large + newlog.ap_large,
+            mk_small = master.mk_small + newlog.mk_small,
+            mk_medium = master.mk_medium + newlog.mk_medium,
+            mk_large = master.mk_large + newlog.mk_large,
+            captures = master.captures + newlog.captures,
+            captures_blocked = master.captures_blocked + newlog.captures_blocked,
+            dominations = master.dominations + newlog.dominations,
+            times_dominated = master.times_dominated + newlog.times_dominated,
+            revenges = master.revenges + newlog.revenges,
+            suicides = master.suicides + newlog.suicides,
+            buildings_destroyed = master.buildings_destroyed + newlog.buildings_destroyed,
+            extinguishes = master.extinguishes + newlog.extinguishes,
+            kill_streak = newlog.kill_streak
+            
+        FROM ' || tablename || ' newlog
+        WHERE master.steamid = newlog.steamid';
 
-    EXECUTE 'INSERT INTO livelogs_player_stats (
-                        SELECT *
-                        FROM ' || tablename || ' WHERE ' || tablename || '.steamid 
-                            NOT IN (SELECT steamid FROM livelogs_player_stats))';
+        FOR statrow IN
+            EXECUTE 'SELECT steamid, name, kills, deaths, assists, points, 
+                                    healing_done, healing_received, ubers_used, ubers_lost, 
+                                    headshots, backstabs, damage_dealt, damage_taken, 
+                                    ap_small, ap_medium, ap_large, mk_small, mk_medium, mk_large,
+                                    captures, captures_blocked, dominations, times_dominated, revenges, suicides,
+                                    buildings_destroyed, extinguishes, kill_streak
+                                    FROM ' || tablename || ' WHERE ' || tablename || '.steamid
+                                    NOT IN (SELECT steamid FROM livelogs_player_stats)'
+        LOOP
+            INSERT INTO livelogs_player_stats (steamid, name, kills, deaths, assists, points, 
+                                                healing_done, healing_received, ubers_used, ubers_lost, 
+                                                headshots, backstabs, damage_dealt, damage_taken, 
+                                                ap_small, ap_medium, ap_large, mk_small, mk_medium, mk_large,
+                                                captures, captures_blocked, dominations, times_dominated, revenges, suicides,
+                                                buildings_destroyed, extinguishes, kill_streak)
+                                            VALUES (statrow.steamid, statrow.name, statrow.kills, statrow.deaths, statrow.assists, statrow.points,
+                                                statrow.healing_done, statrow.healing_received, statrow.ubers_used, statrow.ubers_lost,
+                                                statrow.headshots, statrow.backstabs, statrow.damage_dealt, statrow.damage_taken,
+                                                statrow.ap_small, statrow.ap_medium, statrow.ap_large, statrow.mk_small, statrow.mk_medium, statrow.mk_large,
+                                                statrow.captures, statrow.captures_blocked, statrow.dominations, statrow.times_dominated, statrow.revenges, statrow.suicides,
+                                                statrow.buildings_destroyed, statrow.extinguishes, statrow.kill_streak);
 
-                            --steamid, name, kills, deaths, assists, points, 
-                            --healing_done, healing_received, ubers_used, ubers_lost,
-                            --headshots, backstabs, damage_dealt, 
-                            --ap_small, ap_medium, ap_large, 
-                            --mk_small, mk_medium, mk_large, 
-                            --captures, captures_blocked, 
-                            --dominations, times_dominated, revenges, 
-                            --suicides, buildings_destroyed, extinguishes, kill_streak
+        END LOOP;
+    ELSE
+        RAISE NOTICE 'Table that was asked to be merged does not exist';
+    END IF;
 END;
 $_$ LANGUAGE 'plpgsql';
 
@@ -243,6 +278,33 @@ CREATE TYPE user_log_return AS (
     live boolean
 );
 
+CREATE OR REPLACE FUNCTION get_user_logs(sid text) RETURNS setof user_log_return AS $_$
+DECLARE
+    row RECORD;
+    select_result boolean;
+    return_count integer;
+BEGIN
+    return_count := 0;
+    FOR row IN
+        --SELECT table_name FROM information_schema.tables
+        --WHERE table_catalog = 'livelogs' AND table_name ~* 'log_stat'
+
+        SELECT server_ip, server_port, log_ident, map, log_name, live FROM livelogs_servers
+    LOOP
+        EXECUTE 'SELECT EXISTS (SELECT steamid FROM log_stat_' || row.log_ident || ' WHERE steamid = ''' || sid || ''')' INTO select_result;
+        
+        IF select_result THEN
+            RETURN NEXT row;
+            return_count := return_count + 1;
+        ELSE
+            CONTINUE;
+        END IF;
+    END LOOP;
+    RETURN;
+
+END;
+$_$ LANGUAGE 'plpgsql';
+
 CREATE OR REPLACE FUNCTION get_user_logs(sid text, query_limit integer) RETURNS setof user_log_return AS $_$
 DECLARE
     row RECORD;
@@ -257,9 +319,9 @@ BEGIN
         SELECT server_ip, server_port, log_ident, map, log_name, live FROM livelogs_servers ORDER BY numeric_id DESC
     LOOP
         IF return_count = query_limit THEN
-        RETURN;
-    END IF;
-    
+            RETURN;
+        END IF;
+
         EXECUTE 'SELECT EXISTS (SELECT steamid FROM log_stat_' || row.log_ident || ' WHERE steamid = ''' || sid || ''')' INTO select_result;
         
         IF select_result THEN
@@ -271,5 +333,27 @@ BEGIN
     END LOOP;
     RETURN;
 
+END;
+$_$ LANGUAGE 'plpgsql';
+
+CREATE OR REPLACE FUNCTION index_user_logs() RETURNS void AS $_$
+DECLARE
+    row RECORD;
+    logrow RECORD;
+BEGIN
+
+    DROP TABLE IF EXISTS livelogs_player_logs;
+    PERFORM create_global_userlog_table();
+
+    FOR row IN
+        SELECT steamid FROM livelogs_player_stats
+    LOOP
+        FOR logrow IN
+            SELECT log_ident FROM get_user_logs(row.steamid)
+        LOOP
+            INSERT INTO livelogs_player_logs (steamid, log_ident) VALUES (row.steamid, logrow.log_ident);
+        END LOOP;
+    END LOOP;
+    RETURN;
 END;
 $_$ LANGUAGE 'plpgsql';
