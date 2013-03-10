@@ -124,7 +124,9 @@ BEGIN
     THEN
         RAISE NOTICE 'Table livelogs.livelogs_player_logs already exists';
     ELSE
-        CREATE TABLE livelogs_player_logs (index serial PRIMARY KEY, steamid varchar(64), log_ident varchar(64));
+        CREATE TABLE livelogs_player_logs (index serial PRIMARY KEY, 
+                                           steamid varchar(64), 
+                                           log_ident varchar(64) references livelogs_servers(log_ident));
     END IF;
 END;
 $_$ LANGUAGE 'plpgsql';
