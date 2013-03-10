@@ -878,14 +878,26 @@ class parserClass():
                 team_insert_list.append((self.STAT_TABLE, b_sid, b_team))
         
         if len(team_insert_list) > 0:
-            #curs = self.db.cursor()
-            #team_insert_query = ';'.join(("UPDATE %s SET team = E'%s' WHERE steamid = E'%s'" % team_tuple) for team_tuple in team_insert_list)
-            #self.executeQuery(team_insert_query)
-            for team_tuple in team_insert_list:
-                insert_query = "INSERT INTO %s (steamid, team) VALUES (E'%s', E'%s')" % team_tuple
-                update_query = "UPDATE %s SET team = E'%s' WHERE steamid = E'%s'" % team_tuple
+            if not self.db.closed:
+                try:
+                    curs = self.db.cursor()
+                    #team_insert_query = ';'.join(("UPDATE %s SET team = E'%s' WHERE steamid = E'%s'" % team_tuple) for team_tuple in team_insert_list)
+                    #self.executeQuery(team_insert_query)
+                    for team_tuple in team_insert_list:
+                        insert_query = "INSERT INTO %s (steamid, team) VALUES (E'%s', E'%s')" % team_tuple
+                        update_query = "UPDATE %s SET team = E'%s' WHERE steamid = E'%s'" % (self.STAT_TABLE, team_tuple[2], team_tuple[1])
 
-                self.executeQuery("SELECT pgsql_upsert(%s, %s)" % (insert_query, update_query))
+                        curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
+
+                    self.db.commit()
+
+                except:
+                    self.logger.exception("Error during team insertion")
+                    self.db.rollback()
+                    
+                finally:
+                    curs.close()
+
             
             #team_insert_args = ','.join(curs.mogrify("(%s, %s)", team_tuple) for team_tuple in team_insert_list)
             #team_insert_query = "INSERT INTO %s (steamid, team) VALUES %s" % (self.STAT_TABLE, team_insert_args)
