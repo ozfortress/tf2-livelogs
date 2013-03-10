@@ -932,12 +932,12 @@ class parserClass():
         if a_sid not in self._player_logs:
             self._player_logs[a_sid] = True
 
-            insert_list.append(a_sid)
+            insert_list.append((a_sid, self.UNIQUE_IDENT))
 
         if b_sid and b_sid not in self._player_logs:
             self._player_logs[b_sid] = True
 
-            insert_list.append(b_sid)
+            insert_list.append((b_sid, self.UNIQUE_IDENT))
 
         if len(insert_list) > 0:
             if not self.db.closed:

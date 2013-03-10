@@ -32,6 +32,7 @@
                                   FROM livelogs_player_logs 
                                   JOIN livelogs_servers ON livelogs_player_logs.log_ident = livelogs_servers.log_ident 
                                   WHERE steamid = '{$escaped_steamid}'
+                                  ORDER BY index DESC
                                   LIMIT {$ll_config["display"]["player_num_past"]}"; //get all the logs that a user has been in
 
             $player_logs_result = pg_query($ll_db, $player_logs_query);
