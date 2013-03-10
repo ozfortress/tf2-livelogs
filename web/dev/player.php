@@ -28,7 +28,12 @@
                 $invalid_player = true;
             }
 
-            $player_logs_query = "SELECT * FROM get_user_logs('{$escaped_steamid}', {$ll_config["display"]["player_num_past"]})"; //get all the logs that a user has been in
+            $player_logs_query = "SELECT server_port, server_port, livelogs_player_logs.log_ident, log_name, map, live 
+                                  FROM livelogs_player_logs 
+                                  JOIN livelogs_servers ON livelogs_player_logs.log_ident = livelogs_servers.log_ident 
+                                  WHERE steamid = '{$escaped_steamid}'
+                                  LIMIT {$ll_config["display"]["player_num_past"]})"; //get all the logs that a user has been in
+
             $player_logs_result = pg_query($ll_db, $player_logs_query);
 
             $pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC);
