@@ -879,8 +879,13 @@ class parserClass():
         
         if len(team_insert_list) > 0:
             #curs = self.db.cursor()
-            team_insert_query = ';'.join(("UPDATE %s SET team = E'%s' WHERE steamid = E'%s'" % team_tuple) for team_tuple in team_insert_list)
-            self.executeQuery(team_insert_query)
+            #team_insert_query = ';'.join(("UPDATE %s SET team = E'%s' WHERE steamid = E'%s'" % team_tuple) for team_tuple in team_insert_list)
+            #self.executeQuery(team_insert_query)
+            for team_tuple in team_insert_list:
+                insert_query = "INSERT INTO %s (steamid, team) VALUES (E'%s', E'%s')" % team_tuple
+                update_query = "UPDATE %s SET team = E'%s' WHERE steamid = E'%s'" % team_tuple
+
+                self.executeQuery("SELECT pgsql_upsert(%s, %s)" % (insert_query, update_query))
             
             #team_insert_args = ','.join(curs.mogrify("(%s, %s)", team_tuple) for team_tuple in team_insert_list)
             #team_insert_query = "INSERT INTO %s (steamid, team) VALUES %s" % (self.STAT_TABLE, team_insert_args)
