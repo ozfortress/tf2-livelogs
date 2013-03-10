@@ -119,7 +119,7 @@ BEGIN
     IF EXISTS (
         SELECT 1 
         FROM information_schema.tables
-        WHERE tablename = 'livelogs_player_logs' AND table_catalog = 'livelogs'
+        WHERE table_name = 'livelogs_player_logs' AND table_catalog = 'livelogs'
         )
     THEN
         RAISE NOTICE 'Table livelogs.livelogs_player_logs already exists';
