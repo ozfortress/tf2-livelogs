@@ -512,6 +512,8 @@ class parserClass():
                     self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
                     self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
 
+                    self.insertPlayerTeam(p_sid, regml(res, 4).lower())
+
                     return
 
                 # 11/13/2012 - 23:03:29: "crixus of gaul<3><STEAM_0:1:10325827><Blue>" committed suicide with "tf_projectile_rocket" (attacker_position "-1233 5907 -385")
@@ -525,6 +527,8 @@ class parserClass():
                     
                     self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
                     self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
+
+                    self.insertPlayerTeam(p_sid, regml(res, 4).lower())
                     
                     return
                     
