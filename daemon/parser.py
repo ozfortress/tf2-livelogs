@@ -163,6 +163,7 @@ class parserClass():
             
         self.PLAYER_TEAMS = {}
         self._player_logs = {} #whether this user has been added to the log index or not
+        self._player_names = {} #a dict of player names
         
         self.logger.info("Parser initialised")
 
@@ -854,7 +855,14 @@ class parserClass():
     def pg_statupsert(self, table, column, steamid, name, value):
         #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
         insert_query = "INSERT INTO %s (steamid, name, %s) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, steamid, name, value)
-        update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE steamid = E'%s'" % (self.STAT_TABLE, column, column, value, steamid)
+
+        if steamid not in self._player_names or self._player_names[steamid] is not name:
+            update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s, name = E'%s' WHERE steamid = E'%s'" % (self.STAT_TABLE, column, column, value, name, steamid)
+            self._player_names[steamid] = name
+            
+        else:
+            update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE steamid = E'%s'" % (self.STAT_TABLE, column, column, value, steamid)
+
         try:
             if not self.db.closed:
                 curs = self.db.cursor()
