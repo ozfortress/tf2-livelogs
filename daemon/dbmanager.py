@@ -3,6 +3,14 @@ import logging
 import logging.handlers
 import time
 
+try:
+    import psycopg2
+except ImportError:
+    print """You are missing psycopg2.
+    Install using `pip install psycopg2` or visit http://initd.org/psycopg/
+    """
+    quit()
+
 log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
 
 log_file_handler = logging.handlers.TimedRotatingFileHandler("websocket-server-dbmanager.log", when="midnight")

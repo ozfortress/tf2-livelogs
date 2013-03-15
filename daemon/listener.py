@@ -55,7 +55,7 @@ class llListener(SocketServer.UDPServer):
 
             return True
         else:
-            #print "Client address differs from initial client. Rejecting log"
+            print "Client address differs from initial client. Rejecting log"
             return False
     
     def handle_server_timeout(self, game_over=False):
@@ -68,7 +68,7 @@ class llListener(SocketServer.UDPServer):
 
             """
             we need to call the shutdown in a THREAD, otherwise the method will deadlock the current thread
-            this is only needed when game_over is set, because if game_over is not set this method is being called from a timer (which is in a thread)
+            this is only needed when game_over is set, because if game_over is not set, this method is being called from a timer (which is in a thread)
             """
             newthread = threading.Thread(target=self.__listener_shutdown) 
             newthread.daemon = True
