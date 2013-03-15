@@ -17,6 +17,7 @@ import SocketServer
 import socket
 import sys
 import os
+import time
 import threading
 import ConfigParser
 from HTMLParser import HTMLParser
@@ -272,9 +273,21 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             try:
                 conn = self.db.getconn() #get a connection object from the psycopg2.pool
                 
-                if conn.closed:
+                conn_retries = 0
+                while conn.closed: #this loop will only run if the connection is closed, and will atempt to reconnect 5 times (over a span of 10 seconds)
+
+                    if conn_retries is > 5:
+                        self.logger.error("Unable to reconnect to database")
+                        self.db.putconn(conn)
+
+                        return None
+
                     self.db.putconn(conn) #garbage the closed connection, and try get a new one
                     conn = self.db.getconn()
+
+                    conn_retries += 1
+
+                    time.sleep(2)
 
                 curs = conn.cursor()
 

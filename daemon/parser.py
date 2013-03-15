@@ -547,6 +547,13 @@ class parserClass():
                     self.pg_statupsert(self.STAT_TABLE, "points", p_sid, p_name, 1)
 
                     return
+
+                #engi building creation
+                #"|S| ynth<13><STEAM_0:1:2869609><Red>" triggered "builtobject" (object "OBJ_TELEPORTER") (position "-4165 1727 -511")
+                res = regex(parser_regex.building_created, logdata)
+                if res:
+                    #we don't actually need this for anything, just catching it to prevent spam and in case there is ever a use in the future
+                    return
             #end round_pause blocking
             
             #chat
@@ -642,6 +649,16 @@ class parserClass():
                                                         event_time, "point_capture_block", cap_name, cap_block_team, 1)
 
                 self.executeQuery(event_insert_query)
+
+                return
+
+            #"b1z<19><STEAM_0:0:18186373><Red>" joined team "Blue"
+            res = regex(parser_regex.player_team_join, logdata)
+            if res:
+                sid = regml(res, 3)
+
+                if sid is not "BOT":
+                    self.insertPlayerTeam(sid, regml(res, 5).lower())
 
                 return
                 
@@ -798,14 +815,13 @@ class parserClass():
                 return
                 
             #setup end UNUSED
-            """res = regex(parser_regex.round_setup_end, logdata)
+            res = regex(parser_regex.round_setup_end, logdata)
             if res:
                 #print "Round Setup End"
                 #pprint(res.groups())
 
                 return
-            """
-
+            
             #mini round win
             res = regex(parser_regex.mini_round_win, logdata)
             if res:
