@@ -24,7 +24,7 @@ class llListener(SocketServer.UDPServer):
         self.logger.info("Initialised log listener. Waiting for logs")
         self.parser = None
 
-        self.timeout = timeout
+        self._timeout = timeout
 
         #self.timeoutTimer = threading.Timer(timeout, self.handle_server_timeout)
         #self.timeoutTimer.start()
@@ -84,7 +84,7 @@ class llListener(SocketServer.UDPServer):
             
         else:
             if not self.parser.LOG_PARSING_ENDED:
-                self.logger.info("Server timeout (no logs received in %0.2f seconds). Exiting", self.timeout)
+                self.logger.info("Server timeout (no logs received in %0.2f seconds). Exiting", self._timeout)
                 
                 #toggle log's status and stop recording
                 if not self.parser.HAD_ERROR:
@@ -94,12 +94,20 @@ class llListener(SocketServer.UDPServer):
        
         return
 
+    def shutdown_listener(self):
+        self.__listener_shutdown()
+
+    def timed_out(self, current_time):
+        if (current_ctime - self._last_message_time) > float(self._timeout): #difference between current time and last message is > the time out. therefore, the listener has timed out
+            return True
+        else:
+            return False
+
     def __listener_shutdown(self):
         if threading.current_thread() is self.listener_object.lthread:
             self.logger.error("__listener_shutdown called from the same thread as the listener. will cause deadlock")
 
             return
-
 
         self.logger.info("Shutting down listener on %s:%s", self.server_address[0], self.server_address[1])
 
@@ -159,7 +167,7 @@ class llListenerObject(object):
 
     def error_cleanup(self):
         self.listener.timeoutTimer.cancel()
-        self.listener.__listener_shutdown()
+        self.listener.shutdown_listener()
         
     def close_object(self): #only ever called by listener.__listener_shutdown()
         while self.lthread.isAlive(): #attempt to join the socket thread, which will indicate that the listener has properly stopped. this is called from a separate thread to the listener, so it will not block or deadlock

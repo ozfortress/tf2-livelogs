@@ -152,7 +152,7 @@ class parserClass():
         self.STAT_TABLE = "log_stat_%s" % self.UNIQUE_IDENT
         self.CHAT_TABLE = "log_chat_%s" % self.UNIQUE_IDENT
 
-        self.ITEM_DICT = {
+        self._item_dict = {
             'ammopack_small': 'ap_small',
             'ammopack_medium': 'ap_medium', 
             'tf_ammo_pack': 'ap_large', 
@@ -161,7 +161,7 @@ class parserClass():
             'medkit_large': 'mk_large'
             }
             
-        self.PLAYER_TEAMS = {}
+        self._player_teams = {} #dict of player teams wrt to steamid
         self._player_logs = {} #whether this user has been added to the log index or not
         self._player_names = {} #a dict of player names
         
@@ -865,8 +865,8 @@ class parserClass():
         return retuple.group(index)
 
     def selectItemName(self, item_name):
-        if item_name in self.ITEM_DICT:
-            return self.ITEM_DICT[item_name]
+        if item_name in self._item_dict:
+            return self._item_dict[item_name]
 
     def pg_statupsert(self, table, column, steamid, name, value):
         #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
@@ -916,14 +916,14 @@ class parserClass():
     def insertPlayerTeam(self, a_sid, a_team, b_sid = None, b_team = None):
         team_insert_list = []
 
-        if a_sid not in self.PLAYER_TEAMS:
-            self.PLAYER_TEAMS[a_sid] = a_team
+        if a_sid not in self._player_teams:
+            self._player_teams[a_sid] = a_team
             
             team_insert_list.append((self.STAT_TABLE, a_sid, a_team))
         
         if b_sid and b_team:
-            if b_sid not in self.PLAYER_TEAMS:
-                self.PLAYER_TEAMS[b_sid] = b_team
+            if b_sid not in self._player_teams:
+                self._player_teams[b_sid] = b_team
             
                 team_insert_list.append((self.STAT_TABLE, b_sid, b_team))
         

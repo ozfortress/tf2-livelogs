@@ -329,11 +329,12 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 #first check if the log has ended
                 if listen_object.listener._ended:
                     #the game has ended. call the shutdown method
-                    listen_object.listener.__listener_shutdown()
+                    listen_object.listener.shutdown_listener()
 
-                elif (current_ctime - listen_object._last_message_time) > float(self.listener_timeout):
+                elif listen_object.listener.timed_out(current_ctime):
                     #the listener has timed out
                     listen_object.listener.handle_server_timeout()
+
         except KeyboardInterrupt:
             return
         except:
@@ -345,7 +346,6 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             self.listenerTimeoutCheck()
 
             event.wait(2) #run a timeout check every 2 seconds
-
 
 
 if __name__ == '__main__':
@@ -394,6 +394,8 @@ if __name__ == '__main__':
 
             if not listenobj.listener.parser.LOG_PARSING_ENDED:
                 listenobj.listener.parser.endLogParsing()
+                listenobj.listener.shutdown_listener()
+                
             else:
                 logger.info("\tListen object is still present, but the log has actually ended")
 
