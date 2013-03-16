@@ -47,7 +47,7 @@ player_connect = re_compiler(r'"(.*)<(\d+)><(.*)><>" connected, address "(.*):(.
 player_validated = re_compiler(r'"(.*)<(\d+)><(.*)><>" STEAM USERID validated')
 player_class_change = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" changed role to "(.*)"')
 #"b1z<19><STEAM_0:0:18186373><Red>" joined team "Blue"
-player_team_join = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue|Spectator)>" joined team "(.*)"')
+player_team_join = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue|Spectator|Unassigned)>" joined team "(Red|Blue)"')
 
 
 round_win = re_compiler(r'World triggered "Round_Win" \x28winner "(Blue|Red)"\x29')
