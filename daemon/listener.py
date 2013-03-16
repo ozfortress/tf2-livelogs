@@ -23,14 +23,16 @@ class llListener(SocketServer.UDPServer):
         self.logger = logger
         self.logger.info("Initialised log listener. Waiting for logs")
         self.parser = None
+
         self.timeout = timeout
 
-        self.timeoutTimer = threading.Timer(timeout, self.handle_server_timeout)
-        self.timeoutTimer.start()
+        #self.timeoutTimer = threading.Timer(timeout, self.handle_server_timeout)
+        #self.timeoutTimer.start()
 
         self.listener_object = listener_object #llListenerObject address, which holds this listener. needed to end the listening thread, and remove the object from the daemon's set
 
-
+        self._ended = False
+        self._last_message_time = time.time() #set the init time to this, so we can still timeout if nothing is received at all
 
         SocketServer.UDPServer.__init__(self, listener_address, handler_class)
 
@@ -45,6 +47,9 @@ class llListener(SocketServer.UDPServer):
 
         if (client_address[0] == self.client_server_address[0]):
             #print "Client address is same as initial client. Accepting log"
+            self._last_message_time = time.time() #the epoch value of the time this message was received, for the timeout check
+
+            """
             #reset the timeout timer
             self.timeoutTimer.cancel()
 
@@ -52,6 +57,7 @@ class llListener(SocketServer.UDPServer):
             self.timeoutTimer = threading.Timer(self.timeout, self.handle_server_timeout) #we have to re-assign it, because threads can only be started once.
             #TODO: IMPLEMENT BETTER TIMEOUT METHOD THAT DOES NOT START A NEW THREAD EVERY OTHER SECOND
             self.timeoutTimer.start()
+            """
 
             return True
         else:
@@ -62,17 +68,19 @@ class llListener(SocketServer.UDPServer):
         if game_over:
             self.logger.info("Game over. Closing listening socket")
             
-            self.timeoutTimer.cancel()
+            self._ended = True
+
+            #self.timeoutTimer.cancel()
             
-            time.sleep(1) #sleep for 1 second to prevent a race condition
+            #time.sleep(1) #sleep for 1 second to prevent a race condition
 
             """
             we need to call the shutdown in a THREAD, otherwise the method will deadlock the current thread
             this is only needed when game_over is set, because if game_over is not set, this method is being called from a timer (which is in a thread)
             """
-            newthread = threading.Thread(target=self.__listener_shutdown) 
-            newthread.daemon = True
-            newthread.start()
+            #newthread = threading.Thread(target=self.__listener_shutdown) 
+            #newthread.daemon = True
+            #newthread.start()
             
         else:
             if not self.parser.LOG_PARSING_ENDED:

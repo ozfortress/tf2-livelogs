@@ -31,7 +31,7 @@ log_file_handler = logging.handlers.TimedRotatingFileHandler("daemon.log", when=
 log_file_handler.setFormatter(log_message_format)
 log_file_handler.setLevel(logging.DEBUG)
 
-logging.getLogger().addHandler(log_file_handler)
+logging.getLogger().addHandler(log_file_handler) #add the file handler to the root logger, so all logs are saved to a file
 
 #this class is used to remove all HTML tags from player strings
 class HTMLStripper(HTMLParser):
@@ -181,11 +181,6 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.logger = logging.getLogger('daemon')
         self.logger.debug('DAEMON INIT')
         
-        self.allow_reuse_address = True
-        self.daemon_threads = True
-
-        self.listen_set = set()
-
         cfg_parser = ConfigParser.SafeConfigParser()
         if cfg_parser.read(r'll-config.ini'):
             try:
@@ -210,6 +205,16 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         else:
             self.logger.error("Unable to read config file")
             sys.exit("Unable to read config file")
+
+        self.allow_reuse_address = True
+        self.daemon_threads = True
+
+        self.listen_set = set()
+
+        self.timeout_event = threading.Event()
+        self.timeout_thread = threading.Thread(target=self._listenerTimeoutThread, args=(self.timeout_event,))
+        self.timeout_thread.daemon = True
+        self.timeout_thread.start()
         
         SocketServer.TCPServer.__init__(self, server_ip, handler)
         
@@ -311,6 +316,38 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             return None
 
 
+
+    def listenerTimeoutCheck(self):
+        #loop over the listener objects to see if any of them have timed out
+        listeners = self.listen_set.copy() #shallow copy the set, so we can iterate over it without worrying about issues when new objects are added
+
+        current_ctime = time.time() #store the current time, so we don't need to get it for every object being iterated
+
+        try:
+            for listen_object in listeners:
+
+                #first check if the log has ended
+                if listen_object.listener._ended:
+                    #the game has ended. call the shutdown method
+                    listen_object.listener.__listener_shutdown()
+
+                elif (current_ctime - listen_object._last_message_time) > float(self.listener_timeout):
+                    #the listener has timed out
+                    listen_object.listener.handle_server_timeout()
+        except KeyboardInterrupt:
+            return
+        except:
+            self.logger.exception("Exception looping over listeners for timeout")
+
+
+    def _listenerTimeoutThread(self, event):
+        while not event.is_set():
+            self.listenerTimeoutCheck()
+
+            event.wait(2) #run a timeout check every 2 seconds
+
+
+
 if __name__ == '__main__':
     cfg_parser = ConfigParser.SafeConfigParser()
     if cfg_parser.read(r'll-config.ini'):
@@ -349,6 +386,8 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt. Closing daemon")
         llServer.db.closeall() #close all database connections in the pool
+
+        llServer.timeout_event.set() #stop the timeout thread
 
         for listenobj in llServer.listen_set:
             logger.info("Ending log with ident %s", listenobj.unique_parser_ident)
