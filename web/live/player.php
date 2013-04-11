@@ -328,7 +328,7 @@
 <?php
     function big_int_to_steamid($cid) {
         //converts a community id to a steamid
-        $cid = int($cid) - 76561197960265728;
+        $cid = (int)$cid - 76561197960265728;
         $cid_half = $cid / 2;
 
         if ($cid % 2) //if there's a remainder, auth server is server 1, else it's server 0

@@ -352,7 +352,7 @@ class dbManager(object):
                 
                 self.log.exception("Unknown exception occurred during database update")
         else:
-            self.log.info("Busy getting database updates")
+            self.log.info("Busy getting database updates for log %s", self.LOG_IDENT)
             
     def _databaseStatusCallback(self, cursor, error):
         if error:

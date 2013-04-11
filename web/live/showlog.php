@@ -49,7 +49,10 @@
             
             $team_query = "SELECT * FROM {$escaped_team_table}";
             $team_result = pg_query($ll_db, $team_query);
-            $team_array = pg_fetch_all($team_result);
+            if ($team_result)
+            {
+                $team_array = pg_fetch_all($team_result);
+            }
 
             $time_query = "SELECT event_time FROM {$escaped_event_table} WHERE eventid = '1' UNION SELECT event_time FROM {$escaped_event_table} WHERE eventid = (SELECT MAX(eventid) FROM {$escaped_event_table})";
             $time_result = pg_query($ll_db, $time_query);        
