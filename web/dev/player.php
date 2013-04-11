@@ -328,22 +328,20 @@
 <?php
     function big_int_to_steamid($cid) {
         //converts a community id to a steamid
-        $cid = $cid - 76561197960265728;
+        $cid = int($cid) - 76561197960265728;
         $cid_half = $cid / 2;
 
         if ($cid % 2) //if there's a remainder, auth server is server 1, else it's server 0
         {
             $auth_server = 1;
-            $steamid = $cid_half - 0.5;
-
-            $steamid = sprintf("STEAM_0:%d:%d", $auth_server, $steamid);
+            $sid_chunk = $cid_half - 0.5;
         }
         else
         {
             $auth_server = 0;
-            $steamid = sprintf("STEAM_0:%d:%d", $auth_server, $cid_half);
+            $sid_chunk = $cid_half; //last part of the steam id (i.e 1234567)
         }
-
+        $steamid = sprintf("STEAM_0:%d:%d", $auth_server, $sid_chunk);
         return $steamid;
     }
 

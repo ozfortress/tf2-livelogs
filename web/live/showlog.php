@@ -194,9 +194,11 @@
         }
         else
         {
+            $log_split = explode("_", $UNIQUE_IDENT);
         ?>
             
             <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="/download/<?=$UNIQUE_IDENT?>"><?=$UNIQUE_IDENT?></a></span><br>
+            <span class="log_id_tag">Date: </span><span class="log_detail"><?=date("d/m/Y H:i:s", $log_split[2])?></span><br>
         <?php
         }
 
