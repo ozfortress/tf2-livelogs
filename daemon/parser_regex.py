@@ -4,6 +4,8 @@ import re
 def re_compiler(preg):
     return re.compile(preg, re.IGNORECASE | re.MULTILINE)
 
+server_cvar_value = re_compiler(r'"([A-Za-z\_]+)" = "(.*)"')
+
 log_file_started = re_compiler(r'L (\S+) - (\S+) Log file started \x28file "(.*)"\x29')
 log_timestamp = re_compiler(r'L (\S+) - (\S+):')
 
@@ -30,6 +32,8 @@ game_over = re_compiler(r'World triggered "Game_Over" reason "(.*)"')
 rcon_command = re_compiler(r'rcon from "(.*)": command "(.*)"')
 
 building_destroyed = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "killedobject" \x28object "(.*)"\x29 \x28weapon "(.*)"\x29 \x28objectowner "(.*)<(\d+)><(.*)><(Blue|Red)>"\x29 \x28attacker_position "(.*)"\x29')
+#"Gucci_Cooki^<75><STEAM_0:0:43662794><Blue>" triggered "killedobject" (object "OBJ_SENTRYGUN") (objectowner "faith<63><STEAM_0:0:52150090><Red>") (assist "1") (assister_position "596 275 505") (attacker_position "881 473 544")
+building_destroyed_assist = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "killedobject" \x28object "(.*)"\x29 \x28objectowner "(.*)<(\d+)><(.*)><(Blue|Red)>"\x29 \x28assist "\d"\x29 \x28assister_position "(.*)"\x29 \x28attacker_position "(.*)"\x29')
 #"|S| ynth<13><STEAM_0:1:2869609><Red>" triggered "builtobject" (object "OBJ_TELEPORTER") (position "-4165 1727 -511")
 building_created = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "builtobject" \x28object "(.*)"\x29 \x28position "(.*)"\x29')
 
@@ -42,13 +46,18 @@ player_death = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" committed suicide w
 player_kill = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" killed "(.*)<(\d+)><(.*)><(Red|Blue)>" with "(.*)" \x28attacker_position "(.*)"\x29 \x28victim_position "(.*)"\x29')
 player_kill_special = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" killed "(.*)<(\d+)><(.*)><(Red|Blue)>" with "(.*)" \x28customkill "(.*)"\x29 \x28attacker_position "(.*)"\x29 \x28victim_position "(.*)"\x29')
 player_assist = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "kill assist" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28assister_position "(.*)"\x29 \x28attacker_position "(.*)"\x29 \x28victim_position "(.*)"\x29')
+#"ph.tw|n<19><STEAM_0:0:39342123><Red>" triggered "player_extinguished" against "Mad<11><STEAM_0:0:41824190><Red>" with "tf_weapon_flamethrower" (attacker_position "-1504 -2949 -408") (victim_position "-1542 -2970 -408")
+player_extinguish = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "player_extinguished" against "(.*)<(\d+)><(.*)><(Red|Blue)>" with "(.*)" \x28attacker_position "(.*)"\x29 \x28victim_position "(.*)"\x29')
 player_disconnect = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue|Spectator)>" disconnected \x28reason "(.*)"\x29')
 player_connect = re_compiler(r'"(.*)<(\d+)><(.*)><>" connected, address "(.*):(.*)"')
 player_validated = re_compiler(r'"(.*)<(\d+)><(.*)><>" STEAM USERID validated')
+#"zeej<51><STEAM_0:0:41289089><>" entered the game
+player_entered_game = re_compiler(r'"(.*)<(\d+)><(.*)><>" entered the game')
 player_class_change = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" changed role to "(.*)"')
 #"b1z<19><STEAM_0:0:18186373><Red>" joined team "Blue"
-player_team_join = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue|Spectator|Unassigned)>" joined team "(Red|Blue)"')
-
+player_team_join = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue|Spectator|Unassigned)>" joined team "(Red|Blue|Spectator)"')
+#"hobbes<64><STEAM_0:0:19415161><Red>" changed name to "Smauglet"
+player_name_change = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue|Spectator|Unassigned)>" changed name to "(.*)"')
 
 round_win = re_compiler(r'World triggered "Round_Win" \x28winner "(Blue|Red)"\x29')
 round_overtime = re_compiler(r'World triggered "Round_Overtime"')

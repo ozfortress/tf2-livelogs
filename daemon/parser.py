@@ -554,6 +554,17 @@ class parserClass():
                 if res:
                     #we don't actually need this for anything, just catching it to prevent spam and in case there is ever a use in the future
                     return
+
+                res = regex(parser_regex.building_destroyed_assist, logdata)
+                if res:
+
+                    return
+
+                res = regex(parser_regex.player_extinguish)
+                if res:
+
+                    return
+
             #end round_pause blocking
             
             #chat
@@ -655,10 +666,15 @@ class parserClass():
             #"b1z<19><STEAM_0:0:18186373><Red>" joined team "Blue"
             res = regex(parser_regex.player_team_join, logdata)
             if res:
+                team = regml(res, 5)
+
+                if team is "Spectator":
+                    return
+
                 sid = regml(res, 3)
 
                 if sid is not "BOT":
-                    self.insertPlayerTeam(sid, regml(res, 5).lower())
+                    self.insertPlayerTeam(sid, team.lower())
 
                 return
                 
@@ -718,6 +734,11 @@ class parserClass():
                 
                 return
 
+            res = regex(parser_regex.player_name_change)
+            if res:
+                #print player name change
+                return
+
             #rcon command
             res = regex(parser_regex.rcon_command, logdata)
             if res:
@@ -726,6 +747,10 @@ class parserClass():
 
                 return
 
+            res = regex(parser_regex.server_cvar_value)
+            if res:
+
+                return
 
             #disconnect RL 10/07/2012 - 01:13:44: "triple h<162><STEAM_0:1:33713004><Red>" disconnected (reason " #tf2pug")
             res = regex(parser_regex.player_disconnect, logdata)
@@ -748,6 +773,11 @@ class parserClass():
             if res:
                 #print "Player validated"
                 #pprint(res.groups())
+
+                return
+
+            res = regex(parser_regex.player_entered_game)
+            if res:
 
                 return
             
