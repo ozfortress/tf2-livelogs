@@ -560,7 +560,7 @@ class parserClass():
 
                     return
 
-                res = regex(parser_regex.player_extinguish)
+                res = regex(parser_regex.player_extinguish, logdata)
                 if res:
 
                     return
@@ -734,7 +734,7 @@ class parserClass():
                 
                 return
 
-            res = regex(parser_regex.player_name_change)
+            res = regex(parser_regex.player_name_change, logdata)
             if res:
                 #print player name change
                 return
@@ -747,7 +747,7 @@ class parserClass():
 
                 return
 
-            res = regex(parser_regex.server_cvar_value)
+            res = regex(parser_regex.server_cvar_value, logdata)
             if res:
 
                 return
@@ -776,7 +776,7 @@ class parserClass():
 
                 return
 
-            res = regex(parser_regex.player_entered_game)
+            res = regex(parser_regex.player_entered_game, logdata)
             if res:
 
                 return
