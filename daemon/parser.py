@@ -940,6 +940,9 @@ class parserClass():
         escaped_string = unescaped_string.replace("'", "''").replace("\\", "\\\\")
         escaped_string = stripHTMLTags(escaped_string)
 
+        if len(escaped_string) is 0:
+            return "LL_INVALID_STRING";
+
         return escaped_string
 
     #this method can take up to two players and insert their teams into the database
