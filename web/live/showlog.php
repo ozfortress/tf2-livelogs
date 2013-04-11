@@ -327,6 +327,11 @@
                         //NAME:K:D:A:PC:PB:HS:PTS:DMG:DMGT:HEAL:DOM:R:KPD:DPD:DPR:DPM
                         while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC))
                         {
+                            if (empty($pstat["name"]))
+                            {
+                                $pstat["name"] = "INVALID_NAME";
+                            }
+
                             $community_id = steamid_to_bigint($pstat["steamid"]);
                             $p_kpd = round($pstat["kills"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); // kills/death
                             $p_dpd = round($pstat["damage_dealt"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); //damage/death
