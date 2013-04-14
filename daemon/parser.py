@@ -1050,6 +1050,8 @@ class parserClass():
                     end_query = "DELETE FROM livelogs_servers WHERE log_ident = E'%s'; DROP TABLE %s; DROP TABLE %s; DROP TABLE %s" % (self.UNIQUE_IDENT, self.STAT_TABLE, self.CHAT_TABLE, self.EVENT_TABLE)
                     self.executeQuery(end_query)
 
+                    self.logger.info("No data in this log. Tables have been deleted")
+
                 else:
                     #sets live to false, and merges the stat table with the master stat table
                     live_end_query = "UPDATE livelogs_servers SET live = false WHERE log_ident = E'%s'; SELECT merge_stat_table('%s')" % (self.UNIQUE_IDENT, self.STAT_TABLE)

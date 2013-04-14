@@ -389,7 +389,8 @@ if __name__ == '__main__':
 
         llServer.timeout_event.set() #stop the timeout thread
 
-        for listenobj in llServer.listen_set:
+        #shallow copy of the listen object set, so it can be iterated on while items are being removed
+        for listenobj in llServer.listen_set.copy():
             logger.info("Ending log with ident %s", listenobj.unique_parser_ident)
 
             if not listenobj.listener.parser.LOG_PARSING_ENDED:
