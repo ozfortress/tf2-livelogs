@@ -902,7 +902,7 @@ class parserClass():
         #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
         insert_query = "INSERT INTO %s (steamid, name, %s) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, steamid, name, value)
 
-        if steamid not in self._player_names or self._player_names[steamid] is not name:
+        if len(name) > 0 and (steamid not in self._player_names or self._player_names[steamid] is not name):
             update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s, name = E'%s' WHERE steamid = E'%s'" % (self.STAT_TABLE, column, column, value, name, steamid)
             self._player_names[steamid] = name
             
@@ -1045,12 +1045,18 @@ class parserClass():
             self.LOG_PARSING_ENDED = True
             
             if not self.HAD_ERROR:
-                #sets live to false, and merges the stat table with the master stat table
-                live_end_query = "UPDATE livelogs_servers SET live = false WHERE log_ident = E'%s'; SELECT merge_stat_table('%s')" % (self.UNIQUE_IDENT, self.STAT_TABLE)
-                self.executeQuery(live_end_query)
+                if not self._player_logs:
+                    #if no players were added to the log, this log is invalid. therefore, we should delete it
+                    end_query = "DELETE FROM livelogs_servers WHERE log_ident = E'%s'; DROP TABLE %s; DROP TABLE %s; DROP TABLE %s" % (self.UNIQUE_IDENT, self.STAT_TABLE, self.CHAT_TABLE, self.EVENT_TABLE)
+                    self.executeQuery(end_query)
+
+                else:
+                    #sets live to false, and merges the stat table with the master stat table
+                    live_end_query = "UPDATE livelogs_servers SET live = false WHERE log_ident = E'%s'; SELECT merge_stat_table('%s')" % (self.UNIQUE_IDENT, self.STAT_TABLE)
+                    self.executeQuery(live_end_query)
                 
                 #begin ending timer
-                if ((self.closeListenerCallback != None) and (game_over)):
+                if self.closeListenerCallback is not None and game_over:
                     self.closeListenerCallback(game_over)
 
             if self.db:

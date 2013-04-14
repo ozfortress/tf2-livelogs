@@ -163,7 +163,7 @@ class llWSApplication(tornado.web.Application):
                                 
                             else:
                                 delta_update_dict = self.log_db_managers[log_id].compressedUpdate()
-                                self.logger.debug("Got update dict for %s", log_id)
+                                self.logger.debug("Got update dict for %s: %s", log_id, delta_update_dict)
                                 if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
                                     self.logger.debug("Sending update to client %s", client)
                                     client.write_message(delta_update_dict)
