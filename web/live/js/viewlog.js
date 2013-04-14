@@ -251,7 +251,7 @@ var llWSClient = llWSClient || (function() {
         
         parseStatUpdate : function(stat_obj) {
             try {
-                var element, element_id, special_element_tags = ["kpd", "dpd", "dpr", "dpm"], i, tmp, num_rounds, deaths, damage, kills, table;
+                var element, element_id, special_element_tags = ["kpd", "dpd", "dpr", "dpm"], i, tmp, num_rounds, deaths, damage, kills, table, tmp_result;
                 num_rounds = Number(document.getElementById("red_score_value").innerHTML) + Number(document.getElementById("blue_score_value").innerHTML);
 
                 //table = $("#general_stats").dataTable();
@@ -303,15 +303,20 @@ var llWSClient = llWSClient || (function() {
                             if (element) {
                                 if (tmp === "kpd") {
                                     kills = Number(document.getElementById(sid + ".kills").innerHTML);
-                                    llWSClient.updateStatCell(element, Math.round(kills / (deaths || 1) * 100) / 100);
+                                    tmp_result = Math.round(kills / (deaths || 1) * 100) / 100;
                                 } else if (tmp === "dpd") {
-                                    llWSClient.updateStatCell(element, Math.round(damage / (deaths || 1) * 100) / 100);
+                                    tmp_result = Math.round(damage / (deaths || 1) * 100) / 100;
                                 } else if (tmp === "dpr") {
-                                    llWSClient.updateStatCell(element, Math.round(damage / (num_rounds || 1) * 100) / 100);
+                                    tmp_result = Math.round(damage / (num_rounds || 1) * 100) / 100;
                                 } else if (tmp === "dpm") {
-                                    llWSClient.updateStatCell(element, Math.round(damage / (time_elapsed_sec/60 || 1) * 100) / 100);
+                                    tmp_result = Math.round(damage / (time_elapsed_sec/60 || 1) * 100) / 100;
                                 } else {
                                     console.log("Invalid element %s in special element array", tmp);
+                                    continue;
+                                }
+
+                                if (Number(element.innerHTML) !== tmp_result) {
+                                    llWSClient.updateStatCell(element, tmp_result);
                                 }
                             }
                         }
