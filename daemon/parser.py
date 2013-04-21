@@ -28,12 +28,75 @@ log_file_handler = logging.handlers.TimedRotatingFileHandler("parser.log", when=
 log_file_handler.setFormatter(log_message_format)
 log_file_handler.setLevel(logging.DEBUG)"""
 
+
+class dbPoolWrapper(object):
+    #this object wraps a database pool, allowing an application to use it as it would a single database connection
+    def __init__(self, pool):
+        self.pool = pool
+
+        self.current_conn = None
+        self.current_cursor = None
+
+        self.closed = self.pool.closed
+
+    def commit(self):
+        self.closed = self.pool.closed
+        if self.pool.closed:
+            self.current_cursor = None
+
+            raise Exception("DB_POOL_CLOSED")
+
+        if not self.current_conn.closed:
+            self.current_conn.commit()
+        else:
+            self.pool.putconn(self.current_conn)
+
+    def rollback(self):
+        self.closed = self.pool.closed
+        if self.closed:
+            self.current_cursor = None
+            raise Exception("DB_POOL_CLOSED")
+
+
+        self.current_conn.rollback()
+        self.closed = self.pool.closed
+
+    def cursor(self):
+        if not self.pool.closed:
+            if not self.current_conn:
+                self.current_conn = self.pool.getconn()
+
+            if not self.current_cursor:
+                self.current_cursor = self.current_conn.cursor()
+
+            return self.current_cursor
+        else:
+            self.closed = self.pool.closed
+
+            raise Exception("DB_POOL_CLOSED")
+
+    def close(self):
+        if self.current_cursor:
+            self.current_cursor.close()
+
+        if self.current_conn:
+            self.pool.putconn(self.current_conn)
+
+        self.current_conn = None
+        self.current_cursor = None
+
+    def __del__(self):
+        if self.current_cursor:
+            self.current_cursor.close()
+
+        self.pool.putconn(self.current_conn)
+
 class parserClass():
-    def __init__(self, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc=None, webtv_port=None):
+    def __init__(self, db_pool, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc=None, webtv_port=None):
         #ALWAYS REQUIRE A UNIQUE IDENT, OTHER PARAMS ARE OPTIONAL
         self.HAD_ERROR = False
         self.LOG_FILE_HANDLE = None
-        self.db = None
+        self.db = db_pool
 
         self.logger = logging.getLogger(unique_ident)
         self.logger.setLevel(logging.DEBUG)
@@ -79,12 +142,11 @@ class parserClass():
             
             self.HAD_ERROR = True
             return
-            
-        try:
-            self.db = psycopg2.connect(self._db_dsn)
 
-        except Exception, e:
-            self.logger.exception("Had exception while trying to connect to psql database")
+        conn = self.db.getconn()
+            
+        if not conn:
+            self.logger.error("Had error getting databse connection")
             
             self.HAD_ERROR = True
             
@@ -115,38 +177,40 @@ class parserClass():
             
         self.logger.info("PARSER UNIQUE IDENT: " + self.UNIQUE_IDENT)
         
-        dbCursor = self.db.cursor()
-        try:
-            dbCursor.execute("SELECT create_global_stat_table()")
-            dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
+        if not log_uploaded:
+            try:
+                dbCursor = conn.cursor()
+                dbCursor.execute("SELECT create_global_stat_table()")
+                dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
 
-            if (server_address != None):
-                dbCursor.execute("SELECT create_global_server_table()")
-            
-                if not log_name:
-                    log_name = "log-%s" % time.strftime("%Y-%m-%d-%H-%M") #log-year-month-day-hour-minute
+                if (server_address != None):
+                    dbCursor.execute("SELECT create_global_server_table()")
                 
-                dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name, live, webtv_port) VALUES (%s, %s, %s, %s, %s, 'true', %s)", 
-                                            (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map, log_name, webtv_port,))
+                    if not log_name:
+                        log_name = "log-%s" % time.strftime("%Y-%m-%d-%H-%M") #log-year-month-day-hour-minute
+                    
+                    dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name, live, webtv_port) VALUES (%s, %s, %s, %s, %s, 'true', %s)", 
+                                                (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map, log_name, webtv_port,))
 
-            self.db.commit()
-        except:
-            self.logger.exception("Exception during table init")
+                conn.commit()
+            except:
+                self.logger.exception("Exception during table init")
 
-            self.HAD_ERROR = True
+                self.HAD_ERROR = True
 
-            dbCursor.close()
-            self.db.close()
+                dbCursor.close()
+                self.db.putconn(conn)
 
-            self.LOG_FILE_HANDLE.close()
+                self.LOG_FILE_HANDLE.close()
 
-            return
+                return
 
         if (log_uploaded):
             #TODO: Create an indexing method for logs that were manually uploaded and parsed
             pass
 
         dbCursor.close()
+        self.db.putconn(conn)
 
         self.EVENT_TABLE = "log_event_%s" % self.UNIQUE_IDENT
         self.STAT_TABLE = "log_stat_%s" % self.UNIQUE_IDENT
@@ -588,8 +652,9 @@ class parserClass():
                 self.executeQuery(event_insert_query)
 
                 if not self.db.closed:
-                    curs = self.db.cursor()
                     try:
+                        conn = self.db.getconn()
+                        curs = conn.cursor()
                         #now we need to get the event ID and put it into chat!
                         
                         eventid_query = "SELECT eventid FROM %s WHERE event_type = 'chat' ORDER BY eventid DESC LIMIT 1" % self.EVENT_TABLE
@@ -599,7 +664,7 @@ class parserClass():
                         chat_insert_query = "INSERT INTO %s (eventid, steamid, name, team, chat_type, chat_message) VALUES ('%s', E'%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, 
                                                                 eventid, c_sid, c_name, c_team, chat_type, chat_message)
 
-                        self.executeQuery(chat_insert_query, curs=curs) #execute query will perform the insert query, commit, and close the cursor
+                        self.executeQuery(chat_insert_query, curs=curs, conn=conn) #execute query will perform the insert query, commit, and close the cursor
 
                     except Exception, e:
                         self.logger.exception("Exception trying to get chat eventid")
@@ -911,30 +976,43 @@ class parserClass():
 
         try:
             if not self.db.closed:
-                curs = self.db.cursor()
+                conn = self.db.getconn()
+                curs = conn.cursor()
                 
                 try:
                     curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
-                    self.db.commit()
+                    conn.commit()
                 except psycopg2.DataError, e:
                     self.logger.exception("DB DATA ERROR INSERTING DATA %s", query)
                     
-                    self.db.rollback()
+                    conn.rollback()
                 except Exception, e:
                     self.logger.exception("DB ERROR")
                     
-                    self.db.rollback()
+                    conn.rollback()
                 finally:
-                    if not self.db.closed: #the cursor will auto close if the db closes for whatever reason
+                    if not conn.closed: #the cursor will auto close if the db closes for whatever reason
                         curs.close()
 
-            else:
-                if not self.RECONNECTING_TO_DATABASE:
-                    self.reconnectToDatabase()
+                    self.db.putconn(conn)
+                    curs = None
+                    conn = None
 
-                self.addToQueryQueue("upsert", insert_query, update_query)
+            else:
+                return
+
+                #if not self.RECONNECTING_TO_DATABASE:
+                #    self.reconnectToDatabase()
+
+                #self.addToQueryQueue("upsert", insert_query, update_query)
         except:
-            self.logger.exception("Exception occurred rolling back the connection")
+            self.logger.exception("Exception during commit or rollback")
+        finally:
+            if curs:
+                curs.close()
+            if conn:
+                self.db.putconn(conn)
+
 
     def escapePlayerString(self, unescaped_string):
         escaped_string = unescaped_string.replace("'", "''").replace("\\", "\\\\")
@@ -963,23 +1041,27 @@ class parserClass():
         if len(team_insert_list) > 0:
             if not self.db.closed:
                 try:
+                    conn = self.db.getconn()
                     curs = self.db.cursor()
                     #team_insert_query = ';'.join(("UPDATE %s SET team = E'%s' WHERE steamid = E'%s'" % team_tuple) for team_tuple in team_insert_list)
                     #self.executeQuery(team_insert_query)
                     for team_tuple in team_insert_list:
-                        insert_query = "INSERT INTO %s (steamid, team) VALUES (E'%s', E'%s')" % team_tuple
+                        insert_query = "INSERT INTO %s (steamid, team) VALUES (E'%s', E'%s')" %  team_tuple
                         update_query = "UPDATE %s SET team = E'%s' WHERE steamid = E'%s'" % (self.STAT_TABLE, team_tuple[2], team_tuple[1])
 
                         curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
 
-                    self.db.commit()
+                    conn.commit()
 
                 except:
                     self.logger.exception("Error during team insertion")
-                    self.db.rollback()
+                    conn.rollback()
 
                 finally:
-                    curs.close()
+                    if not conn.closed:
+                        curs.close()
+
+                    self.db.putconn(conn)
 
             
             #team_insert_args = ','.join(curs.mogrify("(%s, %s)", team_tuple) for team_tuple in team_insert_list)
@@ -1002,40 +1084,50 @@ class parserClass():
 
         if len(insert_list) > 0:
             if not self.db.closed:
-                curs = self.db.cursor()
+                conn = self.db.getconn()
+                curs = conn.cursor()
 
                 insert_args = ','.join(curs.mogrify("(%s, %s)", insert_tuple) for insert_tuple in insert_list)
                 insert_query = "INSERT INTO livelogs_player_logs (steamid, log_ident) VALUES %s" % (insert_args)
 
-                self.executeQuery(insert_query, curs)
+                self.executeQuery(insert_query, curs, conn)
 
 
-    def executeQuery(self, query, curs=None):
+    def executeQuery(self, query, curs=None, conn=None):
         try:
             if not self.db.closed:
+
+                if not conn:
+                    conn = self.db.getconn()
                 if not curs:
-                    curs = self.db.cursor()
+                    curs = conn.cursor()
                     
                 try:
                     curs.execute(query)
-                    self.db.commit()
+                    conn.commit()
                 except psycopg2.DataError, e:
                     self.logger.exception("DB DATA ERROR INSERTING DATA %s", query)
                     
-                    self.db.rollback()
+                    conn.rollback()
                 except Exception, e:
                     self.logger.exception("DB ERROR")
                     
-                    self.db.rollback()
+                    conn.rollback()
                 finally:
-                    if not self.db.closed: #the cursor will auto close if the db closes for whatever reason
+                    if not conn.closed: #the cursor will auto close if the db closes for whatever reason
                         curs.close()
 
-            else:
-                if not self.RECONNECTING_TO_DATABASE:
-                    self.reconnectToDatabase()
+                    self.db.putconn(conn)
+                    conn = None
 
-                self.addToQueryQueue("insert", query)
+            else:
+                if conn:
+                    self.db.putconn(conn)
+
+                #if not self.RECONNECTING_TO_DATABASE:
+                #    self.reconnectToDatabase()
+
+                #self.addToQueryQueue("insert", query)
         except:
             self.logger.exception("Exception occurred rolling back the connection")
 
@@ -1060,10 +1152,6 @@ class parserClass():
                 #begin ending timer
                 if self.closeListenerCallback is not None and game_over:
                     self.closeListenerCallback(game_over)
-
-            if self.db:
-                if not self.db.closed:
-                    self.db.close()
             
             if self.LOG_FILE_HANDLE:
                 if not self.LOG_FILE_HANDLE.closed:
@@ -1132,11 +1220,6 @@ class parserClass():
         if self.LOG_FILE_HANDLE:
             if not self.LOG_FILE_HANDLE.closed:
                 self.LOG_FILE_HANDLE.close()
-        
-        if self.db:    
-            if not self.db.closed:
-                self.endLogParsing()
-                #self.db.close()
 
 class queryQueueDataObject(object):
     #this class is just a data structure to hold query information for the query queue

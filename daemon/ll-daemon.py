@@ -130,7 +130,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
                 log_name = self.escapeString(msg[5])
 
-                self.newListen = listener.llListenerObject(client_api_key, sip, (self.ll_clientip, self.ll_client_server_port), msg[4], log_name, 
+                self.newListen = listener.llListenerObject(self.server.db, client_api_key, sip, (self.ll_clientip, self.ll_client_server_port), msg[4], log_name, 
                                                             self.server.removeListenerObject, timeout=self.server.listener_timeout, webtv_port = webtv_port)
                 
                 if not self.newListen.had_error(): #check if the parser had an error during init or not
@@ -171,7 +171,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         if self.newListen:
             self.logger.debug("Finished handling request from %s:%s. Listener established", self.cip, self.cport)
         else:
-            self.logger.debug("Finished handling request from %s:%s. Listener not running", self.cip, self.cport)
+            self.logger.debug("Finished handling request from %s:%s. Listener already running, or not established", self.cip, self.cport)
 
         self.request.close() #close the connection, as we've finished the request
 
@@ -194,7 +194,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
                             db_name, db_user, db_pass, db_host, db_port)
 
-                self.db = psycopg2.pool.ThreadedConnectionPool(minconn = 1, maxconn = 10, dsn = db_details) #dsn is passed to psycopg2.connect()
+                self.db = psycopg2.pool.ThreadedConnectionPool(minconn = 3, maxconn = 8, dsn = db_details) #dsn is passed to psycopg2.connect()
 
             except:
                 self.logger.exception("Unable to read database options from config file, or unable to connect to database")
@@ -385,8 +385,6 @@ if __name__ == '__main__':
         
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt. Closing daemon")
-        llServer.db.closeall() #close all database connections in the pool
-
         llServer.timeout_event.set() #stop the timeout thread
 
         #shallow copy of the listen object set, so it can be iterated on while items are being removed
@@ -399,6 +397,8 @@ if __name__ == '__main__':
                 
             else:
                 logger.info("\tListen object is still present, but the log has actually ended")
+
+        llServer.db.closeall() #close all database connections in the pool
 
         llServer.shutdown()
 
