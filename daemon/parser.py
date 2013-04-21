@@ -994,9 +994,7 @@ class parserClass():
                     if not conn.closed: #the cursor will auto close if the db closes for whatever reason
                         curs.close()
 
-                    self.db.putconn(conn)
-                    curs = None
-                    conn = None
+                self.db.putconn(conn)
 
             else:
                 return
@@ -1007,12 +1005,6 @@ class parserClass():
                 #self.addToQueryQueue("upsert", insert_query, update_query)
         except:
             self.logger.exception("Exception during commit or rollback")
-        finally:
-            if curs:
-                curs.close()
-            if conn:
-                self.db.putconn(conn)
-
 
     def escapePlayerString(self, unescaped_string):
         escaped_string = unescaped_string.replace("'", "''").replace("\\", "\\\\")
@@ -1040,8 +1032,8 @@ class parserClass():
         
         if len(team_insert_list) > 0:
             if not self.db.closed:
+                conn = self.db.getconn()
                 try:
-                    conn = self.db.getconn()
                     curs = self.db.cursor()
                     #team_insert_query = ';'.join(("UPDATE %s SET team = E'%s' WHERE steamid = E'%s'" % team_tuple) for team_tuple in team_insert_list)
                     #self.executeQuery(team_insert_query)
@@ -1061,7 +1053,7 @@ class parserClass():
                     if not conn.closed:
                         curs.close()
 
-                    self.db.putconn(conn)
+                self.db.putconn(conn)
 
             
             #team_insert_args = ','.join(curs.mogrify("(%s, %s)", team_tuple) for team_tuple in team_insert_list)
@@ -1117,10 +1109,12 @@ class parserClass():
                     if not conn.closed: #the cursor will auto close if the db closes for whatever reason
                         curs.close()
 
-                    self.db.putconn(conn)
-                    conn = None
-
+                self.db.putconn(conn)
+                
             else:
+                if curs:
+                    curs.close()
+
                 if conn:
                     self.db.putconn(conn)
 
