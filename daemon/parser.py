@@ -1034,7 +1034,7 @@ class parserClass():
             if not self.db.closed:
                 conn = self.db.getconn()
                 try:
-                    curs = self.db.cursor()
+                    curs = conn.cursor()
                     #team_insert_query = ';'.join(("UPDATE %s SET team = E'%s' WHERE steamid = E'%s'" % team_tuple) for team_tuple in team_insert_list)
                     #self.executeQuery(team_insert_query)
                     for team_tuple in team_insert_list:
