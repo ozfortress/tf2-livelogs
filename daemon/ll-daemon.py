@@ -194,7 +194,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
                             db_name, db_user, db_pass, db_host, db_port)
 
-                self.db = psycopg2.pool.ThreadedConnectionPool(minconn = 3, maxconn = 8, dsn = db_details) #dsn is passed to psycopg2.connect()
+                self.db = psycopg2.pool.ThreadedConnectionPool(minconn = 2, maxconn = 12, dsn = db_details) #dsn is passed to psycopg2.connect()
 
             except:
                 self.logger.exception("Unable to read database options from config file, or unable to connect to database")
@@ -275,6 +275,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         #gets the API key for client with IP ip, so IPs will require unique keys, preventing unauthorised users
         if not self.db.closed:
             user_details = None
+            conn = None
             try:
                 conn = self.db.getconn() #get a connection object from the psycopg2.pool
                 
@@ -303,6 +304,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 curs.close()
 
                 self.db.putconn(conn) #put the connection back into the pool. if num conns > minconn, the connection is closed
+                conn = None
 
             except:
                 self.logger.exception("Exception trying to get api key for ip %s", ip)
@@ -310,6 +312,9 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
             finally:
                 return user_details
+
+            if conn:
+                self.db.putconn(conn)
 
         else:
             self.logger.error("Database pool is closed")
