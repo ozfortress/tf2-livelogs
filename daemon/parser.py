@@ -143,7 +143,15 @@ class parserClass():
             self.HAD_ERROR = True
             return
 
-        conn = self.db.getconn()
+        try:
+            conn = self.db.getconn()
+        except:
+            self.logger.exception("Exception getting database connection")
+
+            self.HAD_ERROR = True
+
+            self.LOG_FILE_HANDLE.close()
+            return
             
         if not conn:
             self.logger.error("Had error getting databse connection")
@@ -652,8 +660,14 @@ class parserClass():
                 self.executeQuery(event_insert_query)
 
                 if not self.db.closed:
+                    curs = None
                     try:
-                        conn = self.db.getconn()
+                        try:
+                            conn = self.db.getconn()
+                        except:
+                            self.logger.exception("Exception getting database connection")
+                            return
+
                         curs = conn.cursor()
                         #now we need to get the event ID and put it into chat!
                         
@@ -668,6 +682,10 @@ class parserClass():
 
                     except Exception, e:
                         self.logger.exception("Exception trying to get chat eventid")
+                        if curs:
+                            curs.close()
+
+                        self.db.putconn(conn)
 
                 return        
             
@@ -974,16 +992,22 @@ class parserClass():
         else:
             update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE steamid = E'%s'" % (self.STAT_TABLE, column, column, value, steamid)
 
+        curs = None
         try:
             if not self.db.closed:
-                conn = self.db.getconn()
+                try:
+                    conn = self.db.getconn()
+                except:
+                    self.logger.exception("Exception getting database connection")
+                    return
+
                 curs = conn.cursor()
                 
                 try:
                     curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
                     conn.commit()
                 except psycopg2.DataError, e:
-                    self.logger.exception("DB DATA ERROR INSERTING DATA %s", query)
+                    self.logger.exception("DB DATA ERROR INSERTING \"%s\" or UPDATING \"%s\"", insert_query, update_query)
                     
                     conn.rollback()
                 except Exception, e:
@@ -993,8 +1017,10 @@ class parserClass():
                 finally:
                     if not conn.closed: #the cursor will auto close if the db closes for whatever reason
                         curs.close()
+                    
+                    self.db.putconn(conn)
 
-                self.db.putconn(conn)
+                
 
             else:
                 return
@@ -1005,6 +1031,10 @@ class parserClass():
                 #self.addToQueryQueue("upsert", insert_query, update_query)
         except:
             self.logger.exception("Exception during commit or rollback")
+            if curs:
+                curs.close()
+
+            self.db.putconn(conn)
 
     def escapePlayerString(self, unescaped_string):
         escaped_string = unescaped_string.replace("'", "''").replace("\\", "\\\\")
@@ -1032,7 +1062,12 @@ class parserClass():
         
         if len(team_insert_list) > 0:
             if not self.db.closed:
-                conn = self.db.getconn()
+                try:
+                    conn = self.db.getconn()
+                except:
+                    self.logger.exception("Exception getting connection from pool")
+                    return
+
                 try:
                     curs = conn.cursor()
                     #team_insert_query = ';'.join(("UPDATE %s SET team = E'%s' WHERE steamid = E'%s'" % team_tuple) for team_tuple in team_insert_list)
@@ -1053,9 +1088,8 @@ class parserClass():
                     if not conn.closed:
                         curs.close()
 
-                self.db.putconn(conn)
+                    self.db.putconn(conn)
 
-            
             #team_insert_args = ','.join(curs.mogrify("(%s, %s)", team_tuple) for team_tuple in team_insert_list)
             #team_insert_query = "INSERT INTO %s (steamid, team) VALUES %s" % (self.STAT_TABLE, team_insert_args)
             
@@ -1076,21 +1110,41 @@ class parserClass():
 
         if len(insert_list) > 0:
             if not self.db.closed:
-                conn = self.db.getconn()
-                curs = conn.cursor()
+                curs = None
 
-                insert_args = ','.join(curs.mogrify("(%s, %s)", insert_tuple) for insert_tuple in insert_list)
-                insert_query = "INSERT INTO livelogs_player_logs (steamid, log_ident) VALUES %s" % (insert_args)
+                try:
+                    try:
+                        conn = self.db.getconn()
+                    except:
+                        self.logger.exception("Exception getting database connection")
 
-                self.executeQuery(insert_query, curs, conn)
+                        return
 
+                    curs = conn.cursor()
+
+                    insert_args = ','.join(curs.mogrify("(%s, %s)", insert_tuple) for insert_tuple in insert_list)
+                    insert_query = "INSERT INTO livelogs_player_logs (steamid, log_ident) VALUES %s" % (insert_args)
+
+                    self.executeQuery(insert_query, curs, conn)
+
+                except:
+                    self.logger.exception("Exception formulating query for player index insertion")
+                    if curs:
+                        curs.close()
+
+                    self.db.putconn(conn)
 
     def executeQuery(self, query, curs=None, conn=None):
         try:
             if not self.db.closed:
 
                 if not conn:
-                    conn = self.db.getconn()
+                    try:
+                        conn = self.db.getconn()
+                    except:
+                        self.logger.exception("Exception getting db connection")
+                        return
+
                 if not curs:
                     curs = conn.cursor()
                     
@@ -1109,7 +1163,7 @@ class parserClass():
                     if not conn.closed: #the cursor will auto close if the db closes for whatever reason
                         curs.close()
 
-                self.db.putconn(conn)
+                    self.db.putconn(conn)
                 
             else:
                 if curs:
@@ -1124,6 +1178,12 @@ class parserClass():
                 #self.addToQueryQueue("insert", query)
         except:
             self.logger.exception("Exception occurred rolling back the connection")
+            if curs and conn:
+                if not conn.closed:
+                    curs.close()
+
+            if conn:
+                self.db.putconn(conn)
 
     def endLogParsing(self, game_over=False):
         if not self.LOG_PARSING_ENDED:
