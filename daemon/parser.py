@@ -983,6 +983,8 @@ class parserClass():
 
     def pg_statupsert(self, table, column, steamid, name, value):
         #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
+
+        name = name[:30] #max length of 30 characters for names
         insert_query = "INSERT INTO %s (steamid, name, %s) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, steamid, name, value)
 
         if len(name) > 0 and (steamid not in self._player_names or self._player_names[steamid] is not name):
