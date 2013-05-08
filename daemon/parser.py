@@ -1037,7 +1037,13 @@ class parserClass():
             self.db.putconn(conn)
 
     def escapePlayerString(self, unescaped_string):
+
+        def remove_non_ascii(string):
+            return "".join(i for i in string if ord(i) < 128)
+
+
         escaped_string = unescaped_string.replace("'", "''").replace("\\", "\\\\")
+        escaped_string = remove_non_ascii(escaped_string)
         escaped_string = stripHTMLTags(escaped_string)
 
         if len(escaped_string) is 0:
@@ -1297,5 +1303,6 @@ class HTMLStripper(HTMLParser):
 def stripHTMLTags(string):
     stripper = HTMLStripper()
     stripper.feed(string)
+
 
     return stripper.get_data() #get the text out
