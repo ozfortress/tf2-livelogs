@@ -151,16 +151,24 @@ class llWSApplication(tornado.web.Application):
                     delta_update_dict = log_manager.compressedUpdate()
                     self.logger.debug("Got update dict for %s: %s", log_id, delta_update_dict)
 
+                    full_update_dict = {}
+
                     for client in self.log_ordered_clients[log_id]:
                         #client is a websocket client object, which data can be sent to using client.write_message, etc
                         #client.write_message("HELLO!")
                         if not client.HAD_FIRST_UPDATE:
                             #need to send complete values on first update to keep clients in sync with the server
                             #if we have data yet
-                            if log_manager._stat_complete_table and log_manager._score_table:
+
+                            if not full_update_dict:
+                                if log_manager._stat_complete_table and log_manager._score_table:
+
+                                    full_update_dict = log_manager.firstUpdate()
+
+                            if full_update_dict:
                                 #send a complete update to the client
-                                client.write_message(log_manager.firstUpdate())
-                                
+                                client.write_message(full_update_dict)
+                            
                                 client.HAD_FIRST_UPDATE = True
                         else:
                             if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
