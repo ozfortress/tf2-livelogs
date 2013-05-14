@@ -110,7 +110,7 @@
             $log_live = true;
     ?>
 
-    <title>Livelogs - Log <?=$UNIQUE_IDENT?></title>
+    <title>Livelogs - <?=$log_details["log_name"]?> (<?=$UNIQUE_IDENT?>)</title>
 </head>
 <body class="ll_body">
     <div class="navbar navbar-inverse navbar-fixed-top">
