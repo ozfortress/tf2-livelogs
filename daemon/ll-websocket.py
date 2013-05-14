@@ -145,28 +145,27 @@ class llWSApplication(tornado.web.Application):
         for log_id in self.log_ordered_clients:
             if log_id != "none":
                 #the key will correspond to a set of client objects which are listening for updates on this log id
-                
-                for client in self.log_ordered_clients[log_id]:
-                    if client: #make sure the client still exists
+                if log_id in self.log_db_managers:
+                    log_manager = self.log_db_managers[log_id]
+
+                    delta_update_dict = log_manager.compressedUpdate()
+                    self.logger.debug("Got update dict for %s: %s", log_id, delta_update_dict)
+
+                    for client in self.log_ordered_clients[log_id]:
                         #client is a websocket client object, which data can be sent to using client.write_message, etc
                         #client.write_message("HELLO!")
-                        self.logger.debug("Checking for updates for client %s on id %s", client, log_id)
-                        if log_id in self.log_db_managers:
-                            if not client.HAD_FIRST_UPDATE:
+                        if not client.HAD_FIRST_UPDATE:
                             #need to send complete values on first update to keep clients in sync with the server
-                                #if we have data yet
-                                if self.log_db_managers[log_id]._stat_complete_table and self.log_db_managers[log_id]._score_table:
-                                    #send a complete update to the client
-                                    client.write_message(self.log_db_managers[log_id].firstUpdate())
-                                    
-                                    client.HAD_FIRST_UPDATE = True
+                            #if we have data yet
+                            if log_manager._stat_complete_table and log_manager._score_table:
+                                #send a complete update to the client
+                                client.write_message(log_manager.firstUpdate())
                                 
-                            else:
-                                delta_update_dict = self.log_db_managers[log_id].compressedUpdate()
-                                self.logger.debug("Got update dict for %s: %s", log_id, delta_update_dict)
-                                if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
-                                    self.logger.debug("Sending update to client %s", client)
-                                    client.write_message(delta_update_dict)
+                                client.HAD_FIRST_UPDATE = True
+                        else:
+                            if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
+                                self.logger.debug("Sending update to client %s", client)
+                                client.write_message(delta_update_dict)
     
     def _sendUpdateThread(self, event):
         #this method is run in a thread, and acts as a timer
