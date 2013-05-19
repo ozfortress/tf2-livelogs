@@ -11,7 +11,7 @@ import parser
 class llListenerHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
-        data = self.request[0].strip()
+        data = self.request[0].lstrip("\xFF").rstrip("\r\n") #strip leading \xFFs and trailing \r\ns
         sock = self.request[1]
 
         if self.server.parser and not self.server.parser.HAD_ERROR:
