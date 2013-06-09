@@ -398,8 +398,8 @@ if __name__ == '__main__':
     logger.info("Server on %s:%s under PID %s", sip, sport, os.getpid())
     
     try:
-        sthread = threading.Thread(target = llServer.serve_forever)
-        #sthread.daemon = True
+        sthread = threading.Thread(target = llServer.serve_forever())
+        sthread.daemon = True
         sthread.start()
         
     except KeyboardInterrupt:
