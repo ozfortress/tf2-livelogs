@@ -51,7 +51,7 @@ public Plugin:myinfo =
 #endif
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
-	version = "0.6.4",
+	version = "0.6.4.1",
 	url = "http://livelogs.ozfortress.com"
 };
 
@@ -71,7 +71,7 @@ new bool:debug_enabled = true;
 
 new String:server_ip[64];
 new String:listener_address[128];
-new String:log_unique_ident[64];
+new String:log_unique_ident[128];
 new String:client_index_cache[MAXPLAYERS+1][64];
 
 new log_additional_stats;
@@ -699,6 +699,16 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
 {
     //Livelogs response packet: LIVELOG!api_key!listener_address!listener_port!UNIQUE_IDENT OR REUSE
     if (debug_enabled) { LogMessage("Data received: %s", rcvd); }
+
+
+    if (StrEqual("INVALID_API_KEY", rcvd))
+    {
+
+        if (debug_enabled) { LogMessage("Invalid API key specified"); }
+
+        CloseHandle(socket);
+        return;
+    }
 
     decl String:ll_api_key[128];
 
