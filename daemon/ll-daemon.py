@@ -399,7 +399,7 @@ if __name__ == '__main__':
     
     try:
         sthread = threading.Thread(target = llServer.serve_forever)
-        sthread.daemon = True
+        #sthread.daemon = True
         sthread.start()
         
     except KeyboardInterrupt:
