@@ -66,7 +66,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
         
     def handle(self):
-        rcvd = self.request.recv(1024) #read 1024 bytes of data
+        rcvd = self.request.recv(1024) #read up to 1024 bytes of data
 
         self.logger.debug('Received "%s" from client %s:%s', rcvd, self.cip, self.cport)
 
@@ -81,10 +81,18 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         msg_len = len(msg)
 
         if (msg_len >= 6 and msg[0] == "LIVELOG"):
-            client_details = self.server.getClientInfo(self.cip)
-            self.logger.info("Client details: %s", client_details)
+            client_info = self.server.getClientInfo(self.cip)
+            self.logger.info("Client info for IP %s: %s", self.cip, client_info)
 
-            if client_details is not None and msg[1] == client_details[2]:
+            client_details = None
+
+            if client_info is not None:
+                #client_details is a list of tuples
+                for details in client_info:
+                    if msg[1] is details[2]: #if the auth key matches one of the returned keys
+                        client_details = details #copy the details to our individual client's details
+
+            if client_details is not None:
                 client_api_key = client_details[2]
 
                 self.logger.debug("Key is correct for client %s (%s) @ %s", client_details[0], client_details[1], self.cip)
@@ -272,7 +280,12 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             self.logger.info("There was an attempt to remove a listener object that is not in the listener set")
 
     def getClientInfo(self, ip):
-        #gets the API key for client with IP ip, so IPs will require unique keys, preventing unauthorised users
+        """
+        gets the API key for client with IP ip, so IPs will require unique keys, preventing unauthorised users
+        users using hosted implementations may have the same IP, however, so we need to check all results for an
+        auth key match
+        """
+
         if not self.db.closed:
             user_details = None
             curs = None
@@ -304,13 +317,13 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
                 curs.execute("SELECT user_name, user_email, user_key FROM livelogs_auth_keys WHERE user_ip = %s", (ip,))
 
-                user_details = curs.fetchone()
+                user_details = curs.fetchall()
 
             except:
                 self.logger.exception("Exception trying to get api key for ip %s", ip)
 
             finally:
-                if curs:
+                if not curs.closed:
                     curs.close()
                 
                 self.db.putconn(conn)
@@ -385,7 +398,7 @@ if __name__ == '__main__':
     logger.info("Server on %s:%s under PID %s", sip, sport, os.getpid())
     
     try:
-        sthread = threading.Thread(target = llServer.serve_forever())
+        sthread = threading.Thread(target = llServer.serve_forever)
         sthread.daemon = True
         sthread.start()
         
