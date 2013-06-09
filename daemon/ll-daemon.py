@@ -89,7 +89,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
             if client_info is not None:
                 #client_details is a list of tuples
                 for details in client_info:
-                    if msg[1] is details[2]: #if the auth key matches one of the returned keys
+                    if msg[1] == details[2]: #if the auth key matches one of the returned keys
                         client_details = details #copy the details to our individual client's details
 
             if client_details is not None:
