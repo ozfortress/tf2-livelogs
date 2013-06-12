@@ -80,6 +80,12 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
         msg_len = len(msg)
 
+        if (msg_len > 7):
+            #invalid message length
+            self.logger.info("Invalid message received. Too many tokens")
+            self.request.send("INVALID_MESSAGE")
+            return
+
         if (msg_len >= 6 and msg[0] == "LIVELOG"):
             client_info = self.server.getClientInfo(self.cip)
             self.logger.info("Client info for IP %s: %s", self.cip, client_info)
