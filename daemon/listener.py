@@ -14,6 +14,9 @@ class llListenerHandler(SocketServer.BaseRequestHandler):
         data = self.request[0].lstrip("\xFF").rstrip("\r\n") #strip leading \xFFs and trailing \r\ns
         sock = self.request[1]
 
+        #strip API keys from log data (sent when using sv_logsecret), so they're not written to file
+        data = data.replace(self.server.client_api_key, "")
+
         if self.server.parser and not self.server.parser.HAD_ERROR:
             self.server.parser.parse(data)
 

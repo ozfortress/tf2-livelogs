@@ -257,11 +257,7 @@ class parserClass():
             regex = self.regex #avoid having to use fucking self.regex every time (ANNOYING++++)
             regml = self.regml #local def for regml ^^^
 
-            self.LOG_FILE_HANDLE.write(logdata + "\n")
-
-            #if res:
-            #    #print "Matching regex:"
-            #    #pprint(res.groups())
+            self.LOG_FILE_HANDLE.write(logdata)
 
             #log file start
             #RL 10/07/2012 - 01:13:34: Log file started (file "logs_pug/L1007104.log") (game "/games/tf2_pug/orangebox/tf") (version "5072")
@@ -961,7 +957,7 @@ class parserClass():
                 return
 
             if not self.ROUND_PAUSE:
-                self.logger.info("Reached end of regex checks with no match. Round pause: %d. Log data: %s", self.ROUND_PAUSE, logdata)
+                self.logger.debug("Reached end of regex checks with no match. Log data: %s", self.ROUND_PAUSE, logdata)
 
         except Exception, e:
             self.logger.exception("Exception parsing log data: %s", logdata)
