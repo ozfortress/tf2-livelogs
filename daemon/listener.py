@@ -11,11 +11,13 @@ import parser
 class llListenerHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
-        data = self.request[0].lstrip("\xFF").rstrip("\r\n") #strip leading \xFFs and trailing \r\ns
+        data = self.request[0].lstrip("\xFF").rstrip() #strip leading \xFFs and trailing \r\ns
         sock = self.request[1]
 
-        #strip API keys from log data (sent when using sv_logsecret), so they're not written to file
-        data = data.replace(self.server.client_api_key, "")
+        #strip leading log information, so logs are written just like a server log
+        #we do this by tokenising, getting all tokens after first token and rejoining
+        
+        data = "L " + " ".join(data.split(" ")[1:])
 
         if self.server.parser and not self.server.parser.HAD_ERROR:
             self.server.parser.parse(data)
@@ -42,30 +44,34 @@ class llListener(SocketServer.UDPServer):
     def verify_request(self, request, client_address):
         """
         Verify the request to make sure it's coming from the expected client
-        Likely won't be from the same port every time, so we'll just check by IP
+        Check sv_logsecret key, or compare IPs if not using sv_logsecret (or it's broken)
         """
-        #print "Current client addr: " + client_address[0] + ". Expected addr: " + self.client_address[0]
 
-        #logging.debug("Request: %s", request)
+        if data[0] == "S":
+            #the log is a secret marked log. get the secret out and compare it
+            #S23BOB1234L 06/13/2013 - 18:45:22:
+            #first token is S<KEY>L
 
-        if (client_address[0] == self.client_server_address[0]):
-            #print "Client address is same as initial client. Accepting log"
-            self._last_message_time = time.time() #the epoch value of the time this message was received, for the timeout check
+            secret = data.split(" ")[0][1:-1] #get the first token, but only the data between S and L
 
-            """
-            #reset the timeout timer
-            self.timeoutTimer.cancel()
+            if secret is self.server.client_api_key: #secret key matches API key
+                self._last_message_time = time.time() # set the epoch value of the time this message was received, for the timeout check
 
-            #restart the timeout timer, so it doesn't prematurely timeout the listener
-            self.timeoutTimer = threading.Timer(self.timeout, self.handle_server_timeout) #we have to re-assign it, because threads can only be started once.
-            #TODO: IMPLEMENT BETTER TIMEOUT METHOD THAT DOES NOT START A NEW THREAD EVERY OTHER SECOND
-            self.timeoutTimer.start()
-            """
+                return True
+            else:
+                return False
 
-            return True
         else:
-            print "Client address differs from initial client. Rejecting log"
-            return False
+            #log is a normal log message
+            if (client_address[0] == self.client_server_address[0]):
+                #print "Client address is same as initial client. Accepting log"
+                self._last_message_time = time.time() #the epoch value of the time this message was received, for the timeout check
+
+                return True
+            else:
+                print "Client address differs from initial client. Rejecting log"
+                return False
+
     
     def handle_server_timeout(self, game_over=False):
         if game_over:
