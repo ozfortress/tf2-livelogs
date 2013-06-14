@@ -40,11 +40,15 @@ if __name__ == "__main__":
                 cursor = db.cursor()
 
                 cursor.execute("INSERT INTO livelogs_auth_keys (user_name, user_email, user_key, user_ip) VALUES (%s, %s, %s, %s)",
-                                                                args.name, args.email, args.key, args.ip)
+                                                                (args.name, args.email, args.key, args.ip,))
 
                 cursor.close()
-            except:
-                print "Error inserting data into database"
+
+                db.commit()
+
+            except Exception, e:
+                print "Error inserting data into database: %s" % e
+                db.rollback()
 
             db.close()
 
