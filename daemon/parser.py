@@ -957,7 +957,7 @@ class parserClass():
                 return
 
             if not self.ROUND_PAUSE:
-                self.logger.debug("Reached end of regex checks with no match. Log data: %s", self.ROUND_PAUSE, logdata)
+                self.logger.debug("Reached end of regex checks with no match. Log data: %s", logdata)
 
         except Exception, e:
             self.logger.exception("Exception parsing log data: %s", logdata)
