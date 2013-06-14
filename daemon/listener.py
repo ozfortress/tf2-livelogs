@@ -16,7 +16,7 @@ class llListenerHandler(SocketServer.BaseRequestHandler):
 
         #strip leading log information, so logs are written just like a server log
         #we do this by tokenising, getting all tokens after first token and rejoining
-        
+
         data = "L " + " ".join(data.split(" ")[1:])
 
         if self.server.parser and not self.server.parser.HAD_ERROR:
@@ -46,6 +46,7 @@ class llListener(SocketServer.UDPServer):
         Verify the request to make sure it's coming from the expected client
         Check sv_logsecret key, or compare IPs if not using sv_logsecret (or it's broken)
         """
+        data = self.request[0].lstrip("\xFF").rstrip() #strip leading \xFFs and trailing \r\ns
 
         if data[0] == "S":
             #the log is a secret marked log. get the secret out and compare it
