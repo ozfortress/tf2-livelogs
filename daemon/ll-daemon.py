@@ -57,8 +57,6 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         self.logger = logging.getLogger('handler')
         self.logger.setLevel(logging.DEBUG)
 
-        #self.logger.debug('Handler init. APIKEY: %s', server.LL_API_KEY)
-
         self.newListen = None
         
         self.cip, self.cport = client_address
@@ -102,27 +100,21 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 client_api_key = client_details[2]
 
                 self.logger.debug("Key is correct for client %s (%s) @ %s", client_details[0], client_details[1], self.cip)
-                        
-                try:
-                    socket.inet_pton(socket.AF_INET, msg[2]) #if we can do this, it is a valid ipv4 address
-                    #socket.inet_pton(socket.AF_INET6, client_ip) srcds does not at this stage support ipv6, and nor do i
-                    
-                    self.ll_clientip = msg[2]
-                except:
-                    #either invalid address, or dns name sent. let's fix that up
-                    dns_res = socket.getaddrinfo(msg[2], None, socket.AF_INET) #limit to ipv4
-                    
-                    if not dns_res:
-                        self.logger.debug("Unable to resolve DNS. Rejecting connection")
-                        return
-                        
-                    self.ll_clientip = dns_res[0][4][0] #get the first IP returned by getaddrinfo
                 
-                self.ll_client_server_port = msg[3]
+                """
+                self.ll_clientip = self.resolve_dns(msg[2])
 
-                if self.server.clientExists(self.ll_clientip, self.ll_client_server_port):
-                    self.logger.debug("Client %s:%s already has a listener", self.ll_clientip, self.ll_client_server_port)
-                    dict_key = "c" + self.ll_clientip + self.ll_client_server_port
+                if not self.ll_clientip:
+                    self.logger.debug("Unable to resolve client address. Rejecting connection")
+                    return
+                """
+
+                self.ll_clientip = self.cip #use the IP used for this connection as the server's address
+                self.ll_clientport = msg[3]
+
+                if self.server.clientExists(self.ll_clientip, self.ll_clientport):
+                    self.logger.debug("Client %s:%s already has a listener", self.ll_clientip, self.ll_clientport)
+                    dict_key = "c" + self.ll_clientip + self.ll_clientport
                     listen_ip, listen_port = self.server.clientDict[dict_key]
                     
                     returnMsg = "LIVELOG!%s!%s!%s!REUSE" % (client_api_key, listen_ip, listen_port)
@@ -130,7 +122,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                     self.request.send(returnMsg)
                     return    
 
-                sip, sport = self.server.server_address #get our server info, so we know what IP to listen on
+                sip = self.server.server_address[0] #get our server info, so we know what IP to listen on
 
                 webtv_port = None
 
@@ -144,7 +136,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
                 log_name = self.escapeString(msg[5])
 
-                self.newListen = listener.llListenerObject(self.server.db, client_api_key, sip, (self.ll_clientip, self.ll_client_server_port), msg[4], log_name, 
+                self.newListen = listener.llListenerObject(self.server.db, client_api_key, sip, (self.ll_clientip, self.ll_clientport), msg[4], log_name, 
                                                             self.server.removeListenerObject, timeout=self.server.listener_timeout, webtv_port = webtv_port)
                 
                 if not self.newListen.had_error(): #check if the parser had an error during init or not
@@ -157,7 +149,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                     self.logger.debug("RESPONSE: %s", returnMsg)
                     self.request.send(returnMsg)
                     
-                    self.server.addClient(self.ll_clientip, self.ll_client_server_port, (sip, lport)) #add the client to a dict and store its listener address
+                    self.server.addClient(self.ll_clientip, self.ll_clientport, (sip, lport)) #add the client to a dict and store its listener address
 
                     self.server.addListenerObject(self.newListen) #add the listener object to a set, so it remains alive
                     
@@ -180,6 +172,21 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         escaped_string = stripHTMLTags(escaped_string)
 
         return escaped_string
+
+    def resolve_dns(self, ip):
+        try:
+            socket.inet_pton(socket.AF_INET, ip) #if we can do this, it is a valid ipv4 address
+            #socket.inet_pton(socket.AF_INET6, client_ip) srcds does not at this stage support ipv6, and nor do i
+            
+            return ip
+        except:
+            #either invalid address, or dns name sent. let's fix that up
+            dns_res = socket.getaddrinfo(ip, None, socket.AF_INET) #limit to ipv4
+            
+            if not dns_res:
+                return None
+                
+            return dns_res[0][4][0] #get the first IP returned by getaddrinfo
 
     def finish(self):
         if self.newListen:
