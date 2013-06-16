@@ -33,6 +33,7 @@ class llListener(SocketServer.UDPServer):
 
         #self.timeoutTimer = threading.Timer(timeout, self.handle_server_timeout)
         #self.timeoutTimer.start()
+        self._using_secret = False
 
         self.listener_object = listener_object #llListenerObject address, which holds this listener. needed to end the listening thread, and remove the object from the daemon's set
 
@@ -48,7 +49,7 @@ class llListener(SocketServer.UDPServer):
         """
         data = request[0].lstrip("\xFF").rstrip() #strip leading \xFFs and trailing \r\ns
 
-        if data[0] == "S":
+        if self._using_secret or data[0] == "S":
             #the log is a secret marked log. get the secret out and compare it
             #S23BOB1234L 06/13/2013 - 18:45:22:
             #first token is S<KEY>L
@@ -56,6 +57,7 @@ class llListener(SocketServer.UDPServer):
             secret = data.split(" ")[0][1:-1] #get the first token, but only the data between S and L
 
             if secret == self.client_api_key: #secret key matches API key
+                self._using_secret = True
                 self._last_message_time = time.time() # set the epoch value of the time this message was received, for the timeout check
 
                 return True
