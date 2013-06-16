@@ -194,7 +194,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         else:
             self.logger.debug("Finished handling request from %s:%s. Listener already running, or not established", self.cip, self.cport)
 
-        self.close_request(self.request) #close the connection, as we've finished the request
+        self.server.close_request(self.request) #close the connection, as we've finished the request
 
 
 class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
