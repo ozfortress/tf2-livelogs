@@ -80,19 +80,7 @@ class llListener(SocketServer.UDPServer):
         if game_over:
             self.logger.info("Game over. Closing listening socket")
             
-            self._ended = True
-
-            #self.timeoutTimer.cancel()
-            
-            #time.sleep(1) #sleep for 1 second to prevent a race condition
-
-            """
-            we need to call the shutdown in a THREAD, otherwise the method will deadlock the current thread
-            this is only needed when game_over is set, because if game_over is not set, this method is being called from a timer (which is in a thread)
-            """
-            #newthread = threading.Thread(target=self.__listener_shutdown) 
-            #newthread.daemon = True
-            #newthread.start()
+            self._ended = True #flag log as ended for the cleanup method
             
         else:
             if not self.parser.LOG_PARSING_ENDED:
@@ -129,7 +117,8 @@ class llListener(SocketServer.UDPServer):
                 #self.parser.db.cancel()
                 self.parser.endLogParsing()
                   
-        self.shutdown() #call the class's in-built shutdown method, which closes the socket and cleans up
+        self.shutdown() #call the class's in-built shutdown method, which stops listening for new data
+        self.server_close() #closes the server socket
         
         #should no longer be listening or anything now, so we can call close_object, which will join the thread and remove llListenerObject from the daemon's set
         self.listener_object.close_object()

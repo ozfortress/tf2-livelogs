@@ -194,13 +194,12 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         else:
             self.logger.debug("Finished handling request from %s:%s. Listener already running, or not established", self.cip, self.cport)
 
-        self.request.close() #close the connection, as we've finished the request
+        self.close_request(self.request) #close the connection, as we've finished the request
 
 
 class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def __init__(self, server_ip, handler=llDaemonHandler):
         self.logger = logging.getLogger('daemon')
-        self.logger.debug('DAEMON INIT')
 
         self.allow_reuse_address = True
         self.daemon_threads = True
@@ -215,7 +214,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         SocketServer.TCPServer.__init__(self, server_ip, handler)
         
     def server_activate(self):
-        self.logger.debug('Starting TCP listener and waiting for data')
+        self.logger.debug('Starting TCP listener')
         
 
         SocketServer.TCPServer.server_activate(self)
@@ -235,10 +234,10 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         dict_key = "c" + ip + port
 
         if dict_key in self.clientDict:
-            self.logger.debug('Key %s is in client dict', dict_key)
+            #self.logger.debug('Key %s is in client dict', dict_key)
             return True
         else:
-            self.logger.debug('Key %s is NOT in client dict', dict_key)
+            #self.logger.debug('Key %s is NOT in client dict', dict_key)
             return False
 
     def removeClient(self, ip, port):
@@ -409,13 +408,12 @@ if __name__ == '__main__':
     logger = logging.getLogger('MAIN')
     logger.setLevel(logging.DEBUG)
 
-    logger.info("Server on %s:%s under PID %s", sip, sport, os.getpid())
     llServer.open_dbpool()
+    logger.info("Server on %s:%s under PID %s", sip, sport, os.getpid())
     
     try:
-        sthread = threading.Thread(target = llServer.serve_forever())
-        sthread.daemon = True
-        sthread.start()
+        logger.info("Waiting for incoming data")
+        llServer.serve_forever() #listen for log requests!
         
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt. Closing daemon")
@@ -434,11 +432,13 @@ if __name__ == '__main__':
 
         llServer.db.closeall() #close all database connections in the pool
 
-        llServer.shutdown()
+        llServer.shutdown() #stop listening
+        llServer.server_close() #close socket
 
         logger.info("Shutdown successful")
 
         sys.exit("KeyboardInterrupt")
+
     except:
         logger.exception("Exception listening for log requests")
 
