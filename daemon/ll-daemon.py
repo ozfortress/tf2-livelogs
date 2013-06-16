@@ -323,7 +323,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             self.logger.error("Database pool is closed")
             return None
 
-    def open_dbpool():
+    def open_dbpool(self):
         #open database pool
         cfg_parser = ConfigParser.SafeConfigParser()
         if cfg_parser.read(r'll-config.ini'):
@@ -441,7 +441,7 @@ if __name__ == '__main__':
         sys.exit("KeyboardInterrupt")
     except:
         logger.exception("Exception listening for log requests")
-        
+
         if not llServer.db.closed:
             llServer.db.closeall()
 
