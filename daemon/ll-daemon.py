@@ -201,31 +201,6 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def __init__(self, server_ip, handler=llDaemonHandler):
         self.logger = logging.getLogger('daemon')
         self.logger.debug('DAEMON INIT')
-        
-        cfg_parser = ConfigParser.SafeConfigParser()
-        if cfg_parser.read(r'll-config.ini'):
-            try:
-                db_host = cfg_parser.get('database', 'db_host')
-                db_port = cfg_parser.getint('database', 'db_port')
-                db_user = cfg_parser.get('database', 'db_user')
-                db_pass = cfg_parser.get('database', 'db_password')
-                db_name = cfg_parser.get('database', 'db_name')
-
-                #using psycopg2 pool wrapper
-                db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
-                            db_name, db_user, db_pass, db_host, db_port)
-
-                self.db = psycopg2.pool.ThreadedConnectionPool(minconn = 2, maxconn = 8, dsn = db_details) #dsn is passed to psycopg2.connect()
-
-            except:
-                self.logger.exception("Unable to read database options from config file, or unable to connect to database")
-                sys.exit("Unable to read database config or unable to connect to database")
-
-            finally:
-                self.logger.info("Successfully connected to database")
-        else:
-            self.logger.error("Unable to read config file")
-            sys.exit("Unable to read config file")
 
         self.allow_reuse_address = True
         self.daemon_threads = True
@@ -242,6 +217,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def server_activate(self):
         self.logger.debug('Starting TCP listener and waiting for data')
         
+
         SocketServer.TCPServer.server_activate(self)
 
     def addClient(self, ip, port, listen_tuple):
@@ -347,7 +323,32 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             self.logger.error("Database pool is closed")
             return None
 
+    def open_dbpool():
+        #open database pool
+        cfg_parser = ConfigParser.SafeConfigParser()
+        if cfg_parser.read(r'll-config.ini'):
+            try:
+                db_host = cfg_parser.get('database', 'db_host')
+                db_port = cfg_parser.getint('database', 'db_port')
+                db_user = cfg_parser.get('database', 'db_user')
+                db_pass = cfg_parser.get('database', 'db_password')
+                db_name = cfg_parser.get('database', 'db_name')
 
+                #using psycopg2 pool wrapper
+                db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
+                            db_name, db_user, db_pass, db_host, db_port)
+
+                self.db = psycopg2.pool.ThreadedConnectionPool(minconn = 2, maxconn = 8, dsn = db_details) #dsn is passed to psycopg2.connect()
+
+            except:
+                self.logger.exception("Unable to read database options from config file, or unable to connect to database")
+                sys.exit("Unable to read database config or unable to connect to database")
+
+            finally:
+                self.logger.info("Successfully connected to database")
+        else:
+            self.logger.error("Unable to read config file")
+            sys.exit("Unable to read config file")
 
     def listenerTimeoutCheck(self):
         #loop over the listener objects to see if any of them have timed out
@@ -409,6 +410,7 @@ if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
 
     logger.info("Server on %s:%s under PID %s", sip, sport, os.getpid())
+    llServer.open_dbpool()
     
     try:
         sthread = threading.Thread(target = llServer.serve_forever())
@@ -437,6 +439,13 @@ if __name__ == '__main__':
         logger.info("Shutdown successful")
 
         sys.exit("KeyboardInterrupt")
+    except:
+        logger.exception("Exception listening for log requests")
+        
+        if not llServer.db.closed:
+            llServer.db.closeall()
+
+        sys.exit(2)
 
 
 def make_new_config():

@@ -46,7 +46,7 @@ class llListener(SocketServer.UDPServer):
         Verify the request to make sure it's coming from the expected client
         Check sv_logsecret key, or compare IPs if not using sv_logsecret (or it's broken)
         """
-        data = self.request[0].lstrip("\xFF").rstrip() #strip leading \xFFs and trailing \r\ns
+        data = request[0].lstrip("\xFF").rstrip() #strip leading \xFFs and trailing \r\ns
 
         if data[0] == "S":
             #the log is a secret marked log. get the secret out and compare it
@@ -55,7 +55,7 @@ class llListener(SocketServer.UDPServer):
 
             secret = data.split(" ")[0][1:-1] #get the first token, but only the data between S and L
 
-            if secret is self.server.client_api_key: #secret key matches API key
+            if secret == self.client_api_key: #secret key matches API key
                 self._last_message_time = time.time() # set the epoch value of the time this message was received, for the timeout check
 
                 return True
