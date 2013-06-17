@@ -67,6 +67,7 @@ new bool:is_logging = false;
 new bool:late_loaded;
 new bool:livelogs_bitmask_cache[65];
 new bool:create_new_log_file = false;
+new bool:use_log_secret = true;
 new bool:debug_enabled = true;
 
 new String:server_ip[64];
@@ -86,11 +87,13 @@ new Handle:livelogs_logging_level = INVALID_HANDLE; //bitmask for logging levels
 new Handle:livelogs_ipgn_booking_name = INVALID_HANDLE; //support ipgn's match recorder which uses names from a server booking bot
 new Handle:livelogs_new_log_file = INVALID_HANDLE; //determine if this plugin should enable the server's logging functionality, or leave it to a config/other plugin
 new Handle:livelogs_tournament_ready_only =  INVALID_HANDLE; //support the option of only logging when teams ready up, and not on mp_restartgame or equivalent command
+new Handle:livelogs_enable_secret = INVALID_HANDLE; //whether or not to set sv_logsecret
 new Handle:livelogs_enable_debugging = INVALID_HANDLE; //toggle debug messages
 new Handle:livelogs_enabled = INVALID_HANDLE; //enable/disable livelogs
 
 new Handle:livelogs_tournament_mode_cache = INVALID_HANDLE; //for caching the mp_tournament cvar handle
 new Handle:livelogs_mp_restartgame_cache = INVALID_HANDLE;
+new Handle:livelogs_sv_logsecret_cache = INVALID_HANDLE; //cache sv_logsecret cvar
 
 //if websocket is included, let's define the websocket stuff!
 #if defined _websocket_included
@@ -179,6 +182,9 @@ public OnPluginStart()
     livelogs_tournament_ready_only = CreateConVar("livelogs_tournament_ready_only", "0", "Whether livelogs should only log when teams ready up or not (mp_restartgame does not ready the teams up)", 
                                             FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
+    livelogs_enable_secret = CreateConVar("livelogs_force_logsecret", "1", "Whether livelogs should force sv_logsecret or not",
+                                            FCVAR_NOTIFY, true, 0.0, true, 1.0);
+
     livelogs_enable_debugging = CreateConVar("livelogs_enable_debugging", "1", "Enable or disable debug messages", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
     livelogs_enabled = CreateConVar("livelogs_enabled", "1", "Enable or disable Livelogs", FCVAR_NOTIFY, true, 0.0, true, 1.0);
@@ -186,10 +192,14 @@ public OnPluginStart()
     livelogs_tournament_mode_cache = FindConVar("mp_tournament"); //cache mp_tournament convar
 
 
+    //Cache sv_logsecret
+    livelogs_sv_logsecret_cache = FindConVar("sv_logsecret");
+
     // convar change hooks
     HookConVarChange(livelogs_new_log_file, conVarChangeHook);
     HookConVarChange(livelogs_logging_level, conVarChangeHook); //hook convar so we can change logging options on the fly
     HookConVarChange(livelogs_enable_debugging, conVarChangeHook);
+    HookConVarChange(livelogs_enable_secret, conVarChangeHook);
 
 
     //variables for later sending. we should get the IP via hostip, because people may not set "ip"
@@ -427,6 +437,19 @@ public conVarChangeHook(Handle:cvar, const String:oldval[], const String:newval[
         {
             //we have a restart command!
             newLogOnRestartCheck();
+        }
+    }
+    else if (cvar == livelogs_enable_logsecret)
+    {
+        if (use_log_secret)
+        {
+            PrintToServer("Livelogs will not force sv_logsecret");
+            use_log_secret = false;
+        }
+        else
+        {
+            PrintToServer("Livelogs will force sv_logsecret");
+            use_log_secret = true;
         }
     }
 }
@@ -731,6 +754,18 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
             {
                 if (debug_enabled) { LogMessage("LL LOG_UNIQUE_IDENT: %s", split_buffer[4]); }
                 strcopy(log_unique_ident, sizeof(log_unique_ident), split_buffer[4]);
+            }
+
+            
+            if (livelogs_sv_logsecret_cache != INVALID_HANDLE)
+            {
+                decl String:log_secret[128];
+                GetConVarString(livelogs_sv_logsecret_cache, log_secret, sizeof(log_secret));
+
+                if (strlen(log_secret) > 0 && !StrEqual("0", log_secret))
+                {
+                    /* a log secret is already set. we'll use this */
+                }
             }
             
             ServerCommand("sv_logsecret %s; logaddress_add %s", ll_api_key, listener_address);

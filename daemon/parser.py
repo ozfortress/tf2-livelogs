@@ -1213,6 +1213,7 @@ class parserClass():
             
             if self.LOG_FILE_HANDLE:
                 if not self.LOG_FILE_HANDLE.closed:
+                    self.LOG_FILE_HANDLE.write("\n") #add a new line before EOF
                     self.LOG_FILE_HANDLE.close()
 
     def reconnectToDatabase(self):
