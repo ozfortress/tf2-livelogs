@@ -12,7 +12,7 @@ def connect():
         quit()
  
     #testm = "LIVELOG!ADVENTUREBEWITHYOU!202.161.23.120!27015!cp_granary!JIMBOBJUNIOR3"
-    testm = "LIVELOG!new_api_key!192.168.35.1!27015!cp_granary!newer name here!23142"
+    testm = "LIVELOG!new_api_key!192.168.3.1!27015!cp_granary!newer name here!23142"
     slen = client.send(testm)
 
     rsp = client.recv(1024)
@@ -37,8 +37,10 @@ def process_response(rsp):
             x = 0
 
             for logline in log_file:
-                print logline
-                client.send(logline)
+                line = logline.lstrip("\xFF").lstrip("R").rstrip()
+                if line:
+                    #client.send("S%s%s" % ("new_api_key", line))
+                    client.send(line)
 
                 """if x is 100:
                     client.send('L 10/01/2012 - 21:38:34: "LIVELOG_GAME_RESTART"')
