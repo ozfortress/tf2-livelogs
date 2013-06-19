@@ -109,7 +109,7 @@ class dbManager(object):
     
     def steamCommunityID(self, steam_id):
         #takes a steamid in the format STEAM_x:x:xxxxx and converts it to a 64bit community id
-        self.log.debug("Converting SteamID %s to community id", steam_id)
+        #self.log.debug("Converting SteamID %s to community id", steam_id)
 
         auth_server = 0;
         auth_id = 0;
@@ -389,7 +389,7 @@ class dbManager(object):
         if error:
             self.log.error("Error querying database for stat data: %s", error)
             self._stat_query_complete = True
-            self.checkManagerBusyStatus()
+            self.__clear_busy_status()
             return
         
         self.log.debug("Stat update callback")
@@ -430,13 +430,13 @@ class dbManager(object):
                 
         self._stat_query_complete = True
 
-        self.checkManagerBusyStatus()
+        self.__clear_busy_status()
         
     def _databaseChatUpdateCallback(self, cursor, error):
         if error:
             self.log.error("Error querying database for chat data: %s", error)
             self._chat_query_complete = True
-            self.checkManagerBusyStatus()
+            self.__clear_busy_status()
             return
 
         self.log.debug("Chat update callback")
@@ -486,13 +486,13 @@ class dbManager(object):
 
         self._chat_query_complete = True
 
-        self.checkManagerBusyStatus()
+        self.__clear_busy_status()
 
     def _databaseScoreUpdateCallback(self, cursor, error):
         if error:
             self.log.error("Error querying database for score data: %s", error)
             self._score_query_complete = True
-            self.checkManagerBusyStatus()
+            self.__clear_busy_status()
             return
 
         self.log.debug("Score update callback")
@@ -551,13 +551,13 @@ class dbManager(object):
 
         self._score_query_complete = True
 
-        self.checkManagerBusyStatus()
+        self.__clear_busy_status()
 
     def _databaseTimeUpdateCallback(self, cursor, error):
         if error:
             self.log.error("Error querying database for time data: %s", error)
             self._time_query_complete = True
-            self.checkManagerBusyStatus()
+            self.__clear_busy_status()
             return
 
         self.log.debug("Time update callback")
@@ -566,7 +566,7 @@ class dbManager(object):
         #times are in the format "10/01/2012 21:38:18", so we need to convert them to epoch to get the difference
         try:
             times = cursor.fetchall() #two tuples in the format above
-            self.log.debug("Time query returned %s", times)
+            #self.log.debug("Time query returned %s", times)
 
             if len(times) == 2:
                 if (len(times[0]) > 0) and (len(times[1]) > 0): #we have our expected results!
@@ -590,9 +590,9 @@ class dbManager(object):
 
         self._time_query_complete = True
 
-        self.checkManagerBusyStatus()
+        self.__clear_busy_status()
 
-    def checkManagerBusyStatus(self):
+    def __clear_busy_status(self):
         if self._database_busy:
             if self._stat_query_complete and self._score_query_complete and self._time_query_complete and self._chat_query_complete:
                 self._database_busy = False

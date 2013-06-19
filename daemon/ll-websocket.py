@@ -172,7 +172,7 @@ class llWSApplication(tornado.web.Application):
                                 client.HAD_FIRST_UPDATE = True
                         else:
                             if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
-                                self.logger.debug("Sending update to client %s", client)
+                                self.logger.debug("Sending update to client %s", client.cip)
                                 client.write_message(delta_update_dict)
     
     def _sendUpdateThread(self, event):
@@ -217,6 +217,8 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         #inherits object "request" (which is a HTTPRequest object defined in tornado.httpserver) from tornado.web.RequestHandler
         self.application.logger.info("Client connected. IP: %s", self.request.remote_ip)
+
+        self.cip = self.request.remote_ip
         
         self.application.log_clients.add(self)
         self.application.log_ordered_clients["none"].add(self)
@@ -234,6 +236,21 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         #client will send the log ident upon successful connection
         self.application.logger.info("Client %s sent msg: %s", self.request.remote_ip, msg)
         
+        #debug commands
+        if msg == "LIST_LOGS":
+            #send the ordered dict
+            self.write_message(self.application.log_ordered_clients)
+        elif msg == "LIST_CLIENTS":
+            #get a list of every connected client's IP
+            client_count = 0
+            client_list = {}
+            for client in self.application.log_clients.copy():
+                client_list[client_count] = client.cip
+                client_count += 1
+
+            self.write_message(client_list)
+
+
         if (self.LOG_IDENT_RECEIVED):
             self.application.logger.debug("Client %s has already sent log ident \"%s\"", self.request.remote_ip, self.LOG_IDENT)
             return
