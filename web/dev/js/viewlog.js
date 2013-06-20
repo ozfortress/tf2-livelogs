@@ -325,6 +325,9 @@ var llWSClient = llWSClient || (function() {
                         console.log("New player to be added. SID: %s", sid);
                     }
                 });
+
+                //now we re-draw the table, so sorting is updated with new values
+                llWSClient.redraw_table();
             }
             catch (exception) {
                 console.log("Exception trying to parse stat update. Error: %s", exception);
@@ -358,10 +361,16 @@ var llWSClient = llWSClient || (function() {
             var cell_pos = table.fnGetPosition(cell);
 
 
-            //fnUpdate(data, row, column)
-            table.fnUpdate(new_value, cell_pos[0], cell_pos[2], true, false);
+            //fnUpdate(data, row, column, bool:redraw, bool:do_pre-draw)
+            table.fnUpdate(new_value, cell_pos[0], cell_pos[2], false, false); //updates cell values
 
             this.highlight(cell);
+        },
+
+        redraw_table : function() {
+            var table = $("#general_stats").dataTable();
+            table.fnDraw(true); //re-draws the table, resorting with updated cell values
+                                //this should help significantly with performance issues in redrawing the table for every stat that has been changed
         },
 
         addStatRow : function() {
@@ -369,7 +378,7 @@ var llWSClient = llWSClient || (function() {
                     "row1",
                     "row2"
                 ]);
-        }
+        },
     };
 }());
 
