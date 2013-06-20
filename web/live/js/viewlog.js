@@ -41,7 +41,7 @@ jQuery.fn.dataTableExt.oSort['dt-numeric-html-desc'] = function(a,b) {
 
 var llWSClient = llWSClient || (function() {
     "use strict";
-    var client, ws, connect_msg = {}, HAD_FIRST_UPDATE = false, auto_update = true, time_elapsed_sec; //our client socket and message that will be sent on connect, containing the log id
+    var client, ws, connect_msg = {}, HAD_FIRST_UPDATE = false, auto_update = true, time_elapsed_sec, client_index = []; //our client socket and message that will be sent on connect, containing the log id
 
     return {
         init : function(ip, port, log_id) {
@@ -251,23 +251,21 @@ var llWSClient = llWSClient || (function() {
         
         parseStatUpdate : function(stat_obj) {
             try {
-                var element, element_id, special_element_tags = ["kpd", "dpd", "dpr", "dpm"], i, tmp, num_rounds, deaths, damage, kills, table, tmp_result;
+                var element, element_id, special_element_tags = ["kpd", "dpd", "dpr", "dpm"], i, tmp, num_rounds, deaths, damage, kills, tmp_result;
                 num_rounds = Number(document.getElementById("red_score_value").innerHTML) + Number(document.getElementById("blue_score_value").innerHTML);
-
-                //table = $("#general_stats").dataTable();
                 
                 $.each(stat_obj, function(sid, stats) {
                     //check if player exists on page already
                     if (document.getElementById(sid + ".name")) {
                         $.each(stats, function(stat, value) {
                             element_id = sid + "." + stat;
-                            
+                
                             console.log("SID: %s, STAT: %s, VALUE: %s, HTML ELEMENT: %s", sid, stat, value, element_id);
+
+                            var element = llWSClient.get_element_cache(sid, element_id);
                             
-                            element = document.getElementById(element_id);
                             if (element) {
                                 //console.log("Got element %s, VALUE: %s", element, element.innerHTML);
-                                
                                 if (HAD_FIRST_UPDATE) {                    
                                     if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost") {
                                         element.innerHTML = Number(element.innerHTML) + Number(value);
@@ -291,18 +289,26 @@ var llWSClient = llWSClient || (function() {
                         for (i = 0; i < special_element_tags.length; i++) {
                             tmp = special_element_tags[i];
                             element_id = sid + "." + tmp;
-                            element = document.getElementById(element_id);
+
+                            element = llWSClient.get_element_cache(sid, element_id);
                             
                             //console.log("SID: %s, HTML ELEMENT: %s", sid, element_id);
                             
-                            
-                            deaths = Number(document.getElementById(sid + ".deaths").innerHTML);
-                            damage = Number(document.getElementById(sid + ".damage_dealt").innerHTML);
+                            var death_element = llWSClient.get_element_cache(sid, sid + ".deaths"), damage_element = llWSClient.get_element_cache(sid, sid + ".damage_dealt");
+
+                            if (!death_element || !damage_element) {
+                                console.log("Unable to get death and or damage element for sid %s", sid);
+                                continue;
+                            }
+
+                            deaths = Number(death_element.innerHTML);
+                            damage = Number(damage_element.innerHTML);
                             
                             //multiply by 100 and div by 100 for 2 dec places rounding
                             if (element) {
                                 if (tmp === "kpd") {
-                                    kills = Number(document.getElementById(sid + ".kills").innerHTML);
+                                    var kill_element = llWSClient.get_element_cache(sid, sid + ".kills");
+                                    kills = Number(kill_element.innerHTML);
                                     tmp_result = Math.round(kills / (deaths || 1) * 100) / 100;
                                 } else if (tmp === "dpd") {
                                     tmp_result = Math.round(damage / (deaths || 1) * 100) / 100;
@@ -321,10 +327,13 @@ var llWSClient = llWSClient || (function() {
                             }
                         }
                     } else {
-                        //this means the player needs to be added to the table
+                        //this means the player needs to be added to the table, how do?
                         console.log("New player to be added. SID: %s", sid);
                     }
                 });
+
+                //now we re-draw the table, so sorting is updated with new values
+                setTimeout(llWSClient.redraw_table, 3250);
             }
             catch (exception) {
                 console.log("Exception trying to parse stat update. Error: %s", exception);
@@ -334,7 +343,7 @@ var llWSClient = llWSClient || (function() {
         highlight : function(element, highlight_colour) {
             highlight_colour = typeof highlight_colour !== 'undefined' ? highlight_colour : "#CCFF66";
 
-            $(element).effect("highlight", {color: highlight_colour}, 3800);
+            $(element).effect("highlight", {color: highlight_colour}, 3400);
         },
         
         toggleUpdate : function() {
@@ -358,10 +367,37 @@ var llWSClient = llWSClient || (function() {
             var cell_pos = table.fnGetPosition(cell);
 
 
-            //fnUpdate(data, row, column)
-            table.fnUpdate(new_value, cell_pos[0], cell_pos[2], true, false);
+            //fnUpdate(data, row, column, bool:redraw, bool:do_pre-draw)
+            table.fnUpdate(new_value, cell_pos[0], cell_pos[2], false, false); //updates cell values
 
             this.highlight(cell);
+        },
+
+        redraw_table : function() {
+            var table = $("#general_stats").dataTable();
+            table.fnDraw(true); //re-draws the table, resorting with updated cell values
+                                //this should help significantly with performance issues in redrawing the table for every stat that has been changed
+        },
+
+        get_element_cache : function(sid, element_id) {
+            //this function caches element objects, so they do not need to be retrieved for every stat update
+
+            if (!(sid in client_index)) {
+                //add the client sid to the element cache. the sid will contain an array of stats and their page elements
+                client_index.sid = [];
+            }
+
+            var element = null;
+            if (!(element_id in client_index.sid)) {
+                element = document.getElementById(element_id);
+                client_index.sid.element_id = element; //add the element to the client's element cache
+            }
+            else {
+                element = client_index.sid.element_id;
+            }
+
+            //return the element
+            return element;
         },
 
         addStatRow : function() {
@@ -369,7 +405,7 @@ var llWSClient = llWSClient || (function() {
                     "row1",
                     "row2"
                 ]);
-        }
+        },
     };
 }());
 
