@@ -776,6 +776,15 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
                 strcopy(log_secret, sizeof(log_secret), ll_api_key); //use api key as secret
             }
 
+            decl String:tmp[129];
+            if (force_log_secret && !IsCharNumeric(log_secret[0]))
+            {
+                /* if the first char of the log secret is not numeric, append a number to it so that logsecret works */
+                strcopy(tmp, sizeof(tmp), "1");
+                StrCat(tmp, sizeof(tmp), log_secret); /* append a 1 to the string */
+                strcopy(log_secret, sizeof(log_secret), tmp);
+            }
+
             ServerCommand("sv_logsecret %s; logaddress_add %s", log_secret, listener_address);
             if (debug_enabled) { LogMessage("Added address %s to logaddress list", listener_address); }
             
@@ -942,6 +951,15 @@ requestListenerAddress()
     {
         /* logsecret cache is either an invalid handle, or we want to force the log secret */
         strcopy(log_secret, sizeof(log_secret), ll_api_key); //use api key as secret
+    }
+
+    decl String:tmp[129];
+    if (force_log_secret && !IsCharNumeric(log_secret[0]))
+    {
+        /* if the first char of the log secret is not numeric, append a number to it so that logsecret works */
+        strcopy(tmp, sizeof(tmp), "1");
+        StrCat(tmp, sizeof(tmp), log_secret); /* append a 1 to the string */
+        strcopy(log_secret, sizeof(log_secret), tmp);
     }
             
     
