@@ -51,7 +51,7 @@ public Plugin:myinfo =
 #endif
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
-	version = "0.6.4.1",
+	version = "0.6.5.0",
 	url = "http://livelogs.ozfortress.com"
 };
 
@@ -67,7 +67,7 @@ new bool:is_logging = false;
 new bool:late_loaded;
 new bool:livelogs_bitmask_cache[65];
 new bool:create_new_log_file = false;
-new bool:use_log_secret = true;
+new bool:force_log_secret = true;
 new bool:debug_enabled = true;
 
 new String:server_ip[64];
@@ -87,7 +87,7 @@ new Handle:livelogs_logging_level = INVALID_HANDLE; //bitmask for logging levels
 new Handle:livelogs_ipgn_booking_name = INVALID_HANDLE; //support ipgn's match recorder which uses names from a server booking bot
 new Handle:livelogs_new_log_file = INVALID_HANDLE; //determine if this plugin should enable the server's logging functionality, or leave it to a config/other plugin
 new Handle:livelogs_tournament_ready_only =  INVALID_HANDLE; //support the option of only logging when teams ready up, and not on mp_restartgame or equivalent command
-new Handle:livelogs_enable_secret = INVALID_HANDLE; //whether or not to set sv_logsecret
+new Handle:livelogs_force_logsecret = INVALID_HANDLE; //whether or not to set sv_logsecret
 new Handle:livelogs_enable_debugging = INVALID_HANDLE; //toggle debug messages
 new Handle:livelogs_enabled = INVALID_HANDLE; //enable/disable livelogs
 
@@ -182,7 +182,7 @@ public OnPluginStart()
     livelogs_tournament_ready_only = CreateConVar("livelogs_tournament_ready_only", "0", "Whether livelogs should only log when teams ready up or not (mp_restartgame does not ready the teams up)", 
                                             FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
-    livelogs_enable_secret = CreateConVar("livelogs_force_logsecret", "1", "Whether livelogs should force sv_logsecret or not",
+    livelogs_force_logsecret = CreateConVar("livelogs_force_logsecret", "1", "Whether livelogs should force sv_logsecret or not",
                                             FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
     livelogs_enable_debugging = CreateConVar("livelogs_enable_debugging", "1", "Enable or disable debug messages", FCVAR_NOTIFY, true, 0.0, true, 1.0);
@@ -199,7 +199,7 @@ public OnPluginStart()
     HookConVarChange(livelogs_new_log_file, conVarChangeHook);
     HookConVarChange(livelogs_logging_level, conVarChangeHook); //hook convar so we can change logging options on the fly
     HookConVarChange(livelogs_enable_debugging, conVarChangeHook);
-    HookConVarChange(livelogs_enable_secret, conVarChangeHook);
+    HookConVarChange(livelogs_force_logsecret, conVarChangeHook);
 
 
     //variables for later sending. we should get the IP via hostip, because people may not set "ip"
@@ -439,17 +439,17 @@ public conVarChangeHook(Handle:cvar, const String:oldval[], const String:newval[
             newLogOnRestartCheck();
         }
     }
-    else if (cvar == livelogs_enable_logsecret)
+    else if (cvar == livelogs_force_logsecret)
     {
-        if (use_log_secret)
+        if (force_log_secret)
         {
             PrintToServer("Livelogs will not force sv_logsecret");
-            use_log_secret = false;
+            force_log_secret = false;
         }
         else
         {
             PrintToServer("Livelogs will force sv_logsecret");
-            use_log_secret = true;
+            force_log_secret = true;
         }
     }
 }
@@ -756,19 +756,27 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
                 strcopy(log_unique_ident, sizeof(log_unique_ident), split_buffer[4]);
             }
 
-            
-            if (livelogs_sv_logsecret_cache != INVALID_HANDLE)
-            {
-                decl String:log_secret[128];
+            decl String:log_secret[128];
+            if (livelogs_sv_logsecret_cache != INVALID_HANDLE && !force_log_secret)
+            {   
+                /* 
+                A log secret is already set, and we don't want to force a log secret
+                Therefore, we use what is currently set if it's not 0 or null
+                */
                 GetConVarString(livelogs_sv_logsecret_cache, log_secret, sizeof(log_secret));
-
-                if (strlen(log_secret) > 0 && !StrEqual("0", log_secret))
+                if (strlen(log_secret) <= 1 || StrEqual("0", log_secret))
                 {
-                    /* a log secret is already set. we'll use this */
+                    /* don't want to use this key as a secret, it's too short or is default '0' */
+                    strcopy(log_secret, sizeof(log_secret), ll_api_key); //use api key as secret
                 }
             }
-            
-            ServerCommand("sv_logsecret %s; logaddress_add %s", ll_api_key, listener_address);
+            else
+            {
+                /* logsecret cache is either an invalid handle, or we want to force the log secret */
+                strcopy(log_secret, sizeof(log_secret), ll_api_key); //use api key as secret
+            }
+
+            ServerCommand("sv_logsecret %s; logaddress_add %s", log_secret, listener_address);
             if (debug_enabled) { LogMessage("Added address %s to logaddress list", listener_address); }
             
         #if defined _websocket_included
@@ -897,7 +905,7 @@ clearVars()
 requestListenerAddress()
 {
     //SEND STRUCTURE: LIVELOG!123test!192.168.35.1!27015!cp_granary!John
-    decl String:ll_request[256], String:ll_api_key[64], String:map[64], String:log_name[64];
+    decl String:ll_request[256], String:ll_api_key[64], String:map[64], String:log_name[64], String:log_secret[128];
     
     GetCurrentMap(map, sizeof(map));
     
@@ -911,19 +919,44 @@ requestListenerAddress()
     }
     
     GetConVarString(livelogs_daemon_api_key, ll_api_key, sizeof(ll_api_key));
+
+    if (livelogs_sv_logsecret_cache == INVALID_HANDLE)
+    {
+        livelogs_sv_logsecret_cache = FindConVar("sv_logsecret");
+    }
+
+    if (livelogs_sv_logsecret_cache != INVALID_HANDLE && !force_log_secret)
+    {   
+        /* 
+        A log secret is already set, and we don't want to force a log secret
+        Therefore, we use what is currently set if it's not 0 or null
+        */
+        GetConVarString(livelogs_sv_logsecret_cache, log_secret, sizeof(log_secret));
+        if (strlen(log_secret) <= 1 || StrEqual("0", log_secret))
+        {
+            /* don't want to use this key as a secret, it's too short or is default '0' */
+            strcopy(log_secret, sizeof(log_secret), ll_api_key); //use api key as secret
+        }
+    }
+    else
+    {
+        /* logsecret cache is either an invalid handle, or we want to force the log secret */
+        strcopy(log_secret, sizeof(log_secret), ll_api_key); //use api key as secret
+    }
+            
     
 #if defined _websocket_included
     new webtv_port = GetConVarInt(livelogs_webtv_listen_port);
     if ((webtv_enabled) && (webtv_library_present))
     {
-        Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s!%d", ll_api_key, server_ip, server_port, map, log_name, webtv_port);  
+        Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s!%d", ll_api_key, log_secret, server_port, map, log_name, webtv_port);  
     }
     else
     {
-        Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s", ll_api_key, server_ip, server_port, map, log_name);
+        Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s", ll_api_key, log_secret, server_port, map, log_name);
     }
 #else
-    Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s", ll_api_key, server_ip, server_port, map, log_name);
+    Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s", ll_api_key, log_secret, server_port, map, log_name);
 #endif
     sendSocketData(ll_request);
 }
@@ -1037,6 +1070,7 @@ getConVarValues()
     log_additional_stats = GetConVarInt(livelogs_logging_level);
     create_new_log_file = GetConVarBool(livelogs_new_log_file);
     debug_enabled = GetConVarBool(livelogs_enable_debugging);
+    force_log_secret = GetConVarBool(livelogs_force_logsecret);
 
 #if defined _websocket_included
     webtv_enabled = GetConVarBool(livelogs_webtv_enabled);

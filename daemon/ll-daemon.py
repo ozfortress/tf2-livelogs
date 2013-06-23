@@ -123,7 +123,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                     return    
 
                 sip = self.server.server_address[0] #get our server info, so we know what IP to listen on
-
+                client_secret = msg[2]
                 webtv_port = None
 
                 if (msg_len == 7):
@@ -136,7 +136,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
                 log_name = self.escapeString(msg[5])
 
-                self.newListen = listener.llListenerObject(self.server.db, client_api_key, sip, (self.ll_clientip, self.ll_clientport), msg[4], log_name, 
+                self.newListen = listener.llListenerObject(self.server.db, client_secret, sip, (self.ll_clientip, self.ll_clientport), msg[4], log_name, 
                                                             self.server.removeListenerObject, timeout=self.server.listener_timeout, webtv_port = webtv_port)
                 
                 if not self.newListen.had_error(): #check if the parser had an error during init or not
