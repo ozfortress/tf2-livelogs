@@ -45,7 +45,7 @@
 #tryinclude <updater>
 
 #if defined _updater_included
-#define UPDATER_URL "http://livelogs.ozfortress.com/plugindata/updater/patchinfo.txt"
+#define UPDATER_URL "http://livelogs.ozfortress.com/plugindata/patchinfo.txt"
 #endif
 
 public Plugin:myinfo =
