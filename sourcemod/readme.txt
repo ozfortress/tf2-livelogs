@@ -1,4 +1,4 @@
-livelogs server plugin README updated 26/2/2013
+livelogs server plugin README updated 23/6/2013
 
 Installation steps:
 
@@ -41,7 +41,7 @@ livelogs_new_log_file - Enable/disable the initialisation of logging on match st
     If you are running another plugin that enables logging using 'log on' at some point, this can be disabled if you wish. However, you can still leave it on so that fresh log files are created
     in your server's log directory for new matches, if you choose to.
 
-    Setting this convar to "1" will use 'log on'. S
+    Setting this convar to "1" will use 'log on'. Setting it to "0" will not use 'log on' on match start.
 
     
 livelogs_name - The name that is displayed on the livelogs webpage for logs from your server.
@@ -55,9 +55,17 @@ livelogs_tournament_ready_only - Whether to start logging on tournament readies 
     is enabled, as well as ready up.
 
 
+livelogs_force_logsecret - Whether to force the plugin's log secret or not.
+    If your server uses its own sv_logsecret for another service, you should set this to "0", so that the plugin will not change it. If not, this should be left at "1", so that your logs will use
+    the plugin's secret and cannot be spoofed.
+
+
 livelogs_enable_debugging - Enable/disable debug messages.
 
 
 livelogs_enabled - Enable/disable Livelogs.
 
 If you have any queries, please do not hesitate to contact me on IRC (_bladez@bladezz.admin.ipgn), or on the ozfortress forums (bladez).
+
+
+For more information on the SourceMod socket extension, please visit https://forums.alliedmods.net/showthread.php?t=67640
