@@ -1,0 +1,21 @@
+"Updater"
+{
+    "Information"
+    {
+        "Version"
+        {
+            "Latest"        "0.6.6.0"
+        }
+
+        "Notes"     "Added updater support"
+    }
+
+    "Files"
+    {
+        "Plugin"    "Path_SM/plugins/livelogs.smx"
+
+        "Source"    "Path_SM/scripting/livelogs.sp"
+        "Source"    "Path_SM/scripting/livelogs_websocket.sp"
+        "Source"    "Path_SM/scripting/include/livelogs.inc"
+    }
+}

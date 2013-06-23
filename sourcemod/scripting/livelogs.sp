@@ -42,6 +42,12 @@
 #include <tf2_stocks>
 #endif                           
 
+#tryinclude <updater>
+
+#if defined _updater_included
+#define UPDATER_URL "http://livelogs.ozfortress.com/plugindata/updater/patchinfo.txt"
+#endif
+
 public Plugin:myinfo =
 {
 #if defined _websocket_included
@@ -51,7 +57,7 @@ public Plugin:myinfo =
 #endif
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
-	version = "0.6.5.0",
+	version = "0.6.6.0",
 	url = "http://livelogs.ozfortress.com"
 };
 
@@ -290,6 +296,12 @@ public OnAllPluginsLoaded()
     else
         if (debug_enabled) { LogMessage("Websocket library is not present. Not using SourceTV2D"); }
 #endif
+#if defined _updater_included
+    if (LibraryExists("updater"))
+    {
+        Updater_AddPlugin(UPDATER_URL);
+    }
+#endif
 }
 
 public OnMapStart()
@@ -303,17 +315,25 @@ public OnMapStart()
 #endif
 }
 
-#if defined _websocket_included
 public OnLibraryAdded(const String:name[])
 {
+#if defined _websocket_included
     //this forward is only fired if websocket is added
     if (StrEqual(name, "websocket"))
     {
         webtv_library_present = true;
         cleanUpWebSocket();
     }
+#endif
+#if defined _updater_included
+    if (StrEqual(name, "updater"))
+    {
+        Updater_AddPlugin(UPDATER_URL);
+    }
+#endif
 }
 
+#if defined _websocket_included
 public OnLibraryRemoved(const String:name[])
 {
     //this forward is only fired if websocket is added
