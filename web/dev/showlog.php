@@ -7,52 +7,52 @@
         require "../conf/ll_database.php";
         require "../conf/ll_config.php";
         
-        $UNIQUE_IDENT = $_GET["ident"];
-        $escaped_ident = pg_escape_string($UNIQUE_IDENT);
+        $log_serial = $_GET["lognum"];
+
+        $escaped_serial = pg_escape_string($log_serial);
         
-        $log_detail_query = "SELECT log_name, server_ip, server_port, map, live, webtv_port FROM livelogs_servers WHERE log_ident = '{$escaped_ident}'";
+        $log_detail_query = "SELECT log_ident, log_name, server_ip, server_port, map, live, webtv_port 
+                            FROM livelogs_servers 
+                            WHERE numeric_id = '{$escaped_serial}'";
+
         $log_detail_res = pg_query($ll_db, $log_detail_query);
 
         ////server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
         $log_details = pg_fetch_array($log_detail_res, 0, PGSQL_ASSOC);
         
-        if (empty($log_details["log_name"]) || empty($log_details["server_ip"]))
+        if (empty($log_details["log_ident"]))
         {
             $invalid_log_ident = true;
         }
         else
         {
-            //have a valid ident. now we can grab stats and stuff!
+            //valid numeric id given. get log ident out
+            $_unique_ident = $log_details["log_ident"];
+
             if (function_exists("pg_escape_identifier"))
             {
-                $escaped_stat_table = pg_escape_identifier("log_stat_" . $UNIQUE_IDENT);
-                $escaped_event_table = pg_escape_identifier("log_event_" . $UNIQUE_IDENT);
-                $escaped_chat_table = pg_escape_identifier("log_chat_" . $UNIQUE_IDENT);
-                $escaped_team_table = pg_escape_identifier("log_team_" . $UNIQUE_IDENT);
+                $escaped_event_table = pg_escape_identifier("log_event_" . $_unique_ident);
             }
             else
             {
-                $escaped_stat_table = pg_escape_string("log_stat_" . $UNIQUE_IDENT);
-                $escaped_event_table = pg_escape_string("log_event_" . $UNIQUE_IDENT);
-                $escaped_chat_table = pg_escape_string("log_chat_" . $UNIQUE_IDENT);
-                $escaped_team_table = pg_escape_string("log_team_" . $UNIQUE_IDENT);
+                $escaped_event_table = pg_escape_string("log_event_" . $_unique_ident);
             }
             
-            $stat_query = "SELECT * FROM {$escaped_stat_table}";
+            $stat_query =   "SELECT steamid, team, name, class,
+                                    kills, deaths, assists, points, 
+                                    healing_done, healing_received, ubers_used, ubers_lost, 
+                                    headshots, damage_dealt, damage_taken,
+                                    captures, captures_blocked, 
+                                    dominations
+                            FROM livelogs_player_stats WHERE log_ident = '{$_unique_ident}'";
+
             $stat_result = pg_query($ll_db, $stat_query);
             
             //$event_query = "SELECT * FROM {$escaped_event_table}";
             //$event_result = pg_query($ll_db, $event_query);
             
-            $chat_query = "SELECT * FROM {$escaped_chat_table}";
+            $chat_query = "SELECT steamid, name, team, chat_type, chat_message FROM livelogs_game_chat WHERE log_ident = '{$_unique_ident}'";
             $chat_result = pg_query($ll_db, $chat_query);
-            
-            $team_query = "SELECT * FROM {$escaped_team_table}";
-            $team_result = pg_query($ll_db, $team_query);
-            if ($team_result)
-            {
-                $team_array = pg_fetch_all($team_result);
-            }
 
             $time_query = "SELECT event_time FROM {$escaped_event_table} WHERE eventid = '1' UNION SELECT event_time FROM {$escaped_event_table} WHERE eventid = (SELECT MAX(eventid) FROM {$escaped_event_table})";
             $time_result = pg_query($ll_db, $time_query);        
@@ -78,8 +78,6 @@
                 $red_score = 0;
                 $blue_score = 0;
             }
-            
-            //$event_array = pg_fetch_all($event_result);
 
             $time_array = pg_fetch_all($time_result);
             if (sizeof($time_array) > 0)
@@ -110,7 +108,7 @@
             $log_live = true;
     ?>
 
-    <title>Livelogs - <?=$log_details["log_name"]?> (<?=$UNIQUE_IDENT?>)</title>
+    <title>Livelogs - <?=$log_details["log_name"]?> (<?=$_unique_ident?>)</title>
 </head>
 <body class="ll_body">
     <div class="navbar navbar-inverse navbar-fixed-top">
@@ -192,15 +190,15 @@
         {
         ?>
             
-            <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="#"><?=$UNIQUE_IDENT?></a></span><br>
+            <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="#"><?=$_unique_ident?></a></span><br>
         <?php
         }
         else
         {
-            $log_split = explode("_", $UNIQUE_IDENT);
+            $log_split = explode("_", $_unique_ident);
         ?>
             
-            <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="/download/<?=$UNIQUE_IDENT?>"><?=$UNIQUE_IDENT?></a></span><br>
+            <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="/download/<?=$_unique_ident?>"><?=$_unique_ident?></a></span><br>
             <span class="log_id_tag">Date: </span><span class="log_detail"><?=date("d/m/Y H:i:s", $log_split[2])?></span><br>
         <?php
         }
@@ -209,7 +207,9 @@
         {
         ?>
 
-            <span class="log_name_id">Name: </span><span class="log_detail"><a href="//heavy.ozfortress.com/demos/pub/<?=hash_hmac($ll_config["ozfortress"]["hashtype"], strtolower($log_details["log_name"]), $ll_config["ozfortress"]["hashkey"])?>"><?=$log_details["log_name"]?></a></span><br>
+            <span class="log_name_id">Name: </span><span class="log_detail">
+                <a href="<?=$ll_config["ozfortress"]["basepath"] . hash_hmac($ll_config["ozfortress"]["hashtype"], strtolower($log_details["log_name"]), $ll_config["ozfortress"]["hashkey"])?>"><?=$log_details["log_name"]?></a>
+            </span><br>
         <?php
         }
         else 
@@ -292,9 +292,6 @@
                             <th class="stat_summary_col_title">
                                 <abbr title="Dominations">DOM</abbr>
                             </th>
-                            <th class="stat_summary_col_title">
-                                <abbr title="Revenges">R</abbr>
-                            </th>
                             <th class="stat_summary_col_title_secondary">
                                 <abbr title="Kills per Death">KPD</abbr>
                             </th>
@@ -312,19 +309,19 @@
                     <tbody>
                     <?php
                         /*
-                        Stat table columns: (steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points decimal, 
-					     healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer, 
-					     headshots integer, backstabs integer, damage_dealt integer, damage_taken integer,
-					     ap_small integer, ap_medium integer, ap_large integer,
-					     mk_small integer, mk_medium integer, mk_large integer, 
-					     captures integer, captures_blocked integer, 
-					     dominations integer, times_dominated integer, revenges integer,
-					     suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer)'
+                        Stat table columns:
+                            steamid, team, name, class,
+                                    kills, deaths, assists, points, 
+                                    healing_done, healing_received, ubers_used, ubers_lost, 
+                                    headshots, damage_dealt, damage_taken,
+                                    captures, captures_blocked, 
+                                    dominations
                          */
 
                         /*OLD COLS:
                         <td><span id="<?=$community_id . ".backstabs"?>"><?=$pstat["backstabs"]?></span></td>
                         <td><span id="<?=$community_id . ".t_dominated"?>"><?=$pstat["times_dominated"]?></span></td>
+                        <td id="<?=$community_id . ".revenges"?>"><?=$pstat["revenges"]?></td>
                          */
                         $mstats = Array();
                         //NAME:K:D:A:PC:PB:HS:PTS:DMG:DMGT:HEAL:DOM:R:KPD:DPD:DPR:DPM
@@ -332,23 +329,17 @@
                         {
                             if (empty($pstat["name"]))
                             {
-                                $pstat["name"] = "INVALID_NAME";
+                                $pstat["name"] = "LL_INVALID_STRING";
                             }
 
-                            $community_id = steamid_to_bigint($pstat["steamid"]);
+                            $community_id = $pstat["steamid"];
                             $p_kpd = round($pstat["kills"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); // kills/death
                             $p_dpd = round($pstat["damage_dealt"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); //damage/death
                             $p_dpr = round($pstat["damage_dealt"] / (($red_score || $blue_score) ? ($red_score + $blue_score) : 1), 2); //num rounds are red score + blue score, damage/round
                             $p_dpm = round($pstat["damage_dealt"] / ($time_elapsed_sec/60), 2);
 
-                            if (empty($team_array))
-                            {
-                                $team_class = get_player_team_class(strtolower($pstat["team"]));
-                            }
-                            else
-                            {
-                                $team_class = get_player_team_class(get_player_team($team_array, $pstat["steamid"]));
-                            }
+
+                            $team_class = get_player_team_class(strtolower($pstat["team"]));
                             
                             if (($pstat["healing_done"] > 0) || ($pstat["ubers_used"]) || ($pstat["ubers_lost"]))
                             {
@@ -357,7 +348,10 @@
                     ?>
                         
                         <tr>
-                            <td><a id="<?=$community_id . ".name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=htmlentities($pstat["name"], ENT_QUOTES, "UTF-8")?></a></td>
+                            <td>
+                                [<?=player_classes($pstat["class"])?>]
+                                <a id="<?=$community_id . ".name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=htmlentities($pstat["name"], ENT_QUOTES, "UTF-8")?></a>
+                            </td>
                             <td id="<?=$community_id . ".kills"?>"><?=$pstat["kills"]?></td>
                             <td id="<?=$community_id . ".deaths"?>"><?=$pstat["deaths"]?></td>
                             <td id="<?=$community_id . ".assists"?>"><?=$pstat["assists"]?></td>
@@ -369,7 +363,6 @@
                             <td id="<?=$community_id . ".damage_taken"?>"><?=empty($pstat["damage_taken"]) ? 0 : $pstat["damage_taken"]?></td>
                             <td id="<?=$community_id . ".healing_received"?>"><?=$pstat["healing_received"]?></td>
                             <td id="<?=$community_id . ".dominations"?>"><?=$pstat["dominations"]?></td>
-                            <td id="<?=$community_id . ".revenges"?>"><?=$pstat["revenges"]?></td>
                             <td id="<?=$community_id . ".kpd"?>"><?=$p_kpd?></td>
                             <td id="<?=$community_id . ".dpd"?>"><?=$p_dpd?></td>
                             <td id="<?=$community_id . ".dpr"?>"><?=$p_dpr?></td>
@@ -411,18 +404,10 @@
                         
                         while ($i < $num_med)
                         {
-                            $sid = $mstats[$i]["steamid"];
-                            $community_id = steamid_to_bigint($sid);
+                            //$sid = $mstats[$i]["steamid"];
+                            $community_id = $mstats[$i]["steamid"];
                             
-                            if (empty($team_array))
-                            {
-                                $team_class = get_player_team_class(strtolower($mstats[$i]["team"]));
-                            }
-                            else
-                            {
-                                $team_class = get_player_team_class(get_player_team($team_array, $sid));
-                            }
-                            
+                            $team_class = get_player_team_class(strtolower($mstats[$i]["team"]));
                         ?>
                         
                         <tr>
@@ -496,12 +481,11 @@
                         <?php
                         while ($pchat = pg_fetch_array($chat_result, NULL, PGSQL_ASSOC))
                         {
-                            $community_id = steamid_to_bigint($pchat["steamid"]);
+                            $community_id = $pchat["steamid"];
 
                             $team_class = get_player_team_class(strtolower($pchat["team"]));
 
                             $chat_type = $pchat["chat_type"];
-
                         ?>
 
                             <tr>
@@ -533,7 +517,7 @@
     ?>
     
     <script type="text/javascript">
-        llWSClient.init("<?=$ll_config["websock"]["server_ip"]?>", <?=$ll_config["websock"]["server_port"]?>, "<?=$UNIQUE_IDENT?>")
+        llWSClient.init("<?=$ll_config["websock"]["server_ip"]?>", <?=$ll_config["websock"]["server_port"]?>, "<?=$_unique_ident?>")
     </script>
     <?php
     }
@@ -577,19 +561,6 @@
         return $i64friendID;
     }
 
-    function get_player_team($team_array, $steamid)
-    {
-        foreach ($team_array as $pteam)
-        {
-            if ($steamid === $pteam["steamid"])
-            {
-                return $pteam["team"];
-            }
-        }
-        
-        return 0;
-    }
-
     function get_player_team_class($team)
     {
         if ($team == "blue")
@@ -605,6 +576,23 @@
             $team_class = "no_team_player";
         }
         return $team_class;
+    }
+
+    function player_classes($class_string)
+    {
+        //Gets passed a string of player classes. Must return a string of imgs wrt to the classes
+        //class string: scout,soldier,demoman,medic,sniper
+
+        $imgstring = "";
+
+        $split_class = explode(",", $class_string);
+
+        foreach ($split_class as $idx => $class)
+        {
+            $imgstring .= '<img src="/images/classes/' . $class . '.png"> ';
+        }
+
+        return $imgstring;
     }
     
     pg_close($ll_db)
