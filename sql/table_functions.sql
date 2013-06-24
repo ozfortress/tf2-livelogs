@@ -1,4 +1,3 @@
-
 CREATE OR REPLACE FUNCTION create_game_event_table (unique_id text) RETURNS void AS $_$
 DECLARE
     table_name varchar(128);
@@ -16,45 +15,9 @@ BEGIN
 END;
 $_$ LANGUAGE 'plpgsql';
 
-
-CREATE OR REPLACE FUNCTION create_game_stat_table (unique_id text) RETURNS void AS $_$
-DECLARE
-    table_name varchar(128);
-BEGIN
-    table_name := 'log_stat_' || unique_id;
-    
-    EXECUTE 'CREATE TABLE ' || table_name || ' (steamid varchar(64) PRIMARY KEY, team text, name text, kills integer, deaths integer, assists integer, points decimal, 
-                         healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer, 
-                         headshots integer, backstabs integer, damage_dealt integer, damage_taken integer,
-                         ap_small integer, ap_medium integer, ap_large integer,
-                         mk_small integer, mk_medium integer, mk_large integer, 
-                         captures integer, captures_blocked integer, 
-                         dominations integer, times_dominated integer, revenges integer,
-                         suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer)';
-
-    EXECUTE 'CREATE TRIGGER zero_null_stat
-         BEFORE INSERT ON ' || table_name || '
-            FOR EACH ROW EXECUTE PROCEDURE zero_null_stat()';
-
-END;
-$_$ LANGUAGE 'plpgsql';
-
-
-CREATE OR REPLACE FUNCTION create_game_chat_table (unique_id text) RETURNS void AS $_$
-DECLARE
-    table_name varchar(128);
-BEGIN
-    table_name := 'log_chat_' || unique_id;
-    
-    EXECUTE 'CREATE TABLE ' || table_name || ' (eventid integer PRIMARY KEY, steamid varchar(64), name text, team text, chat_type varchar(12), chat_message text)';
-END;
-$_$ LANGUAGE 'plpgsql';
-
 CREATE OR REPLACE FUNCTION setup_log_tables (unique_id text) RETURNS void AS $_$
 BEGIN
     PERFORM create_game_event_table(unique_id);
-    PERFORM create_game_stat_table(unique_id);
-    PERFORM create_game_chat_table(unique_id);
 END;
 $_$ LANGUAGE 'plpgsql';
 
@@ -68,16 +31,15 @@ BEGIN
     THEN
         RAISE NOTICE 'Table livelogs.livelogs_player_stats already exists';
     ELSE
-        CREATE TABLE livelogs_player_stats (steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points decimal, 
-                                     healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer, 
-                                     headshots integer, backstabs integer, damage_dealt integer, damage_taken integer,
-                                     ap_small integer, ap_medium integer, ap_large integer,
-                                     mk_small integer, mk_medium integer, mk_large integer,
-                                     captures integer, captures_blocked integer, 
-                                     dominations integer, times_dominated integer, revenges integer,
-                                     suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer,
-                                     wins integer, losses integer, draws integer);
-
+        CREATE TABLE livelogs_player_stats (log_ident varchar(64), steamid varchar(64), team text, name text, class text,
+                                    kills integer, deaths integer, assists integer, points decimal, 
+                                    healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer, 
+                                    headshots integer, backstabs integer, damage_dealt integer, damage_taken integer,
+                                    ap_small integer, ap_medium integer, ap_large integer,
+                                    mk_small integer, mk_medium integer, mk_large integer,
+                                    captures integer, captures_blocked integer, 
+                                    dominations integer, times_dominated integer, revenges integer,
+                                    suicides integer, buildings_destroyed integer, extinguishes integer, PRIMARY KEY(log_ident, steamid));
         
     END IF;
 
@@ -99,7 +61,7 @@ BEGIN
     THEN
         RAISE NOTICE 'Table livelogs.livelogs_servers already exists';
     ELSE
-        CREATE TABLE livelogs_servers (numeric_id serial, server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean, webtv_port integer);
+        CREATE TABLE livelogs_servers (numeric_id serial, server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean, webtv_port integer, tstamp timestamp);
     END IF;
 END;
 $_$ LANGUAGE 'plpgsql';

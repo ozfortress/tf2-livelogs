@@ -93,7 +93,6 @@ class dbPoolWrapper(object):
 
 class parserClass():
     def __init__(self, db_pool, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc=None, webtv_port=None):
-        #ALWAYS REQUIRE A UNIQUE IDENT, OTHER PARAMS ARE OPTIONAL
         self.HAD_ERROR = False
         self.LOG_FILE_HANDLE = None
         self.db = db_pool
@@ -126,7 +125,6 @@ class parserClass():
             self.HAD_ERROR = True
             return
             
-        #try open the file before opening the sql connection, so if the file errors out we won't have to close the sql connection as well
         try:
             if not os.path.exists(log_dir):
                 #need to make the directory
@@ -138,7 +136,7 @@ class parserClass():
             self.LOG_FILE_HANDLE = open(log_file, 'w')
             
         except OSError:
-            self.logger.error("Error opening new log file for writing, or creating log directory: %s", OSError)
+            self.logger.exception("Error opening new log file for writing, or creating log directory")
             
             self.HAD_ERROR = True
             return
@@ -150,17 +148,18 @@ class parserClass():
 
             self.HAD_ERROR = True
 
-            self.LOG_FILE_HANDLE.close()
+            self.__cleanup()
             return
             
-        if not conn:
+        """if not conn:
             self.logger.error("Had error getting databse connection")
             
             self.HAD_ERROR = True
             
             self.LOG_FILE_HANDLE.close() #close the file handle previously established
             return
-        
+        """
+
         self.closeListenerCallback = endfunc
         
         self.UNIQUE_IDENT = unique_ident
@@ -181,15 +180,11 @@ class parserClass():
 
         if (webtv_port == None):
             webtv_port = 0
-            
-            
-        self.logger.info("PARSER UNIQUE IDENT: " + self.UNIQUE_IDENT)
         
         if not log_uploaded:
             try:
                 dbCursor = conn.cursor()
-                dbCursor.execute("SELECT create_global_stat_table()")
-                dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
+                dbCursor.execute("SELECT setup_log_tables(%s); SELECT create_global_stat_table()", (self.UNIQUE_IDENT,))
 
                 if (server_address != None):
                     dbCursor.execute("SELECT create_global_server_table()")
@@ -197,8 +192,8 @@ class parserClass():
                     if not log_name:
                         log_name = "log-%s" % time.strftime("%Y-%m-%d-%H-%M") #log-year-month-day-hour-minute
                     
-                    dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name, live, webtv_port) VALUES (%s, %s, %s, %s, %s, 'true', %s)", 
-                                                (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map, log_name, webtv_port,))
+                    dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name, live, webtv_port, tstamp) VALUES (%s, %s, %s, %s, %s, 'true', %s, %s)", 
+                                                (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map, log_name, webtv_port, time.strftime("%Y-%m-%d %H:%M:%S"),))
 
                 conn.commit()
             except:
@@ -206,23 +201,20 @@ class parserClass():
 
                 self.HAD_ERROR = True
 
-                dbCursor.close()
-                self.db.putconn(conn)
-
-                self.LOG_FILE_HANDLE.close()
+                self.__cleanup(conn, dbCursor)
 
                 return
 
         if (log_uploaded):
-            #TODO: Create an indexing method for logs that were manually uploaded and parsed
+            #TODO: Create an indexing method for logs that are manually uploaded and parsed
             pass
 
         dbCursor.close()
         self.db.putconn(conn)
 
         self.EVENT_TABLE = "log_event_%s" % self.UNIQUE_IDENT
-        self.STAT_TABLE = "log_stat_%s" % self.UNIQUE_IDENT
-        self.CHAT_TABLE = "log_chat_%s" % self.UNIQUE_IDENT
+        self.STAT_TABLE = "livelogs_player_stats"
+        self.CHAT_TABLE = "livelogs_game_chat"
 
         self._item_dict = {
             'ammopack_small': 'ap_small',
@@ -646,6 +638,7 @@ class parserClass():
                 if c_sid is "Console":
                     c_sid = "STEAM_0:0:0"
 
+                c_sid = get_cid(c_sid) #get community id of steamid
                 c_name = self.escapePlayerString(regml(res, 1))
                 c_team = regml(res, 4)
 
@@ -667,12 +660,12 @@ class parserClass():
                         curs = conn.cursor()
                         #now we need to get the event ID and put it into chat!
                         
-                        eventid_query = "SELECT eventid FROM %s WHERE event_type = 'chat' ORDER BY eventid DESC LIMIT 1" % self.EVENT_TABLE
+                        eventid_query = "SELECT eventid FROM %s WHERE event_type = 'chat' ORDER BY eventid DESC LIMIT 1" % (self.EVENT_TABLE, self.UNIQUE_IDENT)
                         curs.execute(eventid_query)
                         eventid = curs.fetchone()[0]
 
-                        chat_insert_query = "INSERT INTO %s (eventid, steamid, name, team, chat_type, chat_message) VALUES ('%s', E'%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, 
-                                                                eventid, c_sid, c_name, c_team, chat_type, chat_message)
+                        chat_insert_query = "INSERT INTO %s (log_ident, eventid, steamid, name, team, chat_type, chat_message) VALUES ('%s', '%s', E'%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, 
+                                                                self.UNIQUE_IDENT, eventid, c_sid, c_name, c_team, chat_type, chat_message)
 
                         self.executeQuery(chat_insert_query, curs=curs, conn=conn) #execute query will perform the insert query, commit, and close the cursor
 
@@ -979,16 +972,16 @@ class parserClass():
 
     def pg_statupsert(self, table, column, steamid, name, value):
         #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
-
+        steamid = get_cid(steamid) #convert steamid to community id
         name = name[:30] #max length of 30 characters for names
-        insert_query = "INSERT INTO %s (steamid, name, %s) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, steamid, name, value)
+        insert_query = "INSERT INTO %s (log_ident, steamid, name, %s) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, self.UNIQUE_IDENT, steamid, name, value)
 
         if len(name) > 0 and (steamid not in self._player_names or self._player_names[steamid] is not name):
-            update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s, name = E'%s' WHERE steamid = E'%s'" % (self.STAT_TABLE, column, column, value, name, steamid)
+            update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s, name = E'%s' WHERE steamid = E'%s' and log_ident = '%s'" % (self.STAT_TABLE, column, column, value, name, steamid, self.UNIQUE_IDENT)
             self._player_names[steamid] = name
             
         else:
-            update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE steamid = E'%s'" % (self.STAT_TABLE, column, column, value, steamid)
+            update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE steamid = E'%s' and log_ident = '%s'" % (self.STAT_TABLE, column, column, value, steamid, self.UNIQUE_IDENT)
 
         curs = None
         try:
@@ -1018,15 +1011,9 @@ class parserClass():
                     
                     self.db.putconn(conn)
 
-                
-
             else:
                 return
 
-                #if not self.RECONNECTING_TO_DATABASE:
-                #    self.reconnectToDatabase()
-
-                #self.addToQueryQueue("upsert", insert_query, update_query)
         except:
             self.logger.exception("Exception during commit or rollback")
             if curs:
@@ -1054,15 +1041,17 @@ class parserClass():
         team_insert_list = []
 
         if a_sid not in self._player_teams:
+            a_sid = get_cid(a_sid)
             self._player_teams[a_sid] = a_team
             
-            team_insert_list.append((self.STAT_TABLE, a_sid, a_team))
+            team_insert_list.append((a_sid, a_team))
         
         if b_sid and b_team:
+            b_sid = get_cid(b_sid)
             if b_sid not in self._player_teams:
                 self._player_teams[b_sid] = b_team
             
-                team_insert_list.append((self.STAT_TABLE, b_sid, b_team))
+                team_insert_list.append((b_sid, b_team))
         
         if len(team_insert_list) > 0:
             if not self.db.closed:
@@ -1077,8 +1066,8 @@ class parserClass():
                     #team_insert_query = ';'.join(("UPDATE %s SET team = E'%s' WHERE steamid = E'%s'" % team_tuple) for team_tuple in team_insert_list)
                     #self.executeQuery(team_insert_query)
                     for team_tuple in team_insert_list:
-                        insert_query = "INSERT INTO %s (steamid, team) VALUES (E'%s', E'%s')" %  team_tuple
-                        update_query = "UPDATE %s SET team = E'%s' WHERE steamid = E'%s'" % (self.STAT_TABLE, team_tuple[2], team_tuple[1])
+                        insert_query = "INSERT INTO %s (log_ident, steamid, team) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, team_tuple[0], team_tuple[1])
+                        update_query = "UPDATE %s SET team = E'%s' WHERE steamid = E'%s' and log_ident = '%s'" % (self.STAT_TABLE, team_tuple[1], team_tuple[0], self.UNIQUE_IDENT)
 
                         curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
 
@@ -1100,6 +1089,7 @@ class parserClass():
             #self.executeQuery(team_insert_query, curs)
     
     def playerLogIndex(self, a_sid, b_sid = None):
+        return #this function is not necessary any longer
         insert_list = []
 
         if a_sid not in self._player_logs:
@@ -1197,14 +1187,17 @@ class parserClass():
             if not self.HAD_ERROR:
                 if not self._player_logs:
                     #if no players were added to the log, this log is invalid. therefore, we should delete it
-                    end_query = "DELETE FROM livelogs_servers WHERE log_ident = E'%s'; DROP TABLE %s; DROP TABLE %s; DROP TABLE %s" % (self.UNIQUE_IDENT, self.STAT_TABLE, self.CHAT_TABLE, self.EVENT_TABLE)
+                    end_query = "DELETE FROM livelogs_servers WHERE log_ident = E'%(logid)s'; DELETE FROM livelogs_player_stats WHERE log_ident = '%(logid)s'" % {
+                            "logid": self.UNIQUE_IDENT
+                        }
+
                     self.executeQuery(end_query)
 
                     self.logger.info("No data in this log. Tables have been deleted")
 
                 else:
                     #sets live to false, and merges the stat table with the master stat table
-                    live_end_query = "UPDATE livelogs_servers SET live = false WHERE log_ident = E'%s'; SELECT merge_stat_table('%s')" % (self.UNIQUE_IDENT, self.STAT_TABLE)
+                    live_end_query = "UPDATE livelogs_servers SET live = false WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT, self.STAT_TABLE) # SELECT merge_stat_table('%s')
                     self.executeQuery(live_end_query)
                 
                 #begin ending timer
@@ -1216,76 +1209,45 @@ class parserClass():
                     self.LOG_FILE_HANDLE.write("\n") #add a new line before EOF
                     self.LOG_FILE_HANDLE.close()
 
-    def reconnectToDatabase(self):
-        if self.db.closed and not self.RECONNECTING_TO_DATABASE:
-            self._processing_queue = False
-            self.RECONNECTING_TO_DATABASE = True
+    def get_cid(self, steam_id):
+        #takes a steamid in the format STEAM_x:x:xxxxx and converts it to a 64bit community id
+        #self.log.debug("Converting SteamID %s to community id", steam_id)
 
-            self.reconnectThread = threading.Thread(target = self._databaseReconnect)
-            self.reconnectThread.daemon = True
+        auth_server = 0;
+        auth_id = 0;
+        
+        steam_id_tok = steam_id.split(':')
 
-            self.reconnectThread.start()
+        if len(steam_id_tok) is 3:
+            auth_server = int(steam_id_tok[1])
+            auth_id = int(steam_id_tok[2])
+            
+            community_id = auth_id * 2 #multiply auth id by 2
+            community_id += 76561197960265728 #add arbitrary number chosen by valve
+            community_id += auth_server #add the auth server. even ids are on server 0, odds on server 1
 
-    def _databaseReconnect(self):
-        loops = 0
+        else:
+            community_id = 0
 
-        new_connection = None
-        time.sleep(5) #wait 5 seconds before starting loop, so the database has time to close properly if it was shut down
+        return community_id
 
-        while self.db.closed:
-            #loop X times while the DB is closed
-            self.logger.info("Attempting to reconnect to the database...")
-            if loops < 10:
-                try:
-                    new_connection = psycopg2.connect(self._db_dsn)
+    def __cleanup(self, conn=None, cursor=None):
+        #for cleaning up after init error
+        if self.LOG_FILE_HANDLE and not self.LOG_FILE_HANDLE.closed:
+            self.LOG_FILE_HANDLE.close()
 
-                except:
-                    self.logger.exception("Exception trying to reconnect to database")
+        if cursor:
+            if not cursor.closed:
+                cursor.close()
 
-                finally:
-                    if new_connection and not new_connection.closed:
-                        #we have the connection! now we need to assign it
-                        self.logger.info("Successfully reconnected to the database")
-                        self.db = new_connection
-
-                        self.RECONNECTING_TO_DATABASE = False
-
-                        #process the queue... this has to block. not going to worry about it for now. just need to get this fix out
-                        #TODO: process the queue!
-                        self._query_queue = [] #just empty the queue for now
-
-                        break #break out of the while loop, terminating the thread
-
-                    else:
-                        #wait 10 seconds before trying to connect again
-                        loops += 1
-                        time.sleep(10)
-            else:
-                break
-
-    def addToQueryQueue(self, query_type, insert_query, update_query=None):
-        #adds the query to the query queue
-        if not self._processing_queue:
-
-            self._query_queue.append(queryQueueDataObject(query_type, insert_query, update_query))
-
-    def processQueryQueue(self):
-        #called once the parser has reconnected to the database. will process the query queue, adding all data to the appropriate tables
-        self._processing_queue = True
-
-        pass
+        if conn:
+            if not self.db.closed:
+                self.db.putconn(conn)
 
     def __del__(self):
         if self.LOG_FILE_HANDLE:
             if not self.LOG_FILE_HANDLE.closed:
                 self.LOG_FILE_HANDLE.close()
-
-class queryQueueDataObject(object):
-    #this class is just a data structure to hold query information for the query queue
-    def __init__(self, query_type, insert_query, update_query=None):
-        self.query_type = query_type
-        self.insert_query = insert_query
-        self.update_query = update_query
 
 #this class is used to remove all HTML tags from player strings
 class HTMLStripper(HTMLParser):
