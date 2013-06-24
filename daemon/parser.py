@@ -638,7 +638,7 @@ class parserClass():
                 if c_sid is "Console":
                     c_sid = "STEAM_0:0:0"
 
-                c_sid = get_cid(c_sid) #get community id of steamid
+                c_sid = self.get_cid(c_sid) #get community id of steamid
                 c_name = self.escapePlayerString(regml(res, 1))
                 c_team = regml(res, 4)
 
@@ -972,7 +972,7 @@ class parserClass():
 
     def pg_statupsert(self, table, column, steamid, name, value):
         #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
-        steamid = get_cid(steamid) #convert steamid to community id
+        steamid = self.get_cid(steamid) #convert steamid to community id
         name = name[:30] #max length of 30 characters for names
         insert_query = "INSERT INTO %s (log_ident, steamid, name, %s) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, self.UNIQUE_IDENT, steamid, name, value)
 
@@ -1041,13 +1041,13 @@ class parserClass():
         team_insert_list = []
 
         if a_sid not in self._player_teams:
-            a_sid = get_cid(a_sid)
+            a_sid = self.get_cid(a_sid)
             self._player_teams[a_sid] = a_team
             
             team_insert_list.append((a_sid, a_team))
         
         if b_sid and b_team:
-            b_sid = get_cid(b_sid)
+            b_sid = self.get_cid(b_sid)
             if b_sid not in self._player_teams:
                 self._player_teams[b_sid] = b_team
             

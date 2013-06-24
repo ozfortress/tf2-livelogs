@@ -1,5 +1,5 @@
 
---CREATE TABLE livelogs_auth_keys (user_name text, user_email text, user_key text, user_ip text); --holds user authentication keys and contact details
+CREATE TABLE livelogs_auth_keys (user_name text, user_email text, user_key text, user_ip text); --holds user authentication keys and contact details
 
 CREATE TABLE livelogs_player_stats (log_ident varchar(64), steamid varchar(64), team text, name text, class text,
                                     kills integer, deaths integer, assists integer, points decimal, 
@@ -13,7 +13,7 @@ CREATE TABLE livelogs_player_stats (log_ident varchar(64), steamid varchar(64), 
 
 
 CREATE TRIGGER zero_null_stat
-        BEFORE INSERT ON livelogs_player_stats_new
+        BEFORE INSERT ON livelogs_player_stats
         FOR EACH ROW EXECUTE PROCEDURE zero_null_stat();
 
 
