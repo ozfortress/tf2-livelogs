@@ -38,9 +38,11 @@ def process_response(rsp):
 
             for logline in log_file:
                 line = logline.lstrip("\xFF").lstrip("R").rstrip()
+                #line = logline.lstrip("\xFF").rstrip()
+                print line
                 if line:
                     #client.send("S%s%s" % ("new_api_key", line))
-                    client.send(line)
+                    client.send("R%s" % line)
 
                 """if x is 100:
                     client.send('L 10/01/2012 - 21:38:34: "LIVELOG_GAME_RESTART"')
