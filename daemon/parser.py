@@ -1127,7 +1127,7 @@ class parserClass():
 
                 else:
                     #sets live to false, and merges the stat table with the master stat table
-                    live_end_query = "UPDATE livelogs_servers SET live = false WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT, self.STAT_TABLE) # SELECT merge_stat_table('%s')
+                    live_end_query = "UPDATE livelogs_servers SET live = false WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT)
                     self.executeQuery(live_end_query)
                 
                 #begin ending timer
