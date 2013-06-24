@@ -114,11 +114,9 @@ class parserClass():
         if not log_uploaded:
             try:
                 dbCursor = conn.cursor()
-                dbCursor.execute("SELECT setup_log_tables(%s); SELECT create_global_stat_table()", (self.UNIQUE_IDENT,))
+                dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
 
                 if (server_address != None):
-                    dbCursor.execute("SELECT create_global_server_table()")
-                
                     if not log_name:
                         log_name = "log-%s" % time.strftime("%Y-%m-%d-%H-%M") #log-year-month-day-hour-minute
                     

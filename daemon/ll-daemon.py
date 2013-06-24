@@ -309,6 +309,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
             except:
                 self.logger.exception("Exception trying to get api key for ip %s", ip)
+                conn.rollback()
 
             finally:
                 if not curs.closed:

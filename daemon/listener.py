@@ -169,7 +169,6 @@ class llListenerObject(object):
             return True
 
     def error_cleanup(self):
-        self.listener.timeoutTimer.cancel()
         self.listener.shutdown_listener()
         
     def close_object(self): #only ever called by listener.__listener_shutdown()
