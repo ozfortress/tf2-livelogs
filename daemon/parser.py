@@ -1197,3 +1197,4 @@ def stripHTMLTags(string):
 
 
     return stripper.get_data() #get the text out
+    
