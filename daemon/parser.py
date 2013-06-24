@@ -21,76 +21,6 @@ from pprint import pprint
 
 import parser_regex
 
-
-"""log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
-
-log_file_handler = logging.handlers.TimedRotatingFileHandler("parser.log", when="midnight")
-log_file_handler.setFormatter(log_message_format)
-log_file_handler.setLevel(logging.DEBUG)"""
-
-
-class dbPoolWrapper(object):
-    #this object wraps a database pool, allowing an application to use it as it would a single database connection
-    def __init__(self, pool):
-        self.pool = pool
-
-        self.current_conn = None
-        self.current_cursor = None
-
-        self.closed = self.pool.closed
-
-    def commit(self):
-        self.closed = self.pool.closed
-        if self.pool.closed:
-            self.current_cursor = None
-
-            raise Exception("DB_POOL_CLOSED")
-
-        if not self.current_conn.closed:
-            self.current_conn.commit()
-        else:
-            self.pool.putconn(self.current_conn)
-
-    def rollback(self):
-        self.closed = self.pool.closed
-        if self.closed:
-            self.current_cursor = None
-            raise Exception("DB_POOL_CLOSED")
-
-
-        self.current_conn.rollback()
-        self.closed = self.pool.closed
-
-    def cursor(self):
-        if not self.pool.closed:
-            if not self.current_conn:
-                self.current_conn = self.pool.getconn()
-
-            if not self.current_cursor:
-                self.current_cursor = self.current_conn.cursor()
-
-            return self.current_cursor
-        else:
-            self.closed = self.pool.closed
-
-            raise Exception("DB_POOL_CLOSED")
-
-    def close(self):
-        if self.current_cursor:
-            self.current_cursor.close()
-
-        if self.current_conn:
-            self.pool.putconn(self.current_conn)
-
-        self.current_conn = None
-        self.current_cursor = None
-
-    def __del__(self):
-        if self.current_cursor:
-            self.current_cursor.close()
-
-        self.pool.putconn(self.current_conn)
-
 class parserClass():
     def __init__(self, db_pool, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc=None, webtv_port=None):
         self.HAD_ERROR = False
@@ -660,7 +590,7 @@ class parserClass():
                         curs = conn.cursor()
                         #now we need to get the event ID and put it into chat!
                         
-                        eventid_query = "SELECT eventid FROM %s WHERE event_type = 'chat' ORDER BY eventid DESC LIMIT 1" % (self.EVENT_TABLE, self.UNIQUE_IDENT)
+                        eventid_query = "SELECT eventid FROM %s WHERE event_type = 'chat' ORDER BY eventid DESC LIMIT 1" % (self.EVENT_TABLE)
                         curs.execute(eventid_query)
                         eventid = curs.fetchone()[0]
 
@@ -1185,7 +1115,7 @@ class parserClass():
             self.LOG_PARSING_ENDED = True
             
             if not self.HAD_ERROR:
-                if not self._player_logs:
+                if not (self._player_teams or self._player_names): #if name and team dicts are empty, we have an empty log
                     #if no players were added to the log, this log is invalid. therefore, we should delete it
                     end_query = "DELETE FROM livelogs_servers WHERE log_ident = E'%(logid)s'; DELETE FROM livelogs_player_stats WHERE log_ident = '%(logid)s'" % {
                             "logid": self.UNIQUE_IDENT
