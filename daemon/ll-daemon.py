@@ -277,6 +277,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         if not self.db.closed:
             user_details = None
             curs = None
+            conn = None
             try:
                 try:
                     conn = self.db.getconn() #get a connection object from the psycopg2.pool
@@ -312,10 +313,10 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 conn.rollback()
 
             finally:
-                if not curs.closed:
+                if curs and not curs.closed:
                     curs.close()
-                
-                self.db.putconn(conn)
+                if conn:
+                    self.db.putconn(conn)
 
                 return user_details
 

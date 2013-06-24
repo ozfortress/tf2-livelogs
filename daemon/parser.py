@@ -947,8 +947,6 @@ class parserClass():
             if curs:
                 curs.close()
 
-            self.db.putconn(conn)
-
     def escapePlayerString(self, unescaped_string):
 
         def remove_non_ascii(string):

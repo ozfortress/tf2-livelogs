@@ -106,7 +106,7 @@ class llListener(SocketServer.UDPServer):
             return False
 
     def __listener_shutdown(self):
-        if threading.current_thread() is self.listener_object.lthread:
+        if self.listener_object.lthread and threading.current_thread() is self.listener_object.lthread:
             self.logger.error("__listener_shutdown called from the same thread as the listener. will cause deadlock")
 
             return
@@ -149,6 +149,7 @@ class llListenerObject(object):
         self.client_address = client_address
         
         self.end_function = end_function
+        self.lthread = None
 
     def startListening(self):
         #start serving in a thread. the object will be stored in a set owned by the daemon object, so the thread will be kept alive
