@@ -247,7 +247,7 @@ class parserClass():
 
 
     def parse(self, logdata):
-        if not logdata or not self.db or self.GAME_OVER or self.HAD_ERROR or self.LOG_PARSING_ENDED:
+        if (not logdata) or (not self.db) or self.GAME_OVER or self.HAD_ERROR or self.LOG_PARSING_ENDED:
             return
 
         try:
@@ -317,7 +317,7 @@ class parserClass():
 
                 #damage taken (if log level is 1 in livelogs) shouldn't get double ups, but have toggling variable just in case
                 res = regex(parser_regex.damage_taken, logdata)
-                if (not self._using_livelogs_output and res):
+                if (not self._using_livelogs_output) and res:
                     sid = regml(res, 3)
                     name = self.escapePlayerString(regml(res, 1))
                     dmg = regml(res, 5)
