@@ -77,7 +77,7 @@ class testclient(object):
 def do_threads():
     clients = set()
 
-    for i in range(0,9):
+    for i in range(0,1):
         portno = 20000 + i
 
         client = testclient()

@@ -98,7 +98,7 @@ BEGIN
         --UNSUCCESSFUL. RUN INSERT. This is where the loop comes in. If two updates are attempted at the same time it will cause a unique_violation. When this happens, we loop through again
         BEGIN
             EXECUTE insert_query;
-            RETURN;
+            --RETURN;
         EXCEPTION WHEN unique_violation THEN
             RETURN;
         END;
