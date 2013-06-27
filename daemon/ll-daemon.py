@@ -101,13 +101,13 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
                 self.logger.debug("Key is correct for client %s (%s) @ %s", client_details[0], client_details[1], self.cip)
                 
-                """
-                self.ll_clientip = self.resolve_dns(msg[2])
-
-                if not self.ll_clientip:
-                    self.logger.debug("Unable to resolve client address. Rejecting connection")
-                    return
-                """
+                if self.resolve_dns(msg[2]):
+                    #msg[2] is an IP, so use the api key as the log secret
+                    client_secret = client_api_key
+                
+                else:
+                    #msg[2] is not an IP, so use it as the log secret
+                    client_secret = msg[2]
 
                 self.ll_clientip = self.cip #use the IP used for this connection as the server's address
                 self.ll_clientport = msg[3]
@@ -123,7 +123,6 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                     return    
 
                 sip = self.server.server_address[0] #get our server info, so we know what IP to listen on
-                client_secret = msg[2]
                 webtv_port = None
 
                 if (msg_len == 7):
