@@ -167,7 +167,7 @@ class parserClass():
 
 
     def parse(self, logdata):
-        if not logdata or not self.db or self.GAME_OVER or self.HAD_ERROR or self.LOG_PARSING_ENDED:
+        if (not logdata) or (not self.db) or self.GAME_OVER or self.HAD_ERROR or self.LOG_PARSING_ENDED:
             return
 
         try:
@@ -218,7 +218,7 @@ class parserClass():
             #begin round_pause blocking
                 #damage dealt
                 res = regex(parser_regex.damage_dealt, logdata)
-                if (not self._using_livelogs_output and res):
+                if (not self._using_livelogs_output) and res:
                     #print "Damage dealt"
                     #pprint(res.groups())
                     #('[v3] Kaki', '51', 'STEAM_0:1:35387674', 'Red', '40')
