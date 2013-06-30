@@ -144,9 +144,7 @@ class parserClass():
             'medkit_large': 'mk_large'
             }
             
-        self._player_teams = {} #dict of player teams wrt to steamid
-        self._player_logs = {} #whether this user has been added to the log index or not
-        self._player_names = {} #a dict of player names
+        self._players = {} #a dict of player data objects wrt steamid
         
         self.logger.info("Parser initialised")
 
@@ -207,65 +205,62 @@ class parserClass():
             #don't want to record stats that happen after round_win (bonustime kills and shit)
             if not self.ROUND_PAUSE:
             #begin round_pause blocking
-                #damage dealt
-                res = regex(parser_regex.damage_dealt, logdata)
-                if (not self._using_livelogs_output) and res:
-                    #print "Damage dealt"
-                    #pprint(res.groups())
-                    #('[v3] Kaki', '51', 'STEAM_0:1:35387674', 'Red', '40')
-                    sid = regml(res, 3)
-                    name = self.escapePlayerString(regml(res, 1))
-                    dmg = regml(res, 5)
+                #ignore these checks if we're using livelogs output (damage taken AND damage dealt in 1 line)
+                if not self._using_livelogs_output:
+                    #damage dealt
+                    res = regex(parser_regex.damage_dealt, logdata)
+                    if res:
+                        #print "Damage dealt"
+                        #pprint(res.groups())
+                        #('[v3] Kaki', '51', 'STEAM_0:1:35387674', 'Red', '40')
+                        sid = regml(res, 3)
+                        name = self.escapePlayerString(regml(res, 1))
+                        dmg = regml(res, 5)
 
-                    #pg_statupsert(self, table, column, steamid, name, value)
-                    self.pg_statupsert(self.STAT_TABLE, "damage_dealt", sid, name, dmg)        
-                    
-                    self.insertPlayerTeam(sid, regml(res, 4).lower())
+                        #pg_statupsert(self, table, column, steamid, name, value)
+                        self.pg_statupsert(self.STAT_TABLE, "damage_dealt", sid, name, dmg)        
+                        
+                        self.insert_player_team(sid, regml(res, 4).lower())
+                        
+                        return
 
-                    self.playerLogIndex(sid)
-                    
-                    return
+                    #damage taken (if log level is 1 in livelogs) shouldn't get double ups, but have toggling variable just in case
+                    res = regex(parser_regex.damage_taken, logdata)
+                    if res:
+                        sid = regml(res, 3)
+                        name = self.escapePlayerString(regml(res, 1))
+                        dmg = regml(res, 5)
 
-                #damage taken (if log level is 1 in livelogs) shouldn't get double ups, but have toggling variable just in case
-                res = regex(parser_regex.damage_taken, logdata)
-                if (not self._using_livelogs_output and res):
-                    sid = regml(res, 3)
-                    name = self.escapePlayerString(regml(res, 1))
-                    dmg = regml(res, 5)
+                        self.pg_statupsert(self.STAT_TABLE, "damage_taken", sid, name, dmg)
 
-                    self.pg_statupsert(self.STAT_TABLE, "damage_taken", sid, name, dmg)
+                        self.insert_player_team(sid, regml(res, 4).lower())
 
-                    self.insertPlayerTeam(sid, regml(res, 4).lower())
-                    self.playerLogIndex(sid)
+                        return
+                else:
+                    #damage taken and dealt (if appropriate log level is set (damage taken and damage dealt))
+                    #"Cinderella:wu<5><STEAM_0:1:18947653><Blue>" triggered "damage" against "jmh<19><STEAM_0:1:101867><Red>" (damage "56")
+                    res = regex(parser_regex.player_damage, logdata)
+                    if res:
+                        a_sid = regml(res, 3)
+                        a_name = self.escapePlayerString(regml(res, 1))
 
-                    return
+                        v_sid = regml(res, 7)
+                        v_name = self.escapePlayerString(regml(res, 5))
 
-                #damage taken and dealt (if appropriate log level is set (damage taken and damage dealt))
-                #"Cinderella:wu<5><STEAM_0:1:18947653><Blue>" triggered "damage" against "jmh<19><STEAM_0:1:101867><Red>" (damage "56")
-                res = regex(parser_regex.player_damage, logdata)
-                if res:
-                    a_sid = regml(res, 3)
-                    a_name = self.escapePlayerString(regml(res, 1))
+                        dmg = regml(res, 9)
 
-                    v_sid = regml(res, 7)
-                    v_name = self.escapePlayerString(regml(res, 5))
+                        if a_sid == v_sid: #players can deal self damage. if so, don't record damage_dealt for this
+                            self.insert_player_team(a_sid, regml(res, 4).lower())
 
-                    dmg = regml(res, 9)
+                        else:
+                            self.pg_statupsert(self.STAT_TABLE, "damage_dealt", a_sid, a_name, dmg)
+                            self.insert_player_team(a_sid, regml(res, 4).lower(), v_sid, regml(res, 8).lower())
 
-                    if a_sid == v_sid: #players can deal self damage. if so, don't record damage_dealt for this
-                        self.insertPlayerTeam(a_sid, regml(res, 4).lower())
+                        self.pg_statupsert(self.STAT_TABLE, "damage_taken", v_sid, v_name, dmg)
 
-                    else:
-                        self.pg_statupsert(self.STAT_TABLE, "damage_dealt", a_sid, a_name, dmg)
-                        self.insertPlayerTeam(a_sid, regml(res, 4).lower(), v_sid, regml(res, 8).lower())
+                        self._using_livelogs_output = True
 
-                    self.pg_statupsert(self.STAT_TABLE, "damage_taken", v_sid, v_name, dmg)
-
-                    self.playerLogIndex(a_sid, v_sid)
-
-                    self._using_livelogs_output = True
-
-                    return
+                        return
 
                 #healing done
                 #"vsn.RynoCerus<6><STEAM_0:0:23192637><Blue>" triggered "healed" against "Hyperbrole<3><STEAM_0:1:22674758><Blue>" (healing "26")
@@ -286,8 +281,7 @@ class parserClass():
                     self.pg_statupsert(self.STAT_TABLE, "points", medic_sid, medic_name, medic_points)
                     self.pg_statupsert(self.STAT_TABLE, "healing_received", healt_sid, healt_name, medic_healing)
 
-                    self.insertPlayerTeam(medic_sid, regml(res, 4).lower(), healt_sid, regml(res, 8).lower())
-                    self.playerLogIndex(medic_sid, healt_sid)
+                    self.insert_player_team(medic_sid, regml(res, 4).lower(), healt_sid, regml(res, 8).lower())
 
                     return
 
@@ -337,8 +331,7 @@ class parserClass():
                                                             event_time, "kill", k_sid, k_pos, v_sid, v_pos) #creates a new, unique eventid with details of the event
                     self.executeQuery(event_insert_query)
 
-                    self.insertPlayerTeam(k_sid, regml(res, 4).lower(), v_sid, regml(res, 8).lower())
-                    self.playerLogIndex(k_sid, v_sid)
+                    self.insert_player_team(k_sid, regml(res, 4).lower(), v_sid, regml(res, 8).lower())
                     
                     return
 
@@ -407,8 +400,7 @@ class parserClass():
                                                                 a_sid, a_pos, self.EVENT_TABLE)
                     self.executeQuery(assist_update_query)
 
-                    self.insertPlayerTeam(a_sid, regml(res, 4).lower())
-                    self.playerLogIndex(a_sid)
+                    self.insert_player_team(a_sid, regml(res, 4).lower())
 
                     return
 
@@ -492,7 +484,7 @@ class parserClass():
                     self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
                     self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
 
-                    self.insertPlayerTeam(p_sid, regml(res, 4).lower())
+                    self.insert_player_team(p_sid, regml(res, 4).lower())
 
                     return
 
@@ -508,7 +500,7 @@ class parserClass():
                     self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
                     self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
 
-                    self.insertPlayerTeam(p_sid, regml(res, 4).lower())
+                    self.insert_player_team(p_sid, regml(res, 4).lower())
                     
                     return
                     
@@ -665,7 +657,7 @@ class parserClass():
                 sid = regml(res, 3)
 
                 if sid != "BOT":
-                    self.insertPlayerTeam(sid, team.lower())
+                    self.insert_player_team(sid, team.lower())
 
                 return
                 
@@ -778,6 +770,16 @@ class parserClass():
                 #print "Player changed class"
                 #pprint(res.groups())
 
+                #NOW WE ADD CLASSES O GOD
+
+                sid = regml(res, 3)
+                team = regml(res, 4).lower()
+                pclass = regml(res, 5)
+
+                self.insert_player_team(sid, team)
+
+                self.insert_player_class(sid, pclass)
+
                 return
 
             #round win
@@ -878,8 +880,7 @@ class parserClass():
         #preg = re.compile(expression, re.IGNORECASE | re.MULTILINE)
         
         match = compiled_regex.search(string)
-        #print expression + " match?: "
-        #print match
+
         return match
 
     def regml(self, retuple, index): #get index of re group tuple
@@ -895,9 +896,11 @@ class parserClass():
         name = name[:30] #max length of 30 characters for names
         insert_query = "INSERT INTO %s (log_ident, steamid, name, %s) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, self.UNIQUE_IDENT, steamid, name, value)
 
-        if len(name) > 0 and (steamid not in self._player_names or self._player_names[steamid] != name):
-            update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s, name = E'%s' WHERE steamid = E'%s' and log_ident = '%s'" % (self.STAT_TABLE, column, column, value, name, steamid, self.UNIQUE_IDENT)
-            self._player_names[steamid] = name
+        if len(name) > 0:
+            if self.add_player(steamid, name = name) or not self._players[steamid].is_name_same(name):
+                update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s, name = E'%s' WHERE steamid = E'%s' and log_ident = '%s'" % (self.STAT_TABLE, column, column, value, name, steamid, self.UNIQUE_IDENT)
+
+                self._players[steamid].set_name(name)
             
         else:
             update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE steamid = E'%s' and log_ident = '%s'" % (self.STAT_TABLE, column, column, value, steamid, self.UNIQUE_IDENT)
@@ -954,101 +957,78 @@ class parserClass():
         return escaped_string
 
     #this method can take up to two players and insert their teams into the database
-    def insertPlayerTeam(self, a_sid, a_team, b_sid = None, b_team = None):
+    def insert_player_team(self, a_sid, a_team, b_sid = None, b_team = None):
         team_insert_list = []
+        team_to_insert = False
 
-        if a_sid not in self._player_teams:
-            a_sid = self.get_cid(a_sid)
-            self._player_teams[a_sid] = a_team
-            
+        a_sid = self.get_cid(a_sid)
+        if self.add_player(a_sid, team = a_team) or not self._players[a_sid].is_team_same(a_team):
+            self._players[a_sid].set_team(a_team)
             team_insert_list.append((a_sid, a_team))
+
+            team_to_insert = True
         
         if b_sid and b_team:
             b_sid = self.get_cid(b_sid)
-            if b_sid not in self._player_teams:
-                self._player_teams[b_sid] = b_team
-            
+            if self.add_player(b_sid, team = b_team) or not self._players[b_sid].is_team_same(b_team):
+                self._players[b_sid].set_team(b_team)
                 team_insert_list.append((b_sid, b_team))
+
+                team_to_insert = True
         
-        if len(team_insert_list) > 0:
-            if not self.db.closed:
-                try:
-                    conn = self.db.getconn()
-                except:
-                    self.logger.exception("Exception getting connection from pool")
-                    return
+        if team_to_insert:
+            for team_tuple in team_insert_list:
+                insert_query = "INSERT INTO %s (log_ident, steamid, team) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, team_tuple[0], team_tuple[1])
+                update_query = "UPDATE %s SET team = E'%s' WHERE steamid = E'%s' and log_ident = '%s'" % (self.STAT_TABLE, team_tuple[1], team_tuple[0], self.UNIQUE_IDENT)
 
-                try:
-                    curs = conn.cursor()
-                    #team_insert_query = ';'.join(("UPDATE %s SET team = E'%s' WHERE steamid = E'%s'" % team_tuple) for team_tuple in team_insert_list)
-                    #self.executeQuery(team_insert_query)
-                    for team_tuple in team_insert_list:
-                        insert_query = "INSERT INTO %s (log_ident, steamid, team) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, team_tuple[0], team_tuple[1])
-                        update_query = "UPDATE %s SET team = E'%s' WHERE steamid = E'%s' and log_ident = '%s'" % (self.STAT_TABLE, team_tuple[1], team_tuple[0], self.UNIQUE_IDENT)
-
-                        curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
-
-                    conn.commit()
-
-                except:
-                    self.logger.exception("Error during team insertion")
-                    conn.rollback()
-
-                finally:
-                    if not conn.closed:
-                        curs.close()
-
-                    self.db.putconn(conn)
+                self.execute_upsert(insert_query, update_query)
 
             #team_insert_args = ','.join(curs.mogrify("(%s, %s)", team_tuple) for team_tuple in team_insert_list)
             #team_insert_query = "INSERT INTO %s (steamid, team) VALUES %s" % (self.STAT_TABLE, team_insert_args)
             
             #self.executeQuery(team_insert_query, curs)
-    
-    def playerLogIndex(self, a_sid, b_sid = None):
-        return #this function is not necessary any longer
-        insert_list = []
 
-        if a_sid not in self._player_logs:
-            self._player_logs[a_sid] = True
+    def insert_player_class(self, sid, pclass):
+        sid = self.get_cid(sid)
 
-            insert_list.append((a_sid, self.UNIQUE_IDENT))
+        if self.add_player(sid, pclass = pclass) or not self._players[sid].class_played(pclass):
+            #if the player was just added, or has not played the class provided, we need to add it to the database
+            class_string = self._players[sid].class_string()
 
-        if b_sid and b_sid not in self._player_logs:
-            self._player_logs[b_sid] = True
+            if class_string:
+                insert_query = "INSERT INTO %s (log_ident, steamid, class) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, sid, class_string)
+                update_query = "UPDATE %s SET class = E'%s' WHERE steamid = E'%s' and log_ident = '%s'" % (self.STAT_TABLE, class_string, sid, self.UNIQUE_IDENT)
 
-            insert_list.append((b_sid, self.UNIQUE_IDENT))
+                self.execute_upsert(insert_query, update_query)
 
-        if len(insert_list) > 0:
-            if not self.db.closed:
-                curs = None
+    def execute_upsert(self, insert_query, update_query):
+        if not self.db.closed:
+            try:
+                conn = self.db.getconn()
+            except:
+                self.logger.exception("Exception getting connection from pool")
+                return
 
-                try:
-                    try:
-                        conn = self.db.getconn()
-                    except:
-                        self.logger.exception("Exception getting database connection")
+            try:
+                curs = conn.cursor()
+                
+                curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
 
-                        return
+                conn.commit()
 
-                    curs = conn.cursor()
+            except:
+                self.logger.exception("Error during team insertion")
+                conn.rollback()
 
-                    insert_args = ','.join(curs.mogrify("(%s, %s)", insert_tuple) for insert_tuple in insert_list)
-                    insert_query = "INSERT INTO livelogs_player_logs (steamid, log_ident) VALUES %s" % (insert_args)
+            finally:
+                if not conn.closed:
+                    curs.close()
 
-                    self.executeQuery(insert_query, curs, conn)
-
-                except:
-                    self.logger.exception("Exception formulating query for player index insertion")
-                    if curs:
-                        curs.close()
-
-                    self.db.putconn(conn)
+                self.db.putconn(conn)
 
     def executeQuery(self, query, curs=None, conn=None):
         try:
             if not self.db.closed:
-
                 if not conn:
                     try:
                         conn = self.db.getconn()
@@ -1102,7 +1082,7 @@ class parserClass():
             self.LOG_PARSING_ENDED = True
             
             if not self.HAD_ERROR:
-                if not (self._player_teams or self._player_names): #if name and team dicts are empty, we have an empty log
+                if not self._players: #if player dict is empty, log must be empty
                     #if no players were added to the log, this log is invalid. therefore, we should delete it
                     end_query = "DELETE FROM livelogs_servers WHERE log_ident = E'%(logid)s'; DELETE FROM livelogs_player_stats WHERE log_ident = '%(logid)s'" % {
                             "logid": self.UNIQUE_IDENT
@@ -1148,6 +1128,14 @@ class parserClass():
 
         return community_id
 
+    def add_player(self, sid, pclass = None, name = None, team = None):
+        if sid not in self._players:
+            self._players[sid] = player_data(pclass, name, team)
+
+            return True
+        else:
+            return False
+
     def __cleanup(self, conn=None, cursor=None):
         #for cleaning up after init error
         if self.LOG_FILE_HANDLE and not self.LOG_FILE_HANDLE.closed:
@@ -1165,6 +1153,66 @@ class parserClass():
         if self.LOG_FILE_HANDLE:
             if not self.LOG_FILE_HANDLE.closed:
                 self.LOG_FILE_HANDLE.close()
+
+
+class player_data(object):
+    #class to hold all player information that is set throughout parsing the log
+    def __init__(self, pclass, name, team):
+        self._player_class = {
+            "scout": False,
+            "soldier": False,
+            "pyro": False,
+            "demoman": False,
+            "heavyweapons": False,
+            "medic": False,
+            "sniper": False,
+            "engineer": False,
+            "spy": False
+        } #all classes default to false
+
+        self._player_name = None
+        self._player_team = None
+
+        if pclass:
+            self._player_class[pclass] = True #add the class to the player's data
+
+        if name:
+            self._player_name = name
+
+        if team:
+            self._player_team = team
+
+    def add_class(self, pclass):
+        if pclass in self._player_class:
+            self._player_class[pclass] = True
+
+    def class_played(self, pclass):
+        if pclass in self._player_class:
+            return self._player_class[pclass]
+        else:
+            return False
+
+    def class_string(self):
+        class_list = []
+
+        for pclass in self._player_class:
+            if self._player_class[pclass]:
+                class_list.append(pclass)
+
+        return ','.join(class_list)
+
+    def set_name(self, name):
+        self._player_name = name
+
+    def is_name_same(self, name):
+        return name == self._player_name
+
+    def set_team(self, team):
+        self._player_team = team
+
+    def is_team_same(self, team):
+        return team == self._player_team
+
 
 #this class is used to remove all HTML tags from player strings
 class HTMLStripper(HTMLParser):
