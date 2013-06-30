@@ -152,7 +152,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 log_name = self.escapeString(msg[5])
 
                 data_obj = llData(self.server.db, client_secret, sip, (self.ll_clientip, self.ll_clientport), msg[4], log_name,
-                                    self.server.removeListenerObject, self.server.listener.timeout, webtv_port)
+                                    self.server.removeListenerObject, self.server.listener_timeout, webtv_port)
 
                 self.newListen = listener.llListenerObject(data_obj)
                 
@@ -215,7 +215,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
 
 class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    def __init__(self, server_ip, handler=llDaemonHandler):
+    def __init__(self, server_address, l_timeout, handler=llDaemonHandler):
         self.logger = logging.getLogger('daemon')
 
         self.allow_reuse_address = True
@@ -224,12 +224,14 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.clientDict = {}
         self.listen_set = set()
 
+        self.listener_timeout = timeout
+
         self.timeout_event = threading.Event()
         self.timeout_thread = threading.Thread(target=self._listenerTimeoutThread, args=(self.timeout_event,))
         self.timeout_thread.daemon = True
         self.timeout_thread.start()
         
-        SocketServer.TCPServer.__init__(self, server_ip, handler)
+        SocketServer.TCPServer.__init__(self, server_address, handler)
         
     def server_activate(self):
         self.logger.debug('Starting TCP listener')
@@ -400,15 +402,18 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
 def get_item_data():
     #get the latest item schema from the steam API
+
+    logging.info("Getting item data")
+
     steam_api_key = "7CD8EC56801BD2F23A1A4184A1348ADD"
     steam_item_url = "http://api.steampowered.com/IEconItems_440/GetSchema/v0001/?key=%s&format=json" % (steam_api_key)
     api_data = urllib2.urlopen(steam_item_url)
 
-    api_data_dict = json.load(item_data)
+    api_data_dict = json.load(api_data)
 
     weapon_dict = {}
 
-    if api_data_dict and ("result" in api_data_dict) and (items in api_data_dict["result"]):
+    if api_data_dict and ("result" in api_data_dict) and ("items" in api_data_dict["result"]):
         #we have all items in a dictionary! now let's loop over them
 
         item_dict = api_data_dict["result"]["items"]
@@ -422,7 +427,8 @@ def get_item_data():
                     else:
                         weapon_dict[pclass].append(item["name"])
 
-    pprint(weapon_dict)
+    #pprint(weapon_dict)
+    logging.info("Item data received")
 
     return weapon_dict
 
@@ -431,8 +437,8 @@ if __name__ == '__main__':
     if cfg_parser.read(r'll-config.ini'):
         try:
             server_ip = cfg_parser.get('log-listener', 'server_ip')
-                
-            serverAddr = (server_ip, cfg_parser.getint('log-listener', 'server_port'))
+            server_port = cfg_parser.getint('log-listener', 'server_port')
+
             l_timeout = cfg_parser.getfloat('log-listener', 'listener_timeout')
             
         except:
@@ -445,18 +451,17 @@ if __name__ == '__main__':
 
         sys.exit("Configuration file generated. Please edit it before running the daemon again")
 
-    llServer = llDaemon(serverAddr, llDaemonHandler)
-    llServer.listener_timeout = l_timeout
+    server_address = (server_ip, server_port)
 
     get_item_data()
 
-    sip, sport = llServer.server_address   
+    llServer = llDaemon(server_address, l_timeout, llDaemonHandler)
 
     logger = logging.getLogger('MAIN')
     logger.setLevel(logging.DEBUG)
 
     llServer.open_dbpool()
-    logger.info("Server on %s:%s under PID %s", sip, sport, os.getpid())
+    logger.info("Server on %s:%s under PID %s", server_address[0], server_address[1], os.getpid())
 
     try:
         logger.info("Waiting for incoming data")

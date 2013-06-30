@@ -108,8 +108,8 @@ class parserClass():
                 dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
 
                 if (data.client_address != None):
-                    if not log_name:
-                        log_name = "log-%s" % time.strftime("%Y-%m-%d-%H-%M") #log-year-month-day-hour-minute
+                    if not data.log_name:
+                        data.log_name = "log-%s" % time.strftime("%Y-%m-%d-%H-%M") #log-year-month-day-hour-minute
                     
                     dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name, live, webtv_port, tstamp) VALUES (%s, %s, %s, %s, %s, 'true', %s, %s)", 
                                                 (self.ip2long(data.client_address[0]), str(data.client_address[1]), self.UNIQUE_IDENT, self.current_map, data.log_name, data.log_webtv_port, time.strftime("%Y-%m-%d %H:%M:%S"),))
@@ -166,7 +166,7 @@ class parserClass():
             regex = self.regex #avoid having to use fucking self.regex every time (ANNOYING++++)
             regml = self.regml #local def for regml ^^^
 
-            self.LOG_FILE_HANDLE.write(logdata)
+            self.LOG_FILE_HANDLE.write(logdata + "\n")
 
             #log file start
             #RL 10/07/2012 - 01:13:34: Log file started (file "logs_pug/L1007104.log") (game "/games/tf2_pug/orangebox/tf") (version "5072")
@@ -1145,7 +1145,7 @@ class parserClass():
 
     def detect_player_class(self, sid, weapon):
         #take weapon name, and try to match it to a class name
-
+        pass
 
     def __cleanup(self, conn=None, cursor=None):
         #for cleaning up after init error

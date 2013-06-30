@@ -144,7 +144,7 @@ class llListenerObject(object):
         data.listener_object = self
         data.listener_logger = self.logger
         data.listener_address = self.listenAddress
-        data.unique_parser_ident = unique_parser_ident
+        data.unique_parser_ident = self.unique_parser_ident
 
         self.listener = llListener(data, handler_class=llListenerHandler)
 
