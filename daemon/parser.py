@@ -896,8 +896,7 @@ class parserClass():
         name = name[:30] #max length of 30 characters for names
         insert_query = "INSERT INTO %s (log_ident, steamid, name, %s) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, self.UNIQUE_IDENT, steamid, name, value)
 
-        if len(name) > 0:
-            if self.add_player(steamid, name = name) or not self._players[steamid].is_name_same(name):
+        if len(name) > 0 and (self.add_player(steamid, name = name) or not self._players[steamid].is_name_same(name)):
                 update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s, name = E'%s' WHERE steamid = E'%s' and log_ident = '%s'" % (self.STAT_TABLE, column, column, value, name, steamid, self.UNIQUE_IDENT)
 
                 self._players[steamid].set_name(name)

@@ -11,8 +11,12 @@ import parser
 class llListenerHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
-        data = self.request[0].lstrip("\xFF").rstrip()[:-1] #strip leading \xFFs and trailing \n, and remove the null byte
-
+        if self.request[0][-1] == "\0":
+            data = self.request[0][:-1].lstrip("\xFF").rstrip() #remove the null byte and strip leading \xFFs and trailing \n
+        else:
+            #don't need to remove null byte
+            data = self.request[0].lstrip("\xFF").rstrip()
+            
         #strip leading log information, so logs are written just like a server log
         #we do this by tokenising, getting all tokens after first token and rejoining
 
@@ -48,7 +52,7 @@ class llListener(SocketServer.UDPServer):
         Verify the request to make sure it's coming from the expected client
         Check sv_logsecret key, or compare IPs if not using sv_logsecret (or it's broken)
         """
-        data = request[0].lstrip("\xFF").rstrip() #strip leading \xFFs and trailing \r\ns
+        data = request[0].lstrip("\xFF") #strip leading \xFFs
 
         if self._using_secret or data[0] == "S":
             #the log is a secret marked log. get the secret out and compare it
