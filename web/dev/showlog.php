@@ -583,13 +583,13 @@
         //Gets passed a string of player classes. Must return a string of imgs wrt to the classes
         //class string: scout,soldier,demoman,medic,sniper
 
-        $imgstring = "";
+        $imgstring = " ";
 
         $split_class = explode(",", $class_string);
 
         foreach ($split_class as $idx => $class)
         {
-            $imgstring .= '<img src="/images/classes/' . $class . '.png"> ';
+            $imgstring .= '<img src="/images/classes/' . $class . '.png" style="max-width: 18px; max-height: 18px; height: auto; width: auto"> ';
         }
 
         return $imgstring;
