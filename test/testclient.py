@@ -50,21 +50,25 @@ class testclient(object):
                     line = logline.lstrip("\xFF").lstrip("R").rstrip()
                     #line = logline.lstrip("\xFF").rstrip()
                     #print line
-                    if line:
-                        #client.send("S%s%s" % ("new_api_key", line))
-                        client.send("R%s" % line)
+                    sendline = "S%s%s\r\n" % ("new_api_key", line)
+
+                    """total_sent = 0
+                    while total_sent < len(sendline):
+                        sent = client.send(sendline[total_sent:])
+                        if sent == 0:
+                            break
+                        
+                        total_sent += sent
+                    """
+                    client.sendall(sendline)
+                    #client.send("R%s\r\n" % line)
                         
                     x += 1
-                    time.sleep(0.03)
+                    time.sleep(0.01)
 
                 log_file.close()
 
-                client.close()
-                
-
-                #connect()
-                
-                
+                client.close()        
             else:
                 print "livelogs daemon told us to re-use... don't want to do that with test client!"
         else:
@@ -73,11 +77,10 @@ class testclient(object):
         self.done = True
         print "done"
 
-
 def do_threads():
     clients = set()
 
-    for i in range(0,1):
+    for i in range(0,7):
         portno = 20000 + i
 
         client = testclient()
@@ -86,6 +89,8 @@ def do_threads():
 
         thread = threading.Thread(target=client.start, args=(portno,))
         thread.daemon = True
+
+        time.sleep(2)
         thread.start()
     try:
         while len(clients) > 0:

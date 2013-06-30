@@ -34,17 +34,8 @@ class parserClass():
         cfg_parser = ConfigParser.SafeConfigParser()
         if cfg_parser.read(r'll-config.ini'):
             try:
-                db_host = cfg_parser.get('database', 'db_host')
-                db_port = cfg_parser.getint('database', 'db_port')
-                db_user = cfg_parser.get('database', 'db_user')
-                db_pass = cfg_parser.get('database', 'db_password')
-                db_name = cfg_parser.get('database', 'db_name')
-                
                 log_dir = cfg_parser.get('log-listener', 'log_directory')
                 
-
-                self._db_dsn = 'dbname=%s user=%s password=%s host=%s port=%s' % (
-                            db_name, db_user, db_pass, db_host, db_port)
             except:
                 self.logger.error("Unable to read options from config file")
                 self.HAD_ERROR = True
@@ -668,12 +659,12 @@ class parserClass():
             if res:
                 team = regml(res, 5)
 
-                if team is "Spectator":
+                if team == "Spectator":
                     return
 
                 sid = regml(res, 3)
 
-                if sid is not "BOT":
+                if sid != "BOT":
                     self.insertPlayerTeam(sid, team.lower())
 
                 return
@@ -957,7 +948,7 @@ class parserClass():
         escaped_string = remove_non_ascii(escaped_string)
         escaped_string = stripHTMLTags(escaped_string)
 
-        if len(escaped_string) is 0:
+        if len(escaped_string) == 0:
             return "LL_INVALID_STRING";
 
         return escaped_string
@@ -1144,7 +1135,7 @@ class parserClass():
         
         steam_id_tok = steam_id.split(':')
 
-        if len(steam_id_tok) is 3:
+        if len(steam_id_tok) == 3:
             auth_server = int(steam_id_tok[1])
             auth_id = int(steam_id_tok[2])
             

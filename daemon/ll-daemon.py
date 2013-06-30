@@ -100,9 +100,6 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 client_api_key = client_details[2]
 
                 self.logger.debug("Key is correct for client %s (%s) @ %s", client_details[0], client_details[1], self.cip)
-                
-                
-                
 
                 if self.resolve_dns(msg[2]):
                     #msg[2] is an IP, so use the api key as the log secret
@@ -291,7 +288,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 conn_retries = 0
                 while conn.closed: #this loop will only run if the connection is closed, and will atempt to reconnect 5 times (over a span of 10 seconds)
                     self.logger.info("Database connection is closed. Getting a new one. Attempt: %d", conn_retries)
-                    if conn_retries is 5:
+                    if conn_retries == 5:
                         self.logger.error("Unable to reconnect to database")
                         self.db.putconn(conn)
 
@@ -341,7 +338,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
                             db_name, db_user, db_pass, db_host, db_port)
 
-                self.db = psycopg2.pool.ThreadedConnectionPool(minconn = 2, maxconn = 8, dsn = db_details) #dsn is passed to psycopg2.connect()
+                self.db = psycopg2.pool.ThreadedConnectionPool(minconn = 4, maxconn = 8, dsn = db_details) #dsn is passed to psycopg2.connect()
 
             except:
                 self.logger.exception("Unable to read database options from config file, or unable to connect to database")

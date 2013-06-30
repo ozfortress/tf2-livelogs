@@ -11,8 +11,7 @@ import parser
 class llListenerHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
-        data = self.request[0].lstrip("\xFF").rstrip() #strip leading \xFFs and trailing \r\ns
-        sock = self.request[1]
+        data = self.request[0].lstrip("\xFF").rstrip()[:-1] #strip leading \xFFs and trailing \n, and remove the null byte
 
         #strip leading log information, so logs are written just like a server log
         #we do this by tokenising, getting all tokens after first token and rejoining
@@ -24,10 +23,12 @@ class llListenerHandler(SocketServer.BaseRequestHandler):
 
 
 class llListener(SocketServer.UDPServer):
-    def __init__(self, logger, listener_address, timeout, listener_object, handler_class=llListenerHandler):
+    def __init__(self, logger, listener_address, timeout, listener_object, client_secret, handler_class=llListenerHandler):
         self.logger = logger
         self.logger.info("Initialised log listener. Waiting for logs")
         self.parser = None
+
+        self.client_secret = client_secret
 
         self._timeout = timeout
 
@@ -135,14 +136,13 @@ class llListenerObject(object):
         self.listen_ip = listen_ip
 
         self.listenAddress = (self.listen_ip, 0)
-        self.listener = llListener(self.logger, self.listenAddress, timeout, self, handler_class=llListenerHandler)
+        self.listener = llListener(self.logger, self.listenAddress, timeout, self, client_secret, handler_class=llListenerHandler)
 
         self.logger.info("Initialising parser. Log name: %s, Map: %s, WebTV port: %s", log_name, current_map, webtv_port)
         
         self.listener.parser = parser.parserClass(db_pool, self.unique_parser_ident, server_address = client_address, current_map = current_map, log_name = log_name, endfunc = self.listener.handle_server_timeout, webtv_port = webtv_port)
         
         self.listener.client_server_address = client_address #tuple containing the client's server IP and PORT
-        self.listener.client_secret = client_secret
         
         self.lip, self.lport = self.listener.server_address #get the listener's address, so it can be sent to the client
 
