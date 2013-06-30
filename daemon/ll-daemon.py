@@ -20,6 +20,9 @@ import os
 import time
 import threading
 import ConfigParser
+import urllib2
+import json
+
 from HTMLParser import HTMLParser
 from pprint import pprint
 
@@ -51,6 +54,19 @@ def stripHTMLTags(string):
 
     return stripper.get_data() #get the text out
 
+
+class llData(object):
+    #an object that contains various data which is passed down
+    def __init__(self, db, secret, sip, client_address, log_map, log_name, end_callback, timeout, webtv_port):
+        self.db = db
+        self.client_secret = secret
+        self.server_ip = sip
+        self.client_address = client_address
+        self.log_map = log_map
+        self.log_name = log_name
+        self.end_callback = end_callback
+        self.log_timeout = timeout
+        self.log_webtv_port = webtv_port
 
 class llDaemonHandler(SocketServer.BaseRequestHandler):
     def __init__(self, request, client_address, server):
@@ -135,8 +151,10 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
                 log_name = self.escapeString(msg[5])
 
-                self.newListen = listener.llListenerObject(self.server.db, client_secret, sip, (self.ll_clientip, self.ll_clientport), msg[4], log_name, 
-                                                            self.server.removeListenerObject, timeout=self.server.listener_timeout, webtv_port = webtv_port)
+                data_obj = llData(self.server.db, client_secret, sip, (self.ll_clientip, self.ll_clientport), msg[4], log_name,
+                                    self.server.removeListenerObject, self.server.listener.timeout, webtv_port)
+
+                self.newListen = listener.llListenerObject(data_obj)
                 
                 if not self.newListen.had_error(): #check if the parser had an error during init or not
                     lport = self.newListen.lport #port the listener is on
@@ -203,6 +221,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.allow_reuse_address = True
         self.daemon_threads = True
 
+        self.clientDict = {}
         self.listen_set = set()
 
         self.timeout_event = threading.Event()
@@ -215,7 +234,6 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def server_activate(self):
         self.logger.debug('Starting TCP listener')
         
-
         SocketServer.TCPServer.server_activate(self)
 
     def addClient(self, ip, port, listen_tuple):
@@ -380,6 +398,33 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
             event.wait(2) #run a timeout check every 2 seconds
 
+def get_item_data():
+    #get the latest item schema from the steam API
+    steam_api_key = "7CD8EC56801BD2F23A1A4184A1348ADD"
+    steam_item_url = "http://api.steampowered.com/IEconItems_440/GetSchema/v0001/?key=%s&format=json" % (steam_api_key)
+    api_data = urllib2.urlopen(steam_item_url)
+
+    api_data_dict = json.load(item_data)
+
+    weapon_dict = {}
+
+    if api_data_dict and ("result" in api_data_dict) and (items in api_data_dict["result"]):
+        #we have all items in a dictionary! now let's loop over them
+
+        item_dict = api_data_dict["result"]["items"]
+        for item in item_dict:
+            if "used_by_classes" in item:
+                item_classes = item["used_by_classes"]
+                for pclass in item_classes:
+                    #now we have individual classes per item
+                    if pclass not in weapon_dict:
+                        weapon_dict[pclass] = [item["name"]]
+                    else:
+                        weapon_dict[pclass].append(item["name"])
+
+    pprint(weapon_dict)
+
+    return weapon_dict
 
 if __name__ == '__main__':
     cfg_parser = ConfigParser.SafeConfigParser()
@@ -399,10 +444,11 @@ if __name__ == '__main__':
         make_new_config()
 
         sys.exit("Configuration file generated. Please edit it before running the daemon again")
-    
+
     llServer = llDaemon(serverAddr, llDaemonHandler)
-    llServer.clientDict = dict()
     llServer.listener_timeout = l_timeout
+
+    get_item_data()
 
     sip, sport = llServer.server_address   
 
@@ -411,7 +457,7 @@ if __name__ == '__main__':
 
     llServer.open_dbpool()
     logger.info("Server on %s:%s under PID %s", sip, sport, os.getpid())
-    
+
     try:
         logger.info("Waiting for incoming data")
         llServer.serve_forever() #listen for log requests!

@@ -27,25 +27,25 @@ class llListenerHandler(SocketServer.BaseRequestHandler):
 
 
 class llListener(SocketServer.UDPServer):
-    def __init__(self, logger, listener_address, timeout, listener_object, client_secret, handler_class=llListenerHandler):
-        self.logger = logger
+    def __init__(self, data, handler_class=llListenerHandler):
+        self.logger = data.listener_logger
         self.logger.info("Initialised log listener. Waiting for logs")
         self.parser = None
 
-        self.client_secret = client_secret
+        self.client_secret = data.client_secret
 
-        self._timeout = timeout
+        self._timeout = data.log_timeout
 
         #self.timeoutTimer = threading.Timer(timeout, self.handle_server_timeout)
         #self.timeoutTimer.start()
         self._using_secret = False
 
-        self.listener_object = listener_object #llListenerObject address, which holds this listener. needed to end the listening thread, and remove the object from the daemon's set
+        self.listener_object = data.listener_object #llListenerObject, which holds this listener. needed to end the listening thread, and remove the object from the daemon's set
 
         self._ended = False
         self._last_message_time = time.time() #set the init time to this, so we can still timeout if nothing is received at all
 
-        SocketServer.UDPServer.__init__(self, listener_address, handler_class)
+        SocketServer.UDPServer.__init__(self, data.listener_address, handler_class)
 
     def verify_request(self, request, client_address):
         """
@@ -131,28 +131,34 @@ class llListener(SocketServer.UDPServer):
         self.listener_object.close_object()
 
 class llListenerObject(object):
-    def __init__(self, db_pool, client_secret, listen_ip, client_address, current_map, log_name, end_function, webtv_port=None, timeout=90.0):
-        self.unique_parser_ident = "%s_%s_%s" % (self.ip2long(client_address[0]), client_address[1], int(round(time.time())))
+    def __init__(self, data):
+        self.unique_parser_ident = "%s_%s_%s" % (self.ip2long(data.client_address[0]), data.client_address[1], int(round(time.time())))
 
         self.logger = logging.getLogger("LISTENER #%s" % self.unique_parser_ident)
         self.logger.setLevel(logging.DEBUG)
 
-        self.listen_ip = listen_ip
+        self.listen_ip = data.server_ip
 
         self.listenAddress = (self.listen_ip, 0)
-        self.listener = llListener(self.logger, self.listenAddress, timeout, self, client_secret, handler_class=llListenerHandler)
 
-        self.logger.info("Initialising parser. Log name: %s, Map: %s, WebTV port: %s", log_name, current_map, webtv_port)
+        data.listener_object = self
+        data.listener_logger = self.logger
+        data.listener_address = self.listenAddress
+        data.unique_parser_ident = unique_parser_ident
+
+        self.listener = llListener(data, handler_class=llListenerHandler)
+
+        self.logger.info("Initialising parser. Log name: %s, Map: %s, WebTV port: %s", data.log_name, data.log_map, data.log_webtv_port)
         
-        self.listener.parser = parser.parserClass(db_pool, self.unique_parser_ident, server_address = client_address, current_map = current_map, log_name = log_name, endfunc = self.listener.handle_server_timeout, webtv_port = webtv_port)
+        self.listener.parser = parser.parserClass(data, endfunc = self.listener.handle_server_timeout)
         
-        self.listener.client_server_address = client_address #tuple containing the client's server IP and PORT
+        self.listener.client_server_address = data.client_address #tuple containing the client's server IP and PORT
         
         self.lip, self.lport = self.listener.server_address #get the listener's address, so it can be sent to the client
 
-        self.client_address = client_address
+        self.client_address = data.client_address
         
-        self.end_function = end_function
+        self.end_function = data.end_callback
         self.lthread = None
 
     def startListening(self):

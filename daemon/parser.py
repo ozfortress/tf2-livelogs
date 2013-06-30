@@ -19,13 +19,15 @@ import logging.handlers
 
 from pprint import pprint
 
-import parser_regex
+import parser_constants
 
 class parserClass():
-    def __init__(self, db_pool, unique_ident, server_address=None, current_map=None, log_name=None, log_uploaded=False, endfunc=None, webtv_port=None):
+    def __init__(self, data, endfunc = None, log_uploaded = False):
         self.HAD_ERROR = False
         self.LOG_FILE_HANDLE = None
-        self.db = db_pool
+        self.db = data.db
+
+        unique_ident = data.unique_parser_ident
 
         self.logger = logging.getLogger(unique_ident)
         self.logger.setLevel(logging.DEBUG)
@@ -91,28 +93,26 @@ class parserClass():
 
         self._using_livelogs_output = False
 
-        self._query_queue = [] #a list of queryQueueDataObject objects, to be processed on a reconnect
-
         #if no map is specified (auto detect), set map to 0
-        if (current_map == None):
+        if (data.log_map == None):
             self.current_map = 0
         else:
-            self.current_map = current_map
+            self.current_map = data.log_map
 
-        if (webtv_port == None):
-            webtv_port = 0
+        if (data.log_webtv_port == None):
+            data.log_webtv_port = 0
         
         if not log_uploaded:
             try:
                 dbCursor = conn.cursor()
                 dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
 
-                if (server_address != None):
+                if (data.client_address != None):
                     if not log_name:
                         log_name = "log-%s" % time.strftime("%Y-%m-%d-%H-%M") #log-year-month-day-hour-minute
                     
                     dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name, live, webtv_port, tstamp) VALUES (%s, %s, %s, %s, %s, 'true', %s, %s)", 
-                                                (self.ip2long(server_address[0]), str(server_address[1]), self.UNIQUE_IDENT, self.current_map, log_name, webtv_port, time.strftime("%Y-%m-%d %H:%M:%S"),))
+                                                (self.ip2long(data.client_address[0]), str(data.client_address[1]), self.UNIQUE_IDENT, self.current_map, data.log_name, data.log_webtv_port, time.strftime("%Y-%m-%d %H:%M:%S"),))
 
                 conn.commit()
             except:
@@ -170,7 +170,7 @@ class parserClass():
 
             #log file start
             #RL 10/07/2012 - 01:13:34: Log file started (file "logs_pug/L1007104.log") (game "/games/tf2_pug/orangebox/tf") (version "5072")
-            res = regex(parser_regex.log_file_started, logdata)
+            res = regex(parser_constants.log_file_started, logdata)
             if res:
                 #print "Log file started"
                 #pprint(res.groups())
@@ -179,7 +179,7 @@ class parserClass():
                 return
 
             #log time
-            res = regex(parser_regex.log_timestamp, logdata)
+            res = regex(parser_constants.log_timestamp, logdata)
             if res:
                 #print "Time of current log"
                 #pprint(res.groups())
@@ -191,7 +191,7 @@ class parserClass():
 
 
             #log restart, sent when a mp_restartgame is issued (need a new log file, so we end this one)
-            res = regex(parser_regex.game_restart, logdata)
+            res = regex(parser_constants.game_restart, logdata)
             if res:
                 #end the log
 
@@ -208,7 +208,7 @@ class parserClass():
                 #ignore these checks if we're using livelogs output (damage taken AND damage dealt in 1 line)
                 if not self._using_livelogs_output:
                     #damage dealt
-                    res = regex(parser_regex.damage_dealt, logdata)
+                    res = regex(parser_constants.damage_dealt, logdata)
                     if res:
                         #print "Damage dealt"
                         #pprint(res.groups())
@@ -225,7 +225,7 @@ class parserClass():
                         return
 
                     #damage taken (if log level is 1 in livelogs) shouldn't get double ups, but have toggling variable just in case
-                    res = regex(parser_regex.damage_taken, logdata)
+                    res = regex(parser_constants.damage_taken, logdata)
                     if res:
                         sid = regml(res, 3)
                         name = self.escapePlayerString(regml(res, 1))
@@ -239,7 +239,7 @@ class parserClass():
                 else:
                     #damage taken and dealt (if appropriate log level is set (damage taken and damage dealt))
                     #"Cinderella:wu<5><STEAM_0:1:18947653><Blue>" triggered "damage" against "jmh<19><STEAM_0:1:101867><Red>" (damage "56")
-                    res = regex(parser_regex.player_damage, logdata)
+                    res = regex(parser_constants.player_damage, logdata)
                     if res:
                         a_sid = regml(res, 3)
                         a_name = self.escapePlayerString(regml(res, 1))
@@ -264,7 +264,7 @@ class parserClass():
 
                 #healing done
                 #"vsn.RynoCerus<6><STEAM_0:0:23192637><Blue>" triggered "healed" against "Hyperbrole<3><STEAM_0:1:22674758><Blue>" (healing "26")
-                res = regex(parser_regex.healing_done, logdata)
+                res = regex(parser_constants.healing_done, logdata)
                 if res:
                     #print "Healing done"
                     #pprint(res.groups())
@@ -283,11 +283,13 @@ class parserClass():
 
                     self.insert_player_team(medic_sid, regml(res, 4).lower(), healt_sid, regml(res, 8).lower())
 
+                    self.insert_player_class(medic_sid, "medic")
+
                     return
 
                 #item picked up
                 #"skae<14><STEAM_0:1:31647857><Red>" picked up item "ammopack_medium"
-                res = regex(parser_regex.item_pickup, logdata)
+                res = regex(parser_constants.item_pickup, logdata)
                 if res:
                     #print "Item picked up"
                     #pprint(res.groups())
@@ -306,7 +308,7 @@ class parserClass():
                     return
 
                 #player killed (normal)
-                res = regex(parser_regex.player_kill, logdata)
+                res = regex(parser_constants.player_kill, logdata)
                 if res:
                     #print "Player killed (normal kill)"
                     #pprint(res.groups())
@@ -332,12 +334,14 @@ class parserClass():
                     self.executeQuery(event_insert_query)
 
                     self.insert_player_team(k_sid, regml(res, 4).lower(), v_sid, regml(res, 8).lower())
+
+                    self.detect_player_class(k_sid, k_weapon)
                     
                     return
 
                 #player killed (special kill) 
                 #"Liquid'Time<41><STEAM_0:1:19238234><Blue>" killed "[v3] Roight<53><STEAM_0:0:8283620><Red>" with "knife" (customkill "backstab") (attacker_position "-1085 99 240") (victim_position "-1113 51 240")
-                res = regex(parser_regex.player_kill_special, logdata)
+                res = regex(parser_constants.player_kill_special, logdata)
                 if res:
                     #print "Player killed (customkill)"
                     #pprint(res.groups())
@@ -379,11 +383,14 @@ class parserClass():
                                                             event_time, event_type, k_sid, k_pos, v_sid, v_pos)
                     self.executeQuery(event_insert_query)
 
+                    self.insert_player_team(k_sid, regml(res, 4).lower(), v_sid, regml(res, 8).lower())
+                    self.detect_player_class(k_sid, k_weapon)
+
                     return
                 
                 #player assist
                 #"Iyvn<40><STEAM_0:1:41931908><Blue>" triggered "kill assist" against "[v3] Kaki<51><STEAM_0:1:35387674><Red>" (assister_position "-905 -705 187") (attacker_position "-1246 -478 237") (victim_position "-1221 -53 283")
-                res = regex(parser_regex.player_assist, logdata)
+                res = regex(parser_constants.player_assist, logdata)
                 if res:
                     #print "Player assisted in kill"
                     #pprint(res.groups())
@@ -406,7 +413,7 @@ class parserClass():
 
                 #medic death ubercharge = 0 or 1, healing = amount healed in that life. kill message comes directly after
                 #"%s<%i><%s><%s>" triggered "medic_death" against "%s<%i><%s><%s>" (healing "%d") (ubercharge "%s")
-                res = regex(parser_regex.medic_death, logdata)
+                res = regex(parser_constants.medic_death, logdata)
                 if res:
                     #print "Medic death"
                     #pprint(res.groups())
@@ -425,7 +432,7 @@ class parserClass():
                     return
 
                 #ubercharge used
-                res = regex(parser_regex.uber_used, logdata)
+                res = regex(parser_constants.uber_used, logdata)
                 if res:
                     #print "Ubercharge used"
                     #pprint(res.groups())
@@ -441,7 +448,7 @@ class parserClass():
                     return
 
                 #domination
-                res = regex(parser_regex.player_dominated, logdata)
+                res = regex(parser_constants.player_dominated, logdata)
                 if res:
                     #print "Player dominated"
                     #pprint(res.groups())
@@ -459,7 +466,7 @@ class parserClass():
                     return
 
                 #revenge
-                res = regex(parser_regex.player_revenge, logdata)
+                res = regex(parser_constants.player_revenge, logdata)
                 if res:
                     #print "Player got revenge"
                     #pprint(res.groups())
@@ -473,7 +480,7 @@ class parserClass():
                 
                 #suicide
                 #"Hypnos<20><STEAM_0:0:24915059><Red>" committed suicide with "world" (customkill "train") (attacker_position "568 397 -511")
-                res = regex(parser_regex.player_death_custom, logdata)
+                res = regex(parser_constants.player_death_custom, logdata)
                 if res:
                     #print "Player committed suicide"
                     #pprint(res.groups())
@@ -489,7 +496,7 @@ class parserClass():
                     return
 
                 # 11/13/2012 - 23:03:29: "crixus of gaul<3><STEAM_0:1:10325827><Blue>" committed suicide with "tf_projectile_rocket" (attacker_position "-1233 5907 -385")
-                res = regex(parser_regex.player_death, logdata)
+                res = regex(parser_constants.player_death, logdata)
                 if res:
                     #print "Player committed suicide"
                     #pprint(res.groups())
@@ -506,7 +513,7 @@ class parserClass():
                     
                 #engi building destruction
                 #"dcup<109><STEAM_0:0:15236776><Red>" triggered "killedobject" (object "OBJ_SENTRYGUN") (weapon "tf_projectile_pipe") (objectowner "NsS. oLiVz<101><STEAM_0:1:15674014><Blue>") (attacker_position "551 2559 216")
-                res = regex(parser_regex.building_destroyed, logdata)
+                res = regex(parser_constants.building_destroyed, logdata)
                 if res:
                     #print "Player destroyed engineer building"
                     #pprint(res.groups())
@@ -521,17 +528,17 @@ class parserClass():
 
                 #engi building creation
                 #"|S| ynth<13><STEAM_0:1:2869609><Red>" triggered "builtobject" (object "OBJ_TELEPORTER") (position "-4165 1727 -511")
-                res = regex(parser_regex.building_created, logdata)
+                res = regex(parser_constants.building_created, logdata)
                 if res:
                     #we don't actually need this for anything, just catching it to prevent spam and in case there is ever a use in the future
                     return
 
-                res = regex(parser_regex.building_destroyed_assist, logdata)
+                res = regex(parser_constants.building_destroyed_assist, logdata)
                 if res:
 
                     return
 
-                res = regex(parser_regex.player_extinguish, logdata)
+                res = regex(parser_constants.player_extinguish, logdata)
                 if res:
 
                     return
@@ -540,13 +547,13 @@ class parserClass():
             
             #chat
             #"Console<0><Console><Console>" say "blah"
-            res = regex(parser_regex.chat_message, logdata)
+            res = regex(parser_constants.chat_message, logdata)
             if res:
                 #print "Chat was said"
                 #pprint(res.groups())
 
                 c_sid = regml(res, 3)
-                if c_sid is "Console":
+                if c_sid == "Console":
                     c_sid = "STEAM_0:0:0"
 
                 c_sid = self.get_cid(c_sid) #get community id of steamid
@@ -592,7 +599,7 @@ class parserClass():
             #point capture
             #/Team "(Blue|Red)" triggered "pointcaptured" \x28cp "(\d+)"\x29 \x28cpname "(.+)"\x29 \x28numcappers "(\d+)".+/
             #Team "Red" triggered "pointcaptured" (cp "0") (cpname "#koth_viaduct_cap") (numcappers "5") (player1 "[v3] Faithless<47><STEAM_0:0:52150090><Red>") (position1 "-1370 59 229") (player2 "[v3] Chrome<48><STEAM_0:1:41365809><Red>") (position2 "-1539 87 231") (player3 "[v3] Jak<49><STEAM_0:0:18518582><Red>") (position3 "-1659 150 224") (player4 "[v3] Kaki<51><STEAM_0:1:35387674><Red>") (position4 "-1685 146 224") (player5 "[v3] taintedromance<52><STEAM_0:0:41933053><Red>") (position5 "-1418 182 236")
-            res = regex(parser_regex.point_capture, logdata)
+            res = regex(parser_constants.point_capture, logdata)
             if res:
                 #print "Point captured"
                 #pprint(res.groups())
@@ -624,7 +631,7 @@ class parserClass():
 
             #capture block
             #"pvtx<103><STEAM_0:1:7540588><Red>" triggered "captureblocked" (cp "1") (cpname "Control Point B") (position "-2143 2284 156")
-            res = regex(parser_regex.capture_blocked, logdata)
+            res = regex(parser_constants.capture_blocked, logdata)
             if res:
                 #print "Capture blocked"
                 #pprint(res.groups())
@@ -647,7 +654,7 @@ class parserClass():
                 return
 
             #"b1z<19><STEAM_0:0:18186373><Red>" joined team "Blue"
-            res = regex(parser_regex.player_team_join, logdata)
+            res = regex(parser_constants.player_team_join, logdata)
             if res:
                 team = regml(res, 5)
 
@@ -667,7 +674,7 @@ class parserClass():
             #L 10/21/2012 - 01:23:48: Team "Red" current score "0" with "6" players
             #L 10/21/2012 - 01:23:48: Team "Blue" current score "4" with "6" players
             #Team "Blue" current score "3" with "4" players
-            res = regex(parser_regex.team_score, logdata)
+            res = regex(parser_constants.team_score, logdata)
             if res:
                 #print "Current scores"
                 #pprint(res.groups())
@@ -687,7 +694,7 @@ class parserClass():
                 return
 
             #game over
-            res = regex(parser_regex.game_over, logdata)
+            res = regex(parser_constants.game_over, logdata)
             if res:
                 #print "Game over"
                 #pprint(res.groups())
@@ -700,7 +707,7 @@ class parserClass():
                 return
 
             #final scores always comes after game_over
-            res = regex(parser_regex.final_team_score, logdata)
+            res = regex(parser_constants.final_team_score, logdata)
             if res:
                 #print "Final scores"
                 #pprint(res.groups())
@@ -717,26 +724,26 @@ class parserClass():
                 
                 return
 
-            res = regex(parser_regex.player_name_change, logdata)
+            res = regex(parser_constants.player_name_change, logdata)
             if res:
                 #print player name change
                 return
 
             #rcon command
-            res = regex(parser_regex.rcon_command, logdata)
+            res = regex(parser_constants.rcon_command, logdata)
             if res:
                 #print "Someone issued rcon command"
                 #pprint(res.groups())
 
                 return
 
-            res = regex(parser_regex.server_cvar_value, logdata)
+            res = regex(parser_constants.server_cvar_value, logdata)
             if res:
 
                 return
 
             #disconnect RL 10/07/2012 - 01:13:44: "triple h<162><STEAM_0:1:33713004><Red>" disconnected (reason " #tf2pug")
-            res = regex(parser_regex.player_disconnect, logdata)
+            res = regex(parser_constants.player_disconnect, logdata)
             if res:
                 #print "Player disconnected"
                 #pprint(res.groups())
@@ -744,7 +751,7 @@ class parserClass():
                 return
             
             #connect RL 10/07/2012 - 22:45:11: "GU | wm<3><STEAM_0:1:7175436><>" connected, address "124.168.51.7:27005"
-            res = regex(parser_regex.player_connect, logdata)
+            res = regex(parser_constants.player_connect, logdata)
             if res:
                 #print "Player connected"
                 #pprint(res.groups())
@@ -752,20 +759,20 @@ class parserClass():
                 return
 
             #validated "hipsterhipster<4><STEAM_0:1:22674758><>" STEAM USERID validated
-            res = regex(parser_regex.player_validated, logdata)
+            res = regex(parser_constants.player_validated, logdata)
             if res:
                 #print "Player validated"
                 #pprint(res.groups())
 
                 return
 
-            res = regex(parser_regex.player_entered_game, logdata)
+            res = regex(parser_constants.player_entered_game, logdata)
             if res:
 
                 return
             
             #class change    
-            res = regex(parser_regex.player_class_change, logdata)
+            res = regex(parser_constants.player_class_change, logdata)
             if res:
                 #print "Player changed class"
                 #pprint(res.groups())
@@ -783,7 +790,7 @@ class parserClass():
                 return
 
             #round win
-            res = regex(parser_regex.round_win, logdata)
+            res = regex(parser_constants.round_win, logdata)
             if res:
                 #print "Round won"
                 #pprint(res.groups())
@@ -795,7 +802,7 @@ class parserClass():
                 return
 
             #overtime
-            res = regex(parser_regex.round_overtime, logdata)
+            res = regex(parser_constants.round_overtime, logdata)
             if res:
                 #print "Overtime"
                 #pprint(res.groups())
@@ -810,7 +817,7 @@ class parserClass():
             #World triggered "Round_Length" (seconds "402.58")
             #World triggered "Round_Length" \x28seconds "(\d+\.\d+)\x29
             #World triggered "Round_length" \x28seconds "(\d+)\.(\d+)"\x29
-            res = regex(parser_regex.round_length, logdata)
+            res = regex(parser_constants.round_length, logdata)
             if res:
                 #print "Round length"
                 #pprint(res.groups())
@@ -824,7 +831,7 @@ class parserClass():
                 return
                 
             #round start
-            res = regex(parser_regex.round_start, logdata)
+            res = regex(parser_constants.round_start, logdata)
             if res:
                 #print "Round start"
                 #pprint(res.groups())
@@ -838,7 +845,7 @@ class parserClass():
                 return
                 
             #setup end UNUSED
-            res = regex(parser_regex.round_setup_end, logdata)
+            res = regex(parser_constants.round_setup_end, logdata)
             if res:
                 #print "Round Setup End"
                 #pprint(res.groups())
@@ -846,7 +853,7 @@ class parserClass():
                 return
             
             #mini round win
-            res = regex(parser_regex.mini_round_win, logdata)
+            res = regex(parser_constants.mini_round_win, logdata)
             if res:
                 #print "Mini round win"
                 #pprint(res.groups())
@@ -854,14 +861,14 @@ class parserClass():
                 return
 
             #mini round length
-            res = regex(parser_regex.mini_round_length, logdata)
+            res = regex(parser_constants.mini_round_length, logdata)
             if res:
                 #print "Mini round length"
                 #pprint(res.groups())
 
                 return
 
-            res = regex(parser_regex.map_change, logdata)
+            res = regex(parser_constants.map_change, logdata)
             if res:
                 self.logger.info("Map changed to %s. Ending this log", regml(res, 1))
 
@@ -992,6 +999,7 @@ class parserClass():
 
         if self.add_player(sid, pclass = pclass) or not self._players[sid].class_played(pclass):
             #if the player was just added, or has not played the class provided, we need to add it to the database
+            self._players[sid].add_class(pclass)
             class_string = self._players[sid].class_string()
 
             if class_string:
@@ -1134,6 +1142,10 @@ class parserClass():
             return True
         else:
             return False
+
+    def detect_player_class(self, sid, weapon):
+        #take weapon name, and try to match it to a class name
+
 
     def __cleanup(self, conn=None, cursor=None):
         #for cleaning up after init error
