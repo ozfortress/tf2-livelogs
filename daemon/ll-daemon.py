@@ -287,7 +287,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 conn_retries = 0
                 while conn.closed: #this loop will only run if the connection is closed, and will atempt to reconnect 5 times (over a span of 10 seconds)
                     self.logger.info("Database connection is closed. Getting a new one. Attempt: %d", conn_retries)
-                    if conn_retries is 5:
+                    if conn_retries == 5:
                         self.logger.error("Unable to reconnect to database")
                         self.db.putconn(conn)
 

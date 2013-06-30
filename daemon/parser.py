@@ -104,18 +104,9 @@ class parserClass():
         import ConfigParser
         cfg_parser = ConfigParser.SafeConfigParser()
         if cfg_parser.read(r'll-config.ini'):
-            try:
-                db_host = cfg_parser.get('database', 'db_host')
-                db_port = cfg_parser.getint('database', 'db_port')
-                db_user = cfg_parser.get('database', 'db_user')
-                db_pass = cfg_parser.get('database', 'db_password')
-                db_name = cfg_parser.get('database', 'db_name')
-                
+            try:      
                 log_dir = cfg_parser.get('log-listener', 'log_directory')
-                
 
-                self._db_dsn = 'dbname=%s user=%s password=%s host=%s port=%s' % (
-                            db_name, db_user, db_pass, db_host, db_port)
             except:
                 self.logger.error("Unable to read options from config file")
                 self.HAD_ERROR = True
@@ -643,7 +634,7 @@ class parserClass():
                 #pprint(res.groups())
 
                 c_sid = regml(res, 3)
-                if c_sid is "Console":
+                if c_sid == "Console":
                     c_sid = "STEAM_0:0:0"
 
                 c_name = self.escapePlayerString(regml(res, 1))
@@ -747,12 +738,12 @@ class parserClass():
             if res:
                 team = regml(res, 5)
 
-                if team is "Spectator":
+                if team == "Spectator":
                     return
 
                 sid = regml(res, 3)
 
-                if sid is not "BOT":
+                if sid != "BOT":
                     self.insertPlayerTeam(sid, team.lower())
 
                 return
@@ -983,7 +974,7 @@ class parserClass():
         name = name[:30] #max length of 30 characters for names
         insert_query = "INSERT INTO %s (steamid, name, %s) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, steamid, name, value)
 
-        if len(name) > 0 and (steamid not in self._player_names or self._player_names[steamid] is not name):
+        if len(name) > 0 and (steamid not in self._player_names or self._player_names[steamid] != name):
             update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s, name = E'%s' WHERE steamid = E'%s'" % (self.STAT_TABLE, column, column, value, name, steamid)
             self._player_names[steamid] = name
             
@@ -1044,7 +1035,7 @@ class parserClass():
         escaped_string = remove_non_ascii(escaped_string)
         escaped_string = stripHTMLTags(escaped_string)
 
-        if len(escaped_string) is 0:
+        if len(escaped_string) == 0:
             return "LL_INVALID_STRING";
 
         return escaped_string
