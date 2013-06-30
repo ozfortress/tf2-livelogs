@@ -11,8 +11,7 @@ import parser
 class llListenerHandler(SocketServer.BaseRequestHandler):
 
     def handle(self):
-        data = self.request[0].lstrip("\xFF").rstrip() #strip leading \xFFs and trailing \r\ns
-        sock = self.request[1]
+        data = self.request[0][:-1].lstrip("\xFF").rstrip() #remove the NULL terminator and strip leading \xFFs and trailing \n
 
         #strip leading log information, so logs are written just like a server log
         #we do this by tokenising, getting all tokens after first token and rejoining
