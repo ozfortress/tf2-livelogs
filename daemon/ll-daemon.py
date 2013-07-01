@@ -180,7 +180,11 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
             return ip
         except:
             #either invalid address, or dns name sent. let's fix that up
-            dns_res = socket.getaddrinfo(ip, None, socket.AF_INET) #limit to ipv4
+            try:
+                dns_res = socket.getaddrinfo(ip, None, socket.AF_INET) #limit to ipv4
+            except:
+                #error using getaddrinfo (parameter supplied is not an IP address)
+                return None
             
             if not dns_res:
                 return None
