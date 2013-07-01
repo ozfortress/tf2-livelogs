@@ -27,6 +27,8 @@ class parserClass():
         self.LOG_FILE_HANDLE = None
         self.db = data.db
 
+        self._weapon_data = data.weapon_data
+
         unique_ident = data.unique_parser_ident
 
         self.logger = logging.getLogger(unique_ident)
@@ -953,12 +955,13 @@ class parserClass():
             return "".join(i for i in string if ord(i) < 128)
 
 
-        escaped_string = unescaped_string.replace("'", "''").replace("\\", "\\\\")
-        escaped_string = remove_non_ascii(escaped_string)
-        escaped_string = stripHTMLTags(escaped_string)
+        escaped_string = unescaped_string.decode('utf-8', 'ignore') #decode strings into unicode where applicable
+        escaped_string = escaped_string.replace("'", "''").replace("\\", "\\\\") #escape slashes and apostrophes
+        #escaped_string = remove_non_ascii(escaped_string)
+        escaped_string = stripHTMLTags(escaped_string) #strip any html tags
 
         if len(escaped_string) == 0:
-            return "LL_INVALID_STRING";
+            return "LL_INVALID_STRING"; #if the string is empty, return invalid string
 
         return escaped_string
 
@@ -1145,7 +1148,13 @@ class parserClass():
 
     def detect_player_class(self, sid, weapon):
         #take weapon name, and try to match it to a class name
-        pass
+        print "checking weapon %s" % weapon
+        for pclass in self._weapon_data:
+            if weapon in self._weapon_data[pclass] #player's weapon matches this classes' weapon data
+                self.insert_player_class(sid, pclass) #add this class to the player
+
+                break
+
 
     def __cleanup(self, conn=None, cursor=None):
         #for cleaning up after init error

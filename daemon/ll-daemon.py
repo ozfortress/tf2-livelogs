@@ -154,6 +154,8 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 data_obj = llData(self.server.db, client_secret, sip, (self.ll_clientip, self.ll_clientport), msg[4], log_name,
                                     self.server.removeListenerObject, self.server.listener_timeout, webtv_port)
 
+                data_obj.weapon_data = self.server.weapon_data
+
                 self.newListen = listener.llListenerObject(data_obj)
                 
                 if not self.newListen.had_error(): #check if the parser had an error during init or not
@@ -215,7 +217,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
 
 class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    def __init__(self, server_address, l_timeout, handler=llDaemonHandler):
+    def __init__(self, server_address, l_timeout, weapon_data, handler=llDaemonHandler):
         self.logger = logging.getLogger('daemon')
 
         self.allow_reuse_address = True
@@ -224,7 +226,9 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.clientDict = {}
         self.listen_set = set()
 
-        self.listener_timeout = timeout
+        self.listener_timeout = l_timeout
+
+        self.weapon_data = weapon_data
 
         self.timeout_event = threading.Event()
         self.timeout_thread = threading.Thread(target=self._listenerTimeoutThread, args=(self.timeout_event,))
@@ -407,25 +411,37 @@ def get_item_data():
 
     steam_api_key = "7CD8EC56801BD2F23A1A4184A1348ADD"
     steam_item_url = "http://api.steampowered.com/IEconItems_440/GetSchema/v0001/?key=%s&format=json" % (steam_api_key)
-    api_data = urllib2.urlopen(steam_item_url)
+    api_res = urllib2.urlopen(steam_item_url) #retrieve the items data
 
-    api_data_dict = json.load(api_data)
+    api_res_dict = json.load(api_res) #load the json result into a dict
+
+    if api_res_dict and ("result" in api_res_dict):
+        #we only want the items_game.txt from the api query
+        if "items_game_url" in api_res_dict["result"]:
+            items_game_url = api_res_dict["result"]["items_game_url"]
+
+            items_game_res = urllib2.urlopen(items_game_url)
+
+            items_game_data = json.load(items_game_res) #turn the items_game.txt result into a dict
+
+            if not items_game_data:
+                return
 
     weapon_dict = {}
 
-    if api_data_dict and ("result" in api_data_dict) and ("items" in api_data_dict["result"]):
+    if "prefabs" in items_game_data:
         #we have all items in a dictionary! now let's loop over them
-
-        item_dict = api_data_dict["result"]["items"]
+        item_dict = items_game_data["prefabs"]
         for item in item_dict:
             if "used_by_classes" in item:
                 item_classes = item["used_by_classes"]
-                for pclass in item_classes:
+                for pclass_u in item_classes:
                     #now we have individual classes per item
+                    pclass = pclass_u.encode('ascii', 'ignore') #convert the class name to plain ASCII instead of unicode
                     if pclass not in weapon_dict:
-                        weapon_dict[pclass] = [item["name"]]
+                        weapon_dict[pclass] = [item["name"].encode('ascii', 'ignore')] #convert item name to ASCII before adding
                     else:
-                        weapon_dict[pclass].append(item["name"])
+                        weapon_dict[pclass].append(item["name"].encode('ascii', 'ignore')) #convert item name to ASCII before adding
 
     #pprint(weapon_dict)
     logging.info("Item data received")
@@ -453,9 +469,9 @@ if __name__ == '__main__':
 
     server_address = (server_ip, server_port)
 
-    get_item_data()
+    weapon_data = get_item_data()
 
-    llServer = llDaemon(server_address, l_timeout, llDaemonHandler)
+    llServer = llDaemon(server_address, l_timeout, weapon_data, llDaemonHandler)
 
     logger = logging.getLogger('MAIN')
     logger.setLevel(logging.DEBUG)
