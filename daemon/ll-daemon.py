@@ -429,7 +429,7 @@ def get_item_data():
 
             kv_parser = keyvalues.KeyValues()
 
-            items_game_data = kv_parser.parse(items_game_res) #turn the items_game.txt result into a dict
+            items_game_data = kv_parser.parse(items_game_res.read()) #turn the items_game.txt result into a dict
 
             if not items_game_data:
                 return
