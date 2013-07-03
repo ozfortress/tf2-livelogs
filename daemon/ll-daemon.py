@@ -27,6 +27,7 @@ from HTMLParser import HTMLParser
 from pprint import pprint
 
 import listener
+import livelib.keyvalues
 
 log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
 
@@ -426,26 +427,30 @@ def get_item_data():
 
             items_game_res = urllib2.urlopen(items_game_url)
 
-            items_game_data = json.load(items_game_res) #turn the items_game.txt result into a dict
+            kv_parser = keyvalues.KeyValues()
+
+            items_game_data = kv_parser.parse(items_game_res) #turn the items_game.txt result into a dict
 
             if not items_game_data:
                 return
 
     weapon_dict = {}
 
-    if "prefabs" in items_game_data:
+    if "items" in items_game_data:
         #we have all items in a dictionary! now let's loop over them
-        item_dict = items_game_data["prefabs"]
-        for item in item_dict:
-            if "used_by_classes" in item:
+        item_dict = items_game_data["items"]
+        for item_key in item_dict:
+            item = item_dict[item_key]
+
+            if "used_by_classes" in item and "item_logname" in item:
                 item_classes = item["used_by_classes"]
                 for pclass_u in item_classes:
                     #now we have individual classes per item
                     pclass = pclass_u.encode('ascii', 'ignore') #convert the class name to plain ASCII instead of unicode
                     if pclass not in weapon_dict:
-                        weapon_dict[pclass] = [item["name"].encode('ascii', 'ignore')] #convert item name to ASCII before adding
+                        weapon_dict[pclass] = [ item["item_logname"].encode('ascii', 'ignore') ] #convert item name to ASCII before adding
                     else:
-                        weapon_dict[pclass].append(item["name"].encode('ascii', 'ignore')) #convert item name to ASCII before adding
+                        weapon_dict[pclass].append(item["item_logname"].encode('ascii', 'ignore')) #convert item name to ASCII before adding
 
     #pprint(weapon_dict)
     logging.info("Item data received")
