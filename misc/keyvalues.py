@@ -97,11 +97,9 @@ class KeyValues(object):
                 if string_quoted and self._prev_bit() == "\\":
                     #escaped ", so add it to the string
                     rtn_string += curr_bit
-                elif self._next_bit() not in self.__whitespace_chars:
-                    #the quote marks the end of the string, because it is not escaped
-                    #the next bit is not whitespace, but this quote should have ended the token, so the data is invalid
-                    self.__raise_exception("Expected whitespace at end of token")
+                    
                 else:
+                    #the quote marks the end of the string (and this token), because it is not escaped
                     self._goto_next_bit() #move to the end of the token for the next reading chunk
                     break
 
