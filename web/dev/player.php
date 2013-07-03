@@ -35,7 +35,7 @@
             }
 
             $player_logs_query = "SELECT server_ip, server_port, numeric_id, log_name, map, live, tstamp 
-                                  FROM livelogs_servers
+                                  FROM livelogs_player_stats
                                   JOIN livelogs_servers ON livelogs_player_stats.log_ident = livelogs_servers.log_ident 
                                   WHERE steamid = '{$escaped_steamid}'
                                   ORDER BY numeric_id DESC
