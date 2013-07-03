@@ -1154,7 +1154,6 @@ class parserClass():
 
                 break
 
-
     def __cleanup(self, conn=None, cursor=None):
         #for cleaning up after init error
         if self.LOG_FILE_HANDLE and not self.LOG_FILE_HANDLE.closed:

@@ -36,9 +36,9 @@
                 $escaped_address = pg_escape_string(ip2long($split_filter[0]));
                 $escaped_port = pg_escape_string((int)$split_filter[1]);
                 
-                $past_query = "SELECT server_ip, server_port, log_ident, log_name, map 
+                $past_query = "SELECT server_ip, server_port, numeric_id, log_name, map, tstamp 
                                 FROM livelogs_servers 
-                                WHERE (server_ip = '{$escaped_address}' AND server_port = CAST('{$escaped_port}' AS INT))
+                                WHERE (server_ip = '{$escaped_address}' AND server_port = CAST('{$escaped_port}' AS INT)) AND live='false'
                                 ORDER BY numeric_id DESC LIMIT {$num_logs}";
             }
             else
@@ -54,15 +54,15 @@
                     $escaped_filter = pg_escape_string($filter);
                 }
             
-                $past_query = "SELECT server_ip, server_port, log_ident, log_name, map 
+                $past_query = "SELECT server_ip, server_port, numeric_id, log_name, map, tstamp 
                                 FROM livelogs_servers 
-                                WHERE (server_ip ~* '{$escaped_filter}' OR log_name ~* '{$escaped_filter}' OR map ~* '{$escaped_filter}')
+                                WHERE (server_ip ~* '{$escaped_filter}' OR log_name ~* '{$escaped_filter}' OR map ~* '{$escaped_filter}' OR tstamp ~* '{$escaped_filter}') AND live='false'
                                 ORDER BY numeric_id DESC LIMIT {$num_logs}";
             }
         }
         else
         {
-            $past_query = "SELECT server_ip, server_port, log_ident, log_name, map 
+            $past_query = "SELECT server_ip, server_port, numeric_id, log_name, map, tstamp 
                             FROM livelogs_servers 
                             WHERE live='false'
                             ORDER BY numeric_id DESC LIMIT {$num_logs}";
@@ -138,15 +138,14 @@
                 <?php
                 while ($log = pg_fetch_array($past_res, NULL, PGSQL_ASSOC))
                 {
-                    $log_split = explode("_", $log["log_ident"]); //3232244481_27015_1356076576
                 ?>
                     
                     <tr>
                         <td class="server_ip"><?=long2ip($log["server_ip"])?></td>
                         <td class="server_port"><?=$log["server_port"]?></td>
                         <td class="log_map"><?=$log["map"]?></td>
-                        <td class="log_name"><a href="/view/<?=$log["log_ident"]?>"><?=htmlentities($log["log_name"], ENT_QUOTES, "UTF-8")?></a></td>
-                        <td class="log_date"><?=date("d/m/Y H:i:s", $log_split[2])?></td>
+                        <td class="log_name"><a href="/view/<?=$log["numeric_id"]?>"><?=htmlentities($log["log_name"], ENT_QUOTES, "UTF-8")?></a></td>
+                        <td class="log_date"><?=$log["tstamp"]?></td>
                     </tr>
                 <?php
                 }
