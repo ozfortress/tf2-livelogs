@@ -27,7 +27,7 @@ from HTMLParser import HTMLParser
 from pprint import pprint
 
 import listener
-import livelib.keyvalues
+from livelib import keyvalues
 
 log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
 

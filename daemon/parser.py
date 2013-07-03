@@ -18,8 +18,7 @@ import logging
 import logging.handlers
 
 from pprint import pprint
-
-import livelib.parser_constants
+from livelib import parser_constants
 
 class parserClass():
     def __init__(self, data, endfunc = None, log_uploaded = False):

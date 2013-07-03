@@ -22,7 +22,7 @@ import time
 import threading
 import ConfigParser
 
-from dbmanager import dbManager
+from livelib import dbmanager.dbManager
 
 from pprint import pprint
 
