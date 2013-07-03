@@ -436,9 +436,9 @@ def get_item_data():
 
     weapon_dict = {}
 
-    if "items" in items_game_data:
+    if "items" in items_game_data["items_game"]:
         #we have all items in a dictionary! now let's loop over them
-        item_dict = items_game_data["items"]
+        item_dict = items_game_data["items_game"]["items"]
         for item_key in item_dict:
             item = item_dict[item_key]
 
@@ -451,6 +451,24 @@ def get_item_data():
                         weapon_dict[pclass] = [ item["item_logname"].encode('ascii', 'ignore') ] #convert item name to ASCII before adding
                     else:
                         weapon_dict[pclass].append(item["item_logname"].encode('ascii', 'ignore')) #convert item name to ASCII before adding
+
+    #move "heavy" to "heavyweapons", because the game uses the latter rather than the former
+    weapon_dict["heavyweapons"] = weapon_dict["heavy"]
+    del weapon_dic["heavy"] #remove old key
+
+    #add static weapon names to the dict, that for whatever reason aren't in items_game.txt
+    weapon_dict["scout"] += [ "scattergun", "pistol_scout", "bat" ]
+    weapon_dict["soldier"] += [ "tf_projectile_rocket", "rocketlauncher_directhit", "shotgun_soldier", "shovel" ]
+    weapon_dict["pyro"] += [ "flamethrower", "shotgun_pyro", "fireaxe", "flaregun", "deflect_flare", "deflect_promode",
+                             "deflect_rocket", "deflect_sticky", "taunt_pyro" ]
+
+    weapon_dict["demoman"] += [ "tf_projectile_pipe", "tf_projectile_pipe_remote", "sword", "bottle" ]
+    weapon_dict["heavyweapons"] += [ "minigun", "shotgun_hwg", "fists", "taunt_heavy" ]
+    weapon_dict["medic"] += [ "syringegun_medic", "bonesaw" ]
+    
+    weapon_dict["sniper"] += [ "sniperrifle", "smg", "club", "tf_projectile_arrow", "compound_bow", "taunt_sniper" ]
+    weapon_dict["engineer"] += [ "shotgun_primary", "pistol wrench", "obj_sentrygun", "obj_sentrygun2", "obj_sentrygun3" ]
+    weapon_dict["spy"] += [ "revolver", "knife" ]
 
     #pprint(weapon_dict)
     logging.info("Item data received")
@@ -495,6 +513,7 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         logger.info("Keyboard interrupt. Closing daemon")
         llServer.timeout_event.set() #stop the timeout thread
+        llServer.timeout_thread.join(2)
 
         #shallow copy of the listen object set, so it can be iterated on while items are being removed
         for listenobj in llServer.listen_set.copy():
