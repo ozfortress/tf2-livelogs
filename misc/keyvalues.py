@@ -18,6 +18,7 @@ class KeyValues(object):
 
     def parse(self, data):
         #takes a set of KV as data, and parses it into a python dict
+        #returns the dictionary of the data parsed
         self._buffer = data
 
         prev_string = None
@@ -36,14 +37,17 @@ class KeyValues(object):
                     #this marks the beginning of a block, and we have a string, so we can safely assume it is the starting of a key
 
                     #we recursively parse the lower levels of the data
+                    self._goto_next_bit() #move to the bit after '{' before recursion
                     new_kv = KeyValues(self._buf_position)
                     new_value = new_kv.parse(self._buffer)
+                    self._buf_position = new_kv._buf_position #move the buffer position up to what was read by the lower recursion
 
                     curr_dict[curr_key] = new_value
                     curr_key = None
 
             elif self._curr_bit() == self._block_end:
                 #end of a block has been reached, so break out of this recursion, allowing a higher level to run further
+                self._goto_next_bit() #skip over the end block char
                 break
 
             else:
@@ -154,3 +158,4 @@ class KeyValues(object):
 
     def __raise_exception(self, message):
         raise InvalidKeyValueData("%s at position %d" % (message, self._buf_position))
+
