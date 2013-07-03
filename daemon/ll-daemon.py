@@ -454,7 +454,7 @@ def get_item_data():
 
     #move "heavy" to "heavyweapons", because the game uses the latter rather than the former
     weapon_dict["heavyweapons"] = weapon_dict["heavy"]
-    del weapon_dic["heavy"] #remove old key
+    del weapon_dict["heavy"] #remove old key
 
     #add static weapon names to the dict, that for whatever reason aren't in items_game.txt
     weapon_dict["scout"] += [ "scattergun", "pistol_scout", "bat" ]

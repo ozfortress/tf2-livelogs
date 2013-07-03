@@ -1147,7 +1147,7 @@ class parserClass():
 
     def detect_player_class(self, sid, weapon):
         #take weapon name, and try to match it to a class name
-        print "checking weapon %s" % weapon
+        #print "checking weapon %s" % weapon
         for pclass in self._weapon_data:
             if weapon in self._weapon_data[pclass]: #player's weapon matches this classes' weapon data
                 self.insert_player_class(sid, pclass) #add this class to the player
