@@ -112,10 +112,18 @@ class parserClass():
                     if not data.log_name:
                         data.log_name = "log-%s" % time.strftime("%Y-%m-%d-%H-%M") #log-year-month-day-hour-minute
                     
-                    dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name, live, webtv_port, tstamp) VALUES (%s, %s, %s, %s, %s, 'true', %s, %s)", 
+                    dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name, live, webtv_port, tstamp) VALUES (%s, %s, %s, %s, %s, 'true', %s, %s) RETURNING numeric_id", 
                                                 (self.ip2long(data.client_address[0]), str(data.client_address[1]), self.UNIQUE_IDENT, self.current_map, data.log_name, data.log_webtv_port, time.strftime("%Y-%m-%d %H:%M:%S"),))
 
+                    return_data = dbCursor.fetchone()
+                    if return_data:
+                        self._numeric_id = return_data[0]
+                    else:
+                        self._numeric_id = 0
+
                 conn.commit()
+
+
             except:
                 self.logger.exception("Exception during table init")
 

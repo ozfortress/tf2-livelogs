@@ -189,3 +189,6 @@ class llListenerObject(object):
         self.logger.info("Listener thread joined. Removing listener object from set")
         
         self.end_function(self) #self is the same as the newListen object added by the daemon
+
+    def get_numeric_id(self):
+        return self.listener.parser._numeric_id

@@ -164,7 +164,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                     self.logger.debug("Listener port: %s", lport)
                     
                     #REPLY FORMAT: LIVELOG!KEY!LISTEN_IP!LISTEN_PORT!UNIQUE_IDENT
-                    returnMsg = "LIVELOG!%s!%s!%s!%s" % (client_api_key, sip, lport, self.newListen.unique_parser_ident)
+                    returnMsg = "LIVELOG!%s!%s!%s!%s" % (client_api_key, sip, lport, self.newListen.get_numeric_id())
                     
                     self.logger.debug("RESPONSE: %s", returnMsg)
                     self.request.send(returnMsg)
