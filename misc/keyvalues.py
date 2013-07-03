@@ -39,10 +39,16 @@ class KeyValues(object):
                     #we recursively parse the lower levels of the data
                     self._goto_next_bit() #move to the bit after '{' before recursion
                     new_kv = KeyValues(self._buf_position)
-                    new_value = new_kv.parse(self._buffer)
+                    new_dict = new_kv.parse(self._buffer)
                     self._buf_position = new_kv._buf_position #move the buffer position up to what was read by the lower recursion
 
-                    curr_dict[curr_key] = new_value
+                    if curr_key in curr_dict:
+                        #sometimes keys may be the same, in this case we want to add the new values to the current key
+                        for key in new_dict:
+                            curr_dict[curr_key][key] = new_dict[key]
+                    else:
+                        #assign the new dict to the current key
+                        curr_dict[curr_key] = new_dict
                     curr_key = None
 
             elif self._curr_bit() == self._block_end:
@@ -124,12 +130,11 @@ class KeyValues(object):
                 #if the char is not a whitespace char, break
                 break
             
-            else:
-                #else, move to the next char
-                self._goto_next_bit()
+            if not self._goto_next_bit(): #if we can't move in the buffer any further, break
+                break
 
     def _curr_bit(self):
-        if self._buf_position >= len(self._buffer):
+        if self._buf_position > (len(self._buffer) - 1):
             return None
 
         else:
@@ -149,7 +154,7 @@ class KeyValues(object):
 
     def _goto_next_bit(self):
         #return True if we've moved to the next bit, false if not
-        if self._next_bit(): #if next bit exists
+        if self._buf_position < len(self._buffer): #if next bit exists
             self._buf_position += 1 #increment buffer position
             return True
 
