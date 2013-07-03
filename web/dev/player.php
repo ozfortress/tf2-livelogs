@@ -16,11 +16,17 @@
             $community_id = $_GET['id'];
             $invalid_player = false;
 
-            $steamid = big_int_to_steamid($community_id);
+            $escaped_steamid = pg_escape_string($community_id);
 
-            $escaped_steamid = pg_escape_string($steamid);
-
-            $stat_query = "SELECT * FROM livelogs_player_stats WHERE steamid='{$escaped_steamid}'";
+            $stat_query =   "SELECT  
+                                    SUM(kills) as kills, SUM(deaths) as deaths, SUM(assists) as assists, SUM(points) as points, 
+                                    SUM(healing_done) as healing_done, SUM(healing_received) as healing_received, SUM(ubers_used) as ubers_used, SUM(ubers_lost) as ubers_lost, 
+                                    SUM(headshots) as headshots, SUM(backstabs) as backstabs, SUM(damage_dealt) as damage_dealt, SUM(damage_taken) as damage_taken,
+                                    SUM(captures) as captures, SUM(captures_blocked) as captures_blocked, 
+                                    SUM(dominations) as dominations, SUM(revenges) as revenges, SUM(times_dominated) as times_dominated,
+                                    SUM(ap_small) as ap_small, SUM(ap_medium) as ap_medium, SUM(ap_large) as ap_large,
+                                    SUM(mk_small) as mk_small, SUM(mk_medium) as mk_medium, SUM(mk_large) as mk_large
+                            FROM livelogs_player_stats WHERE steamid='{$escaped_steamid}'";
             $stat_result = pg_query($ll_db, $stat_query);
 
             if (!$stat_result)
@@ -28,11 +34,11 @@
                 $invalid_player = true;
             }
 
-            $player_logs_query = "SELECT server_ip, server_port, livelogs_player_logs.log_ident, log_name, map, live 
-                                  FROM livelogs_player_logs 
-                                  JOIN livelogs_servers ON livelogs_player_logs.log_ident = livelogs_servers.log_ident 
+            $player_logs_query = "SELECT server_ip, server_port, numeric_id, log_name, map, live, tstamp 
+                                  FROM livelogs_servers
+                                  JOIN livelogs_servers ON livelogs_player_stats.log_ident = livelogs_servers.log_ident 
                                   WHERE steamid = '{$escaped_steamid}'
-                                  ORDER BY index DESC
+                                  ORDER BY numeric_id DESC
                                   LIMIT {$ll_config["display"]["player_num_past"]}"; //get all the logs that a user has been in
 
             $player_logs_result = pg_query($ll_db, $player_logs_query);
@@ -90,7 +96,7 @@
 
         <div class="player_details_container">
             <span class="log_name_id">Name:</span> <span><a href="//steamcommunity.com/profiles/<?=$community_id?>"><?=htmlentities($pstat["name"], ENT_QUOTES, "UTF-8")?></a></span> <br>
-            <span class="log_name_id">Steam ID:</span> <span><?=$steamid?></span> <br>
+            <span class="log_name_id">Steam ID:</span> <span><?=big_int_to_steamid($community_id)?></span> <br>
         </div>
 
         <div class="stat_table_container">
@@ -139,9 +145,6 @@
                         <th class="stat_summary_col_title">
                             <abbr title="Revenges">R</abbr>
                         </th>
-                        <th class="stat_summary_col_title">
-                            <abbr title="Buildings Destroyed">BD</abbr>
-                        </th>
                         <th class="stat_summary_col_title_secondary">
                             <abbr title="Kills per Death">KPD</abbr>
                         </th>
@@ -152,18 +155,6 @@
                 </thead>
                 <tbody>
                 <?php
-                    /*
-                    Stat table columns: (steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points decimal, 
-                     healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer, 
-                     headshots integer, backstabs integer, damage_dealt integer, 
-                     ap_small integer, ap_medium integer, ap_large integer,
-                     mk_small integer, mk_medium integer, mk_large integer, 
-                     captures integer, captures_blocked integer, 
-                     dominations integer, times_dominated integer, revenges integer,
-                     suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer)'
-                     */
-                     
-                    //NAME:K:D:A:P:DMG:HEAL:HS:BS:PC:PB:DMN:TDMN:R:KPD:DPD:DPR
                     $p_kpd = round($pstat["kills"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); // kills/death
                     //$p_ppd = round($pstat["points"] / $pstat["deaths"], 3); // points/death - useless statistic
                     //$p_apd = round($pstat["assists"] / $pstat["deaths"], 3); // assists/death - useless statistic
@@ -186,7 +177,6 @@
                         <td><span id="<?=$community_id . ".dominations"?>"><?=$pstat["dominations"]?></span></td>
                         <td><span id="<?=$community_id . ".t_dominated"?>"><?=$pstat["times_dominated"]?></span></td>
                         <td><span id="<?=$community_id . ".revenges"?>"><?=$pstat["revenges"]?></span></td>
-                        <td><span><?=$pstat["buildings_destroyed"]?></span></td>
                         <td><span id="<?=$community_id . ".kpd"?>"><?=$p_kpd?></span></td>
                         <td><span id="<?=$community_id . ".dpd"?>"><?=$p_dpd?></span></td>
                     </tr>
@@ -293,15 +283,14 @@
                 <?php
                 while ($log = pg_fetch_array($player_logs_result, NULL, PGSQL_ASSOC))
                 {
-                    $log_split = explode("_", $log["log_ident"]);
                 ?>
 
                     <tr>
                         <td class="server_ip"><?=long2ip($log["server_ip"])?></td>
                         <td class="server_port"><?=$log["server_port"]?></td>
                         <td class="log_map"><?=$log["map"]?></td>
-                        <td class="log_name"><a href="/view/<?=$log["log_ident"]?>"><?=htmlentities($log["log_name"], ENT_QUOTES, "UTF-8")?></a></td>
-                        <td class="log_date"><?=($log["live"] === "t") ? "LIVE" : date("d/m/Y H:i:s", $log_split[2])?></td>
+                        <td class="log_name"><a href="/view/<?=$log["numeric_id"]?>"><?=htmlentities($log["log_name"], ENT_QUOTES, "UTF-8")?></a></td>
+                        <td class="log_date"><?=($log["live"] === "t") ? "LIVE" : $log["tstamp"]?></td>
                     </tr>
                 <?php
                 }
