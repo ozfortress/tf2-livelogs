@@ -47,7 +47,7 @@
     
         $search_query = "SELECT server_ip, server_port, numeric_id, log_name, map, tstamp 
                         FROM livelogs_servers 
-                        WHERE (server_ip ~* '{$escaped_search_term}' OR log_name ~* '{$escaped_search_term}' OR map ~* '{$escaped_search_term}' OR tstamp ~* '{$escaped_filter}') AND live='false'
+                        WHERE (server_ip ~* '{$escaped_search_term}' OR log_name ~* '{$escaped_search_term}' OR map ~* '{$escaped_search_term}' OR tstamp ~* '{$escaped_search_term}') AND live='false'
                         ORDER BY numeric_id DESC LIMIT {$num_logs}";
     }
     
@@ -55,7 +55,7 @@
     
     if (!$search_result)
     {
-        die("Unable to retrieve search results");
+        die("<tr>Unable to retrieve search results</tr>");
     }
     
     if (pg_num_rows($search_result) > 0)
