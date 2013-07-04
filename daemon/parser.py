@@ -990,7 +990,7 @@ class parserClass(object):
     def insert_player_class(self, sid, pclass):
         sid = self.get_cid(sid)
 
-        self._players[cid].set_class(pclass) #set the player's current class to this
+        self._players[sid].set_class(pclass) #set the player's current class to this
 
         if not self._players[sid].class_played(pclass):
             #has not played the class provided, we need to add it to the database

@@ -27,7 +27,9 @@ from HTMLParser import HTMLParser
 from pprint import pprint
 
 import listener
-from livelib import keyvalues, queryqueue
+from livelib import queryqueue, sapi_data
+
+from livelib.parser_lib import stripHTMLTags
 
 log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
 
@@ -36,25 +38,6 @@ log_file_handler.setFormatter(log_message_format)
 log_file_handler.setLevel(logging.DEBUG)
 
 logging.getLogger().addHandler(log_file_handler) #add the file handler to the root logger, so all logs are saved to a file
-
-#this class is used to remove all HTML tags from player strings
-class HTMLStripper(HTMLParser):
-    def __init__(self):
-        self.reset()
-        self.fed = [] #fed is what is fed to the class by the function
-
-    def handle_data(self, d):
-        self.fed.append(d)
-
-    def get_data(self):
-        return ''.join(self.fed)
-
-def stripHTMLTags(string):
-    stripper = HTMLStripper()
-    stripper.feed(string)
-
-    return stripper.get_data() #get the text out
-
 
 class llData(object):
     #an object that contains various data which is passed down
@@ -224,7 +207,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
 
 class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    def __init__(self, server_address, l_timeout, weapon_data, process_frequency, process_quota, client_handler=llDaemonHandler):
+    def __init__(self, server_address, l_timeout, process_frequency, process_quota, client_handler=llDaemonHandler):
         self.logger = logging.getLogger('daemon')
 
         self.allow_reuse_address = True
@@ -235,7 +218,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
         self.listener_timeout = l_timeout
 
-        self.weapon_data = weapon_data
+        self.weapon_data = {} #empty until it's updated by the thread
 
         self.timeout_event = threading.Event()
         self.timeout_thread = threading.Thread(target=self._listener_timeout_timer, args=(self.timeout_event,))
@@ -250,6 +233,10 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.queue_process_thread.daemon = True
 
         self.__listen_set_lock = threading.Lock()
+
+
+        self._weapon_thread = threading.Thread(target=self.__get_weapon_data)
+        self._weapon_thread.daemon = True
 
         SocketServer.TCPServer.__init__(self, server_address, client_handler)
         
@@ -374,6 +361,8 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.queue_process_thread.start()
         self.timeout_thread.start()
 
+        self._weapon_thread.start()
+
     def __open_dbpool(self):
         #open database pool
         cfg_parser = ConfigParser.SafeConfigParser()
@@ -495,72 +484,15 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
             event.wait(self.queue_process_frequency) #run a time
 
+    def __get_weapon_data(self):
 
-def get_item_data():
-    #get the latest item schema from the steam API
+        sapi = sapi_data.Steam_API()
+        self.weapon_data = sapi.get_default_weapons() #make the weapon data the default shit until the API is g2g
 
-    logging.info("Getting item data")
+        #this usually takes some time, so we just let this bitch do its shit in the thread
 
-    steam_api_key = "7CD8EC56801BD2F23A1A4184A1348ADD"
-    steam_item_url = "http://api.steampowered.com/IEconItems_440/GetSchema/v0001/?key=%s&format=json" % (steam_api_key)
-    api_res = urllib2.urlopen(steam_item_url) #retrieve the items data
-
-    api_res_dict = json.load(api_res) #load the json result into a dict
-
-    if api_res_dict and ("result" in api_res_dict):
-        #we only want the items_game.txt from the api query
-        if "items_game_url" in api_res_dict["result"]:
-            items_game_url = api_res_dict["result"]["items_game_url"]
-
-            items_game_res = urllib2.urlopen(items_game_url)
-
-            kv_parser = keyvalues.KeyValues()
-
-            items_game_data = kv_parser.parse(items_game_res.read()) #turn the items_game.txt result into a dict
-
-            if not items_game_data:
-                return
-
-    weapon_dict = {}
-
-    if "items" in items_game_data["items_game"]:
-        #we have all items in a dictionary! now let's loop over them
-        item_dict = items_game_data["items_game"]["items"]
-        for item_key in item_dict:
-            item = item_dict[item_key]
-
-            if "used_by_classes" in item and "item_logname" in item:
-                item_classes = item["used_by_classes"]
-                for pclass_u in item_classes:
-                    #now we have individual classes per item
-                    pclass = pclass_u.encode('ascii', 'ignore') #convert the class name to plain ASCII instead of unicode
-                    if pclass not in weapon_dict:
-                        weapon_dict[pclass] = [ item["item_logname"].encode('ascii', 'ignore') ] #convert item name to ASCII before adding
-                    else:
-                        weapon_dict[pclass].append(item["item_logname"].encode('ascii', 'ignore')) #convert item name to ASCII before adding
-
-    #move "heavy" to "heavyweapons", because the game uses the latter rather than the former
-    weapon_dict["heavyweapons"] = weapon_dict["heavy"]
-    del weapon_dict["heavy"] #remove old key
-
-    #add static weapon names to the dict, that for whatever reason aren't in items_game.txt
-    weapon_dict["scout"] += [ "scattergun", "pistol_scout", "bat" ]
-    weapon_dict["soldier"] += [ "tf_projectile_rocket", "rocketlauncher_directhit", "shotgun_soldier", "shovel" ]
-    weapon_dict["pyro"] += [ "flamethrower", "shotgun_pyro", "fireaxe", "flaregun", "deflect_flare", "deflect_promode",
-                             "deflect_rocket", "deflect_sticky", "taunt_pyro" ]
-
-    weapon_dict["demoman"] += [ "tf_projectile_pipe", "tf_projectile_pipe_remote", "sword", "bottle" ]
-    weapon_dict["heavyweapons"] += [ "minigun", "shotgun_hwg", "fists", "taunt_heavy" ]
-    weapon_dict["medic"] += [ "syringegun_medic", "bonesaw" ]
-    
-    weapon_dict["sniper"] += [ "sniperrifle", "smg", "club", "tf_projectile_arrow", "compound_bow", "taunt_sniper" ]
-    weapon_dict["engineer"] += [ "shotgun_primary", "pistol wrench", "obj_sentrygun", "obj_sentrygun2", "obj_sentrygun3" ]
-    weapon_dict["spy"] += [ "revolver", "knife" ]
-
-    #pprint(weapon_dict)
-    logging.info("Item data received")
-
-    return weapon_dict
+        sapi.get_item_data_loc() #required for more than non-static weapon log names
+        self.weapon_data = sapi_data.get_item_data()
 
 if __name__ == '__main__':
     cfg_parser = ConfigParser.SafeConfigParser()
@@ -586,9 +518,7 @@ if __name__ == '__main__':
 
     server_address = (server_ip, server_port)
 
-    weapon_data = {} # get_item_data()
-
-    llServer = llDaemon(server_address, l_timeout, weapon_data, process_frequency, process_quota, client_handler=llDaemonHandler)
+    llServer = llDaemon(server_address, l_timeout, process_frequency, process_quota, client_handler=llDaemonHandler)
 
     logger = logging.getLogger('MAIN')
     logger.setLevel(logging.DEBUG)
