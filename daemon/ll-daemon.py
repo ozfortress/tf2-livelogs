@@ -442,14 +442,14 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             return
 
         try:
-            try:
-                conn = self.db.getconn() #get a connection object from the psycopg2.pool
+            conn = self.db.getconn() #get a connection object from the psycopg2.pool
             except:
                 self.logger.exception("Exception getting database connection")
                 return
 
             cursor = conn.cursor()
 
+        try:
             for i in xrange(0, process_quota): #process at most 'process_quota' queries every queue cycle
                 query_tuple = self.query_queue.get_next_query()
 
@@ -479,13 +479,13 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                             conn.rollback() #rollback, discarding changes so the connection can be re-used later
                             self.query_queue.readd_query(query_tuple) #re-add the query
 
-            if not conn.closed:
-                cursor.close()
-
-            self.db.putconn(conn)
-
         except:
             self.logger.exception("ERROR PROCESSING QUERY QUEUE")
+
+        if not conn.closed:
+                cursor.close()
+
+        self.db.putconn(conn)
 
     def _process_queue_timer(self, event):
         while not event.is_set():

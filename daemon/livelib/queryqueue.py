@@ -53,7 +53,7 @@ class query_queue(object):
             if len(queue) > 0:
                 #we have objects in this queue! pop the one at the front
                 self._last_queue_level = queue_level
-                return self.__pop_query(self.__queue_priority[queue_level]) #return the query and the priority, in case it must be added back to the queue
+                return self.__pop_query(queue_level) #return the query and the priority, in case it must be added back to the queue
 
         #if we've reached this point, there was nothing in the queues, so return none
         return None
