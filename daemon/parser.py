@@ -928,55 +928,16 @@ class parserClass(object):
                             column, self.UNIQUE_IDENT, cid, name, value, self._players[cid].current_class())
 
         if len(name) > 0 and (self.add_player(cid, name = name) or not self._players[cid].is_name_same(name)):
-                update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s, name = E'%s' WHERE steamid = E'%s' and log_ident = '%s' and class = E'%s'" % (self.STAT_TABLE, 
+                update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s, name = E'%s' WHERE steamid = E'%s' and log_ident = '%s' and class = '%s'" % (self.STAT_TABLE, 
                         column, column, value, name, cid, self.UNIQUE_IDENT, self._players[cid].current_class())
 
                 self._players[cid].set_name(name)
             
         else:
-            update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE steamid = E'%s' and log_ident = '%s'" % (self.STAT_TABLE, column, column, value, cid, self.UNIQUE_IDENT)
+            update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE steamid = E'%s' and log_ident = '%s' and class = '%s'" % (
+                                self.STAT_TABLE, column, column, value, cid, self.UNIQUE_IDENT, self._players[cid].current_class())
 
         self.add_qtq(insert_query, update_query)
-        return
-
-        curs = None
-        try:
-            if not self.db.closed:
-                try:
-                    conn = self.db.getconn()
-                except:
-                    self.logger.exception("Exception getting database connection")
-                    return
-
-                curs = conn.cursor()
-                
-                try:
-                    curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
-                    conn.commit()
-                except psycopg2.DataError, e:
-                    self.logger.exception("DB DATA ERROR INSERTING \"%s\" or UPDATING \"%s\"", insert_query, update_query)
-                    
-                    conn.rollback()
-                except Exception, e:
-                    self.logger.exception("DB ERROR")
-                    
-                    conn.rollback()
-                finally:
-                    if not conn.closed: #the cursor will auto close if the db closes for whatever reason
-                        curs.close()
-                    
-                    self.db.putconn(conn)
-
-            else:
-                return
-
-        except:
-            self.logger.exception("Exception during commit or rollback")
-            if curs:
-                curs.close()
-
-
-        
 
     def escapePlayerString(self, unescaped_string):
 
@@ -1029,19 +990,21 @@ class parserClass(object):
     def insert_player_class(self, sid, pclass):
         sid = self.get_cid(sid)
 
-        if self.add_player(sid, pclass = pclass) or not self._players[sid].class_played(pclass):
-            #if the player was just added, or has not played the class provided, we need to add it to the database
+        self._players[cid].set_class(pclass) #set the player's current class to this
+
+        if not self._players[sid].class_played(pclass):
+            #has not played the class provided, we need to add it to the database
             self._players[sid].add_class(pclass)
 
-            #insert_query = "INSERT INTO %s (log_ident, steamid, class) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, sid, pclass)
+            insert_query = "INSERT INTO %s (log_ident, steamid, class) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, sid, pclass)
 
             #if the class was inserted as unknown, it is likely that the 'unknown' class is now this class. this is what we'll assume, anyway
-            update_query = "UPDATE %s SET class = E'%s' WHERE steamid = E'%s' and log_ident = '%s' and class='UNKNOWN'" % (self.STAT_TABLE, pclass, sid, self.UNIQUE_IDENT)
+            update_query = "UPDATE %s SET class = '%s' WHERE steamid = E'%s' and log_ident = '%s' and class='UNKNOWN'" % (self.STAT_TABLE, pclass, sid, self.UNIQUE_IDENT)
             
             print "update query for %s: %s" % (self._players[sid].current_name(), update_query)
 
-            self.executeQuery(update_query, queue_priority = queryqueue.HIPRIO) #update the class ASAP
-            #self.execute_upsert(insert_query, update_query)
+            #self.executeQuery(update_query, queue_priority = queryqueue.HIPRIO) #update the class ASAP
+            self.execute_upsert(insert_query, update_query, queryqueue.HIPRIO) #need to add this class shit ASAP
 
     def add_player(self, cid, pclass=None, name=None, team=None):
         if cid not in self._players:
@@ -1059,16 +1022,15 @@ class parserClass(object):
         for pclass in self._weapon_data:
             if weapon in self._weapon_data[pclass]: #player's weapon matches this classes' weapon data
                 if self._players[cid].current_class() != pclass:
-                    self.insert_player_class(sid, pclass) #add this class to the player
+                    self.insert_player_class(sid, pclass) #add this class to the database
 
                     print "%s detected playing as %s, setting current class" % (self._players[cid].current_name(), pclass)
-                    self._players[cid].set_class(pclass) #set the player's current class to this
 
                 break
 
-    def execute_upsert(self, insert_query, update_query, conn=None, curs=None, close=True, use_queue=True):
+    def execute_upsert(self, insert_query, update_query, conn=None, curs=None, close=True, use_queue=True, queue_priority = queryqueue.NMPRIO):
         if use_queue:
-            self.add_qtq(insert_query, update_query)
+            self.add_qtq(insert_query, update_query, priority = queue_priority)
         
         else:
             if not self.db.closed:

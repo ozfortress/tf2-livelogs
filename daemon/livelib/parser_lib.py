@@ -134,7 +134,7 @@ class player_data(object):
 
     def set_class(self, pclass):
         self._current_player_class = pclass
-        print "current class set to %s"
+        print "%s: current class set to %s" % (self._player_name, pclass)
 
     def set_name(self, name):
         self._player_name = name
