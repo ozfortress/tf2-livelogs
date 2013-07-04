@@ -486,13 +486,13 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
         sapi = sapi_data.Steam_API()
         self.weapon_data = sapi.get_default_weapons() #make the weapon data the default shit until the API is g2g
-        self.logger("Weapon data is now default")
+        self.logger.info("Weapon data is now default")
         #this usually takes some time, so we just let this bitch do its shit in the thread
 
         sapi.get_item_data_loc() #required for more than non-static weapon log names
         self.weapon_data = sapi.get_item_data()
 
-        self.logger("Weapon data now contains custom weapons")
+        self.logger.info("Weapon data now contains custom weapons")
 
 if __name__ == '__main__':
     cfg_parser = ConfigParser.SafeConfigParser()
