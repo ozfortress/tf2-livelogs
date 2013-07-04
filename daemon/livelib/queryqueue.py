@@ -39,7 +39,8 @@ class query_queue(object):
 
     def __add_query_to_queue(self, query, priority):
         self.__queues[priority].append(query) #query is a tuple of two possible queries (i.e, insert/update for an upsert)
-        print "added query %s with priority %d" % (query, priority)
+        #print "added query %s with priority %d" % (query, priority)
+        print "length of queue %d: %d" % (priority, len(self.__queues[priority])
 
     def get_next_query(self):
         """
@@ -65,7 +66,7 @@ class query_queue(object):
         rtn_query = self.__queues[queue_index].pop(0) #pop the first item in the queue
 
         self.__threading_lock.release()
-        print "popped %s at queue %d" % (rtn_query, queue_index)
+        #print "popped %s at queue %d" % (rtn_query, queue_index)
         return rtn_query
 
     def queue_empty(self, queue_index):

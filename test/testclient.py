@@ -68,7 +68,7 @@ class testclient(object):
                     #client.send("R%s\r\n" % line)
                         
                     x += 1
-                    time.sleep(0.1)
+                    time.sleep(0.01)
 
                 log_file.close()
 
@@ -103,7 +103,7 @@ def do_threads():
                     print "Client is done!"
                     clients.discard(client)
     except:
-        for client in clients.copy()
+        for client in clients.copy():
             client.stop = True
             
         quit()

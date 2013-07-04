@@ -921,10 +921,12 @@ class parserClass(object):
 
         cid = self.get_cid(steamid) #convert steamid to community id
         name = name[:30] #max length of 30 characters for names
-        insert_query = "INSERT INTO %s (log_ident, steamid, name, %s) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, self.UNIQUE_IDENT, cid, name, value)
+        insert_query = "INSERT INTO %s (log_ident, steamid, name, %s, class) VALUES (E'%s', E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, 
+                            column, self.UNIQUE_IDENT, cid, name, value, self.__players[cid].current_class())
 
         if len(name) > 0 and (self.add_player(cid, name = name) or not self._players[cid].is_name_same(name)):
-                update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s, name = E'%s' WHERE steamid = E'%s' and log_ident = '%s'" % (self.STAT_TABLE, column, column, value, name, cid, self.UNIQUE_IDENT)
+                update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s, name = E'%s' WHERE steamid = E'%s' and log_ident = '%s' and class = E'%s'" % (self.STAT_TABLE, 
+                        column, column, value, name, cid, self.UNIQUE_IDENT, self.__players[cid].current_class())
 
                 self._players[cid].set_name(name)
             

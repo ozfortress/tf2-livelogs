@@ -571,11 +571,11 @@ if __name__ == '__main__':
 
             l_timeout = cfg_parser.getfloat('log-listener', 'listener_timeout')
 
-            process_frequency = cfg_parser.getint('log-listener', 'queue_process_frequency')
-            process_quota = cfg_parser.getint('log-listener', 'queue_process_quota')
+            process_frequency = cfg_parser.getfloat('log-listener', 'queue_process_frequency') #how often (in seconds) the query queue should be processed
+            process_quota = cfg_parser.getint('log-listener', 'queue_process_quota') #how many queries should be processed per interval
             
         except:
-            sys.exit("Unable to read config file")
+            sys.exit("Error reading config file")
                 
     else:
         #first run time, no config file present. create with default values and exit
@@ -653,7 +653,7 @@ def make_new_config():
     cfg_parser.set('log-listener', 'listener_timeout', '90.0')
     cfg_parser.set('log-listener', 'log_directory', 'logs')
     cfg_parser.set('log-listener', 'queue_process_frequency', '1')
-    cfg_parser.set('log-listener', 'queue_process_quota', '5')
+    cfg_parser.set('log-listener', 'queue_process_quota', '100')
     
     cfg_parser.add_section('websocket-server')
     cfg_parser.set('websocket-server', 'server_ip', '')
