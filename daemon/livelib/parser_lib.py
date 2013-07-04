@@ -97,7 +97,7 @@ class player_data(object):
 
         if pclass:
             self._player_class[pclass] = True #add the class to the player's data
-            self._current_player_class = pclass
+            self.set_class(pclass)
 
         if name:
             self._player_name = name
@@ -134,12 +134,16 @@ class player_data(object):
 
     def set_class(self, pclass):
         self._current_player_class = pclass
+        print "current class set to %s"
 
     def set_name(self, name):
         self._player_name = name
 
     def is_name_same(self, name):
         return name == self._player_name
+
+    def current_name(self):
+        return self._player_name
 
     def set_team(self, team):
         self._player_team = team

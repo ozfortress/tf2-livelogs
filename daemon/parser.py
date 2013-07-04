@@ -1038,8 +1038,33 @@ class parserClass(object):
             #if the class was inserted as unknown, it is likely that the 'unknown' class is now this class. this is what we'll assume, anyway
             update_query = "UPDATE %s SET class = E'%s' WHERE steamid = E'%s' and log_ident = '%s' and class='UNKNOWN'" % (self.STAT_TABLE, pclass, sid, self.UNIQUE_IDENT)
             
-            self.executeQuery(update_query, query_priority = queryqueue.HIPRIO) #update the class ASAP
+            print "update query for %s: %s" % (self._players[sid].current_name(), update_query)
+
+            self.executeQuery(update_query, queue_priority = queryqueue.HIPRIO) #update the class ASAP
             #self.execute_upsert(insert_query, update_query)
+
+    def add_player(self, cid, pclass=None, name=None, team=None):
+        if cid not in self._players:
+            self._players[cid] = parser_lib.player_data(pclass, name, team)
+
+            return True
+        else:
+            return False
+
+    def detect_player_class(self, sid, weapon):
+        #take weapon name, and try to match it to a class name
+        #print "checking weapon %s" % weapon
+
+        cid = self.get_cid(sid)
+        for pclass in self._weapon_data:
+            if weapon in self._weapon_data[pclass]: #player's weapon matches this classes' weapon data
+                if self._players[cid].current_class() != pclass:
+                    self.insert_player_class(sid, pclass) #add this class to the player
+
+                    print "%s detected playing as %s, setting current class" % (self._players[cid].current_name(), pclass)
+                    self._players[cid].set_class(pclass) #set the player's current class to this
+
+                break
 
     def execute_upsert(self, insert_query, update_query, conn=None, curs=None, close=True, use_queue=True):
         if use_queue:
@@ -1137,29 +1162,6 @@ class parserClass(object):
 
         return community_id
 
-    def add_player(self, cid, pclass=None, name=None, team=None):
-        if cid not in self._players:
-            self._players[cid] = parser_lib.player_data(pclass, name, team)
-
-            return True
-        else:
-            return False
-
-    def detect_player_class(self, sid, weapon):
-        #take weapon name, and try to match it to a class name
-        #print "checking weapon %s" % weapon
-
-        cid = self.get_cid(sid)
-        for pclass in self._weapon_data:
-            if weapon in self._weapon_data[pclass]: #player's weapon matches this classes' weapon data
-                if self._players[cid].current_class() != pclass:
-                    self.insert_player_class(sid, pclass) #add this class to the player
-
-                    self._players[cid].set_class(pclass) #set the player's current class to this
-
-                break
-
-
     def endLogParsing(self, game_over=False, shutdown=False):
         if not self.LOG_PARSING_ENDED:
             self.logger.info("Ending log parsing")
@@ -1242,4 +1244,4 @@ class parserClass(object):
         if self.LOG_FILE_HANDLE:
             if not self.LOG_FILE_HANDLE.closed:
                 self.LOG_FILE_HANDLE.close()
-                
+
