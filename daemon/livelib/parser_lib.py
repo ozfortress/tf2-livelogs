@@ -73,3 +73,96 @@ mini_round_length = re_compiler(r'World triggered "Mini_Round_Length" \x28second
 #L 03/07/2013 - 18:00:27: -------- Mapchange to cp_granary --------
 map_change = re_compiler(r'Started map "(.*)" \x28CRC "(.*)"\x29')
 
+"""
+The player data object
+"""
+class player_data(object):
+    #class to hold all player information that is set throughout parsing the log
+    def __init__(self, pclass, name, team):
+        self._player_class = {
+            "scout": False,
+            "soldier": False,
+            "pyro": False,
+            "demoman": False,
+            "heavyweapons": False,
+            "medic": False,
+            "sniper": False,
+            "engineer": False,
+            "spy": False
+        } #all classes default to false
+        self._current_player_class = None
+
+        self._player_name = None
+        self._player_team = None
+
+        if pclass:
+            self._player_class[pclass] = True #add the class to the player's data
+            self._current_player_class = pclass
+
+        if name:
+            self._player_name = name
+
+        if team:
+            self._player_team = team
+
+    def add_class(self, pclass):
+        if pclass in self._player_class:
+            self._player_class[pclass] = True
+
+            self._current_player_class = pclass
+
+    def class_played(self, pclass):
+        if pclass in self._player_class:
+            return self._player_class[pclass]
+        else:
+            return False
+
+    def class_string(self):
+        class_list = []
+
+        for pclass in self._player_class:
+            if self._player_class[pclass]:
+                class_list.append(pclass)
+
+        return ','.join(class_list)
+
+    def current_class(self):
+        if self._current_player_class:
+            return self._current_player_class
+        else:
+            return "UNKNOWN"
+
+    def set_class(self, pclass):
+        self._current_player_class = pclass
+
+    def set_name(self, name):
+        self._player_name = name
+
+    def is_name_same(self, name):
+        return name == self._player_name
+
+    def set_team(self, team):
+        self._player_team = team
+
+    def is_team_same(self, team):
+        return team == self._player_team
+
+
+#this class is used to remove all HTML tags from player strings
+class HTMLStripper(HTMLParser):
+    def __init__(self):
+        self.reset()
+        self.fed = [] #fed is what is fed to the class by the function
+
+    def handle_data(self, d):
+        self.fed.append(d)
+
+    def get_data(self):
+        return ''.join(self.fed)
+
+def stripHTMLTags(string):
+    stripper = HTMLStripper()
+    stripper.feed(string)
+
+
+    return stripper.get_data() #get the text out

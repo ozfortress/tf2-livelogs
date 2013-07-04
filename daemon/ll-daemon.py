@@ -27,7 +27,7 @@ from HTMLParser import HTMLParser
 from pprint import pprint
 
 import listener
-from livelib import keyvalues
+from livelib import keyvalues, queryqueue
 
 log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
 
@@ -409,6 +409,16 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
             event.wait(2) #run a timeout check every 2 seconds
 
+    def __process_database_queue(self):
+        """
+        this will process a queue of database queries that are required to be performed by parser objects
+        each stat upsert or similar query is added to this queue. things like event queries, or chat queries that
+        require something to be returned are not done using this queue, as they have a higher priority
+        """
+
+
+
+
 def get_item_data():
     #get the latest item schema from the steam API
 
@@ -511,9 +521,11 @@ if __name__ == '__main__':
         llServer.serve_forever() #listen for log requests!
         
     except KeyboardInterrupt:
+        #clean up this shit!
+
         logger.info("Keyboard interrupt. Closing daemon")
         llServer.timeout_event.set() #stop the timeout thread
-        llServer.timeout_thread.join(2)
+        llServer.timeout_thread.join(2) #wait 2 secs for thread to join before closing the interpreter
 
         #shallow copy of the listen object set, so it can be iterated on while items are being removed
         for listenobj in llServer.listen_set.copy():
