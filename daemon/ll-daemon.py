@@ -442,6 +442,14 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             return
 
         try:
+            try:
+                conn = self.db.getconn() #get a connection object from the psycopg2.pool
+            except:
+                self.logger.exception("Exception getting database connection")
+                return
+
+            cursor = conn.cursor()
+
             for i in xrange(0, process_quota): #process at most 'process_quota' queries every queue cycle
                 query_tuple = self.query_queue.get_next_query()
 
@@ -449,30 +457,16 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                     query_a = query_tuple[0]
                     query_b = query_tuple[1]
 
-                    try:
-                        conn = self.db.getconn() #get a connection object from the psycopg2.pool
-                    except:
-                        self.logger.exception("Exception getting database connection")
-                        #since we couldn't get a database connection, let's add this query back to the queue and return!
-                        self.query_queue.readd_query(query_tuple)
-
-                        return
-
-                    cursor = conn.cursor()
-
                     if query_a and query_b:
                         #we have an insert/update query (upsert). query_a is the insert, query_b is the update
                         try:
                             cursor.execute("SELECT pgsql_upsert(%s, %s)", (query_a, query_b,))
                             conn.commit() #commit changes to the database, so they are saved
 
-                        except psycopg2.DataError:
+                        except:
                             self.logger.exception("ERROR UPSERTING. INSERT QUERY: \"%s\" | UPDATE QUERY: \"%s\"" % (query_a, query_b))
                             conn.rollback() #rollback, discarding changes so the connection can be re-used later
-
-                        except:
-                            self.logger.exception("DB ERROR")
-                            conn.rollback()
+                            self.query_queue.readd_query(query_tuple) #re-add the query
 
                     else:
                         #we just have a single query to perform
@@ -480,18 +474,16 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                             cursor.execute(query_a)
                             conn.commit()
 
-                        except psycopg2.DataError:
+                        except:
                             self.logger.exception("ERROR UPSERTING. INSERT QUERY: \"%s\"" % (query_a))
                             conn.rollback() #rollback, discarding changes so the connection can be re-used later
+                            self.query_queue.readd_query(query_tuple) #re-add the query
 
-                        except:
-                            self.logger.exception("DB ERROR")
-                            conn.rollback()
+            if not conn.closed:
+                cursor.close()
 
-                    if not conn.closed:
-                        cursor.close()
+            self.db.putconn(conn)
 
-                    self.db.putconn(conn)
         except:
             self.logger.exception("ERROR PROCESSING QUERY QUEUE")
 
