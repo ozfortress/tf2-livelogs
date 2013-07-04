@@ -5,6 +5,7 @@ import threading
 class testclient(object):
     def __init__(self):
         self.done = False
+        self.stop = False
 
     def start(self, port):
         self.connect(port)
@@ -47,6 +48,9 @@ class testclient(object):
                 x = 0
 
                 for logline in log_file:
+                    if self.stop:
+                        break
+                    
                     line = logline.lstrip("\xFF").lstrip("R").rstrip()
                     #line = logline.lstrip("\xFF").rstrip()
                     #print line
@@ -64,7 +68,7 @@ class testclient(object):
                     #client.send("R%s\r\n" % line)
                         
                     x += 1
-                    time.sleep(0.01)
+                    time.sleep(0.1)
 
                 log_file.close()
 
@@ -87,11 +91,11 @@ def do_threads():
 
         clients.add(client)
 
-        thread = threading.Thread(target=client.start, args=(portno,))
-        thread.daemon = True
+        client.thread = threading.Thread(target=client.start, args=(portno,))
+        client.thread.daemon = True
 
         time.sleep(2)
-        thread.start()
+        client.thread.start()
     try:
         while len(clients) > 0:
             for client in clients.copy():
@@ -99,6 +103,9 @@ def do_threads():
                     print "Client is done!"
                     clients.discard(client)
     except:
+        for client in clients.copy()
+            client.stop = True
+            
         quit()
     
 do_threads()
