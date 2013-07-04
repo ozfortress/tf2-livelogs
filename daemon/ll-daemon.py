@@ -240,7 +240,6 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.timeout_event = threading.Event()
         self.timeout_thread = threading.Thread(target=self._listener_timeout_timer, args=(self.timeout_event,))
         self.timeout_thread.daemon = True
-        self.timeout_thread.start()
 
         self.query_queue = queryqueue.query_queue() #our query queue object
         self.queue_process_frequency = process_frequency
@@ -249,8 +248,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.queue_process_event = threading.Event()
         self.queue_process_thread = threading.Thread(target=self._process_queue_timer, args=(self.queue_process_event,))
         self.queue_process_thread.daemon = True
-        self.queue_process_thread.start()
-        
+
         self.__listen_set_lock = threading.Lock()
 
         SocketServer.TCPServer.__init__(self, server_address, client_handler)
@@ -370,7 +368,13 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             self.logger.error("Database pool is closed")
             return None
 
-    def open_dbpool(self):
+    def prepare_server(self):
+        self.__open_dbpool()
+
+        self.queue_process_thread.start()
+        self.timeout_thread.start()
+
+    def __open_dbpool(self):
         #open database pool
         cfg_parser = ConfigParser.SafeConfigParser()
         if cfg_parser.read(r'll-config.ini'):
@@ -588,14 +592,15 @@ if __name__ == '__main__':
 
     server_address = (server_ip, server_port)
 
-    weapon_data = get_item_data()
+    weapon_data = {} # get_item_data()
 
     llServer = llDaemon(server_address, l_timeout, weapon_data, process_frequency, process_quota, client_handler=llDaemonHandler)
 
     logger = logging.getLogger('MAIN')
     logger.setLevel(logging.DEBUG)
 
-    llServer.open_dbpool()
+    llServer.prepare_server()
+
     logger.info("Server on %s:%s under PID %s", server_address[0], server_address[1], os.getpid())
 
     try:

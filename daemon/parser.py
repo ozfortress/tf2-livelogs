@@ -12,7 +12,6 @@ import socket
 import re
 import os
 import threading
-from HTMLParser import HTMLParser
 
 import logging
 import logging.handlers

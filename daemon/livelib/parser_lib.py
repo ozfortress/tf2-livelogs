@@ -148,6 +148,8 @@ class player_data(object):
         return team == self._player_team
 
 
+from HTMLParser import HTMLParser
+
 #this class is used to remove all HTML tags from player strings
 class HTMLStripper(HTMLParser):
     def __init__(self):
