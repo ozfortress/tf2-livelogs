@@ -20,7 +20,7 @@ import logging.handlers
 from pprint import pprint
 from livelib import parser_constants
 
-class parserClass():
+class parserClass(object):
     def __init__(self, data, endfunc = None, log_uploaded = False):
         self.HAD_ERROR = False
         self.LOG_FILE_HANDLE = None
@@ -1010,13 +1010,13 @@ class parserClass():
         if self.add_player(sid, pclass = pclass) or not self._players[sid].class_played(pclass):
             #if the player was just added, or has not played the class provided, we need to add it to the database
             self._players[sid].add_class(pclass)
-            class_string = self._players[sid].class_string()
 
-            if class_string:
-                insert_query = "INSERT INTO %s (log_ident, steamid, class) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, sid, class_string)
-                update_query = "UPDATE %s SET class = E'%s' WHERE steamid = E'%s' and log_ident = '%s'" % (self.STAT_TABLE, class_string, sid, self.UNIQUE_IDENT)
+            insert_query = "INSERT INTO %s (log_ident, steamid, class) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, sid, pclass)
 
-                self.execute_upsert(insert_query, update_query)
+            #if the class was inserted as unknown, it is likely that the 'unknown' class is now this class. this is what we'll assume, anyway
+            update_query = "UPDATE %s SET class = E'%s' WHERE steamid = E'%s' and log_ident = '%s' and class='UNKNOWN'" % (self.STAT_TABLE, pclass, sid, self.UNIQUE_IDENT)
+
+            self.execute_upsert(insert_query, update_query)
 
     def execute_upsert(self, insert_query, update_query):
         if not self.db.closed:
@@ -1125,7 +1125,6 @@ class parserClass():
 
     def get_cid(self, steam_id):
         #takes a steamid in the format STEAM_x:x:xxxxx and converts it to a 64bit community id
-        #self.log.debug("Converting SteamID %s to community id", steam_id)
 
         auth_server = 0;
         auth_id = 0;
@@ -1195,12 +1194,14 @@ class player_data(object):
             "engineer": False,
             "spy": False
         } #all classes default to false
+        self._current_player_class = None
 
         self._player_name = None
         self._player_team = None
 
         if pclass:
             self._player_class[pclass] = True #add the class to the player's data
+            self._current_player_class = pclass
 
         if name:
             self._player_name = name
@@ -1211,6 +1212,8 @@ class player_data(object):
     def add_class(self, pclass):
         if pclass in self._player_class:
             self._player_class[pclass] = True
+
+            self._current_player_class = pclass
 
     def class_played(self, pclass):
         if pclass in self._player_class:
@@ -1226,6 +1229,12 @@ class player_data(object):
                 class_list.append(pclass)
 
         return ','.join(class_list)
+
+    def current_class(self):
+        if self._current_player_class:
+            return self._current_player_class
+        else:
+            return "UNKNOWN"
 
     def set_name(self, name):
         self._player_name = name

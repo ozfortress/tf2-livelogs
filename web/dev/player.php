@@ -18,8 +18,7 @@
 
             $escaped_steamid = pg_escape_string($community_id);
 
-            $stat_query =   "SELECT  
-                                    SUM(kills) as kills, SUM(deaths) as deaths, SUM(assists) as assists, SUM(points) as points, 
+            $stat_query =   "SELECT SUM(kills) as kills, SUM(deaths) as deaths, SUM(assists) as assists, SUM(points) as points, 
                                     SUM(healing_done) as healing_done, SUM(healing_received) as healing_received, SUM(ubers_used) as ubers_used, SUM(ubers_lost) as ubers_lost, 
                                     SUM(headshots) as headshots, SUM(backstabs) as backstabs, SUM(damage_dealt) as damage_dealt, SUM(damage_taken) as damage_taken,
                                     SUM(captures) as captures, SUM(captures_blocked) as captures_blocked, 
@@ -34,15 +33,27 @@
                 $invalid_player = true;
             }
 
-            $player_logs_query = "SELECT server_ip, server_port, numeric_id, log_name, map, live, tstamp 
-                                  FROM livelogs_player_stats
-                                  JOIN livelogs_servers ON livelogs_player_stats.log_ident = livelogs_servers.log_ident 
+            $player_logs_query = "SELECT name, server_ip, server_port, numeric_id, log_name, map, live, tstamp 
+                                  FROM livelogs_servers
+                                  JOIN livelogs_player_stats ON livelogs_player_stats.log_ident = livelogs_servers.log_ident 
                                   WHERE steamid = '{$escaped_steamid}'
                                   ORDER BY numeric_id DESC
                                   LIMIT {$ll_config["display"]["player_num_past"]}"; //get all the logs that a user has been in
 
             $player_logs_result = pg_query($ll_db, $player_logs_query);
 
+            if (pg_num_rows($player_logs_result) > 0)
+            {
+                $player_logs = pg_fetch_all($player_logs_result);
+
+                $player_name = $player_logs[0]["name"];
+            }
+            else
+            {
+                $player_logs = NULL;
+                $player_name = "UNKNOWN";
+            }
+            
             $pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC);
         }
     ?>
@@ -256,7 +267,7 @@
         </div>
         <div class="log_list_past_container">
             <?php
-            if (pg_num_rows($player_logs_result) > 0)
+            if (sizeof($player_logs) > 0)
             {
             ?>
             <table class="table table-bordered table-hover ll_table">
@@ -281,7 +292,7 @@
                 </thead>
                 <tbody>
                 <?php
-                while ($log = pg_fetch_array($player_logs_result, NULL, PGSQL_ASSOC))
+                foreach($player_logs as $idx => $log)
                 {
                 ?>
 
