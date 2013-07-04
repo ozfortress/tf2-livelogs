@@ -49,7 +49,7 @@ class query_queue(object):
         by the queue thread, which will slowly wittle down the items in the queue
         """
 
-        for queue in self.__queues: #list will always be in the same order
+        for queue_level, queue in enumerate(self.__queues): #queues tuple will always be in the same order
             if len(queue) > 0:
                 #we have objects in this queue! pop the one at the front
                 self._last_queue_level = queue_level

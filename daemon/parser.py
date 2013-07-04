@@ -578,35 +578,38 @@ class parserClass(object):
                 chat_message = self.escapePlayerString(regml(res, 6))
 
                 event_insert_query = "INSERT INTO %s (event_time, event_type) VALUES (E'%s', '%s')" % (self.EVENT_TABLE, event_time, "chat")
-                self.executeQuery(event_insert_query)
+                self.executeQuery(event_insert_query, use_queue=False)
+                
+                curs = None
+                conn = self.__get_db_conn()
+                if not conn:
+                    return
 
-                if not self.db.closed:
-                    curs = None
-                    try:
-                        try:
-                            conn = self.db.getconn()
-                        except:
-                            self.logger.exception("Exception getting database connection")
-                            return
+                curs = self.__get_conn_cursor(conn)
+                if not curs:
+                    return
 
-                        curs = conn.cursor()
-                        #now we need to get the event ID and put it into chat!
-                        
-                        eventid_query = "SELECT eventid FROM %s WHERE event_type = 'chat' ORDER BY eventid DESC LIMIT 1" % (self.EVENT_TABLE)
-                        curs.execute(eventid_query)
-                        eventid = curs.fetchone()[0]
+                try:
+                    #now we need to get the event ID and put it into chat!
+                    eventid_query = "SELECT eventid FROM %s WHERE event_type = 'chat' ORDER BY eventid DESC LIMIT 1" % (self.EVENT_TABLE)
+                    curs.execute(eventid_query)
+                    result = curs.fetchone()
 
-                        chat_insert_query = "INSERT INTO %s (log_ident, eventid, steamid, name, team, chat_type, chat_message) VALUES ('%s', '%s', E'%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, 
-                                                                self.UNIQUE_IDENT, eventid, c_sid, c_name, c_team, chat_type, chat_message)
+                    self.__close_db_components(conn, curs) #we don't need these objects anymore, the next query is added to the queue
 
-                        self.executeQuery(chat_insert_query, curs=curs, conn=conn) #execute query will perform the insert query, commit, and close the cursor
+                    if result:
+                        eventid = result[0]
+                    else:
+                        return
 
-                    except Exception, e:
-                        self.logger.exception("Exception trying to get chat eventid")
-                        if curs:
-                            curs.close()
+                    chat_insert_query = "INSERT INTO %s (log_ident, eventid, steamid, name, team, chat_type, chat_message) VALUES ('%s', '%s', E'%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, 
+                                                            self.UNIQUE_IDENT, eventid, c_sid, c_name, c_team, chat_type, chat_message)
 
-                        self.db.putconn(conn)
+                    self.executeQuery(chat_insert_query) #execute query will perform the insert query, commit, and close the cursor
+
+                except Exception, e:
+                    self.logger.exception("Exception trying to get chat eventid")
+                    self.__close_db_components(conn, curs)
 
                 return        
             
@@ -1032,76 +1035,76 @@ class parserClass(object):
 
             self.execute_upsert(insert_query, update_query)
 
-    def execute_upsert(self, insert_query, update_query, conn=None, curs=None, close=True):
-
-
-        self.add_qtq(insert_query, update_query)
-        return
-
-        if not self.db.closed:
-            if not conn:
-                conn = self.__get_db_conn()
-                if not conn:
-                    return
-
-            if not curs:
-                curs = self.__get_conn_cursor(conn)
-                if not curs:
-                    return
-
-            try:
-                curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
-
-                conn.commit()
-
-            except:
-                self.logger.exception("Error during team insertion")
-                conn.rollback()
-
-            finally:
-                if close:
-                    self.__close_db_components(conn = conn, cursor = curs)
-
-    def executeQuery(self, query, curs=None, conn=None, close=True):
-        self.add_qtq(query)
-        return
-
-        try:
+    def execute_upsert(self, insert_query, update_query, conn=None, curs=None, close=True, use_queue=True):
+        if use_queue:
+            self.add_qtq(insert_query, update_query)
+        
+        else:
             if not self.db.closed:
                 if not conn:
                     conn = self.__get_db_conn()
-                    if not conn: #if we still can't get a connection, return
+                    if not conn:
                         return
 
                 if not curs:
                     curs = self.__get_conn_cursor(conn)
-                    if not curs: #if we still can't get a cursor, return
+                    if not curs:
                         return
-                    
+
                 try:
-                    curs.execute(query)
+                    curs.execute("SELECT pgsql_upsert(%s, %s)", (insert_query, update_query,))
+
                     conn.commit()
-                except psycopg2.DataError, e:
-                    self.logger.exception("DB DATA ERROR INSERTING DATA %s", query)
-                    
+
+                except:
+                    self.logger.exception("Error during team insertion")
                     conn.rollback()
-                except Exception, e:
-                    self.logger.exception("DB ERROR")
-                    
-                    conn.rollback()
+
                 finally:
                     if close:
                         self.__close_db_components(conn = conn, cursor = curs)
-                
-            else:
-                self.logger.info("NOTICE: DATABASE CONNECTION POOL IS CLOSED")
+
+    def executeQuery(self, query, curs=None, conn=None, close=True, use_queue=True):
+        if use_queue:
+            self.add_qtq(query)
+        
+        else:
+            try:
+                if not self.db.closed:
+                    if not conn:
+                        conn = self.__get_db_conn()
+                        if not conn: #if we still can't get a connection, return
+                            return
+
+                    if not curs:
+                        curs = self.__get_conn_cursor(conn)
+                        if not curs: #if we still can't get a cursor, return
+                            return
+                        
+                    try:
+                        curs.execute(query)
+                        conn.commit()
+                    except psycopg2.DataError, e:
+                        self.logger.exception("DB DATA ERROR INSERTING DATA %s", query)
+                        
+                        conn.rollback()
+                    except Exception, e:
+                        self.logger.exception("DB ERROR")
+                        
+                        conn.rollback()
+                    finally:
+                        if close:
+                            self.__close_db_components(conn = conn, cursor = curs)
+                    
+                else:
+                    self.logger.info("NOTICE: DATABASE CONNECTION POOL IS CLOSED")
+                    if close:
+                        self.__close_db_components(conn = conn, cursor = curs)
+
+            except:
+                self.logger.exception("Exception occurred rolling back the connection")
                 if close:
                     self.__close_db_components(conn = conn, cursor = curs)
-
-        except:
-            self.logger.exception("Exception occurred rolling back the connection")
-            if close:
-                self.__close_db_components(conn = conn, cursor = curs)
 
     def add_qtq(self, query_a, query_b=None, priority=queryqueue.NMPRIO):
         self._master_query_queue.add_query(query_a, query_b, priority) #add query to the queue with priority
