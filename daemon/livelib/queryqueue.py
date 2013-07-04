@@ -40,7 +40,7 @@ class query_queue(object):
     def __add_query_to_queue(self, query, priority):
         self.__queues[priority].append(query) #query is a tuple of two possible queries (i.e, insert/update for an upsert)
         #print "added query %s with priority %d" % (query, priority)
-        print "length of queue %d: %d" % (priority, len(self.__queues[priority]))
+        #print "length of queue %d: %d" % (priority, len(self.__queues[priority]))
 
     def get_next_query(self):
         """

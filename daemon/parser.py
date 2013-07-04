@@ -920,6 +920,9 @@ class parserClass(object):
         #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
 
         cid = self.get_cid(steamid) #convert steamid to community id
+        
+        self.add_player(cid) #get this negro a player_data object!
+
         name = name[:30] #max length of 30 characters for names
         insert_query = "INSERT INTO %s (log_ident, steamid, name, %s, class) VALUES (E'%s', E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, 
                             column, self.UNIQUE_IDENT, cid, name, value, self._players[cid].current_class())
@@ -1030,12 +1033,13 @@ class parserClass(object):
             #if the player was just added, or has not played the class provided, we need to add it to the database
             self._players[sid].add_class(pclass)
 
-            insert_query = "INSERT INTO %s (log_ident, steamid, class) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, sid, pclass)
+            #insert_query = "INSERT INTO %s (log_ident, steamid, class) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, sid, pclass)
 
             #if the class was inserted as unknown, it is likely that the 'unknown' class is now this class. this is what we'll assume, anyway
             update_query = "UPDATE %s SET class = E'%s' WHERE steamid = E'%s' and log_ident = '%s' and class='UNKNOWN'" % (self.STAT_TABLE, pclass, sid, self.UNIQUE_IDENT)
-
-            self.execute_upsert(insert_query, update_query)
+            
+            self.executeQuery(update_query, query_priority = queryqueue.HIPRIO) #update the class ASAP
+            #self.execute_upsert(insert_query, update_query)
 
     def execute_upsert(self, insert_query, update_query, conn=None, curs=None, close=True, use_queue=True):
         if use_queue:
@@ -1238,5 +1242,4 @@ class parserClass(object):
         if self.LOG_FILE_HANDLE:
             if not self.LOG_FILE_HANDLE.closed:
                 self.LOG_FILE_HANDLE.close()
-
-    
+                

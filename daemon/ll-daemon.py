@@ -457,7 +457,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                     query_a = query_tuple[0]
                     query_b = query_tuple[1]
 
-                    print "process iter %d: query: %s" % (i, query_tuple)
+                    #print "process iter %d: query: %s" % (i, query_tuple)
 
                     if query_a and query_b:
                         #we have an insert/update query (upsert). query_a is the insert, query_b is the update
