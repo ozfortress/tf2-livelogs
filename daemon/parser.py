@@ -1064,9 +1064,9 @@ class parserClass(object):
                     if close:
                         self.__close_db_components(conn = conn, cursor = curs)
 
-    def executeQuery(self, query, curs=None, conn=None, close=True, use_queue=True):
+    def executeQuery(self, query, curs=None, conn=None, close=True, use_queue=True, queue_priority = queryqueue.NMPRIO):
         if use_queue:
-            self.add_qtq(query)
+            self.add_qtq(query, priority = queue_priority)
         
         else:
             try:
@@ -1158,11 +1158,6 @@ class parserClass(object):
         if not self.LOG_PARSING_ENDED:
             self.logger.info("Ending log parsing")
             self.LOG_PARSING_ENDED = True
-            
-            if shutdown:
-                queue_priority = queryqueue.LOPRIO
-            else:
-                queue_priority = queryqueue.HIPRIO
 
             if not self.HAD_ERROR:
                 if not self._players: #if player dict is empty, log must be empty
@@ -1170,15 +1165,21 @@ class parserClass(object):
                     end_query = "DELETE FROM livelogs_servers WHERE log_ident = E'%(logid)s'; DELETE FROM livelogs_player_stats WHERE log_ident = '%(logid)s'" % {
                             "logid": self.UNIQUE_IDENT
                         }
-
-                    self.add_qtq(end_query, priority = queryqueue.HIPRIO) #quickly get rid of this empty log!
+                    if shutdown:
+                        self.executeQuery(end_query, use_queue=False) #skip the queue for the end query
+                    else:
+                        self.executeQuery(end_query, queue_priority = queryqueue.HIPRIO) #want this log deleted ASAP!
 
                     self.logger.info("No data in this log. Tables have been deleted")
 
                 else:
                     #sets live to false
                     live_end_query = "UPDATE livelogs_servers SET live = false WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT)
-                    self.add_qtq(live_end_query, priority = queue_priority)
+
+                    if shutdown:
+                        self.executeQuery(live_end_query, use_queue=False) #skip the queue
+                    else:
+                        self.executeQuery(live_end_query, queue_priority = queryqueue.NMPRIO)
                 
                 #begin ending timer
                 if self.closeListenerCallback is not None and game_over:
