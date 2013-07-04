@@ -18,7 +18,7 @@ import logging
 import logging.handlers
 
 from pprint import pprint
-from livelib import parser_lib
+from livelib import parser_lib, queryqueue
 
 class parserClass(object):
     def __init__(self, data, endfunc = None, log_uploaded = False):
@@ -27,6 +27,7 @@ class parserClass(object):
         self.db = data.db
 
         self._weapon_data = data.weapon_data
+        self._master_query_queue = data.query_queue
 
         unique_ident = data.unique_parser_ident
 
@@ -913,10 +914,8 @@ class parserClass(object):
         if item_name in self._item_dict:
             return self._item_dict[item_name]
 
-    def pg_statupsert(self, table, column, steamid, name, value, conn=None, curs=None, close=True):
+    def pg_statupsert(self, table, column, steamid, name, value):
         #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
-        #takes conn and cursor, because in the case that many upserts are needed quickly, we don't want to get a new conn/cursor again
-        #close determines whether or not the conn/cursor are closed after this upsert
 
         cid = self.get_cid(steamid) #convert steamid to community id
         name = name[:30] #max length of 30 characters for names
@@ -929,6 +928,9 @@ class parserClass(object):
             
         else:
             update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE steamid = E'%s' and log_ident = '%s'" % (self.STAT_TABLE, column, column, value, steamid, self.UNIQUE_IDENT)
+
+        self.add_qtq(insert_query, update_query)
+        return
 
         curs = None
         try:
@@ -965,6 +967,9 @@ class parserClass(object):
             self.logger.exception("Exception during commit or rollback")
             if curs:
                 curs.close()
+
+
+        
 
     def escapePlayerString(self, unescaped_string):
 
@@ -1029,6 +1034,11 @@ class parserClass(object):
             self.execute_upsert(insert_query, update_query)
 
     def execute_upsert(self, insert_query, update_query, conn=None, curs=None, close=True):
+
+
+        self.add_qtq(insert_query, update_query)
+        return
+
         if not self.db.closed:
             if not conn:
                 conn = self.__get_db_conn()
@@ -1054,6 +1064,9 @@ class parserClass(object):
                     self.__close_db_components(conn = conn, cursor = curs)
 
     def executeQuery(self, query, curs=None, conn=None, close=True):
+        self.add_qtq(query)
+        return
+
         try:
             if not self.db.closed:
                 if not conn:
@@ -1091,35 +1104,9 @@ class parserClass(object):
             if close:
                 self.__close_db_components(conn = conn, cursor = curs)
 
-    def endLogParsing(self, game_over=False):
-        if not self.LOG_PARSING_ENDED:
-            self.logger.info("Ending log parsing")
-            self.LOG_PARSING_ENDED = True
-            
-            if not self.HAD_ERROR:
-                if not self._players: #if player dict is empty, log must be empty
-                    #if no players were added to the log, this log is invalid. therefore, we should delete it
-                    end_query = "DELETE FROM livelogs_servers WHERE log_ident = E'%(logid)s'; DELETE FROM livelogs_player_stats WHERE log_ident = '%(logid)s'" % {
-                            "logid": self.UNIQUE_IDENT
-                        }
+    def add_qtq(self, query_a, query_b=None, priority=queryqueue.NMPRIO):
+        self._master_query_queue.add_query(query_a, query_b, priority) #add query to the queue with priority
 
-                    self.executeQuery(end_query)
-
-                    self.logger.info("No data in this log. Tables have been deleted")
-
-                else:
-                    #sets live to false, and merges the stat table with the master stat table
-                    live_end_query = "UPDATE livelogs_servers SET live = false WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT)
-                    self.executeQuery(live_end_query)
-                
-                #begin ending timer
-                if self.closeListenerCallback is not None and game_over:
-                    self.closeListenerCallback(game_over)
-            
-            if self.LOG_FILE_HANDLE:
-                if not self.LOG_FILE_HANDLE.closed:
-                    self.LOG_FILE_HANDLE.write("\n") #add a new line before EOF
-                    self.LOG_FILE_HANDLE.close()
 
     def get_cid(self, steam_id):
         #takes a steamid in the format STEAM_x:x:xxxxx and converts it to a 64bit community id
@@ -1163,6 +1150,42 @@ class parserClass(object):
                     self._players[cid].set_class(pclass) #set the player's current class to this
 
                 break
+
+
+    def endLogParsing(self, game_over=False, shutdown=False):
+        if not self.LOG_PARSING_ENDED:
+            self.logger.info("Ending log parsing")
+            self.LOG_PARSING_ENDED = True
+            
+            if shutdown:
+                queue_priority = queryqueue.LOPRIO
+            else:
+                queue_priority = queryqueue.HIPRIO
+
+            if not self.HAD_ERROR:
+                if not self._players: #if player dict is empty, log must be empty
+                    #if no players were added to the log, this log is invalid. therefore, we should delete it
+                    end_query = "DELETE FROM livelogs_servers WHERE log_ident = E'%(logid)s'; DELETE FROM livelogs_player_stats WHERE log_ident = '%(logid)s'" % {
+                            "logid": self.UNIQUE_IDENT
+                        }
+
+                    self.add_qtq(end_query, priority = queryqueue.HIPRIO) #quickly get rid of this empty log!
+
+                    self.logger.info("No data in this log. Tables have been deleted")
+
+                else:
+                    #sets live to false
+                    live_end_query = "UPDATE livelogs_servers SET live = false WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT)
+                    self.add_qtq(live_end_query, priority = queue_priority)
+                
+                #begin ending timer
+                if self.closeListenerCallback is not None and game_over:
+                    self.closeListenerCallback(game_over)
+            
+            if self.LOG_FILE_HANDLE:
+                if not self.LOG_FILE_HANDLE.closed:
+                    self.LOG_FILE_HANDLE.write("\n") #add a new line before EOF
+                    self.LOG_FILE_HANDLE.close()
 
     def __cleanup(self, conn=None, cursor=None):
         #for cleaning up after init error

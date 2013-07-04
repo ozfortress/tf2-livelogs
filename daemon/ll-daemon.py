@@ -156,6 +156,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                                     self.server.removeListenerObject, self.server.listener_timeout, webtv_port)
 
                 data_obj.weapon_data = self.server.weapon_data
+                data_obj.query_queue = self.server.query_queue
 
                 self.newListen = listener.llListenerObject(data_obj)
                 
@@ -221,8 +222,9 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         self.server.close_request(self.request) #close the connection, as we've finished the request
 
 
+
 class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    def __init__(self, server_address, l_timeout, weapon_data, handler=llDaemonHandler):
+    def __init__(self, server_address, l_timeout, weapon_data, process_frequency, process_quota, client_handler=llDaemonHandler):
         self.logger = logging.getLogger('daemon')
 
         self.allow_reuse_address = True
@@ -236,11 +238,22 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.weapon_data = weapon_data
 
         self.timeout_event = threading.Event()
-        self.timeout_thread = threading.Thread(target=self._listenerTimeoutThread, args=(self.timeout_event,))
+        self.timeout_thread = threading.Thread(target=self._listener_timeout_timer, args=(self.timeout_event,))
         self.timeout_thread.daemon = True
         self.timeout_thread.start()
+
+        self.query_queue = queryqueue.query_queue() #our query queue object
+        self.queue_process_frequency = process_frequency
+        self.queue_process_quota = process_quota
+
+        self.queue_process_event = threading.Event()
+        self.queue_process_thread = threading.Thread(target=self._process_queue_timer, args=(self.queue_process_event,))
+        self.queue_process_thread.daemon = True
+        self.queue_process_thread.start()
         
-        SocketServer.TCPServer.__init__(self, server_address, handler)
+        self.__listen_set_lock = threading.Lock()
+
+        SocketServer.TCPServer.__init__(self, server_address, client_handler)
         
     def server_activate(self):
         self.logger.debug('Starting TCP listener')
@@ -251,7 +264,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         dict_key = "c" + ip + port
         if dict_key not in self.clientDict:
             self.clientDict[dict_key] = listen_tuple
-            self.logger.debug('Added %s:%s to client dict with key %s', ip, port, dict_key)
+            #self.logger.debug('Added %s:%s to client dict with key %s', ip, port, dict_key)
         
         return
 
@@ -272,7 +285,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         dict_key = "c" + ip + port
         if dict_key in self.clientDict:
             del self.clientDict[dict_key]
-            self.logger.debug('Removed client %s:%s from client dict', ip, port)
+            #self.logger.debug('Removed client %s:%s from client dict', ip, port)
 
         return
 
@@ -280,18 +293,23 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         #add the listener object to a set
         if listener_object in self.listen_set:
             self.logger.info("Listen object %s is already in the listen set. wat & why?", listener_object)
-        else:    
+        else:
+            self.__listen_set_lock.acquire()    
             self.listen_set.add(listener_object)
+            self.__listen_set_lock.release()
         
     def removeListenerObject(self, listener_object):
         #removes the object from the set
         if listener_object in self.listen_set:
-            self.logger.info("Listener object is in set. Removing")
+            self.__listen_set_lock.acquire()
+            #self.logger.info("Listener object is in set. Removing")
             client_ip, client_server_port = listener_object.client_address
         
             self.removeClient(client_ip, client_server_port)
             
             self.listen_set.discard(listener_object)
+
+            self.__listen_set_lock.release()
         else:
             self.logger.info("There was an attempt to remove a listener object that is not in the listener set")
 
@@ -367,7 +385,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
                             db_name, db_user, db_pass, db_host, db_port)
 
-                self.db = psycopg2.pool.ThreadedConnectionPool(minconn = 4, maxconn = 8, dsn = db_details) #dsn is passed to psycopg2.connect()
+                self.db = psycopg2.pool.ThreadedConnectionPool(minconn = 2, maxconn = 5, dsn = db_details) #dsn is passed to psycopg2.connect()
 
             except:
                 self.logger.exception("Unable to read database options from config file, or unable to connect to database")
@@ -403,20 +421,81 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             self.logger.exception("Exception looping over listeners for timeout")
 
 
-    def _listenerTimeoutThread(self, event):
+    def _listener_timeout_timer(self, event):
         while not event.is_set():
             self.listenerTimeoutCheck()
 
             event.wait(2) #run a timeout check every 2 seconds
 
-    def __process_database_queue(self):
+    def __process_database_queue(self, process_quota):
         """
         this will process a queue of database queries that are required to be performed by parser objects
         each stat upsert or similar query is added to this queue. things like event queries, or chat queries that
         require something to be returned are not done using this queue, as they have a higher priority
         """
+        if self.db.closed:
+            self.logger.error("DB POOL IS CLOSED, CANNOT PROCESS DATABASE QUEUE. PLZ RESTART")
+            return
 
+        try:
+            for i in xrange(0, process_quota): #process at most 'process_quota' queries every queue cycle
+                query_tuple = self.query_queue.get_next_query()
 
+                if query_tuple: #if we have queries to execute
+                    query_a = query_tuple[0]
+                    query_b = query_tuple[1]
+
+                    try:
+                        conn = self.db.getconn() #get a connection object from the psycopg2.pool
+                    except:
+                        self.logger.exception("Exception getting database connection")
+                        #since we couldn't get a database connection, let's add this query back to the queue and return!
+                        self.query_queue.readd_query(query_tuple)
+
+                        return
+
+                    cursor = conn.cursor()
+
+                    if query_a and query_b:
+                        #we have an insert/update query (upsert). query_a is the insert, query_b is the update
+                        try:
+                            cursor.execute("SELECT pgsql_upsert(%s, %s)", (query_a, query_b,))
+                            conn.commit() #commit changes to the database, so they are saved
+
+                        except psycopg2.DataError:
+                            self.logger.exception("ERROR UPSERTING. INSERT QUERY: \"%s\" | UPDATE QUERY: \"%s\"" % (query_a, query_b))
+                            conn.rollback() #rollback, discarding changes so the connection can be re-used later
+
+                        except:
+                            self.logger.exception("DB ERROR")
+                            conn.rollback()
+
+                    else:
+                        #we just have a single query to perform
+                        try:
+                            cursor.execute(query_a)
+                            conn.commit()
+
+                        except psycopg2.DataError:
+                            self.logger.exception("ERROR UPSERTING. INSERT QUERY: \"%s\"" % (query_a))
+                            conn.rollback() #rollback, discarding changes so the connection can be re-used later
+
+                        except:
+                            self.logger.exception("DB ERROR")
+                            conn.rollback()
+
+                    if not conn.closed:
+                        cursor.close()
+
+                    self.db.putconn(conn)
+        except:
+            self.logger.exception("ERROR PROCESSING QUERY QUEUE")
+
+    def _process_queue_timer(self, event):
+        while not event.is_set():
+            self.__process_database_queue(self.queue_process_quota)
+
+            event.wait(self.queue_process_frequency) #run a time
 
 
 def get_item_data():
@@ -493,9 +572,12 @@ if __name__ == '__main__':
             server_port = cfg_parser.getint('log-listener', 'server_port')
 
             l_timeout = cfg_parser.getfloat('log-listener', 'listener_timeout')
+
+            process_frequency = cfg_parser.getint('log-listener', 'queue_process_frequency')
+            process_quota = cfg_parser.getint('log-listener', 'queue_process_quota')
             
         except:
-            sys.exit("Unable to read log-listener section in config file")
+            sys.exit("Unable to read config file")
                 
     else:
         #first run time, no config file present. create with default values and exit
@@ -508,7 +590,7 @@ if __name__ == '__main__':
 
     weapon_data = get_item_data()
 
-    llServer = llDaemon(server_address, l_timeout, weapon_data, llDaemonHandler)
+    llServer = llDaemon(server_address, l_timeout, weapon_data, process_frequency, process_quota, client_handler=llDaemonHandler)
 
     logger = logging.getLogger('MAIN')
     logger.setLevel(logging.DEBUG)
@@ -521,7 +603,7 @@ if __name__ == '__main__':
         llServer.serve_forever() #listen for log requests!
         
     except KeyboardInterrupt:
-        #clean up this shit!
+        #clean up the listener objects/parsers still running
 
         logger.info("Keyboard interrupt. Closing daemon")
         llServer.timeout_event.set() #stop the timeout thread
@@ -532,11 +614,18 @@ if __name__ == '__main__':
             logger.info("Ending log with ident %s", listenobj.unique_parser_ident)
 
             if not listenobj.listener.parser.LOG_PARSING_ENDED:
-                listenobj.listener.parser.endLogParsing()
+                listenobj.listener.parser.endLogParsing(shutdown=True)
                 listenobj.listener.shutdown_listener()
                 
             else:
                 logger.info("\tListen object is still present, but the log has actually ended")
+
+        #stop the queue processing once we're relatively certain the queue has been processed entirely
+        while not llServer.query_queue.queue_empty(queryqueue.HIPRIO):
+            continue #just hang this thread while we wait for the high priority queue to finish
+
+        llServer.queue_process_event.set() #stop the queue processing event
+        llServer.queue_process_thread.join(5) #5 second join timeout
 
         llServer.db.closeall() #close all database connections in the pool
 
@@ -567,6 +656,8 @@ def make_new_config():
     cfg_parser.set('log-listener', 'server_port', '61222')
     cfg_parser.set('log-listener', 'listener_timeout', '90.0')
     cfg_parser.set('log-listener', 'log_directory', 'logs')
+    cfg_parser.set('log-listener', 'queue_process_frequency', '1')
+    cfg_parser.set('log-listener', 'queue_process_quota', '5')
     
     cfg_parser.add_section('websocket-server')
     cfg_parser.set('websocket-server', 'server_ip', '')

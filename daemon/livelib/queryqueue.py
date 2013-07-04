@@ -9,47 +9,72 @@ This will also allow greater flow control of parser database insertions
 
 import threading
 
+HIPRIO = 0 #high priority
+NMPRIO = 1 #normal priority
+LOPRIO = 2 #low priority
+
 class query_queue(object):
     def __init__(self):
-        self.__queue_levels = ["high", "normal", "low"]
+        self._last_queue_level = NMPRIO
 
-        self.__queue_priority = {
-            "high": 0,
-            "normal": 1,
-            "low": 2
-        } #a priority queue for queries
-
-        self.__queue = ( [], [], [] ) # tuple of lists for different queues
+        self.__queues = ( [], [], [] ) # tuple of lists for different queues
 
         self.__threading_lock = threading.Lock()
 
-    def add_query(self, query_a, query_b, priority = "normal"):
-        self.__threading_lock.acquire() #acquire a lock on the add_query function, so that threads cannot add to the queue at the same time
 
-        self._add_query_to_queue((query_a, query_b), self.__queue_priority[priority])
+    def add_query(self, query_a, query_b=None, priority = NMPRIO):
+        self.__threading_lock.acquire() #acquire a threading lock, so that other threads cannot add to the queue at the same time
 
-        self.__threading_lock.release() #release the lock
+        self.__add_query_to_queue((query_a, query_b), priority)
 
-    def _add_query_to_queue(self, query, priority):
-        self.__queue[priority].append(query) #query is a tuple of two possible 'queries' (i.e, insert/update for an upsert)
+        self.__threading_lock.release() #release the lock, so the next thread blocked on acquiring the lock can have its turn
+
+    def readd_query(self, query_tuple):
+        #this will re-add a query to the queue at the last queue level
+        self.__threading_lock.acquire()
+
+        self.__add_query_to_queue(query_tuple, self._last_queue_level)
+
+        self.__threading_lock.release()
+
+    def __add_query_to_queue(self, query, priority):
+        self.__queues[priority].append(query) #query is a tuple of two possible queries (i.e, insert/update for an upsert)
 
     def get_next_query(self):
         """
-        gets the next query to be run, by priority
+        gets the next query to be run, by priority, so we look at the high priority queue first, 
+        then proceed to low if no higher items were found
 
-        so we look at the high priority queue first, then proceed to low if no higher items were found
+        We only get 1 query at a time, and pop it from the queue, as this method is called repeatedly
+        by the queue thread, which will slowly wittle down the items in the queue
         """
 
-        for queue_level in self.__queue_levels: #list will always be in the same order
-            queue = self.__queue[self.__queue_priority[queue_level]]
+        for queue in self.__queues: #list will always be in the same order
             if len(queue) > 0:
                 #we have objects in this queue! pop the one at the front
-                self._pop_query
+                self._last_queue_level = queue_level
+                return self.__pop_query(self.__queue_priority[queue_level]) #return the query and the priority, in case it must be added back to the queue
 
+        #if we've reached this point, there was nothing in the queues, so return none
+        return None
 
-    def _pop_query(self, queue):
+    def __pop_query(self, queue_index):
+        self.__threading_lock.acquire() #lock while we pop
+
+        return self.__queues[queue_index].pop(0) #pop the first item in the queue
+
+        self.__threading_lock.release()
+
+    def queue_empty(self, queue_index):
+        if len(self.__queues[queue_index]) > 0:
+            return False #queue is not empty
+
+        #queue is empty
+        return True
 
     def copy(self):
         #shallow copy
         return self.__class__(self)
+
+
 
