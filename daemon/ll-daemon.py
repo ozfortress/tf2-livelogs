@@ -443,11 +443,11 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
         try:
             conn = self.db.getconn() #get a connection object from the psycopg2.pool
-            except:
-                self.logger.exception("Exception getting database connection")
-                return
+        except:
+            self.logger.exception("Exception getting database connection")
+            return
 
-            cursor = conn.cursor()
+        cursor = conn.cursor()
 
         try:
             for i in xrange(0, process_quota): #process at most 'process_quota' queries every queue cycle
@@ -456,6 +456,8 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 if query_tuple: #if we have queries to execute
                     query_a = query_tuple[0]
                     query_b = query_tuple[1]
+
+                    print "process iter %d: query: %s" % (i, query_tuple)
 
                     if query_a and query_b:
                         #we have an insert/update query (upsert). query_a is the insert, query_b is the update
@@ -618,9 +620,6 @@ if __name__ == '__main__':
                 logger.info("\tListen object is still present, but the log has actually ended")
 
         #stop the queue processing once we're relatively certain the queue has been processed entirely
-        while not llServer.query_queue.queue_empty(queryqueue.HIPRIO):
-            continue #just hang this thread while we wait for the high priority queue to finish
-
         llServer.queue_process_event.set() #stop the queue processing event
         llServer.queue_process_thread.join(5) #5 second join timeout
 
