@@ -3,7 +3,7 @@
 <head>
     <?php
         include 'static/header.html';
-        
+
         require "../conf/ll_database.php";
         require "../conf/ll_config.php";
         require 'func/help_functions.php';
@@ -37,7 +37,7 @@
             }
             else
             {
-                $player_logs_query = "SELECT name, server_ip, server_port, numeric_id, log_name, map, live, tstamp 
+                $player_logs_query = "SELECT DISTINCT server_ip, server_port, numeric_id, log_name, map, live, tstamp 
                                       FROM livelogs_servers
                                       JOIN livelogs_player_stats ON livelogs_player_stats.log_ident = livelogs_servers.log_ident 
                                       WHERE steamid = '{$escaped_steamid}'
@@ -47,18 +47,14 @@
                 $player_logs_result = pg_query($ll_db, $player_logs_query);
 
                 if (pg_num_rows($player_logs_result) > 0)
-                {
                     $player_logs = pg_fetch_all($player_logs_result);
-
-                    $player_name = $player_logs[0]["name"];
-                }
                 else
-                {
                     $player_logs = NULL;
-                    $player_name = "UNKNOWN";
-                }
                 
-                $pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC);
+                if (pg_num_rows($stat_result) > 0)
+                    $pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC);
+                else
+                    $pstat = NULL;
 
 
                 $class_stats_query =    "SELECT class, kills, deaths, assists, points,
@@ -68,6 +64,22 @@
                                         FROM get_player_class_stats({$escaped_steamid})";
 
                 $class_results = pg_query($ll_db, $class_stats_query);
+
+                $name_query =   "SELECT name 
+                                FROM livelogs_player_stats JOIN livelogs_player_stats ON livelogs_player_stats.log_ident = livelogs_servers.log_ident 
+                                WHERE steamid = {$escaped_steamid} and name IS NOT NULL
+                                ORDER BY numeric_id DESC LIMIT 1" //get the most recently used name
+
+                $name_result = pg_query($ll_db, $name_query);
+                if (pg_num_rows($name_result) > 0)
+                {
+                    $name_array = pg_fetch_array($name_result, 0, PGSQL_ASSOC);
+                    $player_name = $name_array["name"]
+                }
+                else
+                {
+                    $player_name = "LL_INVALID_STRING";
+                }
             }
         }
     ?>
