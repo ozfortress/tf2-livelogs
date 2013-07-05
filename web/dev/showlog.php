@@ -6,6 +6,7 @@
 
         require "../conf/ll_database.php";
         require "../conf/ll_config.php";
+        require 'func/help_functions.php';
         
         $log_serial = $_GET["lognum"];
 
@@ -543,7 +544,5 @@
 </html>
 
 <?php
-    include('func/help_functions.php');
-    
     pg_close($ll_db)
 ?>

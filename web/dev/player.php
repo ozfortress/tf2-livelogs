@@ -3,8 +3,10 @@
 <head>
     <?php
         include 'static/header.html';
+        
         require "../conf/ll_database.php";
         require "../conf/ll_config.php";
+        require 'func/help_functions.php';
 
         if (!$ll_db)
             die("Unable to connect to database");
@@ -428,7 +430,5 @@
 </html>
 
 <?php
-    include('func/help_functions.php');
-
     pg_close($ll_db);
 ?>
