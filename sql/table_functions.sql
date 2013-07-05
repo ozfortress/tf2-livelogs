@@ -21,68 +21,6 @@ BEGIN
 END;
 $_$ LANGUAGE 'plpgsql';
 
-CREATE OR REPLACE FUNCTION create_global_stat_table () RETURNS void AS $_$
-BEGIN
-    IF EXISTS (
-        SELECT 1 
-        FROM information_schema.tables
-        WHERE table_name = 'livelogs_player_stats' AND table_catalog = 'livelogs'
-        )
-    THEN
-        RAISE NOTICE 'Table livelogs.livelogs_player_stats already exists';
-    ELSE
-        CREATE TABLE livelogs_player_stats (log_ident varchar(64), steamid varchar(64), team text, name text, class text,
-                                    kills integer, deaths integer, assists integer, points decimal, 
-                                    healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer, 
-                                    headshots integer, backstabs integer, damage_dealt integer, damage_taken integer,
-                                    ap_small integer, ap_medium integer, ap_large integer,
-                                    mk_small integer, mk_medium integer, mk_large integer,
-                                    captures integer, captures_blocked integer, 
-                                    dominations integer, times_dominated integer, revenges integer,
-                                    suicides integer, buildings_destroyed integer, extinguishes integer, PRIMARY KEY(log_ident, steamid));
-        
-    END IF;
-
-    DROP TRIGGER IF EXISTS zero_null_stat ON livelogs_player_stats;
-
-    CREATE TRIGGER zero_null_stat
-    BEFORE INSERT ON livelogs_player_stats
-        FOR EACH ROW EXECUTE PROCEDURE zero_null_stat();
-END;
-$_$ LANGUAGE 'plpgsql';
-
-CREATE OR REPLACE FUNCTION create_global_server_table () RETURNS void AS $_$
-BEGIN
-    IF EXISTS (
-        SELECT 1 
-        FROM information_schema.tables
-        WHERE table_name = 'livelogs_servers' AND table_catalog = 'livelogs'
-        )
-    THEN
-        RAISE NOTICE 'Table livelogs.livelogs_servers already exists';
-    ELSE
-        CREATE TABLE livelogs_servers (numeric_id serial, server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean, webtv_port integer, tstamp text);
-    END IF;
-END;
-$_$ LANGUAGE 'plpgsql';
-
-CREATE OR REPLACE FUNCTION create_global_userlog_table () RETURNS void AS $_$
-BEGIN
-    IF EXISTS (
-        SELECT 1 
-        FROM information_schema.tables
-        WHERE table_name = 'livelogs_player_logs' AND table_catalog = 'livelogs'
-        )
-    THEN
-        RAISE NOTICE 'Table livelogs.livelogs_player_logs already exists';
-    ELSE
-        CREATE TABLE livelogs_player_logs (index serial PRIMARY KEY, 
-                                           steamid varchar(64), 
-                                           log_ident varchar(64) references livelogs_servers(log_ident));
-    END IF;
-END;
-$_$ LANGUAGE 'plpgsql';
-
 CREATE OR REPLACE FUNCTION pgsql_upsert (insert_query text, update_query text) RETURNS void AS $_$
 --THIS FUNCTION WILL TAKE TWO QUERIES, AN INSERT AND AN UPDATE QUERY. IT WILL ATTEMPT TO RUN THE UPDATE QUERY FIRST, IF UNSUCCESSFUL IT WILL RUN THE INSERT QUERY
 --Allows the user to avoid having to check the contents via their language first to decide whether to insert or update.
@@ -190,26 +128,7 @@ END;
 $_$ LANGUAGE 'plpgsql';
 
 CREATE OR REPLACE FUNCTION add_stat_column (col_name text, col_type regtype) RETURNS void AS $_$
-DECLARE
-    row RECORD;
 BEGIN
-    FOR row IN
-        SELECT table_name
-        FROM information_schema.tables 
-        WHERE table_catalog = 'livelogs' AND table_name ~* 'log_stat'
-    LOOP
-        IF EXISTS (
-            SELECT column_name
-            FROM information_schema.columns 
-            WHERE table_name = row.table_name AND column_name = col_name
-            )
-        THEN
-            RAISE NOTICE 'Column % already exists', col_name;
-        ELSE
-            EXECUTE 'ALTER TABLE ' || row.table_name || ' ADD COLUMN ' || col_name || ' ' || col_type;
-        END IF;
-    END LOOP;
-
     IF NOT EXISTS (
         SELECT column_name
         FROM information_schema.columns
@@ -221,6 +140,53 @@ BEGIN
 END;
 $_$ LANGUAGE 'plpgsql';
 
+DROP TYPE IF EXISTS class_stat_record CASCADE; --cascade so it'll drop items using this type too
+CREATE TYPE class_stat_record AS (
+    --class, kills, deaths, assists, points
+    --healing_done, healing_received, ubers_used, ubers_lost,
+    --headshots, backstabs, damage_dealt, damage_taken,
+    --dominations, revenges
+    class text,
+    kills bigint,
+    deaths bigint,
+    assists bigint,
+    points decimal,
+    healing_done bigint,
+    healing_received bigint,
+    ubers_used bigint,
+    ubers_lost bigint,
+    headshots bigint,
+    backstabs bigint,
+    damage_dealt bigint,
+    damage_taken bigint,
+    dominations bigint,
+    revenges bigint
+);
+
+CREATE OR REPLACE FUNCTION get_player_class_stats(cid bigint) RETURNS setof class_stat_record AS $_$
+DECLARE
+    pclass RECORD;
+    class_stats class_stat_record;
+BEGIN
+    FOR pclass IN
+        SELECT DISTINCT class
+        FROM livelogs_player_stats
+        WHERE steamid = cid
+    LOOP
+        SELECT 1, SUM(kills) as kills, SUM(deaths) as deaths, SUM(assists) as assists, SUM(points) as points, 
+               SUM(healing_done) as healing_done, SUM(healing_received) as healing_received, SUM(ubers_used) as ubers_used, SUM(ubers_lost) as ubers_lost, 
+               SUM(headshots) as headshots, SUM(backstabs) as backstabs, SUM(damage_dealt) as damage_dealt, SUM(damage_taken) as damage_taken,
+               SUM(dominations) as dominations, SUM(revenges) as revenges
+        FROM livelogs_player_stats
+        WHERE steamid = cid AND class = pclass.class
+        INTO class_stats;
+
+        class_stats.class := pclass.class;
+
+        RETURN NEXT class_stats; 
+    END LOOP;
+END;
+$_$ LANGUAGE 'plpgsql';
 
 DROP TYPE IF EXISTS user_log_return CASCADE; --we add cascade so that it will drop items using this type as well
 CREATE TYPE user_log_return AS (

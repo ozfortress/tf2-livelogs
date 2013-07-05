@@ -70,7 +70,7 @@
                 $time_array = pg_fetch_all($time_result);
             }
 
-            if ((!$stat_result) || (!$chat_result) || (!$time_result))
+            if ((!$stat_result) || (!$chat_result))
             {
                 echo "PGSQL HAD ERROR: " . pg_last_error();
             }
@@ -94,10 +94,11 @@
 
             if ($log_live)
             {
+                date_default_timezone_set("Australia/Melbourne");
                 $time_start = $log_details["tstamp"]; //the time the log was created
                 $time_start_ctime = strtotime($time_start); //time in format "2013-07-04 23:59:53"
 
-                $curr_time = time()
+                $curr_time = time();
 
                 $time_elapsed_sec = $curr_time - $time_start_ctime;
             }
@@ -337,13 +338,14 @@
                         <td><span id="<?=$community_id . ".t_dominated"?>"><?=$pstat["times_dominated"]?></span></td>
                         <td id="<?=$community_id . ".revenges"?>"><?=$pstat["revenges"]?></td>
                          */
-                        $mstats = Array();
+                        
+                        $mstats = array();
                         //NAME:K:D:A:PC:PB:HS:PTS:DMG:DMGT:HEAL:DOM:R:KPD:DPD:DPR:DPM
 
                         $stat_array = pg_fetch_all($stat_result);
 
                         $player_stats = merge_stat_array($stat_array);
-                        print_r($player_stats);
+                        //print_r($player_stats);
 
                         //while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC))
                         foreach ($player_stats as $community_id => $pstat)
@@ -602,6 +604,11 @@
 
         foreach ($split_class as $idx => $class)
         {
+            if ($class === "UNKNOWN")
+            {
+                $class = "noclass";
+            }
+
             $imgstring .= '<img src="/images/classes/' . $class . '.png" style="max-width: 18px; max-height: 18px; height: auto; width: auto"> ';
         }
 

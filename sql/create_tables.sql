@@ -1,7 +1,7 @@
 
 CREATE TABLE livelogs_auth_keys (user_name text, user_email text, user_key text, user_ip text); --holds user authentication keys and contact details
 
-CREATE TABLE livelogs_player_stats (log_ident varchar(64), steamid varchar(64), team text, name text, class text,
+CREATE TABLE livelogs_player_stats (log_ident varchar(64), steamid bigint, team text, name text, class text,
                                     kills integer, deaths integer, assists integer, points decimal, 
                                     healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer, 
                                     headshots integer, backstabs integer, damage_dealt integer, damage_taken integer,
@@ -9,7 +9,7 @@ CREATE TABLE livelogs_player_stats (log_ident varchar(64), steamid varchar(64), 
                                     mk_small integer, mk_medium integer, mk_large integer,
                                     captures integer, captures_blocked integer, 
                                     dominations integer, times_dominated integer, revenges integer,
-                                    suicides integer, buildings_destroyed integer, extinguishes integer, PRIMARY KEY(log_ident, steamid)); --holds per-game player statistics. i.e, the stat table for all matches
+                                    suicides integer, buildings_destroyed integer, extinguishes integer, PRIMARY KEY(log_ident, steamid, class)); --holds per-game player statistics. i.e, the stat table for all matches
 
 
 CREATE TRIGGER zero_null_stat

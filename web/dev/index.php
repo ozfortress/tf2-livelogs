@@ -165,8 +165,6 @@
                     while ($past = pg_fetch_array($past_res, NULL, PGSQL_ASSOC))
                     {
                         //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
-                        $log_split = explode("_", $past["log_ident"]); //3232244481_27015_1356076576
-                        
                     ?>
                         
                         <tr>

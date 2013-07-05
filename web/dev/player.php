@@ -26,35 +26,47 @@
                                     SUM(ap_small) as ap_small, SUM(ap_medium) as ap_medium, SUM(ap_large) as ap_large,
                                     SUM(mk_small) as mk_small, SUM(mk_medium) as mk_medium, SUM(mk_large) as mk_large
                             FROM livelogs_player_stats WHERE steamid='{$escaped_steamid}'";
+
             $stat_result = pg_query($ll_db, $stat_query);
 
             if (!$stat_result)
             {
                 $invalid_player = true;
             }
-
-            $player_logs_query = "SELECT name, server_ip, server_port, numeric_id, log_name, map, live, tstamp 
-                                  FROM livelogs_servers
-                                  JOIN livelogs_player_stats ON livelogs_player_stats.log_ident = livelogs_servers.log_ident 
-                                  WHERE steamid = '{$escaped_steamid}'
-                                  ORDER BY numeric_id DESC
-                                  LIMIT {$ll_config["display"]["player_num_past"]}"; //get all the logs that a user has been in
-
-            $player_logs_result = pg_query($ll_db, $player_logs_query);
-
-            if (pg_num_rows($player_logs_result) > 0)
-            {
-                $player_logs = pg_fetch_all($player_logs_result);
-
-                $player_name = $player_logs[0]["name"];
-            }
             else
             {
-                $player_logs = NULL;
-                $player_name = "UNKNOWN";
+                $player_logs_query = "SELECT name, server_ip, server_port, numeric_id, log_name, map, live, tstamp 
+                                      FROM livelogs_servers
+                                      JOIN livelogs_player_stats ON livelogs_player_stats.log_ident = livelogs_servers.log_ident 
+                                      WHERE steamid = '{$escaped_steamid}'
+                                      ORDER BY numeric_id DESC
+                                      LIMIT {$ll_config["display"]["player_num_past"]}"; //get all the logs that a user has been in
+
+                $player_logs_result = pg_query($ll_db, $player_logs_query);
+
+                if (pg_num_rows($player_logs_result) > 0)
+                {
+                    $player_logs = pg_fetch_all($player_logs_result);
+
+                    $player_name = $player_logs[0]["name"];
+                }
+                else
+                {
+                    $player_logs = NULL;
+                    $player_name = "UNKNOWN";
+                }
+                
+                $pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC);
+
+
+                $class_stats_query =    "SELECT class, kills, deaths, assists, points
+                                            healing_done, healing_received, ubers_used, ubers_lost,
+                                            headshots, backstabs, damage_dealt, damage_taken,
+                                            dominations, revenges
+                                        FROM get_player_class_stats({$escaped_steamid})";
+
+                $class_results = pg_query($ll_db, $class_stats_query);
             }
-            
-            $pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC);
         }
     ?>
 
@@ -265,6 +277,89 @@
                 <caption>Total item pickups</caption>
             </table>
         </div>
+
+        <div class="stat_table_container">
+
+            <table class="table table-bordered table-hover ll_table">
+                <thead>
+                    <tr class="stat_summary_title_bar">
+                        <th class="stat_summary_col_title">
+                            <abbr title="Kills">K</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Deaths">D</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Assists">A</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Headshots">HS</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Backstabs">BS</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Points">Points</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Damage Dealt">DMG</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Damage Taken">DT</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Healing Received">HealR</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Dominations">DMN</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Revenges">R</abbr>
+                        </th>
+                        <th class="stat_summary_col_title_secondary">
+                            <abbr title="Kills per Death">KPD</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Damage Dealt per Death">DPD</abbr>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php
+                    /*class, kills, deaths, assists, points
+                    healing_done, healing_received, ubers_used, ubers_lost,
+                    headshots, backstabs, damage_dealt, damage_taken,
+                    dominations, revenges
+                    */
+                    while ($cstat = pg_fetch_array($class_results, NULL, PGSQL_ASSOC))
+                    {
+                        $p_kpd = round($cstat["kills"] / (($cstat["deaths"]) ? $cstat["deaths"] : 1), 2); // kills/death
+                        $p_dpd = round($cstat["damage_dealt"] / (($cstat["deaths"]) ? $cstat["deaths"] : 1), 2); //damage/death
+                    
+
+                    ?>
+                    
+                    <tr>
+                        <td><span id="<?=$community_id . ".kills"?>"><?=$cstat["kills"]?></span></td>
+                        <td><span id="<?=$community_id . ".deaths"?>"><?=$cstat["deaths"]?></span></td>
+                        <td><span id="<?=$community_id . ".assists"?>"><?=$cstat["assists"]?></span></td>
+                        <td><span id="<?=$community_id . ".headshots"?>"><?=$cstat["headshots"]?></span></td>
+                        <td><span id="<?=$community_id . ".backstabs"?>"><?=$cstat["backstabs"]?></span></td>
+                        <td><span id="<?=$community_id . ".points"?>"><?=$cstat["points"]?></span></td>
+                        <td><span id="<?=$community_id . ".damage"?>"><?=$cstat["damage_dealt"]?></span></td>
+                        <td><span id="<?=$community_id . ".damage_taken"?>"><?=$cstat["damage_taken"]?></span></td>
+                        <td><span id="<?=$community_id . ".heal_rcvd"?>"><?=$cstat["healing_received"]?></span></td>
+                        <td><span id="<?=$community_id . ".dominations"?>"><?=$cstat["dominations"]?></span></td>
+                        <td><span id="<?=$community_id . ".revenges"?>"><?=$cstat["revenges"]?></span></td>
+                        <td><span id="<?=$community_id . ".kpd"?>"><?=$p_kpd?></span></td>
+                        <td><span id="<?=$community_id . ".dpd"?>"><?=$p_dpd?></span></td>
+                    </tr>
+                    
+                </tbody>
+                <caption>Player stats</caption>
+            </table>
+        </div>
+
         <div class="log_list_past_container">
             <?php
             if (sizeof($player_logs) > 0)
