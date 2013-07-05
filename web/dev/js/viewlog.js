@@ -17,7 +17,7 @@ $(document).ready(function()
         "bSortClasses": false,
         "bSearchable": false,
         "bInfo": false,
-        "bJQueryUI": true,
+        "bJQueryUI": false,
         "bUseRendered": true,
         "bFilter": false
     });
