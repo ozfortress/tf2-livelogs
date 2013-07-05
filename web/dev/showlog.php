@@ -325,14 +325,20 @@
                          */
                         $mstats = Array();
                         //NAME:K:D:A:PC:PB:HS:PTS:DMG:DMGT:HEAL:DOM:R:KPD:DPD:DPR:DPM
-                        while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC))
+
+                        $stat_array = pg_fetch_all($stat_result);
+
+                        $player_stats = merge_stat_array($stat_array);
+                        print_r($player_stats);
+
+                        //while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC))
+                        foreach ($player_stats as $community_id => $pstat)
                         {
                             if (empty($pstat["name"]))
                             {
                                 $pstat["name"] = "LL_INVALID_STRING";
                             }
 
-                            $community_id = $pstat["steamid"];
                             $p_kpd = round($pstat["kills"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); // kills/death
                             $p_dpd = round($pstat["damage_dealt"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); //damage/death
                             $p_dpr = round($pstat["damage_dealt"] / (($red_score || $blue_score) ? ($red_score + $blue_score) : 1), 2); //num rounds are red score + blue score, damage/round
@@ -343,7 +349,7 @@
                             
                             if (($pstat["healing_done"] > 0) || ($pstat["ubers_used"]) || ($pstat["ubers_lost"]))
                             {
-                                $mstats[sizeof($mstats)] = $pstat;
+                                $mstats[$community_id] = $pstat;
                             }
                     ?>
                         
@@ -398,26 +404,19 @@
                         </tr>
                     </thead>
                     <tbody>
-                    <?php
-                        $num_med = sizeof($mstats);
-                        $i = 0;
-                        
-                        while ($i < $num_med)
+                    <?php                        
+                        foreach ($mstats as $community_id => $mstat)
                         {
-                            //$sid = $mstats[$i]["steamid"];
-                            $community_id = $mstats[$i]["steamid"];
-                            
-                            $team_class = get_player_team_class(strtolower($mstats[$i]["team"]));
+                            $team_class = get_player_team_class(strtolower($mstat["team"]));
                         ?>
                         
                         <tr>
-                            <td><a class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=htmlentities($mstats[$i]["name"], ENT_QUOTES, "UTF-8")?></a></td>
-                            <td id="<?=$community_id . ".healing_done"?>"><?=$mstats[$i]["healing_done"]?></td>
-                            <td id="<?=$community_id . ".ubers_used"?>"><?=$mstats[$i]["ubers_used"]?></td>
-                            <td id="<?=$community_id . ".ubers_lost"?>"><?=$mstats[$i]["ubers_lost"]?></td>
+                            <td><a class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=htmlentities($mstat["name"], ENT_QUOTES, "UTF-8")?></a></td>
+                            <td id="<?=$community_id . ".healing_done"?>"><?=$mstat["healing_done"]?></td>
+                            <td id="<?=$community_id . ".ubers_used"?>"><?=$mstat["ubers_used"]?></td>
+                            <td id="<?=$community_id . ".ubers_lost"?>"><?=$mstat["ubers_lost"]?></td>
                         </tr>
                     <?php
-                            $i++;
                         }
                     ?>
                     
@@ -593,6 +592,61 @@
         }
 
         return $imgstring;
+    }
+
+    function merge_stat_array($player_stats)
+    {
+        /*
+        Take the player stat array and merge on steamid, adding all stat values together
+        */
+
+        $new_array = array();
+
+        foreach ($player_stats as $index => $stat_data)
+        {
+            foreach ($stat_data as $key => $value)
+            {
+                //key is the database column names
+                //value is the value of that column
+                if ($key === "steamid")
+                {
+                    $curr_cid = $value;
+                    if (empty($new_array[$value]))
+                    {
+                        $new_array[$value] = array(); //create a new array under the player's steamid
+                    }
+
+                    continue; //skip to the next key
+                }
+
+                //check for the stat key in the player's array
+                if (empty($new_array[$curr_cid][$key]))
+                {
+                    $new_array[$curr_cid][$key] = $value;
+                }
+                else
+                {
+                    if ($key === "class")
+                    {
+                        $new_array[$curr_cid][$key] .= "," . $value;
+                    }
+                    else if ($key === "name")
+                    {
+                        //just update the name to whatever this is
+                        if (!empty($value))
+                        {
+                            $new_array[$curr_cid][$key] = $value;
+                        }
+                    }
+                    else
+                    {
+                        $new_array[$curr_cid[$key] += $value;
+                    }
+                }
+            }
+        }
+
+        return $new_array;
     }
     
     pg_close($ll_db)
