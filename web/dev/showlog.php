@@ -26,6 +26,12 @@
         }
         else
         {
+            //live or not
+            if ($log_details["live"] === "f")
+                $log_live = false;
+            else
+                $log_live = true;
+
             //valid numeric id given. get log ident out
             $_unique_ident = $log_details["log_ident"];
 
@@ -54,7 +60,18 @@
             $chat_query = "SELECT steamid, name, team, chat_type, chat_message FROM livelogs_game_chat WHERE log_ident = '{$_unique_ident}'";
             $chat_result = pg_query($ll_db, $chat_query);
 
-            $time_query = "SELECT event_time FROM {$escaped_event_table} WHERE eventid = '1' UNION SELECT event_time FROM {$escaped_event_table} WHERE eventid = (SELECT MAX(eventid) FROM {$escaped_event_table})";
+
+            if ($log_live)
+            {
+                $time_query = "SELECT event_time FROM {$escaped_event_table} WHERE eventid = '1'"; //get the starting time
+            }
+            else
+            {
+                $time_query =   "SELECT event_time FROM {$escaped_event_table} WHERE eventid = '1' 
+                                UNION 
+                                SELECT event_time FROM {$escaped_event_table} WHERE eventid = (SELECT MAX(eventid) FROM {$escaped_event_table})";
+            }
+
             $time_result = pg_query($ll_db, $time_query);        
 
             if ((!$stat_result) || (!$chat_result) || (!$time_result))
@@ -83,12 +100,18 @@
             if (sizeof($time_array) > 0)
             {
                 $time_start = $time_array[0]["event_time"]; //starting time
-                $time_last = $time_array[1]["event_time"]; //latest time
-                
-                //time is in format "10/01/2012 21:38:18"
-                $time_start_ctime = strtotime($time_start);
-                $time_last_ctime = strtotime($time_last);
-                
+                $time_start_ctime = strtotime($time_start); //time is in format "10/01/2012 21:38:18"
+
+                if ($log_live)
+                {
+                    $time_last_ctime = time();
+                }
+                else
+                {
+                    $time_last = $time_array[1]["event_time"]; //latest time in the log
+                    $time_last_ctime = strtotime($time_last); //time is in format "10/01/2012 21:38:18"
+                }
+
                 $time_elapsed_sec = $time_last_ctime - $time_start_ctime;
             }
             else
@@ -100,12 +123,6 @@
             
             $invalid_log_ident = false;
         }
-        
-        //live or not
-        if ($log_details["live"] === "f")
-            $log_live = false;
-        else
-            $log_live = true;
     ?>
 
     <title>Livelogs - <?=$log_details["log_name"]?> (<?=$_unique_ident?>)</title>
