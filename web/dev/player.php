@@ -66,15 +66,15 @@
                 $class_results = pg_query($ll_db, $class_stats_query);
 
                 $name_query =   "SELECT name 
-                                FROM livelogs_player_stats JOIN livelogs_player_stats ON livelogs_player_stats.log_ident = livelogs_servers.log_ident 
+                                FROM livelogs_player_stats JOIN livelogs_servers ON livelogs_player_stats.log_ident = livelogs_servers.log_ident 
                                 WHERE steamid = {$escaped_steamid} and name IS NOT NULL
-                                ORDER BY numeric_id DESC LIMIT 1" //get the most recently used name
+                                ORDER BY numeric_id DESC LIMIT 1"; //get the most recently used name
 
                 $name_result = pg_query($ll_db, $name_query);
                 if (pg_num_rows($name_result) > 0)
                 {
                     $name_array = pg_fetch_array($name_result, 0, PGSQL_ASSOC);
-                    $player_name = $name_array["name"]
+                    $player_name = $name_array["name"];
                 }
                 else
                 {
@@ -293,8 +293,7 @@
         </div>
 
         <div class="stat_table_container">
-
-            <table class="table table-bordered table-hover ll_table">
+            <table class="table table-bordered table-hover ll_table" id="class_stats">
                 <thead>
                     <tr class="stat_summary_title_bar">
                         <th class="stat_summary_col_title">
@@ -437,6 +436,8 @@
 
     </div>
     <?php include('static/footer.html'); ?>
+
+    <script src="/js/playerview.js" type="text/javascript"></script>
 
 </body>
 </html>
