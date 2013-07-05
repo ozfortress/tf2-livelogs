@@ -11,7 +11,7 @@
 
         $escaped_serial = pg_escape_string($log_serial);
         
-        $log_detail_query = "SELECT log_ident, log_name, server_ip, server_port, map, live, webtv_port 
+        $log_detail_query = "SELECT log_ident, log_name, server_ip, server_port, map, live, webtv_port, tstamp
                             FROM livelogs_servers 
                             WHERE numeric_id = '{$escaped_serial}'";
 
@@ -60,19 +60,15 @@
             $chat_query = "SELECT steamid, name, team, chat_type, chat_message FROM livelogs_game_chat WHERE log_ident = '{$_unique_ident}'";
             $chat_result = pg_query($ll_db, $chat_query);
 
-
-            if ($log_live)
-            {
-                $time_query = "SELECT event_time FROM {$escaped_event_table} WHERE eventid = '1'"; //get the starting time
-            }
-            else
+            if (!$log_live)
             {
                 $time_query =   "SELECT event_time FROM {$escaped_event_table} WHERE eventid = '1' 
                                 UNION 
                                 SELECT event_time FROM {$escaped_event_table} WHERE eventid = (SELECT MAX(eventid) FROM {$escaped_event_table})";
+            
+                $time_result = pg_query($ll_db, $time_query);
+                $time_array = pg_fetch_all($time_result);
             }
-
-            $time_result = pg_query($ll_db, $time_query);        
 
             if ((!$stat_result) || (!$chat_result) || (!$time_result))
             {
@@ -96,21 +92,22 @@
                 $blue_score = 0;
             }
 
-            $time_array = pg_fetch_all($time_result);
-            if (sizeof($time_array) > 0)
+            if ($log_live)
+            {
+                $time_start = $log_details["tstamp"]; //the time the log was created
+                $time_start_ctime = strtotime($time_start); //time in format "2013-07-04 23:59:53"
+
+                $curr_time = time()
+
+                $time_elapsed_sec = $curr_time - $time_start_ctime;
+            }
+            else if (sizeof($time_array) == 2)
             {
                 $time_start = $time_array[0]["event_time"]; //starting time
                 $time_start_ctime = strtotime($time_start); //time is in format "10/01/2012 21:38:18"
 
-                if ($log_live)
-                {
-                    $time_last_ctime = time();
-                }
-                else
-                {
-                    $time_last = $time_array[1]["event_time"]; //latest time in the log
-                    $time_last_ctime = strtotime($time_last); //time is in format "10/01/2012 21:38:18"
-                }
+                $time_last = $time_array[1]["event_time"]; //latest time in the log
+                $time_last_ctime = strtotime($time_last); //time is in format "10/01/2012 21:38:18"
 
                 $time_elapsed_sec = $time_last_ctime - $time_start_ctime;
             }
