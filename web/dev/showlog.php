@@ -630,9 +630,9 @@
                     {
                         $new_array[$curr_cid][$key] .= "," . $value;
                     }
-                    else if ($key === "name")
+                    else if ($key === "name" || $key === "team")
                     {
-                        //just update the name to whatever this is
+                        //just update the name/team to whatever this is
                         if (!empty($value))
                         {
                             $new_array[$curr_cid][$key] = $value;
@@ -640,7 +640,7 @@
                     }
                     else
                     {
-                        $new_array[$curr_cid[$key] += $value;
+                        $new_array[$curr_cid][$key] += $value;
                     }
                 }
             }

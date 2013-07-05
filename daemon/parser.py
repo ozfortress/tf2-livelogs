@@ -1207,3 +1207,4 @@ class parserClass(object):
             if not self.LOG_FILE_HANDLE.closed:
                 self.LOG_FILE_HANDLE.close()
 
+

@@ -100,3 +100,4 @@ class Steam_API(object):
         logging.info("Weapon dict populated with non-static weapons")
 
         return weapon_dict
+
