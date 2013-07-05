@@ -59,7 +59,7 @@
                 $pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC);
 
 
-                $class_stats_query =    "SELECT class, kills, deaths, assists, points
+                $class_stats_query =    "SELECT class, kills, deaths, assists, points,
                                             healing_done, healing_received, ubers_used, ubers_lost,
                                             headshots, backstabs, damage_dealt, damage_taken,
                                             dominations, revenges
@@ -284,6 +284,9 @@
                 <thead>
                     <tr class="stat_summary_title_bar">
                         <th class="stat_summary_col_title">
+                            <abbr title="Player's class">Class</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
                             <abbr title="Kills">K</abbr>
                         </th>
                         <th class="stat_summary_col_title">
@@ -340,6 +343,7 @@
                     ?>
                     
                     <tr>
+                        <td><?=player_classes($cstat["class"])?></td>
                         <td><span id="<?=$community_id . ".kills"?>"><?=$cstat["kills"]?></span></td>
                         <td><span id="<?=$community_id . ".deaths"?>"><?=$cstat["deaths"]?></span></td>
                         <td><span id="<?=$community_id . ".assists"?>"><?=$cstat["assists"]?></span></td>
@@ -354,9 +358,12 @@
                         <td><span id="<?=$community_id . ".kpd"?>"><?=$p_kpd?></span></td>
                         <td><span id="<?=$community_id . ".dpd"?>"><?=$p_dpd?></span></td>
                     </tr>
+                    <?php
+                    }
+                    ?>
                     
                 </tbody>
-                <caption>Player stats</caption>
+                <caption>Class stats</caption>
             </table>
         </div>
 
@@ -421,24 +428,7 @@
 </html>
 
 <?php
-    function big_int_to_steamid($cid) {
-        //converts a community id to a steamid
-        $cid = (int)$cid - 76561197960265728;
-        $cid_half = $cid / 2;
-
-        if ($cid % 2) //if there's a remainder, auth server is server 1, else it's server 0
-        {
-            $auth_server = 1;
-            $sid_chunk = $cid_half - 0.5;
-        }
-        else
-        {
-            $auth_server = 0;
-            $sid_chunk = $cid_half; //last part of the steam id (i.e 1234567)
-        }
-        $steamid = sprintf("STEAM_0:%d:%d", $auth_server, $sid_chunk);
-        return $steamid;
-    }
+    include('func/help_functions.php');
 
     pg_close($ll_db);
 ?>
