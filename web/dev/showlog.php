@@ -275,64 +275,6 @@
                 <span class="blue_score_tag">BLUE </span><span id="blue_score_value" class="blue_score"><?=(($blue_score) ? $blue_score : 0)?></span>
             </div>
         </div>
-        <?php
-        if ($team_stats_result && pg_num_rows($team_stats_result) > 0)
-        {
-        ?>
-
-        <div class="stat_table_container stat_table_container_small">
-            <table class="table table-bordered table-hover ll_table" id="team_stats">
-                <thead>
-                    <th class="stat_summary_title_bar">
-                        <abbr title="The team">Team</abbr>
-                    </th>
-                    <th class="stat_summary_title_bar">
-                        <abbr title="Total team kills">K</abbr>
-                    </th>
-                    <th class="stat_summary_title_bar">
-                        <abbr title="Total team deaths">D</abbr>
-                    </th>
-                    <th class="stat_summary_title_bar">
-                        <abbr title="Total team healing done">HD</abbr>
-                    </th>
-                    <th class="stat_summary_title_bar">
-                        <abbr title="Total team damage dealt">DMG</abbr>
-                    </th>
-                    <th class="stat_summary_title_bar">
-                        <abbr title="Total team damage taken">DT</abbr>
-                    </th>
-                    <th class="stat_summary_title_bar">
-                        <abbr title="Total team damage per minute">DPM</abbr>
-                    </th>
-                </thead>
-                <tbody>
-                <?php
-                    while ($tstat = pg_fetch_array($team_stats_result, NULL, PGSQL_ASSOC))
-                    {
-                        $team_dpm = round($tstat["team_damage_dealt"] / ($time_elapsed_sec/60), 2);
-
-                        $team_class = get_player_team_class(strtolower($pstat["team"]));
-                ?>
-                    <tr>
-                        <td id="<?=$tstat["team"] . ".team"?>" class="<?=$team_class?>"><?=$tstat["team"]?></td>
-                        <td id="<?=$tstat["team"] . ".team_kills"?>"><?=$tstat["team_kills"]?></td>
-                        <td id="<?=$tstat["team"] . ".team_deaths"?>"><?=$tstat["team_deaths"]?></td>
-                        <td id="<?=$tstat["team"] . ".team_healing_done"?>"><?=$tstat["team_healing_done"]?></td>
-                        <td id="<?=$tstat["team"] . ".team_damage_dealt"?>"><?=$tstat["team_damage_dealt"]?></td>
-                        <td id="<?=$tstat["team"] . ".team_damage_taken"?>"><?=$tstat["team_damage_taken"]?></td>
-                        <td id="<?=$tstat["team"] . ".team_dpm"?>"><?=$team_dpm?></td>
-                    </tr>
-                <?php
-                    }
-                ?>
-
-                </tbody>
-                <caption>Total team stats</caption>
-            </table>
-        </div>
-        <?php
-        }
-        ?>
 
         <div class="stat_table_container">
             <div class="general_stat_summary">
@@ -509,8 +451,65 @@
                 </table>
             </div>
         </div>
-        
+
         <?php
+        if ($team_stats_result && pg_num_rows($team_stats_result) > 0)
+        {
+        ?>
+
+        <div class="stat_table_container stat_table_container_small">
+            <table class="table table-bordered table-hover ll_table" id="team_stats">
+                <thead>
+                    <th class="stat_summary_title_bar">
+                        <abbr title="The team">Team</abbr>
+                    </th>
+                    <th class="stat_summary_title_bar">
+                        <abbr title="Total team kills">K</abbr>
+                    </th>
+                    <th class="stat_summary_title_bar">
+                        <abbr title="Total team deaths">D</abbr>
+                    </th>
+                    <th class="stat_summary_title_bar">
+                        <abbr title="Total team healing done">HD</abbr>
+                    </th>
+                    <th class="stat_summary_title_bar">
+                        <abbr title="Total team damage dealt">DMG</abbr>
+                    </th>
+                    <th class="stat_summary_title_bar">
+                        <abbr title="Total team damage taken">DT</abbr>
+                    </th>
+                    <th class="stat_summary_title_bar">
+                        <abbr title="Total team damage per minute">DPM</abbr>
+                    </th>
+                </thead>
+                <tbody>
+                <?php
+                    while ($tstat = pg_fetch_array($team_stats_result, NULL, PGSQL_ASSOC))
+                    {
+                        $team_dpm = round($tstat["team_damage_dealt"] / ($time_elapsed_sec/60), 2);
+
+                        $team_class = get_player_team_class(strtolower($tstat["team"]));
+                ?>
+                    <tr>
+                        <td id="<?=$tstat["team"] . ".team"?>" class="<?=$team_class?>"><?=strtoupper($tstat["team"])?></td>
+                        <td id="<?=$tstat["team"] . ".team_kills"?>"><?=$tstat["team_kills"]?></td>
+                        <td id="<?=$tstat["team"] . ".team_deaths"?>"><?=$tstat["team_deaths"]?></td>
+                        <td id="<?=$tstat["team"] . ".team_healing_done"?>"><?=$tstat["team_healing_done"]?></td>
+                        <td id="<?=$tstat["team"] . ".team_damage_dealt"?>"><?=$tstat["team_damage_dealt"]?></td>
+                        <td id="<?=$tstat["team"] . ".team_damage_taken"?>"><?=$tstat["team_damage_taken"]?></td>
+                        <td id="<?=$tstat["team"] . ".team_dpm"?>"><?=$team_dpm?></td>
+                    </tr>
+                <?php
+                    }
+                ?>
+
+                </tbody>
+                <caption>Total team stats</caption>
+            </table>
+        </div>
+        <?php
+        }
+
         if (($log_live) && ($log_details["webtv_port"]))
         {
         ?>
