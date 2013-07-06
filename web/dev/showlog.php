@@ -97,7 +97,7 @@
                                 SUM(healing_done) as team_healing_done, 
                                 SUM(damage_dealt) as team_damage_dealt, SUM(damage_taken) as team_damage_taken
                                 FROM livelogs_player_stats
-                                WHERE log_ident = {$_unique_ident} and team IS NOT NULL
+                                WHERE log_ident = '{$_unique_ident}' and team IS NOT NULL
                                 GROUP BY team";
 
             $team_stats_result = pg_query($ll_db, $team_stats_query);
@@ -276,7 +276,7 @@
             </div>
         </div>
         <?php
-        if (pg_num_rows($team_stats_result) > 0)
+        if ($team_stats_result && pg_num_rows($team_stats_result) > 0)
         {
         ?>
 
