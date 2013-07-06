@@ -488,7 +488,7 @@
                     {
                         $team_dpm = round($tstat["team_damage_dealt"] / ($time_elapsed_sec/60), 2);
 
-                        $team_class = get_player_team_class(strtolower($tstat["team"]));
+                        $team_class = sprintf("%s_score_tag %s", $tstat["team"], get_player_team_class(strtolower($tstat["team"])));
                 ?>
                     <tr>
                         <td id="<?=$tstat["team"] . ".team"?>" class="<?=$team_class?>"><?=strtoupper($tstat["team"])?></td>

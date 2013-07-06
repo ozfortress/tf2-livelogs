@@ -316,7 +316,7 @@
             if (sizeof($player_logs) > 0)
             {
             ?>
-            <table class="table table-bordered table-hover ll_table">
+            <table class="table table-bordered table-hover ll_table" id="past_logs">
                 <thead>
                     <tr class="stat_summary_title_bar info">
                         <th class="log_list_col_title">
