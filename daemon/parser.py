@@ -982,11 +982,6 @@ class parserClass(object):
 
                 self.executeQuery(update_query) #we only ever want to update the team, never insert
 
-            #team_insert_args = ','.join(curs.mogrify("(%s, %s)", team_tuple) for team_tuple in team_insert_list)
-            #team_insert_query = "INSERT INTO %s (steamid, team) VALUES %s" % (self.STAT_TABLE, team_insert_args)
-            
-            #self.executeQuery(team_insert_query, curs)
-
     def insert_player_class(self, sid, pclass):
         sid = self.get_cid(sid)
 
@@ -996,7 +991,7 @@ class parserClass(object):
             #has not played the class provided, we need to add it to the database
             self._players[sid].add_class(pclass)
 
-            insert_query = "INSERT INTO %s (log_ident, steamid, class) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, sid, pclass)
+            insert_query = "INSERT INTO %s (log_ident, steamid, class, team) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, sid, pclass, self._players[sid].current_team())
 
             #if the class was inserted as unknown, it is likely that the 'unknown' class is now this class. this is what we'll assume, anyway
             update_query = "UPDATE %s SET class = '%s' WHERE steamid = E'%s' and log_ident = '%s' and class='UNKNOWN'" % (self.STAT_TABLE, pclass, sid, self.UNIQUE_IDENT)
@@ -1135,6 +1130,7 @@ class parserClass(object):
                     end_query = "DELETE FROM livelogs_servers WHERE log_ident = E'%(logid)s'; DELETE FROM livelogs_player_stats WHERE log_ident = '%(logid)s'" % {
                             "logid": self.UNIQUE_IDENT
                         }
+                        
                     if shutdown:
                         self.executeQuery(end_query, use_queue=False) #skip the queue for the end query
                     else:

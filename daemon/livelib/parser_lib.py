@@ -134,6 +134,10 @@ class player_data(object):
 
     def set_class(self, pclass):
         self._current_player_class = pclass
+
+        if not self.class_played(pclass):
+            self.set_team(None) #reset the team, so the next team insert will update this player's teams for all classes
+
         #print "%s: current class set to %s" % (self._player_name, pclass)
 
     def set_name(self, name):
@@ -150,6 +154,9 @@ class player_data(object):
 
     def is_team_same(self, team):
         return team == self._player_team
+
+    def current_team(self):
+        return self._player_team
 
 
 from HTMLParser import HTMLParser
