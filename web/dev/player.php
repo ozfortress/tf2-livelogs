@@ -328,7 +328,7 @@
             if (sizeof($player_logs) > 0)
             {
             ?>
-            <table class="table table-bordered table-hover ll_table" id="past_logs">
+            <table class="table table-bordered table-hover table-striped ll_table" id="past_logs">
                 <thead>
                     <tr class="stat_summary_title_bar info">
                         <th class="log_list_col_title">
@@ -366,7 +366,7 @@
                 ?>
 
                 </tbody>
-                <caption><?=htmlentities($player_name, ENT_QUOTES, "UTF-8")?>'s past logs (<?=$total_player_logs?> logs found)</caption>
+                <caption>Past logs (<?=$total_player_logs?> found)</caption>
             </table>
 
             <?php
