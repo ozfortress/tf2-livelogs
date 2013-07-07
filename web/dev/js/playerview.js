@@ -112,27 +112,39 @@ $(document).ready(function() {
         "bUseRendered": true,
         "bFilter": false
     });
-
-    var past_table = $('#past_logs').dataTable( {
-        "aaSorting": [[4, 'desc']],
-        "aoColumnDefs": [
-            { "sType": "ip-address", "bSearchable": false, "aTargets": [0] },
-            { "sType": "numeric", "aTargets": [1]},
-            { "sType": "iso8601-datetime", "bSearchable": false, "aTargets": [4]},
-            { "sType": "string", "bSearchable": false, "aTargets": ["_all"] }, //rest are just string
-            { "asSorting": [ "desc", "asc" ], "aTargets": [ "_all" ] } //default desc -> asc sorting
-        ],
-        "bAutoWidth": false,
-        "bSortClasses": false,
-        "bSearchable": false,
-        "bInfo": false,
-        "bJQueryUI": false,
-        "bUseRendered": true,
-        "bFilter": false,
-        "bPaginate": true,
-        "sPaginationType": "bootstrap"
-    });
 });
+
+var ll_paging = ll_paging || (function() {
+    return {
+        init : function(num_preloaded, total_logs) {
+            var past_table = $('#past_logs').dataTable( {
+                "aaSorting": [[4, 'desc']],
+                "aoColumnDefs": [
+                    { "sType": "ip-address", "bSearchable": false, "aTargets": [0] },
+                    { "sType": "numeric", "aTargets": [1]},
+                    { "sType": "iso8601-datetime", "bSearchable": false, "aTargets": [4]},
+                    { "sType": "string", "bSearchable": false, "aTargets": ["_all"] }, //rest are just string
+                    { "asSorting": [ "desc", "asc" ], "aTargets": [ "_all" ] } //default desc -> asc sorting
+                ],
+                "bAutoWidth": false,
+                "bSortClasses": false,
+                "bSearchable": false,
+                "bInfo": false,
+                "bJQueryUI": false,
+                "bUseRendered": true,
+                "bFilter": false,
+                "bPaginate": true,
+                "sPaginationType": "bootstrap",
+                "bLengthChange": false,
+                "iDisplayLength": num_preloaded,
+                "bProcessing": true,
+                "bServerSide": true,
+                "sAjaxSource": "/func/paging_data.php",
+                "iDeferLoading": total_logs,
+            });
+        },
+    }
+}());
 
 jQuery.extend( jQuery.fn.dataTableExt.oSort, {
     /*IP SORTING CREDIT TO Brad Wasson */
@@ -216,4 +228,5 @@ jQuery.extend( jQuery.fn.dataTableExt.oSort, {
         console.log("desc logic: %d", ((a > b) ? -1 : ((a < b) ? 1 : 0)));
         return ((a > b) ? -1 : ((a < b) ? 1 : 0));
     }
-} );
+});
+

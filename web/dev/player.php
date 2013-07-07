@@ -27,7 +27,7 @@
                                     SUM(dominations) as dominations, SUM(revenges) as revenges, SUM(times_dominated) as times_dominated,
                                     SUM(ap_small) as ap_small, SUM(ap_medium) as ap_medium, SUM(ap_large) as ap_large,
                                     SUM(mk_small) as mk_small, SUM(mk_medium) as mk_medium, SUM(mk_large) as mk_large
-                            FROM livelogs_player_stats WHERE steamid='{$escaped_steamid}'";
+                            FROM livelogs_player_stats WHERE steamid = '{$escaped_steamid}'";
 
             $stat_result = pg_query($ll_db, $stat_query);
 
@@ -56,6 +56,18 @@
                 else
                     $pstat = NULL;
 
+                $total_logs_query = "SELECT COUNT(DISTINCT log_ident) as total
+                                    FROM livelogs_player_stats
+                                    WHERE steamid = '{$escaped_steamid}'";
+
+                $total_logs_result = pg_query($ll_db, $total_logs_query);
+                if ($total_logs_result && pg_num_rows($total_logs_result) > 0)
+                {
+                    $total_logs_array = pg_fetch_array($total_logs_result, NULL, PGSQL_ASSOC);
+                    $total_player_logs = $total_logs_array["total"];
+                }
+                else
+                    $total_player_logs = 0;
 
                 $class_stats_query =    "SELECT class, kills, deaths, assists, points,
                                             healing_done, healing_received, ubers_used, ubers_lost,
@@ -219,7 +231,7 @@
                     </tr>
                     
                 </tbody>
-                <caption>Player stats</caption>
+                <caption>Overall stats</caption>
             </table>
         </div>
 
@@ -354,7 +366,7 @@
                 ?>
 
                 </tbody>
-                <!--<caption><?=htmlentities($player_name, ENT_QUOTES, "UTF-8")?>'s past <?=$ll_config["display"]["player_num_past"]?> logs</caption>-->
+                <caption><?=htmlentities($player_name, ENT_QUOTES, "UTF-8")?>'s past logs (<?=$total_player_logs?> logs found)</caption>
             </table>
 
             <?php
@@ -369,6 +381,9 @@
     <?php include('static/footer.html'); ?>
 
     <script src="/js/playerview.js" type="text/javascript"></script>
+    <script>
+        ll_paging.init(<?=pg_num_rows($player_logs_result)?>, <?=$total_player_logs?>);
+    </script>
 
 </body>
 </html>
