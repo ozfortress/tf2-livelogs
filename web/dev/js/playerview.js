@@ -99,7 +99,7 @@ $(document).ready(function() {
     var stat_table = $('#class_stats').dataTable( {
         "aaSorting": [[1, 'desc']],
         "aoColumnDefs": [
-            { "sType": "html", "bSearchable": false, "aTargets": [0] },
+            { "sType": "alt-string", "bSearchable": false, "aTargets": [0] },
             { "sType": "numeric", "bSearchable": false, "aTargets": ["_all"] },
             { "asSorting": [ "desc", "asc" ], "aTargets": [ "_all" ] }
         ],
@@ -117,9 +117,10 @@ $(document).ready(function() {
         "aaSorting": [[4, 'desc']],
         "aoColumnDefs": [
             { "sType": "ip-address", "bSearchable": false, "aTargets": [0] },
+            { "sType": "numeric", "aTargets": [1]},
             { "sType": "iso8601-datetime", "bSearchable": false, "aTargets": [4]},
-            { "sType": "numeric", "bSearchable": false, "aTargets": ["_all"] },
-            { "asSorting": [ "desc", "asc" ], "aTargets": [ "_all" ] }
+            { "sType": "string", "bSearchable": false, "aTargets": ["_all"] }, //rest are just string
+            { "asSorting": [ "desc", "asc" ], "aTargets": [ "_all" ] } //default desc -> asc sorting
         ],
         "bAutoWidth": false,
         "bSortClasses": false,
@@ -157,6 +158,18 @@ jQuery.extend( jQuery.fn.dataTableExt.oSort, {
     },
  
     "ip-address-desc": function ( a, b ) {
+        return ((a < b) ? 1 : ((a > b) ? -1 : 0));
+    },
+
+    "alt-string-pre": function ( a ) {
+        return a.match(/alt="(.*?)"/)[1].toLowerCase();
+    },
+     
+    "alt-string-asc": function( a, b ) {
+        return ((a < b) ? -1 : ((a > b) ? 1 : 0));
+    },
+ 
+    "alt-string-desc": function(a,b) {
         return ((a < b) ? 1 : ((a > b) ? -1 : 0));
     },
 
@@ -199,7 +212,7 @@ jQuery.extend( jQuery.fn.dataTableExt.oSort, {
         
         //if a and b are equal, return 0. if a is > b, return -1 meaning a moves down, 1 when a < b
         //x represents a, y represents b
-        */
+        
         console.log("desc logic: %d", ((a > b) ? -1 : ((a < b) ? 1 : 0)));
         return ((a > b) ? -1 : ((a < b) ? 1 : 0));
     }
