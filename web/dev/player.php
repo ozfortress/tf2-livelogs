@@ -354,7 +354,7 @@
                 ?>
 
                 </tbody>
-                <caption><?=htmlentities($player_name, ENT_QUOTES, "UTF-8")?>'s past <?=$ll_config["display"]["player_num_past"]?> logs</caption>
+                <!--<caption><?=htmlentities($player_name, ENT_QUOTES, "UTF-8")?>'s past <?=$ll_config["display"]["player_num_past"]?> logs</caption>-->
             </table>
 
             <?php
