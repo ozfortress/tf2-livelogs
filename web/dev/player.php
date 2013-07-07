@@ -382,7 +382,11 @@
 
     <script src="/js/playerview.js" type="text/javascript"></script>
     <script>
-        ll_paging.init(<?=pg_num_rows($player_logs_result)?>, <?=$total_player_logs?>);
+        /*
+        pass the steamid, number of logs shown and the total number of logs to the datatables init
+        so that we can make this shit work
+        */
+        ll_paging.init(<?=$escaped_steamid?>, <?=pg_num_rows($player_logs_result)?>, <?=$total_player_logs?>);
     </script>
 
 </body>

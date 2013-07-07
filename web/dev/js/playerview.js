@@ -116,7 +116,7 @@ $(document).ready(function() {
 
 var ll_paging = ll_paging || (function() {
     return {
-        init : function(num_preloaded, total_logs) {
+        init : function(community_id, num_preloaded, total_logs) {
             var past_table = $('#past_logs').dataTable( {
                 "aaSorting": [[4, 'desc']],
                 "aoColumnDefs": [
@@ -141,6 +141,9 @@ var ll_paging = ll_paging || (function() {
                 "bServerSide": true,
                 "sAjaxSource": "/func/paging_data.php",
                 "iDeferLoading": total_logs,
+                "fnServerParams": function (aoData) {
+                    aoData.push({ "cid": community_id });
+                }
             });
         },
     }
