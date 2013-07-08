@@ -97,7 +97,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
             if client_details is not None:
                 client_api_key = client_details[2]
 
-                self.logger.debug("Key is correct for client %s (%s) @ %s", client_details[0], client_details[1], self.cip)
+                self.logger.info("Key is correct for client %s (%s) @ %s", client_details[0], client_details[1], self.cip)
 
                 if self.resolve_dns(msg[2]):
                     #msg[2] is an IP, so use the api key as the log secret
@@ -112,10 +112,11 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
                 old_listener = self.server.get_client_listener(self.ll_clientip, self.ll_clientport)
                 if old_listener:
-                    self.logger.debug("Client %s:%s already has a listener", self.ll_clientip, self.ll_clientport)
+                    self.logger.info("Client %s:%s already has a listener", self.ll_clientip, self.ll_clientport)
                     
                     if msg[4] != old_listener.data.log_map and not old_listener.listener.parser.LOG_PARSING_ENDED:
                         #client changed maps, so this log needs to be ended and a new one started
+                        self.logger.info("Request has different map. Ending old listener")
                         old_listener.listener.shutdown_listener() #end the log and close the listener
 
                     else:
@@ -147,7 +148,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 
                 if not self.newListen.had_error(): #check if the parser had an error during init or not
                     lport = self.newListen.listen_port #port the listener is on
-                    self.logger.debug("Listener port: %s", lport)
+                    #self.logger.debug("Listener port: %s", lport)
                     
                     #REPLY FORMAT: LIVELOG!KEY!LISTEN_IP!LISTEN_PORT!UNIQUE_IDENT
                     returnMsg = "LIVELOG!%s!%s!%s!%s" % (client_api_key, sip, lport, self.newListen.get_numeric_id())
