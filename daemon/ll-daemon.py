@@ -110,15 +110,19 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 self.ll_clientip = self.cip #use the IP used for this connection as the server's address
                 self.ll_clientport = msg[3]
 
-                if self.server.clientExists(self.ll_clientip, self.ll_clientport):
+                old_listener = self.server.get_client_listener(self.ll_clientip, self.ll_clientport)
+                if old_listener:
                     self.logger.debug("Client %s:%s already has a listener", self.ll_clientip, self.ll_clientport)
-                    dict_key = "c" + self.ll_clientip + self.ll_clientport
-                    listen_ip, listen_port = self.server.clientDict[dict_key]
                     
-                    returnMsg = "LIVELOG!%s!%s!%s!REUSE" % (client_api_key, listen_ip, listen_port)
-                    self.logger.debug("RESENDING LISTENER INFO: %s", returnMsg)
-                    self.request.send(returnMsg)
-                    return    
+                    if msg[4] != last_map and not old_listener.listener.parser.LOG_PARSING_ENDED:
+                        #client changed maps, so this log needs to be ended and a new one started
+                        old_listener.listener.shutdown_listener() #end the log and close the listener
+
+                    else:
+                        returnMsg = "LIVELOG!%s!%s!%s!REUSE" % (client_api_key, old_listener.listen_ip, old_listener.listen_port)
+                        self.logger.debug("RESENDING LISTENER INFO: %s", returnMsg)
+                        self.request.send(returnMsg)
+                        return
 
                 sip = self.server.server_address[0] #get our server info, so we know what IP to listen on
                 webtv_port = None
@@ -142,7 +146,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 self.newListen = listener.llListenerObject(data_obj)
                 
                 if not self.newListen.had_error(): #check if the parser had an error during init or not
-                    lport = self.newListen.lport #port the listener is on
+                    lport = self.newListen.listen_port #port the listener is on
                     self.logger.debug("Listener port: %s", lport)
                     
                     #REPLY FORMAT: LIVELOG!KEY!LISTEN_IP!LISTEN_PORT!UNIQUE_IDENT
@@ -151,7 +155,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                     self.logger.debug("RESPONSE: %s", returnMsg)
                     self.request.send(returnMsg)
                     
-                    self.server.addClient(self.ll_clientip, self.ll_clientport, (sip, lport)) #add the client to a dict and store its listener address
+                    self.server.add_client(self.ll_clientip, self.ll_clientport, self.newListen) #add the client to a dict and store its listener
 
                     self.server.addListenerObject(self.newListen) #add the listener object to a set, so it remains alive
                     
@@ -230,7 +234,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.queue_process_thread = threading.Thread(target=self._process_queue_timer, args=(self.queue_process_event,))
         self.queue_process_thread.daemon = True
 
-        self.__listen_set_lock = threading.Lock()
+        self.__daemon_lock = threading.Lock()
 
 
         self._weapon_thread = threading.Thread(target=self.__get_weapon_data)
@@ -243,28 +247,30 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         
         SocketServer.TCPServer.server_activate(self)
 
-    def addClient(self, ip, port, listen_tuple):
+    def add_client(self, ip, port, listener):
         dict_key = "c" + ip + port
         if dict_key not in self.clientDict:
-            self.clientDict[dict_key] = listen_tuple
+            self.clientDict[dict_key] = listener
             #self.logger.debug('Added %s:%s to client dict with key %s', ip, port, dict_key)
         
         return
 
-    def clientExists(self, ip, port):
+    def get_client_listener(self, ip, port):
         #print "Keys in self.clientDict: "
         #pprint(self.clientDict.keys())
 
         dict_key = "c" + ip + port
-
+        self.__daemon_lock.acquire() #use a lock to prevent another thread from deleting while checking
         if dict_key in self.clientDict:
             #self.logger.debug('Key %s is in client dict', dict_key)
-            return True
+            self.__daemon_lock.release()
+
+            return self.clientDict[dict_key]
         else:
             #self.logger.debug('Key %s is NOT in client dict', dict_key)
-            return False
+            return None
 
-    def removeClient(self, ip, port):
+    def remove_client(self, ip, port):
         dict_key = "c" + ip + port
         if dict_key in self.clientDict:
             del self.clientDict[dict_key]
@@ -277,22 +283,22 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         if listener_object in self.listen_set:
             self.logger.info("Listen object %s is already in the listen set. wat & why?", listener_object)
         else:
-            self.__listen_set_lock.acquire()    
+            self.__daemon_lock.acquire() #use lock so that another thread doesnt add/remove to/from the set at the same time
             self.listen_set.add(listener_object)
-            self.__listen_set_lock.release()
+            self.__daemon_lock.release()
         
     def removeListenerObject(self, listener_object):
         #removes the object from the set
         if listener_object in self.listen_set:
-            self.__listen_set_lock.acquire()
+            self.__daemon_lock.acquire() #lock so another thread doesn't add/remove at the same time
             #self.logger.info("Listener object is in set. Removing")
             client_ip, client_server_port = listener_object.client_address
         
-            self.removeClient(client_ip, client_server_port)
+            self.remove_client(client_ip, client_server_port)
             
             self.listen_set.discard(listener_object)
 
-            self.__listen_set_lock.release()
+            self.__daemon_lock.release()
         else:
             self.logger.info("There was an attempt to remove a listener object that is not in the listener set")
 

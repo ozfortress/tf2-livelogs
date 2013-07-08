@@ -19,5 +19,5 @@ CREATE TRIGGER zero_null_stat
 
 CREATE TABLE livelogs_game_chat (log_ident varchar(64), eventid integer, steamid varchar(64), name text, team text, chat_type varchar(12), chat_message text, PRIMARY KEY(log_ident, eventid)); --global chat table. prevent duplicates on log id and event id
 
-CREATE TABLE livelogs_servers (numeric_id serial, server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean, webtv_port integer, tstamp text); --holds server log information
+CREATE TABLE livelogs_servers (numeric_id serial, server_ip cidr NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean, webtv_port integer, tstamp text); --holds server log information
 

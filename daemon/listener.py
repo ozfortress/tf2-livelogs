@@ -118,11 +118,9 @@ class llListener(SocketServer.UDPServer):
 
         self.logger.info("Shutting down listener on %s:%s", self.server_address[0], self.server_address[1])
 
-        #need to close the parser's database connection
-        if self.parser.db:
-            if not self.parser.db.closed: #cancel current operations and end the log
-                #self.parser.db.cancel()
-                self.parser.endLogParsing()
+        #need to end the log
+        if not self.parser.LOG_PARSING_ENDED:
+            self.parser.endLogParsing()
                   
         self.shutdown() #call the class's in-built shutdown method, which stops listening for new data
         self.server_close() #closes the server socket
@@ -154,7 +152,7 @@ class llListenerObject(object):
         
         self.listener.client_server_address = data.client_address #tuple containing the client's server IP and PORT
         
-        self.lip, self.lport = self.listener.server_address #get the listener's address, so it can be sent to the client
+        self.listen_ip, self.listen_port = self.listener.server_address #get the listener's address, so it can be sent to the client
 
         self.client_address = data.client_address
         
