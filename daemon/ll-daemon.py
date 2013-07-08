@@ -261,14 +261,15 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
         dict_key = "c" + ip + port
         self.__daemon_lock.acquire() #use a lock to prevent another thread from deleting while checking
+
+        result = None
         if dict_key in self.clientDict:
             #self.logger.debug('Key %s is in client dict', dict_key)
-            self.__daemon_lock.release()
+            result = self.clientDict[dict_key]
 
-            return self.clientDict[dict_key]
-        else:
-            #self.logger.debug('Key %s is NOT in client dict', dict_key)
-            return None
+        self.__daemon_lock.release()
+
+        return result
 
     def remove_client(self, ip, port):
         dict_key = "c" + ip + port
