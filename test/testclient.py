@@ -68,7 +68,7 @@ class testclient(object):
                     #client.send("R%s\r\n" % line)
                         
                     x += 1
-                    time.sleep(0.01)
+                    time.sleep(0.05)
 
                 log_file.close()
 
@@ -84,7 +84,7 @@ class testclient(object):
 def do_threads():
     clients = set()
 
-    for i in range(0,1):
+    for i in range(0,15):
         portno = 20000 + i
 
         client = testclient()
