@@ -1006,6 +1006,7 @@ endLogging(bool:map_end = false)
         is_logging = false;
 
         ServerCommand("logaddress_del %s", listener_address);
+        LogToGame("\"LIVELOG_GAME_END");
     }
     
     #if defined _websocket_included
