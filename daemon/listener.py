@@ -132,6 +132,8 @@ class llListenerObject(object):
     def __init__(self, data):
         self.unique_parser_ident = "%s_%s_%s" % (self.ip2long(data.client_address[0]), data.client_address[1], int(round(time.time())))
 
+        self.data = data
+
         self.logger = logging.getLogger("LISTENER #%s" % self.unique_parser_ident)
         self.logger.setLevel(logging.DEBUG)
 

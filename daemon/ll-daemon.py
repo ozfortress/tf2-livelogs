@@ -114,7 +114,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 if old_listener:
                     self.logger.debug("Client %s:%s already has a listener", self.ll_clientip, self.ll_clientport)
                     
-                    if msg[4] != last_map and not old_listener.listener.parser.LOG_PARSING_ENDED:
+                    if msg[4] != old_listener.data.log_map and not old_listener.listener.parser.LOG_PARSING_ENDED:
                         #client changed maps, so this log needs to be ended and a new one started
                         old_listener.listener.shutdown_listener() #end the log and close the listener
 
