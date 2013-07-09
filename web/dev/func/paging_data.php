@@ -14,7 +14,7 @@
     }
     else
     {
-        $cid = $_GET["cid"];
+        $cid = intval($_GET["cid"]);
     }
 
     //Paging
@@ -60,12 +60,14 @@
 
     //THE QUERIES----------------
 
-    $log_query = "SELECT DISTINCT server_ip, server_port, numeric_id, log_name, map, live, tstamp
+    $log_query = "SELECT DISTINCT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp
                 FROM livelogs_servers
                 JOIN livelogs_player_stats ON livelogs_servers.log_ident = livelogs_player_stats.log_ident
                 {$filter} 
                 {$order} 
                 {$limit}";
+
+    file_put_contents("/tmp/paging_out.txt", $log_query + "\n";
 
     $log_result = pg_query($ll_db, $log_query);
     //length of results
@@ -97,6 +99,7 @@
         "sEcho" => intval($_GET['sEcho']), //a challenge ID
         "iTotalRecords" => $total_player_logs, //total logs matching
         "iTotalDisplayRecords" => $num_logs_found, //logs matching limit
+        "community_id" => $cid,
         "aaData" => array()
     );
 
@@ -107,7 +110,7 @@
     {
         $odata = array();
 
-        foreach ($table_cols as $key)
+        foreach ($table_cols as $index => $key)
         {
             if ($key == "log_name")
             {
@@ -127,7 +130,7 @@
 
     echo json_encode($output); //echo out the json encoded shiz
 
-    file_put_contents("/tmp/paging_out.txt", print_r($output, true);
+    file_put_contents("/tmp/paging_out.txt", print_r($output, true), FILE_APPEND);
 
     pg_close($ll_db);
 ?>

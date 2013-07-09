@@ -37,7 +37,7 @@
             }
             else
             {
-                $player_logs_query = "SELECT DISTINCT server_ip, server_port, numeric_id, log_name, map, live, tstamp 
+                $player_logs_query = "SELECT DISTINCT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp 
                                       FROM livelogs_servers
                                       JOIN livelogs_player_stats ON livelogs_player_stats.log_ident = livelogs_servers.log_ident 
                                       WHERE steamid = '{$escaped_steamid}'
@@ -386,7 +386,7 @@
         pass the steamid, number of logs shown and the total number of logs to the datatables init
         so that we can make this shit work
         */
-        ll_paging.init(<?=$escaped_steamid?>, <?=pg_num_rows($player_logs_result)?>, <?=$total_player_logs?>);
+        ll_paging.init("<?=$escaped_steamid?>", <?=pg_num_rows($player_logs_result)?>, <?=$total_player_logs?>);
     </script>
 
 </body>

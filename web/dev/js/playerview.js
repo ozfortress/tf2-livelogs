@@ -117,6 +117,7 @@ $(document).ready(function() {
 var ll_paging = ll_paging || (function() {
     return {
         init : function(community_id, num_preloaded, total_logs) {
+            console.log("cid: %s | num_preloaded: %s | total: %s", community_id, num_preloaded, total_logs);
             var past_table = $('#past_logs').dataTable( {
                 "aaSorting": [[4, 'desc']],
                 "aoColumnDefs": [
