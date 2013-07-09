@@ -141,11 +141,21 @@ var ll_paging = ll_paging || (function() {
                 "bServerSide": true,
                 "sAjaxSource": "/func/paging_data.php",
                 "iDeferLoading": total_logs,
+                //"fnServerData": ll_paging.datatables_pipeline,
                 "fnServerParams": function (aoData) {
                     aoData.push({ "cid": community_id });
                 }
             });
         },
+
+        datatables_pipeline : function (source, data, callback)
+        {
+            var pipe_len = 4; /* how many pages to preload */
+
+
+        },
+
+
     }
 }());
 

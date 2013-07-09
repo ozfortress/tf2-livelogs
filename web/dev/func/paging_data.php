@@ -6,7 +6,16 @@
 
     require "../../conf/ll_database.php";
 
-    $db_columns = array("server_ip", "server_port", "map", "log_name", "tstamp");
+    $table_cols = array("server_ip", "server_port", "map", "log_name", "tstamp");
+
+    if (!isset($_GET["cid"]))
+    {
+        die("STEAMID NOT SPECIFIED");
+    }
+    else
+    {
+        $cid = $_GET["cid"];
+    }
 
     //Paging
     $limit = "":
@@ -24,27 +33,24 @@
         {
             if ($_GET['bSortable_'.intval($_GET['iSortCol_'.$i])] === "true")
             {
-                $order .=  $db_columns[intval($_GET['iSortCol_'.$i])] . " " . ($_GET['sSortDir_'.$i] === asc ? 'ASC' : 'DESC') . ", ";
+                $order .=  $table_cols[intval($_GET['iSortCol_'.$i])] . " " . ($_GET['sSortDir_'.$i] === asc ? "ASC" : "DESC") . ", ";
             }
         }
 
-        $order = substr_replace($order, "", -2); //strip trailing ','
-
-        if ($order == "ORDER BY") //if nothing was actually added to the order by
-            $order = "";
+        $order = substr_replace($order, "", -2); //strip trailing ', '
     }
 
     //Filtering - filter by community id obviously, but also filter by others if search is enabled
-    $filter = "WHERE steamid = '{$_GET['cid']}";
+    $filter = "WHERE steamid = '{$cid}'";
     
     /*if (isset($_GET['sSearch']) && $_GET['sSearch'] != "")
     {
         $filter .= " AND (";
-        for ($i = 0; $i < count($db_columns); $i++)
+        for ($i = 0; $i < count($table_cols); $i++)
         {
             if (isset($_GET['bSearchable_'.$i]) && $_GET['bSearchable_'.$i] === "true")
             {
-                $filter .= " " . $db_columns[$i] . "~* " . pg_escape_string($_GET['sSearch']) . " OR ";
+                $filter .= " " . $table_cols[$i] . "~* " . pg_escape_string($_GET['sSearch']) . " OR ";
             }
         }
 
@@ -97,13 +103,29 @@
 
     /* populate the return array, and encode it to json */
 
-    while ($row = pg_fetch_array($log_result))
+    while ($row = pg_fetch_array($log_result, NULL, PGSQL_ASSOC))
     {
         $odata = array();
-        
 
+        foreach ($table_cols as $key)
+        {
+            if ($key == "log_name")
+            {
+                /* this data should contain a link to the log */
+                $data = '<a href="/view/' . $row["numeric_id"] . '">' . htmlentities($row["log_name"], ENT_QUOTES, "UTF-8") . '</a>';
+            }
+            else
+            {
+                $data = $row[$key];
+            }
+
+            $row[] = $data;
+        }
+        
         $output['aaData'][] = $odata;
     }
+
+    echo json_encode($output); //echo out the json encoded shiz
 
     pg_close($ll_db);
 ?>
