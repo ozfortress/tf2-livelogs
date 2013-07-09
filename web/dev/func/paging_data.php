@@ -67,7 +67,7 @@
                 {$order} 
                 {$limit}";
 
-    file_put_contents("/tmp/paging_out.txt", $log_query + "\n";
+    file_put_contents("/tmp/paging_out.txt", $log_query + "\n");
 
     $log_result = pg_query($ll_db, $log_query);
     //length of results

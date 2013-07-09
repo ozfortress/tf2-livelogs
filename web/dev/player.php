@@ -355,7 +355,7 @@
                 ?>
 
                     <tr>
-                        <td class="server_ip"><?=long2ip($log["server_ip"])?></td>
+                        <td class="server_ip"><?=$log["server_ip"]?></td>
                         <td class="server_port"><?=$log["server_port"]?></td>
                         <td class="log_map"><?=$log["map"]?></td>
                         <td class="log_name"><a href="/view/<?=$log["numeric_id"]?>"><?=htmlentities($log["log_name"], ENT_QUOTES, "UTF-8")?></a></td>
