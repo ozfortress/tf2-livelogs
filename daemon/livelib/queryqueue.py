@@ -69,8 +69,8 @@ class query_queue(object):
         #print "popped %s at queue %d" % (rtn_query, queue_index)
         return rtn_query
 
-    def queue_empty(self, queue_index):
-        for queue self.__queues:
+    def queues_empty(self):
+        for queue in self.__queues:
             if len(queue) > 0:
                 return False
 

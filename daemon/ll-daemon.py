@@ -497,7 +497,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
     def _process_queue_timer(self, event):
         while not event.is_set():
-            if not self.query_queue.queue_empty():
+            if not self.query_queue.queues_empty():
                 norm_queue_length = self.query_queue.queue_length(queryqueue.NMPRIO)
                 dynamic_quota = norm_queue_length / 4 #process 1/4 of the queue each run, for a minimum of 200
 
