@@ -57,7 +57,8 @@
                     $pstat = NULL;
 
                 $total_logs_query = "SELECT COUNT(DISTINCT log_ident) as total
-                                    FROM livelogs_player_stats
+                                    FROM livelogs_servers
+                                    JOIN livelogs_player_stats ON livelogs_player_stats.log_ident = livelogs_servers.log_ident
                                     WHERE steamid = '{$escaped_steamid}'";
 
                 $total_logs_result = pg_query($ll_db, $total_logs_query);
