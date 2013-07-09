@@ -70,14 +70,23 @@ class query_queue(object):
         return rtn_query
 
     def queue_empty(self, queue_index):
-        if len(self.__queues[queue_index]) > 0:
-            return False #queue is not empty
+        for queue self.__queues:
+            if len(queue) > 0:
+                return False
 
-        #queue is empty
+        #queues are empty
         return True
 
     def queue_length(self, queue_index):
         return len(self.__queues[queue_index])
+
+    def queue_length_all(self):
+        rtn = []
+        for queue in self.__queues:
+            rtn.append(len(queue))
+
+        return rtn
+
 
     def copy(self):
         #shallow copy

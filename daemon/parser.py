@@ -137,8 +137,7 @@ class parserClass(object):
             #TODO: Create an indexing method for logs that are manually uploaded and parsed
             pass
 
-        dbCursor.close()
-        self.db.putconn(conn)
+        self.__close_db_components(conn, dbCursor)
 
         self.EVENT_TABLE = "log_event_%s" % self.UNIQUE_IDENT
         self.STAT_TABLE = "livelogs_player_stats"
