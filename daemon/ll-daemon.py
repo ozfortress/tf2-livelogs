@@ -19,6 +19,7 @@ import sys
 import os
 import time
 import threading
+import math
 import ConfigParser
 
 from HTMLParser import HTMLParser
@@ -446,7 +447,11 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         cursor = conn.cursor()
 
         try:
+            commit_threshold = int(math.ceil(process_quota / 4))
+            queries_completed = 0
             for i in xrange(0, process_quota): #process at most 'process_quota' queries every queue cycle
+                cursor.execute("SAVEPOINT queue_savepoint")
+
                 query_tuple = self.query_queue.get_next_query()
 
                 if query_tuple: #if we have queries to execute
@@ -459,23 +464,28 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                         #we have an insert/update query (upsert). query_a is the insert, query_b is the update
                         try:
                             cursor.execute("SELECT pgsql_upsert(%s, %s)", (query_a, query_b,))
-                            conn.commit() #commit changes to the database, so they are saved
-
+                            
                         except:
                             self.logger.exception("ERROR UPSERTING. INSERT QUERY: \"%s\" | UPDATE QUERY: \"%s\"" % (query_a, query_b))
-                            conn.rollback() #rollback, discarding changes so the connection can be re-used later
-                            self.query_queue.readd_query(query_tuple) #re-add the query
+                            cursor.execute("ROLLBACK TO SAVEPOINT queue_savepoint") #rollback to savepoint
+                            #self.query_queue.readd_query(query_tuple) #re-add the query
 
                     else:
                         #we just have a single query to perform
                         try:
                             cursor.execute(query_a)
-                            conn.commit()
-
                         except:
                             self.logger.exception("ERROR INSERTING. INSERT QUERY: \"%s\"" % (query_a))
-                            conn.rollback() #rollback, discarding changes so the connection can be re-used later
-                            self.query_queue.readd_query(query_tuple) #re-add the query
+                            cursor.execute("ROLLBACK TO SAVEPOINT queue_savepoint") #rollback to savepoint
+                            #self.query_queue.readd_query(query_tuple) #re-add the query
+
+                queries_completed += 1
+                if queries_completed == commit_threshold:
+                    conn.commit() #commit changes to database every commit_threshold 
+                    queries_completed = 0
+
+            if queries_completed > 0:
+                conn.commit() #commit any changes that havent been committed yet
 
         except:
             self.logger.exception("ERROR PROCESSING QUERY QUEUE")
@@ -487,7 +497,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
     def _process_queue_timer(self, event):
         while not event.is_set():
-            norm_queue_length = self.queryqueue.queue_length(queryqueue.NMPRIO)
+            norm_queue_length = self.query_queue.queue_length(queryqueue.NMPRIO)
             dynamic_quota = norm_queue_length / 4 #process 1/4 of the queue each run, for a minimum of 200
 
             #cap the process quota at the configured min/maximum
