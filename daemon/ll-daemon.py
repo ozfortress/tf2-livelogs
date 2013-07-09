@@ -506,6 +506,8 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             elif dynamic_quota < self.queue_min_quota:
                 dynamic_quota = self.queue_min_quota
 
+            self.logger.debug("queue length: %s, dynamic quota: %s", norm_queue_length, dynamic_quota)
+
             self.__process_database_queue(dynamic_quota)
 
             event.wait(self.queue_process_frequency) #run a time
