@@ -76,6 +76,9 @@ class query_queue(object):
         #queue is empty
         return True
 
+    def queue_length(self, queue_index):
+        return len(self.__queues[queue_index])
+
     def copy(self):
         #shallow copy
         return self.__class__(self)

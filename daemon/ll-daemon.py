@@ -210,7 +210,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
 
 class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    def __init__(self, server_address, l_timeout, process_frequency, process_quota, client_handler=llDaemonHandler):
+    def __init__(self, server_address, l_timeout, process_frequency, min_process_quota, max_process_quota, client_handler=llDaemonHandler):
         self.logger = logging.getLogger('daemon')
 
         self.allow_reuse_address = True
@@ -229,7 +229,8 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
         self.query_queue = queryqueue.query_queue() #our query queue object
         self.queue_process_frequency = process_frequency
-        self.queue_process_quota = process_quota
+        self.queue_min_quota = min_process_quota
+        self.queue_max_quota = max_process_quota
 
         self.queue_process_event = threading.Event()
         self.queue_process_thread = threading.Thread(target=self._process_queue_timer, args=(self.queue_process_event,))
@@ -472,7 +473,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                             conn.commit()
 
                         except:
-                            self.logger.exception("ERROR UPSERTING. INSERT QUERY: \"%s\"" % (query_a))
+                            self.logger.exception("ERROR INSERTING. INSERT QUERY: \"%s\"" % (query_a))
                             conn.rollback() #rollback, discarding changes so the connection can be re-used later
                             self.query_queue.readd_query(query_tuple) #re-add the query
 
@@ -486,7 +487,16 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
     def _process_queue_timer(self, event):
         while not event.is_set():
-            self.__process_database_queue(self.queue_process_quota)
+            norm_queue_length = self.queryqueue.queue_length(queryqueue.NMPRIO)
+            dynamic_quota = norm_queue_length / 4 #process 1/4 of the queue each run, for a minimum of 200
+
+            #cap the process quota at the configured min/maximum
+            if dynamic_quota > self.queue_max_quota:
+                dynamic_quota = self.queue_max_quota
+            elif dynamic_quota < self.queue_min_quota:
+                dynamic_quota = self.queue_min_quota
+
+            self.__process_database_queue(dynamic_quota)
 
             event.wait(self.queue_process_frequency) #run a time
 
@@ -512,26 +522,27 @@ if __name__ == '__main__':
             l_timeout = cfg_parser.getfloat('log-listener', 'listener_timeout')
 
             process_frequency = cfg_parser.getfloat('log-listener', 'queue_process_frequency') #how often (in seconds) the query queue should be processed
-            process_quota = cfg_parser.getint('log-listener', 'queue_process_quota') #how many queries should be processed per interval
+            min_quota = cfg_parser.getint('log-listener', 'queue_min_quota') #min num of queries to process
+            max_quota = cfg_parser.getint('log-listener', 'queue_max_quota') #how many queries should be processed per interval (MAX)
             
         except:
             sys.exit("Error reading config file")
                 
     else:
         #first run time, no config file present. create with default values and exit
-        print "No configuration file present. A new one will be generated"
+        print "No configuration file present. A new one will be generated in ll-config.ini"
         make_new_config()
 
         sys.exit("Configuration file generated. Please edit it before running the daemon again")
 
     server_address = (server_ip, server_port)
 
-    llServer = llDaemon(server_address, l_timeout, process_frequency, process_quota, client_handler=llDaemonHandler)
+    llServer = llDaemon(server_address, l_timeout, process_frequency, min_quota, max_quota, client_handler=llDaemonHandler)
 
     logger = logging.getLogger('MAIN')
     logger.setLevel(logging.DEBUG)
 
-    llServer.prepare_server()
+    llServer.prepare_server() #start threads/get database connection pool
 
     logger.info("Server on %s:%s under PID %s", server_address[0], server_address[1], os.getpid())
 
@@ -590,8 +601,9 @@ def make_new_config():
     cfg_parser.set('log-listener', 'server_port', '61222')
     cfg_parser.set('log-listener', 'listener_timeout', '90.0')
     cfg_parser.set('log-listener', 'log_directory', 'logs')
-    cfg_parser.set('log-listener', 'queue_process_frequency', '1')
-    cfg_parser.set('log-listener', 'queue_process_quota', '100')
+    cfg_parser.set('log-listener', 'queue_process_frequency', '0.5')
+    cfg_parser.set('log-listener', 'queue_min_quota', '200')
+    cfg_parser.set('log-listener', 'queue_max_quota', '2000')
     
     cfg_parser.add_section('websocket-server')
     cfg_parser.set('websocket-server', 'server_ip', '')
