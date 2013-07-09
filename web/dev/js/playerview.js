@@ -143,7 +143,7 @@ var ll_paging = ll_paging || (function() {
                 "iDeferLoading": total_logs,
                 //"fnServerData": ll_paging.datatables_pipeline,
                 "fnServerParams": function (aoData) {
-                    aoData.push({ "cid": community_id });
+                    aoData.push({ "name": "cid", "value": community_id });
                 }
             });
         },

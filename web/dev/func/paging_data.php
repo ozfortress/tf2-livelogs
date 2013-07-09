@@ -67,14 +67,11 @@
                 {$order} 
                 {$limit}";
 
-    $log_result = pg_query($ll_db);
+    $log_result = pg_query($ll_db, $log_query);
     //length of results
-    $num_logs_found = pg_num_rows($log_result);
-
-
-    //total length of data set
-    if ($num_logs_found > 0)
+    if ($log_results && ($num_logs_found = pg_num_rows($log_result)) > 0)
     {
+        //total length of data set
         $total_logs_query = "SELECT COUNT(DISTINCT log_ident) as total
                             FROM livelogs_player_stats
                             {$filter}";
@@ -89,7 +86,10 @@
             $total_player_logs = 0;
     }
     else
+    {
+        $num_logs_found = 0;
         $total_player_logs = 0;
+    }
 
 
     //NOW WE SEND THIS SHIT!
@@ -119,13 +119,15 @@
                 $data = $row[$key];
             }
 
-            $row[] = $data;
+            $odata[] = $data;
         }
         
         $output['aaData'][] = $odata;
     }
 
     echo json_encode($output); //echo out the json encoded shiz
+
+    file_put_contents("/tmp/paging_out.txt", $output);
 
     pg_close($ll_db);
 ?>

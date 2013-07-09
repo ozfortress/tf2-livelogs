@@ -22,7 +22,7 @@ class testclient(object):
             return
      
         #testm = "LIVELOG!ADVENTUREBEWITHYOU!202.161.23.120!27015!cp_granary!JIMBOBJUNIOR3"
-        testm = "LIVELOG!new_api_key!192.168.3.1!%(port)d!cp_granary!named_port_%(port)d!23142" % { "port": portno }
+        testm = "LIVELOG!new_api_key!192.168.3.1!%(port)d!cp_badlands!named_port_%(port)d!23142" % { "port": portno }
         slen = client.send(testm)
 
         portno += 1
