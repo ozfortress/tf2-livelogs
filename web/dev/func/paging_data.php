@@ -18,7 +18,7 @@
     }
 
     //Paging
-    $limit = "":
+    $limit = "";
     if (isset($_GET['iDisplayStart']) && $_GET['iDisplayLength'] != '-1')
     {
         $limit = "OFFSET " . intval($_GET['iDisplayStart']) . " LIMIT " . intval($_GET['iDisplayLength']);
@@ -33,7 +33,7 @@
         {
             if ($_GET['bSortable_'.intval($_GET['iSortCol_'.$i])] === "true")
             {
-                $order .=  $table_cols[intval($_GET['iSortCol_'.$i])] . " " . ($_GET['sSortDir_'.$i] === asc ? "ASC" : "DESC") . ", ";
+                $order .=  $table_cols[intval($_GET['iSortCol_'.$i])] . " " . ($_GET['sSortDir_'.$i] === 'asc' ? "ASC" : "DESC") . ", ";
             }
         }
 
@@ -69,7 +69,7 @@
 
     $log_result = pg_query($ll_db, $log_query);
     //length of results
-    if ($log_results && ($num_logs_found = pg_num_rows($log_result)) > 0)
+    if ($log_result && ($num_logs_found = pg_num_rows($log_result)) > 0)
     {
         //total length of data set
         $total_logs_query = "SELECT COUNT(DISTINCT log_ident) as total
@@ -127,7 +127,7 @@
 
     echo json_encode($output); //echo out the json encoded shiz
 
-    file_put_contents("/tmp/paging_out.txt", $output);
+    file_put_contents("/tmp/paging_out.txt", print_r($output, true);
 
     pg_close($ll_db);
 ?>
