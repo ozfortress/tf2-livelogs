@@ -30,6 +30,8 @@ from livelib import queryqueue
 
 from livelib.parser_lib import stripHTMLTags
 
+import pdb
+
 log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
 
 log_file_handler = logging.handlers.TimedRotatingFileHandler("daemon.log", when="midnight")
@@ -277,6 +279,8 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def remove_client(self, ip, port):
         dict_key = "c" + ip + port
         if dict_key in self.clientDict:
+            pdb.set_trace()
+
             del self.clientDict[dict_key]
             #self.logger.debug('Removed client %s:%s from client dict', ip, port)
 
