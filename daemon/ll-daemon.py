@@ -279,8 +279,6 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def remove_client(self, ip, port):
         dict_key = "c" + ip + port
         if dict_key in self.clientDict:
-            pdb.set_trace()
-
             del self.clientDict[dict_key]
             #self.logger.debug('Removed client %s:%s from client dict', ip, port)
 
@@ -514,6 +512,8 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 self.logger.debug("queue lengths: %s, dynamic quota: %s", self.query_queue.queue_length_all(), dynamic_quota)
 
                 self.__process_database_queue(dynamic_quota)
+
+                #pdb.set_trace()
 
             event.wait(self.queue_process_frequency) #run a time
 

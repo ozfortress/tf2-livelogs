@@ -51,11 +51,14 @@ class query_queue(object):
         by the queue thread, which will slowly wittle down the items in the queue
         """
 
-        for queue_level, queue in enumerate(self.__queues): #queues tuple will always be in the same order
+        queue_level = 0
+        for queue in self.__queues: #queues tuple will always be in the same order
             if len(queue) > 0:
                 #we have objects in this queue! pop the one at the front
                 self._last_queue_level = queue_level
                 return self.__pop_query(queue_level) #return the query and the priority, in case it must be added back to the queue
+
+            queue_level += 1
 
         #if we've reached this point, there was nothing in the queues, so return none
         return None
