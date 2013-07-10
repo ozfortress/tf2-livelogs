@@ -1197,9 +1197,3 @@ class parserClass(object):
                 self.db.putconn(conn)
 
 
-    def __del__(self):
-        if self.LOG_FILE_HANDLE:
-            if not self.LOG_FILE_HANDLE.closed:
-                self.LOG_FILE_HANDLE.close()
-
-

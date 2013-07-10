@@ -68,12 +68,9 @@ class Steam_API(object):
 
         items_game_data = kv_parser.parse(items_game_res.read()) #turn the items_game.txt result into a dict
 
-
         if not items_game_data:
             logging.info("Unable to get item data. Using only static weapon data")
             return weapon_dict
-
-        self._items_game_data = items_game_data
 
         logging.info("Item data received. Populating weapon dict with non-static weapons")        
 
@@ -98,6 +95,8 @@ class Steam_API(object):
         del weapon_dict["heavy"] #remove old key
 
         logging.info("Weapon dict populated with non-static weapons")
+
+        items_game_data = None
 
         return weapon_dict
 

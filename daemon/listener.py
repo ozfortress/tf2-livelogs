@@ -40,7 +40,8 @@ class llListener(SocketServer.UDPServer):
         #self.timeoutTimer.start()
         self._using_secret = False
 
-        self.listener_object = data.listener_object #llListenerObject, which holds this listener. needed to end the listening thread, and remove the object from the daemon's set
+        self.listener_thread = data.listener_thread #listener thread, to prevent deadlocks later on
+        self.listener_callback = data.listener_callback
 
         self._ended = False
         self._last_message_time = time.time() #set the init time to this, so we can still timeout if nothing is received at all
@@ -111,7 +112,7 @@ class llListener(SocketServer.UDPServer):
             return False
 
     def __listener_shutdown(self):
-        if self.listener_object.lthread and threading.current_thread() is self.listener_object.lthread:
+        if self.listener_thread and threading.current_thread() is self.listener_thread:
             self.logger.error("__listener_shutdown called from the same thread as the listener. will cause deadlock")
 
             return
@@ -126,11 +127,13 @@ class llListener(SocketServer.UDPServer):
         self.server_close() #closes the server socket
         
         #should no longer be listening or anything now, so we can call close_object, which will join the thread and remove llListenerObject from the daemon's set
-        self.listener_object.close_object()
+        self.listener_callback()
 
 class llListenerObject(object):
     def __init__(self, data):
         self.unique_parser_ident = "%s_%s_%s" % (self.ip2long(data.client_address[0]), data.client_address[1], int(round(time.time())))
+
+        self.lthread = None
 
         self.data = data
 
@@ -141,7 +144,8 @@ class llListenerObject(object):
 
         self.listenAddress = (self.listen_ip, 0)
 
-        data.listener_object = self
+        data.listener_thread = self.lthread
+        data.listener_callback = self.close_object
         data.listener_logger = self.logger
         data.listener_address = self.listenAddress
         data.unique_parser_ident = self.unique_parser_ident

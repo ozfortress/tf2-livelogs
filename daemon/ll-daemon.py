@@ -26,7 +26,7 @@ from HTMLParser import HTMLParser
 from pprint import pprint
 
 import listener
-from livelib import queryqueue, sapi_data
+from livelib import queryqueue
 
 from livelib.parser_lib import stripHTMLTags
 
@@ -514,6 +514,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             event.wait(self.queue_process_frequency) #run a time
 
     def __get_weapon_data(self):
+        from livelib import sapi_data
 
         sapi = sapi_data.Steam_API()
         self.weapon_data = sapi.get_default_weapons() #make the weapon data the default shit until the API is g2g
