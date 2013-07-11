@@ -604,7 +604,7 @@ class parserClass(object):
                     chat_insert_query = "INSERT INTO %s (log_ident, eventid, steamid, name, team, chat_type, chat_message) VALUES ('%s', '%s', E'%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, 
                                                             self.UNIQUE_IDENT, eventid, c_sid, c_name, c_team, chat_type, chat_message)
 
-                    self.executeQuery(chat_insert_query) #execute query will perform the insert query, commit, and close the cursor
+                    self.executeQuery(chat_insert_query, queue_priority = queryqueue.HIPRIO)
 
                 except Exception, e:
                     self.logger.exception("Exception trying to get chat eventid")

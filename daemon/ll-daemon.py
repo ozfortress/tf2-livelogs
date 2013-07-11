@@ -480,6 +480,9 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                             self.logger.exception("ERROR INSERTING. INSERT QUERY: \"%s\"" % (query_a))
                             cursor.execute("ROLLBACK TO SAVEPOINT queue_savepoint") #rollback to savepoint
                             #self.query_queue.readd_query(query_tuple) #re-add the query
+                else:
+                    #nothing in any queues, just break out until next loop
+                    break
 
                 queries_completed += 1
                 if queries_completed == commit_threshold:
