@@ -995,7 +995,7 @@ class parserClass(object):
             #if the class was inserted as unknown, it is likely that the 'unknown' class is now this class. this is what we'll assume, anyway
             update_query = "UPDATE %s SET class = '%s' WHERE steamid = E'%s' and log_ident = '%s' and class='UNKNOWN'" % (self.STAT_TABLE, pclass, sid, self.UNIQUE_IDENT)
             
-            print "update query for %s: %s" % (self._players[sid].current_name(), update_query)
+            #print "update query for %s: %s" % (self._players[sid].current_name(), update_query)
 
             #self.executeQuery(update_query, queue_priority = queryqueue.HIPRIO) #update the class ASAP
             self.execute_upsert(insert_query, update_query, queryqueue.HIPRIO) #need to add this class shit ASAP
@@ -1018,7 +1018,7 @@ class parserClass(object):
                 if self._players[cid].current_class() != pclass:
                     self.insert_player_class(sid, pclass) #add this class to the database
 
-                    print "%s detected playing as %s, setting current class" % (self._players[cid].current_name(), pclass)
+                    #print "%s detected playing as %s, setting current class" % (self._players[cid].current_name(), pclass)
 
                 break
 

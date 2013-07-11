@@ -489,6 +489,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                     conn.commit() #commit changes to database every commit_threshold 
                     queries_completed = 0
 
+            self.logger.info("queue lengths (after process): %s", self.query_queue.queue_length_all())
             if queries_completed > 0:
                 conn.commit() #commit any changes that havent been committed yet
 
@@ -496,7 +497,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             self.logger.exception("ERROR PROCESSING QUERY QUEUE")
 
         if not conn.closed:
-                cursor.close()
+            cursor.close()
 
         self.db.putconn(conn)
 

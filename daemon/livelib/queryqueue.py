@@ -29,19 +29,11 @@ class query_queue(object):
         self.__threading_lock = threading.Lock()
 
     def add_query(self, query_a, query_b=None, priority = NMPRIO):
-        self.__threading_lock.acquire() #acquire a threading lock, so that other threads cannot add to the queue at the same time
-
         self.__add_query_to_queue((query_a, query_b), priority)
-
-        self.__threading_lock.release() #release the lock, so the next thread blocked on acquiring the lock can have its turn
 
     def readd_query(self, query_tuple):
         #this will re-add a query to the queue at the last queue level
-        self.__threading_lock.acquire()
-
         self.__add_query_to_queue(query_tuple, self._last_queue_level)
-
-        self.__threading_lock.release()
 
     def __add_query_to_queue(self, query, priority):
         if priority in self.__queues:
@@ -51,9 +43,6 @@ class query_queue(object):
             #else, create the queue and append to it
             self.__allocate_empty_queue(priority) #re-allocate the deleted queue
             self.__queues[priority].append(query)
-
-        #print "added query %s with priority %d" % (query, priority)
-        #print "length of queue %d: %d" % (priority, len(self.__queues[priority]))
 
     def get_next_query(self):
         """
@@ -66,11 +55,13 @@ class query_queue(object):
 
         for queue_level in self.__queue_levels: #queues tuple will always be in the same order
             if queue_level in self.__queues: #make sure the queue hasn't been deleted
-                if len(self.__queues[queue_level]) > 0:
+                queue_len = len(self.__queues[queue_level])
+                if queue_len > 0:
                     #we have objects in this queue! pop the one at the front
                     self._last_queue_level = queue_level
 
-                    return self.pop_query(queue_level) #return the query and the priority, in case it must be added back to the queue
+                    popped_query = self.pop_query(queue_level) #return the query and the priority, in case it must be added back to the queue
+
                 else:
                     #the queue is empty and needs to be freed
                     self.__free_empty_queue(queue_level)
@@ -79,12 +70,9 @@ class query_queue(object):
         return None
 
     def pop_query(self, queue_index):
-        #non-private wrapper for __pop_query, which performs threading locks to prevent side-by-side access
-        self.__threading_lock.acquire() #lock while we pop
+        #non-private wrapper for __pop_query
 
         rtn_query = self.__pop_query(queue_index)
-
-        self.__threading_lock.release()
 
         return rtn_query
 
@@ -92,18 +80,18 @@ class query_queue(object):
         return self.__queues[queue_index].popleft() #pop the first item in the queue
 
     def __allocate_empty_queue(self, queue_index):
-        #normally we'd lock this, but it is only called inside __add_query_to_queue, which already has a lock around it
+        self.__threading_lock.acquire()
+
         if queue_index not in self.__queues:
             self.__queues[queue_index] = collections.deque()
 
+        self.__threading_lock.release()
     
     def __free_empty_queue(self, queue_index):
         """
         if a queue is empty, we free it so that the memory is deallocated
-
-        normally we'd have a non-private function and perform the thread locks in there, but since we only want
-        the object to be able to free the queues, we'll just leave the locks in here for this one
         """
+
         self.__threading_lock.acquire()
 
         del self.__queues[queue_index]
@@ -111,9 +99,8 @@ class query_queue(object):
         self.__threading_lock.release()
 
     def queues_empty(self):
-        for queue in self.__queues:
-            if len(queue) > 0:
-                return False
+        if len(self.__queues) > 0:
+            return False #while there's a queue, return false, as empty queues freed
 
         #queues are empty
         return True
@@ -133,11 +120,6 @@ class query_queue(object):
                 rtn.append("NaN")
 
         return rtn
-
-
-    def copy(self):
-        #shallow copy
-        return self.__class__(self)
 
 
 
