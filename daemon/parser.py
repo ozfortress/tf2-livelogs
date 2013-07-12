@@ -23,6 +23,7 @@ class parserClass(object):
     def __init__(self, data, endfunc = None, log_uploaded = False):
         self.HAD_ERROR = False
         self.LOG_FILE_HANDLE = None
+        self._log_file_writes = 0
         self.db = data.db
 
         self._weapon_data = data.weapon_data
@@ -1130,6 +1131,13 @@ class parserClass(object):
         self.__get_file_lock()
         if self.LOG_FILE_HANDLE and not self.LOG_FILE_HANDLE.closed:
             self.LOG_FILE_HANDLE.write(data)
+
+            self._log_file_writes += 1
+
+            if not (self._log_file_writes % 200):
+                #force a flush to disk every 200 writes, to reduce buffer usage
+                self.LOG_FILE_HANDLE.flush()
+                os.fsync(self.LOG_FILE_HANDLE.fileno())
 
         self.__release_file_lock()
 
