@@ -168,7 +168,7 @@ class parserClass(object):
             regex = self.regex #avoid having to use fucking self.regex every time (ANNOYING++++)
             regml = self.regml #local def for regml ^^^
 
-            self._write_to_log(logdata + "\n")
+            self.write_to_log(logdata + "\n")
 
             #log file start
             #RL 10/07/2012 - 01:13:34: Log file started (file "logs_pug/L1007104.log") (game "/games/tf2_pug/orangebox/tf") (version "5072")
@@ -1121,12 +1121,12 @@ class parserClass(object):
                 if self.closeListenerCallback is not None and game_over:
                     self.closeListenerCallback(game_over)
                 
-                self._write_to_log("\n") #add a new line before EOF
+                self.write_to_log("\n") #add a new line before EOF
                 self._close_log_file()
 
         self.__end_log_lock.release()
 
-    def _write_to_log(self, data):
+    def write_to_log(self, data):
         self.__get_file_lock()
         if self.LOG_FILE_HANDLE and not self.LOG_FILE_HANDLE.closed:
             self.LOG_FILE_HANDLE.write(data)
@@ -1181,10 +1181,10 @@ class parserClass(object):
             if conn:
                 self.db.putconn(conn)
 
-    def __get_lock(self):
+    def __get_file_lock(self):
         self.__log_file_lock.acquire()
 
-    def __release_lock(self):
+    def __release_file_lock(self):
         self.__log_file_lock.release()
 
 
