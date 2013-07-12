@@ -120,7 +120,7 @@ class query_queue(object):
 
     def __get_lock(self):
         self.__threading_lock.acquire()
-
+        
     def __release_lock(self):
         self.__threading_lock.release()
 

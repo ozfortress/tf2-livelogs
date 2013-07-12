@@ -11,6 +11,7 @@ import struct
 import socket
 import re
 import os
+import threading
 
 import logging
 import logging.handlers
@@ -31,6 +32,9 @@ class parserClass(object):
 
         self.logger = logging.getLogger(unique_ident)
         self.logger.setLevel(logging.DEBUG)
+
+        self.__log_file_lock = threading.Lock()
+        self.__end_log_lock = threading.Lock()
 
         import ConfigParser
         cfg_parser = ConfigParser.SafeConfigParser()
@@ -73,15 +77,6 @@ class parserClass(object):
 
             self.__cleanup()
             return
-            
-        """if not conn:
-            self.logger.error("Had error getting databse connection")
-            
-            self.HAD_ERROR = True
-            
-            self.LOG_FILE_HANDLE.close() #close the file handle previously established
-            return
-        """
 
         self.closeListenerCallback = endfunc
         
@@ -173,7 +168,7 @@ class parserClass(object):
             regex = self.regex #avoid having to use fucking self.regex every time (ANNOYING++++)
             regml = self.regml #local def for regml ^^^
 
-            self.LOG_FILE_HANDLE.write(logdata + "\n")
+            self._write_to_log(logdata + "\n")
 
             #log file start
             #RL 10/07/2012 - 01:13:34: Log file started (file "logs_pug/L1007104.log") (game "/games/tf2_pug/orangebox/tf") (version "5072")
@@ -578,7 +573,7 @@ class parserClass(object):
                 event_insert_query = "INSERT INTO %s (event_time, event_type) VALUES (E'%s', '%s')" % (self.EVENT_TABLE, event_time, "chat")
                 self.executeQuery(event_insert_query)
 
-                chat_insert_query = "INSERT INTO %s (log_ident, steamid, name, team, chat_type, chat_message) VALUES ('%s', '%s', E'%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, 
+                chat_insert_query = "INSERT INTO %s (log_ident, steamid, name, team, chat_type, chat_message) VALUES ('%s', E'%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, 
                                                         self.UNIQUE_IDENT, c_sid, c_name, c_team, chat_type, chat_message)
 
                 self.executeQuery(chat_insert_query, queue_priority = queryqueue.HIPRIO)
@@ -874,6 +869,7 @@ class parserClass(object):
         except Exception, e:
             self.logger.exception("Exception parsing log data: %s", logdata)
 
+
     def regex(self, compiled_regex, string): #helper function for performing regular expression checks. avoids having to compile and match in-function 1000 times
         #preg = re.compile(expression, re.IGNORECASE | re.MULTILINE)
         
@@ -1092,6 +1088,8 @@ class parserClass(object):
         return community_id
 
     def endLogParsing(self, game_over=False, shutdown=False):
+        self.__end_log_lock.acquire() #lock end log parsing, so it cannot be done by multiple threads at once
+
         if not self.LOG_PARSING_ENDED:
             self.logger.info("Ending log parsing")
             self.LOG_PARSING_ENDED = True
@@ -1122,16 +1120,30 @@ class parserClass(object):
                 #begin ending timer
                 if self.closeListenerCallback is not None and game_over:
                     self.closeListenerCallback(game_over)
-            
-            if self.LOG_FILE_HANDLE:
-                if not self.LOG_FILE_HANDLE.closed:
-                    self.LOG_FILE_HANDLE.write("\n") #add a new line before EOF
-                    self.LOG_FILE_HANDLE.close()
+                
+                self._write_to_log("\n") #add a new line before EOF
+                self._close_log_file()
+
+        self.__end_log_lock.release()
+
+    def _write_to_log(self, data):
+        self.__get_file_lock()
+        if self.LOG_FILE_HANDLE and not self.LOG_FILE_HANDLE.closed:
+            self.LOG_FILE_HANDLE.write(data)
+
+        self.__release_file_lock()
+
+    def _close_log_file(self):
+        self.__get_file_lock()
+
+        if self.LOG_FILE_HANDLE and not self.LOG_FILE_HANDLE.closed:
+            self.LOG_FILE_HANDLE.close()
+
+        self.__release_file_lock()
 
     def __cleanup(self, conn=None, cursor=None):
         #for cleaning up after init error
-        if self.LOG_FILE_HANDLE and not self.LOG_FILE_HANDLE.closed:
-            self.LOG_FILE_HANDLE.close()
+        self._close_log_file()
 
         if cursor:
             if not cursor.closed:
@@ -1168,5 +1180,11 @@ class parserClass(object):
 
             if conn:
                 self.db.putconn(conn)
+
+    def __get_lock(self):
+        self.__log_file_lock.acquire()
+
+    def __release_lock(self):
+        self.__log_file_lock.release()
 
 
