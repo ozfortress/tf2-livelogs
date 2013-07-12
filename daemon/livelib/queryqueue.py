@@ -60,7 +60,7 @@ class query_queue(object):
                     #we have objects in this queue! pop the one at the front
                     self._last_queue_level = queue_level
 
-                    popped_query = self.pop_query(queue_level) #return the query and the priority, in case it must be added back to the queue
+                    return self.pop_query(queue_level) #return the query and the priority, in case it must be added back to the queue
 
                 else:
                     #the queue is empty and needs to be freed
@@ -71,10 +71,7 @@ class query_queue(object):
 
     def pop_query(self, queue_index):
         #non-private wrapper for __pop_query
-
-        rtn_query = self.__pop_query(queue_index)
-
-        return rtn_query
+        return self.__pop_query(queue_index)
 
     def __pop_query(self, queue_index):
         return self.__queues[queue_index].popleft() #pop the first item in the queue

@@ -1,6 +1,7 @@
 import socket
 import time
 import threading
+import random
 
 class testclient(object):
     def __init__(self):
@@ -22,7 +23,7 @@ class testclient(object):
             return
      
         #testm = "LIVELOG!ADVENTUREBEWITHYOU!202.161.23.120!27015!cp_granary!JIMBOBJUNIOR3"
-        testm = "LIVELOG!new_api_key!192.168.3.1!%(port)d!cp_badlands!named_port_%(port)d!23142" % { "port": portno }
+        testm = "LIVELOG!new_api_key!192.168.3.1!%(port)d!cp_granary!named_port_%(port)d!23142" % { "port": portno }
         slen = client.send(testm)
 
         portno += 1
@@ -68,7 +69,7 @@ class testclient(object):
                     #client.send("R%s\r\n" % line)
                         
                     x += 1
-                    time.sleep(0.05)
+                    time.sleep(random.uniform(0.1, 0.4))
 
                 log_file.close()
 
@@ -84,7 +85,7 @@ class testclient(object):
 def do_threads():
     clients = set()
 
-    for i in range(0,15):
+    for i in range(0, 200):
         portno = 20000 + i
 
         client = testclient()
@@ -94,7 +95,7 @@ def do_threads():
         client.thread = threading.Thread(target=client.start, args=(portno,))
         client.thread.daemon = True
 
-        time.sleep(2)
+        time.sleep(random.randint(3, 8))
         client.thread.start()
     try:
         while len(clients) > 0:

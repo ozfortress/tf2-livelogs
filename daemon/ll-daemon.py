@@ -485,11 +485,10 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                     break
 
                 queries_completed += 1
-                if queries_completed == commit_threshold:
+                if not (queries_completed % commit_threshold):
                     conn.commit() #commit changes to database every commit_threshold 
-                    queries_completed = 0
 
-            self.logger.info("queue lengths (after process): %s", self.query_queue.queue_length_all())
+            self.logger.info("queue lengths (after process): %s, num completed: %d", self.query_queue.queue_length_all(), queries_completed)
             if queries_completed > 0:
                 conn.commit() #commit any changes that havent been committed yet
 
