@@ -77,23 +77,23 @@ class query_queue(object):
         return self.__queues[queue_index].popleft() #pop the first item in the queue
 
     def __allocate_empty_queue(self, queue_index):
-        self.__threading_lock.acquire()
+        self.__get_lock()
 
         if queue_index not in self.__queues:
             self.__queues[queue_index] = collections.deque()
 
-        self.__threading_lock.release()
+        self.__release_lock()
     
     def __free_empty_queue(self, queue_index):
         """
         if a queue is empty, we free it so that the memory is deallocated
         """
 
-        self.__threading_lock.acquire()
+        self.__get_lock()
 
         del self.__queues[queue_index]
 
-        self.__threading_lock.release()
+        self.__release_lock()
 
     def queues_empty(self):
         if len(self.__queues) > 0:
@@ -118,5 +118,10 @@ class query_queue(object):
 
         return rtn
 
+    def __get_lock(self):
+        self.__threading_lock.acquire()
+
+    def __release_lock(self):
+        self.__threading_lock.release()
 
 

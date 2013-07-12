@@ -11,7 +11,6 @@ import struct
 import socket
 import re
 import os
-import threading
 
 import logging
 import logging.handlers
@@ -577,38 +576,12 @@ class parserClass(object):
                 chat_message = self.escapePlayerString(regml(res, 6))
 
                 event_insert_query = "INSERT INTO %s (event_time, event_type) VALUES (E'%s', '%s')" % (self.EVENT_TABLE, event_time, "chat")
-                self.executeQuery(event_insert_query, use_queue=False)
-                
-                curs = None
-                conn = self.__get_db_conn()
-                if not conn:
-                    return
+                self.executeQuery(event_insert_query)
 
-                curs = self.__get_conn_cursor(conn)
-                if not curs:
-                    return
+                chat_insert_query = "INSERT INTO %s (log_ident, steamid, name, team, chat_type, chat_message) VALUES ('%s', '%s', E'%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, 
+                                                        self.UNIQUE_IDENT, c_sid, c_name, c_team, chat_type, chat_message)
 
-                try:
-                    #now we need to get the event ID and put it into chat!
-                    eventid_query = "SELECT eventid FROM %s WHERE event_type = 'chat' ORDER BY eventid DESC LIMIT 1" % (self.EVENT_TABLE)
-                    curs.execute(eventid_query)
-                    result = curs.fetchone()
-
-                    self.__close_db_components(conn, curs) #we don't need these objects anymore, the next query is added to the queue
-
-                    if result:
-                        eventid = result[0]
-                    else:
-                        return
-
-                    chat_insert_query = "INSERT INTO %s (log_ident, eventid, steamid, name, team, chat_type, chat_message) VALUES ('%s', '%s', E'%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, 
-                                                            self.UNIQUE_IDENT, eventid, c_sid, c_name, c_team, chat_type, chat_message)
-
-                    self.executeQuery(chat_insert_query, queue_priority = queryqueue.HIPRIO)
-
-                except Exception, e:
-                    self.logger.exception("Exception trying to get chat eventid")
-                    self.__close_db_components(conn, curs)
+                self.executeQuery(chat_insert_query, queue_priority = queryqueue.HIPRIO)
 
                 return        
             
