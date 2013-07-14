@@ -64,17 +64,6 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
         SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
 
-    def verify_request(self, request, client_address):
-        if not self.server.server_busy():
-            return True
-        else:
-            self.logger.info("Server busy, rejecting connection from %s:%s", client_address[0], client_address[1])
-            self.request.send("LIVELOGS_BUSY")
-
-            self.close_request(request) #close the request before returning
-
-            return False
-
     def setup(self):
         self.data = self.request.recv(1024) #read up to 1024 bytes of data
         self.logger.debug('Received "%s" from client %s:%s', self.data, self.cip, self.cport)
@@ -233,9 +222,8 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
         self.clientDict = {}
         self.listen_set = set()
-
         self.listener_timeout = l_timeout
-
+        self.client_limit = client_limit
         self.weapon_data = {} #empty until it's updated by the thread
 
         self.timeout_event = threading.Event()
@@ -253,7 +241,6 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
         self.__daemon_lock = threading.Lock()
 
-
         self._weapon_thread = threading.Thread(target=self.__get_weapon_data)
         self._weapon_thread.daemon = True
 
@@ -264,11 +251,30 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         
         SocketServer.TCPServer.server_activate(self)
 
+    def verify_request(self, request, client_address):
+        if not self.server_busy():
+            return True
+        else:
+            self.logger.info("Server busy, rejecting connection from %s:%s", client_address[0], client_address[1])
+            self.request.send("LIVELOGS_BUSY")
+
+            self.close_request(request) #close the request before returning
+
+            return False
+
     def server_busy(self):
         if len(self.listen_set) < self.client_limit:
             return False #server is capable of serving more clients
         else:
             return True #we're already serving the maximum, so we need to reject further connections
+
+    def prepare_server(self):
+        self.__open_dbpool()
+
+        self.queue_process_thread.start()
+        self.timeout_thread.start()
+
+        self._weapon_thread.start()
 
     def add_client(self, ip, port, listener):
         dict_key = "c" + ip + port
@@ -382,14 +388,6 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         else:
             self.logger.error("Database pool is closed")
             return None
-
-    def prepare_server(self):
-        self.__open_dbpool()
-
-        self.queue_process_thread.start()
-        self.timeout_thread.start()
-
-        self._weapon_thread.start()
 
     def __open_dbpool(self):
         #open database pool
@@ -609,8 +607,7 @@ if __name__ == '__main__':
             else:
                 logger.info("\tListen object is still present, but the log has actually ended")
 
-        #stop the queue processing once we're relatively certain the queue has been processed entirely
-        llServer.queue_process_event.set() #stop the queue processing event
+        llServer.queue_process_event.set() #stop the queue processing
         llServer.queue_process_thread.join(5) #5 second join timeout
 
         llServer.db.closeall() #close all database connections in the pool
@@ -643,8 +640,9 @@ def make_new_config():
     cfg_parser.set('log-listener', 'listener_timeout', '90.0')
     cfg_parser.set('log-listener', 'log_directory', 'logs')
     cfg_parser.set('log-listener', 'queue_process_frequency', '0.5')
-    cfg_parser.set('log-listener', 'queue_min_quota', '200')
-    cfg_parser.set('log-listener', 'queue_max_quota', '2000')
+    cfg_parser.set('log-listener', 'queue_min_quota', '300')
+    cfg_parser.set('log-listener', 'queue_max_quota', '800')
+    cfg_parser.set('log-listener', 'client_limit', '100')
     
     cfg_parser.add_section('websocket-server')
     cfg_parser.set('websocket-server', 'server_ip', '')
