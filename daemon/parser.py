@@ -14,7 +14,6 @@ import os
 import threading
 
 import logging
-import logging.handlers
 
 from pprint import pprint
 from livelib import parser_lib, queryqueue

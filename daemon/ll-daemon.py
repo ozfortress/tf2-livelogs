@@ -55,8 +55,7 @@ class llData(object):
 
 class llDaemonHandler(SocketServer.BaseRequestHandler):
     def __init__(self, request, client_address, server):
-        self.logger = logging.getLogger('handler')
-        self.logger.setLevel(logging.DEBUG)
+        self.logger = self.server.handler_logger
 
         self.newListen = None
         
@@ -217,6 +216,9 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def __init__(self, server_address, l_timeout, process_frequency, min_process_quota, max_process_quota, client_limit, client_handler=llDaemonHandler):
         self.logger = logging.getLogger('daemon')
 
+        self.handler_logger = logging.getLogger('daemonhandler')
+        self.handler_logger.setLevel(logging.DEBUG)
+
         self.allow_reuse_address = True
         self.daemon_threads = True
 
@@ -255,8 +257,8 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         if not self.server_busy():
             return True
         else:
-            self.logger.info("Server busy, rejecting connection from %s:%s", client_address[0], client_address[1])
-            self.request.send("LIVELOGS_BUSY")
+            self.logger.info("************* Server busy, rejecting connection from %s:%s *************", client_address[0], client_address[1])
+            request.send("LIVELOGS_BUSY")
 
             self.close_request(request) #close the request before returning
 
@@ -578,34 +580,30 @@ if __name__ == '__main__':
 
     llServer = llDaemon(server_address, l_timeout, process_frequency, min_quota, max_quota, client_limit, client_handler=llDaemonHandler)
 
-    logger = logging.getLogger('MAIN')
-    logger.setLevel(logging.DEBUG)
-
     llServer.prepare_server() #start threads/get database connection pool
 
-    logger.info("Server on %s:%s under PID %s", server_address[0], server_address[1], os.getpid())
+    logging.info("Server on %s:%s under PID %s", server_address[0], server_address[1], os.getpid())
 
     try:
-        logger.info("Waiting for incoming data")
+        logging.info("Waiting for incoming data")
         llServer.serve_forever() #listen for log requests!
         
-    except KeyboardInterrupt:
+    except:
         #clean up the listener objects/parsers still running
-
-        logger.info("Keyboard interrupt. Closing daemon")
+        logging.info("Exception while serving. Exiting")
         llServer.timeout_event.set() #stop the timeout thread
         llServer.timeout_thread.join(2) #wait 2 secs for thread to join before closing the interpreter
 
         #shallow copy of the listen object set, so it can be iterated on while items are being removed
         for listenobj in llServer.listen_set.copy():
-            logger.info("Ending log with ident %s", listenobj.unique_parser_ident)
+            logging.info("Ending log with ident %s", listenobj.unique_parser_ident)
 
             if not listenobj.listener.parser.LOG_PARSING_ENDED:
                 listenobj.listener.parser.endLogParsing(shutdown=True)
                 listenobj.listener.shutdown_listener()
                 
             else:
-                logger.info("\tListen object is still present, but the log has actually ended")
+                logging.info("\tListen object is still present, but the log has actually ended")
 
         llServer.queue_process_event.set() #stop the queue processing
         llServer.queue_process_thread.join(5) #5 second join timeout
@@ -615,18 +613,9 @@ if __name__ == '__main__':
         llServer.shutdown() #stop listening
         llServer.server_close() #close socket
 
-        logger.info("Shutdown successful")
+        logging.info("Shutdown successful")
 
-        sys.exit("KeyboardInterrupt")
-
-    except:
-        logger.exception("Exception listening for log requests")
-
-        if not llServer.db.closed:
-            llServer.db.closeall()
-
-        sys.exit(2)
-
+        sys.exit()
 
 def make_new_config():
     try:
@@ -659,7 +648,7 @@ def make_new_config():
     cfg_parser.write(cfg_file)
 
 
-def uncaught_excepthook(excType, excValue, traceback, logger=logging.getLogger(__name__)):
-    logger.error("Uncaught exception", exc_info=(excType, excValue, traceback))
+def uncaught_excepthook(excType, excValue, traceback):
+    logging.error("Uncaught exception", exc_info=(excType, excValue, traceback))
 
 sys.excepthook = uncaught_excepthook
