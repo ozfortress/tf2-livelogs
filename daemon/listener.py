@@ -137,7 +137,7 @@ class llListenerObject(object):
 
         self.data = data
 
-        self.logger = logging.getLogger("LISTENER #%s" % self.unique_parser_ident)
+        self.logger = logging.getLogger(self.unique_parser_ident)
         self.logger.setLevel(logging.DEBUG)
 
         self.listen_ip = data.server_ip

@@ -55,7 +55,7 @@ class llData(object):
 
 class llDaemonHandler(SocketServer.BaseRequestHandler):
     def __init__(self, request, client_address, server):
-        self.logger = self.server.handler_logger
+        self.logger = server.handler_logger
 
         self.newListen = None
         
@@ -216,7 +216,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
     def __init__(self, server_address, l_timeout, process_frequency, min_process_quota, max_process_quota, client_limit, client_handler=llDaemonHandler):
         self.logger = logging.getLogger('daemon')
 
-        self.handler_logger = logging.getLogger('daemonhandler')
+        self.handler_logger = logging.getLogger('dhandler')
         self.handler_logger.setLevel(logging.DEBUG)
 
         self.allow_reuse_address = True
