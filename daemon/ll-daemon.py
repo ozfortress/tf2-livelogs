@@ -63,12 +63,24 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         self.cip, self.cport = client_address
 
         SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
-        
+
+    def verify_request(self, request, client_address):
+        if not self.server.server_busy():
+            return True
+        else:
+            self.logger.info("Server busy, rejecting connection from %s:%s", client_address[0], client_address[1])
+            self.request.send("LIVELOGS_BUSY")
+
+            self.close_request(request) #close the request before returning
+
+            return False
+
+    def setup(self):
+        self.data = self.request.recv(1024) #read up to 1024 bytes of data
+        self.logger.debug('Received "%s" from client %s:%s', self.data, self.cip, self.cport)
+
     def handle(self):
-        rcvd = self.request.recv(1024) #read up to 1024 bytes of data
-
-        self.logger.debug('Received "%s" from client %s:%s', rcvd, self.cip, self.cport)
-
+        rcvd = self.data 
         #FORMAT OF LOG REQUEST: LIVELOG!KEY!SIP!SPORT!MAP!NAME!WEBTV_PORT(OPTIONAL)
         
         try:
@@ -92,9 +104,9 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
             client_details = None
 
             if client_info is not None:
-                #client_details is a list of tuples
+                #client_details is a list of tuples, because hosted environments use the same IPs for different users
                 for details in client_info:
-                    if msg[1] == details[2]: #if the auth key matches one of the returned keys
+                    if msg[1] == details[2]: #if the auth key matches one of the returned keys, the user is valid
                         client_details = details #copy the details to our individual client's details
 
             if client_details is not None:
@@ -213,7 +225,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
 
 class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    def __init__(self, server_address, l_timeout, process_frequency, min_process_quota, max_process_quota, client_handler=llDaemonHandler):
+    def __init__(self, server_address, l_timeout, process_frequency, min_process_quota, max_process_quota, client_limit, client_handler=llDaemonHandler):
         self.logger = logging.getLogger('daemon')
 
         self.allow_reuse_address = True
@@ -251,6 +263,12 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.logger.debug('Starting TCP listener')
         
         SocketServer.TCPServer.server_activate(self)
+
+    def server_busy(self):
+        if len(self.listen_set) < self.client_limit:
+            return False #server is capable of serving more clients
+        else:
+            return True #we're already serving the maximum, so we need to reject further connections
 
     def add_client(self, ip, port, listener):
         dict_key = "c" + ip + port
@@ -545,6 +563,8 @@ if __name__ == '__main__':
             process_frequency = cfg_parser.getfloat('log-listener', 'queue_process_frequency') #how often (in seconds) the query queue should be processed
             min_quota = cfg_parser.getint('log-listener', 'queue_min_quota') #min num of queries to process
             max_quota = cfg_parser.getint('log-listener', 'queue_max_quota') #how many queries should be processed per interval (MAX)
+
+            client_limit = cfg_parser.getint('log-listener', 'client_limit') #maximum number of clients to serve
             
         except:
             sys.exit("Error reading config file")
@@ -558,7 +578,7 @@ if __name__ == '__main__':
 
     server_address = (server_ip, server_port)
 
-    llServer = llDaemon(server_address, l_timeout, process_frequency, min_quota, max_quota, client_handler=llDaemonHandler)
+    llServer = llDaemon(server_address, l_timeout, process_frequency, min_quota, max_quota, client_limit, client_handler=llDaemonHandler)
 
     logger = logging.getLogger('MAIN')
     logger.setLevel(logging.DEBUG)
