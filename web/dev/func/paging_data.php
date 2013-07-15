@@ -25,10 +25,10 @@
     }
 
     //Data ordering
-    $order = "";
+    $order = "ORDER BY numeric_id DESC, ";
     if (isset($_GET['iSortCol_0']))
     {
-        $order = "ORDER BY numeric_id DESC, ";
+        $order = "ORDER BY ";
         for ($i = 0; $i < intval($_GET['iSortingCols']); $i++)
         {
             if ($_GET['bSortable_'.intval($_GET['iSortCol_'.$i])] === "true")
@@ -68,6 +68,7 @@
                 {$limit}";
 
     file_put_contents("/tmp/paging_out.txt", $log_query + "\n");
+    file_put_contents("/tmp/paging_out.txt", $order, FILE_APPEND);
 
     $log_result = pg_query($ll_db, $log_query);
     //length of results
@@ -98,8 +99,8 @@
     //NOW WE SEND THIS SHIT!
     $output = array(
         "sEcho" => intval($_GET['sEcho']), //a challenge ID
-        "iTotalRecords" => $total_player_logs, //total logs matching
-        "iTotalDisplayRecords" => $num_logs_found, //logs matching limit
+        "iTotalRecords" => $num_logs_found, //logs matching limit
+        "iTotalDisplayRecords" => $total_player_logs, //total logs
         "community_id" => $cid,
         "aaData" => array()
     );
