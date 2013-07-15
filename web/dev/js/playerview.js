@@ -5,8 +5,8 @@
  */
 
 //API method to get paging information 
-$.fn.dataTableExt.oApi.fnPagingInfo = function ( oSettings )
-{
+$.fn.dataTableExt.oApi.fnPagingInfo = function ( oSettings ) {
+    "use strict";
     return {
         "iStart":         oSettings._iDisplayStart,
         "iEnd":           oSettings.fnDisplayEnd(),
@@ -18,12 +18,13 @@ $.fn.dataTableExt.oApi.fnPagingInfo = function ( oSettings )
         "iTotalPages":    oSettings._iDisplayLength === -1 ?
             0 : Math.ceil( oSettings.fnRecordsDisplay() / oSettings._iDisplayLength )
     };
-}
+};
  
 /* Bootstrap style pagination control */
 $.extend( $.fn.dataTableExt.oPagination, {
     "bootstrap": {
         "fnInit": function( oSettings, nPaging, fnDraw ) {
+            "use strict";
             var oLang = oSettings.oLanguage.oPaginate;
             var fnClickHandler = function ( e ) {
                 e.preventDefault();
@@ -48,10 +49,11 @@ $.extend( $.fn.dataTableExt.oPagination, {
         },
  
         "fnUpdate": function ( oSettings, fnDraw ) {
+            "use strict";
             var iListLength = 8;
             var oPaging = oSettings.oInstance.fnPagingInfo();
             var an = oSettings.aanFeatures.p;
-            var i, j, sClass, iStart, iEnd, iHalf=Math.floor(iListLength/2);
+            var i, j, iLen, sClass, iStart, iEnd, iHalf=Math.floor(iListLength/2);
  
             if ( oPaging.iTotalPages < iListLength) {
                 iStart = 1;
@@ -69,14 +71,14 @@ $.extend( $.fn.dataTableExt.oPagination, {
             }
  
             var paging_ul = null;
-            for ( i=0, iLen=an.length ; i<iLen ; i++ ) {
+            for (i = 0, iLen=an.length ; i<iLen ; i++ ) {
                 // Remove the middle elements
                 paging_ul = $(an[i]).children().children();
                 $(paging_ul).slice(2, paging_ul.length-2).remove(); //remove elements between the controls
  
                 // Add the new list items and their event handlers
                 for ( j=iStart ; j<=iEnd ; j++ ) {
-                    sClass = (j==oPaging.iPage+1) ? 'class="active"' : '';
+                    sClass = (j === oPaging.iPage+1) ? 'class="active"' : '';
                     $('<li '+sClass+'><a href="#">'+j+'</a></li>')
                         .insertBefore( $('li:nth-last-child(2)', an[i])[0] ) //insert before the 2nd last element
                         .bind('click', function (e) {
@@ -129,6 +131,8 @@ $(document).ready(function() {
 });
 
 var ll_paging = ll_paging || (function() {
+    "use strict";
+
     var pipe_cache = {
             cache_start: -1,
             cache_end: -1,
@@ -207,8 +211,8 @@ var ll_paging = ll_paging || (function() {
             if (pipe_cache.last_request && !need_server) {
                 for (var i = 0, dlen = request_data.length; i < dlen; i++) {
                     if (request_data[i].name !== "iDisplayStart" && request_data[i].name !== "iDisplayLength" && request_data[i].name !== "sEcho") {
-                        if (request_data[i].value != pipe_cache.last_request[i].value) {
-                            need_server = true //data is different from what is cached, we need to re-cache
+                        if (request_data[i].value !== pipe_cache.last_request[i].value) {
+                            need_server = true; //data is different from what is cached, we need to re-cache
                             break;
                         }
                     }
@@ -241,7 +245,7 @@ var ll_paging = ll_paging || (function() {
                 $.getJSON(data_source, request_data, function(json) {
                     pipe_cache.last_json = jQuery.extend(true, {}, json);
 
-                    if (pipe_cache.cache_start != pipe_cache.display_start) {
+                    if (pipe_cache.cache_start !== pipe_cache.display_start) {
                         //if the cache start != the display start, we have to splice from 0 up to the cache starting position first
                         json.aaData.splice(0, pipe_cache.display_start - pipe_cache.cache_start);
                     }
@@ -253,7 +257,7 @@ var ll_paging = ll_paging || (function() {
             }
             else {
                 //dont need to request data from the server
-                json = jQuery.extend(true, {}, pipe_cache.last_json); //get our json out from the last server request
+                var json = jQuery.extend(true, {}, pipe_cache.last_json); //get our json out from the last server request
 
                 json.sEcho = challenge_echo;
                 json.aaData.splice(0, request_start - pipe_cache.cache_start);
@@ -261,9 +265,7 @@ var ll_paging = ll_paging || (function() {
 
                 datatables_callback(json);
             }
-
-        },
-
+        }
     }
 }());
 
@@ -272,11 +274,11 @@ jQuery.extend( jQuery.fn.dataTableExt.oSort, {
     "ip-address-pre": function ( a ) {
         var m = a.split("."), x = "";
  
-        for(var i = 0; i < m.length; i++) {
+        for (var i = 0; i < m.length; i++) {
             var item = m[i];
-            if(item.length == 1) {
+            if (item.length === 1) {
                 x += "00" + item;
-            } else if(item.length == 2) {
+            } else if (item.length === 2) {
                 x += "0" + item;
             } else {
                 x += item;
@@ -312,8 +314,13 @@ jQuery.extend( jQuery.fn.dataTableExt.oSort, {
         var date_a = a[0].split('-'), time_a = a[1].split(':');
 
         /* convert the string arrays to numbers */
-        for (var i=date_a.length; i--;) { date_a[i] = parseInt(date_a[i], 10); };
-        for (var i=time_a.length; i--;) { time_a[i] = parseInt(time_a[i], 10); };
+        for (var i=date_a.length; i--;) { 
+            date_a[i] = parseInt(date_a[i], 10); 
+        }
+
+        for (i=time_a.length; i--;) { 
+            time_a[i] = parseInt(time_a[i], 10); 
+        }
 
         /* convert our date and time to single numbers */
         var x = (date_a[0]*10000 + date_a[1]*100 + date_a[2] + time_a[0]*10000 + time_a[1]*100 + time_a[2]);
