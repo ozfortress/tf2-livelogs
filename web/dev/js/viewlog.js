@@ -39,7 +39,7 @@ $(document).ready(function()
         "bFilter": false
     });
 
-    var team_stats = $('#medic_stats').dataTable( {
+    var medic_stats = $('#medic_stats').dataTable( {
         "aaSorting": [[1, 'desc']],
         "aoColumnDefs": [
             { "sType": "html", "bSearchable": false, "aTargets": [0] },
