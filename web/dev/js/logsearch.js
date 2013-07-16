@@ -140,25 +140,8 @@ var log_search = log_search || (function() {
 
                 datatables_callback(json);
             }
-        },
 
-        searchLogs : function() {
-            if (search_field === null) {
-                search_field = $("#search_field");
-            }
-
-            search = search_field.val();
-
-            if (search === past_search) {
-                return;
-            }
-            else {
-                past_search = search;
-            }
-
-            if (search !== "") {
-                
-            }
+            log_search.set_search_url(log_search.datatables_getkey(request_data, "sSearch"));
         },
 
         submitCallback : function() {
@@ -172,8 +155,10 @@ var log_search = log_search || (function() {
         },
 
         set_search_url : function(search) {
-            state_obj.search = search;
-            history.pushState(state_obj, "Search result for " + search, "/past/" + search.replace(" ", "%20"));
+            if (typeof search !== 'undefined') {
+                state_obj.search = search;
+                history.pushState(state_obj, "Search result for " + search, "/past/" + search.replace(" ", "%20"));
+            }
         }
     };
 }());
@@ -193,3 +178,4 @@ $(document).ready(function()
         e.preventDefault();
     });
 });
+
