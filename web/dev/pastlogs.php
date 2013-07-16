@@ -87,21 +87,6 @@
                     </tr>
                 </thead>
                 <tbody>
-                <?php
-                //while ($log = pg_fetch_array($past_res, NULL, PGSQL_ASSOC))
-                //{
-                ?>
-                    
-                    <tr>
-                        <td class="server_ip"><?=long2ip($log["server_ip"])?></td>
-                        <td class="server_port"><?=$log["server_port"]?></td>
-                        <td class="log_map"><?=$log["map"]?></td>
-                        <td class="log_name"><a href="/view/<?=$log["numeric_id"]?>"><?=htmlentities($log["log_name"], ENT_QUOTES, "UTF-8")?></a></td>
-                        <td class="log_date"><?=$log["tstamp"]?></td>
-                    </tr>
-                <?php
-                //}
-                ?>
                 
                 </tbody>
             </table>

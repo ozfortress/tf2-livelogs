@@ -167,7 +167,7 @@
                         {$order}
                         {$limit}";
 
-            $count_query = "SELECT COUNT(numeric_id) 
+            $count_query = "SELECT COUNT(numeric_id) as total
                         FROM livelogs_log_index 
                         WHERE (
                                 TEXT(server_ip) = '{$escaped_address}' 
@@ -189,7 +189,7 @@
                         {$order}
                         {$limit}";
 
-            $count_query = "SELECT COUNT(numeric_id)
+            $count_query = "SELECT COUNT(numeric_id) as total
                         FROM livelogs_log_index
                         JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident 
                         WHERE steamid = '{$escaped_cid}' AND live='false'";
@@ -212,7 +212,7 @@
                         {$order}
                         {$limit}";
 
-            $count_query = "SELECT COUNT(numeric_id)
+            $count_query = "SELECT COUNT(numeric_id) as total
                             FROM livelogs_log_index 
                             JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident
                             WHERE (

@@ -47,7 +47,7 @@
                         {$order}
                         {$limit}";
 
-        $count_query = "SELECT COUNT(numeric_id) 
+        $count_query = "SELECT COUNT(numeric_id) as total
                         FROM livelogs_log_index
                         WHERE live='false'";
     }
@@ -121,6 +121,4 @@
     file_put_contents("/tmp/past_paging_out.txt", print_r($output, true), FILE_APPEND);
     
     pg_close($ll_db);
-    
-    echo $result;
 ?>

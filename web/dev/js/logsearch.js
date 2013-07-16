@@ -13,8 +13,8 @@ var log_search = log_search || (function() {
     var initialised = false;
     return {
         init : function(default_search, display_length) {
-            console.log("search: %s | num_preloaded: %s | total: %s", default_search, num_preloaded, total_logs);
-            if (initialised) return;
+            console.log("search: %s | display_length: %s", default_search, display_length);
+            if (initialised) { return; }
 
             var past_table = $('#past_logs').dataTable( {
                 "aaSorting": [[4, 'desc']],
@@ -173,8 +173,7 @@ var log_search = log_search || (function() {
 
         set_search_url : function(search) {
             state_obj.search = search;
-                history.pushState(state_obj, "Search result for " + search, "/past/" + search.replace(" ", "%20"));
-            });
+            history.pushState(state_obj, "Search result for " + search, "/past/" + search.replace(" ", "%20"));
         }
     };
 }());
@@ -187,7 +186,7 @@ $(document).ready(function()
     we use jquery.get() to call a php script that will return the results (if there are any)
     */
     
-    $("#search_field").bindWithDelay("keyup", {when: "delay", optional: "eventData"}, log_search.keyupCallback, 300);
+    //$("#search_field").bindWithDelay("keyup", {when: "delay", optional: "eventData"}, log_search.keyupCallback, 300);
 
     $("#search_form").submit(function(e) {
         log_search.submitCallback();
