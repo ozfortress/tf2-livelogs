@@ -63,7 +63,7 @@
                 $iAuthID = $szTmp2;
             }
         }
-        
+
         if($iAuthID == "0")
             return "0";
 
@@ -147,4 +147,87 @@
 
         return $new_array;
     }
+
+    function create_filtered_log_query($filter, $order, $limit)
+    {
+        $split_filter = explode(":", $filter);
+        if (preg_match("/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/", $split_filter[0]) && sizeof($split_filter) == 2)
+        {
+            //we have an ip:port search
+            $escaped_address = pg_escape_string($split_filter[0]);
+            $escaped_port = pg_escape_string($split_filter[1]);
+            
+            $query =   "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, tstamp 
+                        FROM livelogs_log_index 
+                        WHERE (
+                                TEXT(server_ip) = '{$escaped_address}' 
+                                AND server_port = CAST('{$escaped_port}' AS INT)
+                            )
+                            AND live='false'
+                        {$order}
+                        {$limit}";
+
+            $count_query = "SELECT COUNT(numeric_id) 
+                        FROM livelogs_log_index 
+                        WHERE (
+                                TEXT(server_ip) = '{$escaped_address}' 
+                                AND server_port = CAST('{$escaped_port}' AS INT)
+                            ) 
+                            AND live='false'";
+        }
+        else if (preg_match("/^STEAM_(\d):(\d):(\d+)/", $filter))
+        {
+            //steam id match
+            $cid = steamid_to_bigint($filter);
+
+            $escaped_cid = pg_escape_string($cid);
+
+            $query =   "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp 
+                        FROM livelogs_log_index
+                        JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident 
+                        WHERE steamid = '{$escaped_cid}' AND live='false'
+                        {$order}
+                        {$limit}";
+
+            $count_query = "SELECT COUNT(numeric_id)
+                        FROM livelogs_log_index
+                        JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident 
+                        WHERE steamid = '{$escaped_cid}' AND live='false'";
+        }
+        else
+        {
+            $escaped_filter = pg_escape_string($filter);
+
+            $query =   "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, tstamp 
+                        FROM livelogs_log_index 
+                        JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident
+                        WHERE (
+                                TEXT(server_ip) ~* '{$escaped_filter}' 
+                                OR log_name ~* '{$escaped_filter}' 
+                                OR map ~* '{$escaped_filter}' 
+                                OR tstamp ~* '{$escaped_filter}'
+                                OR name ~* '{$escaped_filter}'
+                            )
+                            AND live='false'
+                        {$order}
+                        {$limit}";
+
+            $count_query = "SELECT COUNT(numeric_id)
+                            FROM livelogs_log_index 
+                            JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident
+                            WHERE (
+                                    TEXT(server_ip) ~* '{$escaped_filter}' 
+                                    OR log_name ~* '{$escaped_filter}' 
+                                    OR map ~* '{$escaped_filter}' 
+                                    OR tstamp ~* '{$escaped_filter}'
+                                    OR name ~* '{$escaped_filter}'
+                                )
+                                AND live='false'";
+        }
+
+        return array(0 => $query,
+                     1 => $count_query
+                    );
+    }  
 ?>
+
