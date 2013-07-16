@@ -35,12 +35,16 @@
 
 .ll_table td {
     white-space: nowrap; /*prevent wrapping of names*/
+    padding: 3px 10px;
 }
 
 .ll_table thead {
     color: #339933;
-    /*border-bottom: 2px solid #dddddd;*/
+    padding: 3px 18px 3px 10px;
+    border-bottom: 1px solid #dddddd;
+    font-weight: bold;
 }
+
 .ll_table .chat {
     padding: 5px;
 }

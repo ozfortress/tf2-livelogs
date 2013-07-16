@@ -3,7 +3,7 @@
     $ll_config["websock"]["server_port"] = 61224; //port ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
     $ll_config["display"]["index_num_past"] = 15; //number of past logs to display on index page
-    $ll_config["display"]["archive_num"] = 50; //max number of logs to display per 'page' in archive paged table
+    $ll_config["display"]["archive_num"] = 25; //max number of logs to display per 'page' in archive paged table
     $ll_config["display"]["player_num_past"] = 20; //number of logs to display per 'page' in a paged table
 
     $ll_config["steam_api"]["key"] = "7CD8EC56801BD2F23A1A4184A1348ADD";
