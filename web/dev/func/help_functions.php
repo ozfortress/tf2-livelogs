@@ -63,6 +63,7 @@
                 $iAuthID = $szTmp2;
             }
         }
+        
         if($iAuthID == "0")
             return "0";
 

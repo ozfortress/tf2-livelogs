@@ -7,6 +7,7 @@
         include 'static/header.html';
         require "../conf/ll_database.php";
         require "../conf/ll_config.php";
+        require "func/help_functions.php";
 
         if (!empty($ll_config["display"]["archive_num"]))
         {
@@ -21,6 +22,7 @@
         {
             die("Unable to connect to database");
         }
+
         if (empty($_GET["filter"]))
             $filter = null;
         else
@@ -30,40 +32,55 @@
         {
             $split_filter = explode(":", $filter);
             
-            if (sizeof($split_filter) == 2)
+            if (preg_match("/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/", $split_filter[0]) && sizeof($split_filter) == 2)
             {
-                //we most likely have an ip:port search
-                $escaped_address = pg_escape_string(ip2long($split_filter[0]));
-                $escaped_port = pg_escape_string((int)$split_filter[1]);
+                //we have an ip:port search
+                $escaped_address = pg_escape_string($split_filter[0]);
+                $escaped_port = pg_escape_string($split_filter[1]);
                 
-                $past_query = "SELECT server_ip, server_port, numeric_id, log_name, map, tstamp 
-                                FROM livelogs_servers 
-                                WHERE (server_ip = '{$escaped_address}' AND server_port = CAST('{$escaped_port}' AS INT)) AND live='false'
-                                ORDER BY numeric_id DESC LIMIT {$num_logs}";
+                $past_query =  "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, tstamp 
+                                FROM livelogs_log_index 
+                                WHERE (TEXT(server_ip) = '{$escaped_address}' AND server_port = CAST('{$escaped_port}' AS INT)) AND live='false'
+                                ORDER BY numeric_id DESC 
+                                LIMIT {$num_logs}";
+            }
+            else if (preg_match("/^STEAM_(\d):(\d):(\d+)/", $filter))
+            {
+                //steam id match
+                $cid = steamid_to_bigint($filter);
+
+                $escaped_cid = pg_escape_string($cid);
+
+                $past_query =  "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp 
+                                FROM livelogs_log_index
+                                JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident 
+                                WHERE steamid = '{$escaped_cid}' AND live='false'
+                                ORDER BY numeric_id DESC
+                                LIMIT {$num_logs}";
+
             }
             else
             {
-                $longip = ip2long($filter);
-        
-                if ($longip)
-                {
-                    $escaped_filter = pg_escape_string($longip);
-                }
-                else
-                {
-                    $escaped_filter = pg_escape_string($filter);
-                }
-            
-                $past_query = "SELECT server_ip, server_port, numeric_id, log_name, map, tstamp 
-                                FROM livelogs_servers 
-                                WHERE (server_ip ~* '{$escaped_filter}' OR log_name ~* '{$escaped_filter}' OR map ~* '{$escaped_filter}' OR tstamp ~* '{$escaped_filter}') AND live='false'
+                $escaped_filter = pg_escape_string($filter);
+
+                $past_query =  "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, tstamp 
+                                FROM livelogs_log_index 
+                                JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident
+                                WHERE (
+                                        TEXT(server_ip) ~* '{$escaped_filter}' 
+                                        OR log_name ~* '{$escaped_filter}' 
+                                        OR map ~* '{$escaped_filter}' 
+                                        OR tstamp ~* '{$escaped_filter}'
+                                        OR name ~* '{$escaped_filter}'
+                                    )
+                                    AND live='false'
                                 ORDER BY numeric_id DESC LIMIT {$num_logs}";
             }
         }
         else
         {
-            $past_query = "SELECT server_ip, server_port, numeric_id, log_name, map, tstamp 
-                            FROM livelogs_servers 
+            $past_query =  "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, tstamp 
+                            FROM livelogs_log_index 
                             WHERE live='false'
                             ORDER BY numeric_id DESC LIMIT {$num_logs}";
         }
@@ -111,7 +128,7 @@
     <div class="livelogs_wrapper">
         <div class="log_list_past_container">
             <form class="form-search" action="javascript:void(0);" id="search_form">
-                <input type="text" class="pastlogs_searchfield" placeholder="Enter search term" id="search_field" value="<?=$filter?>">
+                <input type="text" class="pastlogs_searchfield" placeholder="Search here" id="search_field" value="<?=$filter?>">
                 <button type="submit" class="btn" id="search_submit">Search</button>
             </form>
             <table class="table table-bordered table-hover ll_table">
