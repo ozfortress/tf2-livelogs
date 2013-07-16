@@ -27,14 +27,14 @@
         }
         else
         {
+            //valid numeric id given. get log ident out
+            $_unique_ident = $log_details["log_ident"];
+
             //live or not
             if ($log_details["live"] === "f")
                 $log_live = false;
             else
                 $log_live = true;
-
-            //valid numeric id given. get log ident out
-            $_unique_ident = $log_details["log_ident"];
 
             if (function_exists("pg_escape_identifier"))
             {
@@ -45,7 +45,7 @@
                 $escaped_event_table = pg_escape_string("log_event_" . $_unique_ident);
             }
             
-            $stat_query =   "SELECT steamid, team, name, class,
+            $stat_query =  "SELECT steamid, team, name, class,
                                     kills, deaths, assists, points, 
                                     healing_done, healing_received, ubers_used, ubers_lost, 
                                     headshots, damage_dealt, damage_taken,
@@ -55,15 +55,12 @@
 
             $stat_result = pg_query($ll_db, $stat_query);
             
-            //$event_query = "SELECT * FROM {$escaped_event_table}";
-            //$event_result = pg_query($ll_db, $event_query);
-            
             $chat_query = "SELECT steamid, name, team, chat_type, chat_message FROM livelogs_game_chat WHERE log_ident = '{$_unique_ident}'";
             $chat_result = pg_query($ll_db, $chat_query);
 
             if (!$log_live)
             {
-                $time_query =   "SELECT event_time FROM {$escaped_event_table} WHERE eventid = '1' 
+                $time_query =  "SELECT event_time FROM {$escaped_event_table} WHERE eventid = '1' 
                                 UNION 
                                 SELECT event_time FROM {$escaped_event_table} WHERE eventid = (SELECT MAX(eventid) FROM {$escaped_event_table})";
             
@@ -209,13 +206,13 @@
     }
     ?>
 
-        <div class="log_details_container">
+        <div class="details_container">
         <?php
         if ($log_live) 
         {
         ?>
             
-            <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="#"><?=$_unique_ident?></a></span><br>
+            <span class="log_detail_id">Log ID: </span><span class="log_detail"><a href="#"><?=$_unique_ident?></a></span><br>
         <?php
         }
         else
@@ -223,8 +220,8 @@
             $log_split = explode("_", $_unique_ident);
         ?>
             
-            <span class="log_id_tag">Log ID: </span><span class="log_detail"><a href="/download/<?=$_unique_ident?>"><?=$_unique_ident?></a></span><br>
-            <span class="log_id_tag">Date: </span><span class="log_detail"><?=date("d/m/Y H:i:s", $log_split[2])?></span><br>
+            <span class="log_detail_id">Log ID: </span><span class="log_detail"><a href="/download/<?=$_unique_ident?>"><?=$_unique_ident?></a></span><br>
+            <span class="log_detail_id">Date: </span><span class="log_detail"><?=date("d/m/Y H:i:s", $log_split[2])?></span><br>
         <?php
         }
 
@@ -232,7 +229,7 @@
         {
         ?>
 
-            <span class="log_name_id">Name: </span><span class="log_detail">
+            <span class="log_detail_id">Name: </span><span class="log_detail">
                 <a href="<?=$ll_config["ozfortress"]["basepath"] . hash_hmac($ll_config["ozfortress"]["hashtype"], strtolower($log_details["log_name"]), $ll_config["ozfortress"]["hashkey"])?>"><?=$log_details["log_name"]?></a>
             </span><br>
         <?php
@@ -241,24 +238,24 @@
         {
         ?>
 
-            <span class="log_name_id">Name: </span><span class="log_detail"><?=$log_details["log_name"]?></span><br>
+            <span class="log_detail_id">Name: </span><span class="log_detail"><?=$log_details["log_name"]?></span><br>
         <?php
         }
         ?>
 
             
-            <span class="server_details_id">Server: </span><span class="log_detail"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span><br>
-            <span class="log_map_id">Map: </span><span class="log_detail"><?=$log_details["map"]?></span><br>
+            <span class="log_detail_id">Server: </span><span class="log_detail"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span><br>
+            <span class="log_detail_id">Map: </span><span class="log_detail"><?=$log_details["map"]?></span><br>
 
             <div>
-                <span class="live_id">Status: </span>
+                <span class="log_detail_id">Status: </span>
             <?php
             if ($log_live)
             {
             ?>
             
                 <span class="log_status text-success" id="log_status_span">Live!</span><br>
-                <span class="time_elapsed_id">Time Elapsed: </span><span id="time_elapsed" class="log_detail"><?=$time_elapsed?></span><br><br>
+                <span class="log_detail_id">Time Elapsed: </span><span id="time_elapsed" class="log_detail"><?=$time_elapsed?></span><br><br>
             <?php
             }
             else
@@ -266,13 +263,13 @@
             ?>
             
                 <span class="log_status text-error" id="log_status_span">Complete</span><br>
-                <span class="time_elapsed_id">Total Time: </span><span id="time_elapsed" class="log_detail"><?=$time_elapsed?></span><br><br>
+                <span class="log_detail_id">Total Time: </span><span id="time_elapsed" class="log_detail"><?=$time_elapsed?></span><br><br>
             <?php
             }
             ?>
             
-                <span class="red_score_tag">RED </span><span id="red_score_value" class="red_score"><?=(($red_score) ? $red_score : 0)?></span>
-                <span class="blue_score_tag">BLUE </span><span id="blue_score_value" class="blue_score"><?=(($blue_score) ? $blue_score : 0)?></span>
+                <span class="red_score_tag">RED </span><span id="red_score_value" class="team_score_value"><?=(($red_score) ? $red_score : 0)?></span>
+                <span class="blue_score_tag">BLUE </span><span id="blue_score_value" class="team_score_value"><?=(($blue_score) ? $blue_score : 0)?></span>
             </div>
         </div>
 

@@ -21,4 +21,4 @@ CREATE TABLE livelogs_game_chat (id serial, log_ident varchar(64), steamid bigin
 
 CREATE TABLE livelogs_servers (numeric_id serial, server_ip cidr NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean, webtv_port integer, tstamp text); --holds server log information
 
-CREATE TABLE livelogs_player_details (steamid bigint, log_ident varchar(64), name text);
+CREATE TABLE livelogs_player_details (id serial, steamid bigint, log_ident varchar(64), name text);

@@ -18,7 +18,7 @@
             $community_id = $_GET['id'];
             $invalid_player = false;
 
-            $escaped_steamid = pg_escape_string($community_id);
+            $escaped_cid = pg_escape_string($community_id);
 
             $stat_query =   "SELECT SUM(kills) as kills, SUM(deaths) as deaths, SUM(assists) as assists, SUM(points) as points, 
                                     SUM(healing_done) as healing_done, SUM(healing_received) as healing_received, SUM(ubers_used) as ubers_used, SUM(ubers_lost) as ubers_lost, 
@@ -27,7 +27,7 @@
                                     SUM(dominations) as dominations, SUM(revenges) as revenges, SUM(times_dominated) as times_dominated,
                                     SUM(ap_small) as ap_small, SUM(ap_medium) as ap_medium, SUM(ap_large) as ap_large,
                                     SUM(mk_small) as mk_small, SUM(mk_medium) as mk_medium, SUM(mk_large) as mk_large
-                            FROM livelogs_player_stats WHERE steamid = '{$escaped_steamid}'";
+                            FROM livelogs_player_stats WHERE steamid = '{$escaped_cid}'";
 
             $stat_result = pg_query($ll_db, $stat_query);
 
@@ -37,10 +37,10 @@
             }
             else
             {
-                $player_logs_query = "SELECT DISTINCT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp 
+                $player_logs_query = "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp 
                                       FROM livelogs_servers
-                                      JOIN livelogs_player_stats ON livelogs_player_stats.log_ident = livelogs_servers.log_ident 
-                                      WHERE steamid = '{$escaped_steamid}'
+                                      JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_servers.log_ident 
+                                      WHERE steamid = '{$escaped_cid}'
                                       ORDER BY numeric_id DESC
                                       LIMIT {$ll_config["display"]["player_num_past"]}"; //get all the logs that a user has been in
 
@@ -56,10 +56,9 @@
                 else
                     $pstat = NULL;
 
-                $total_logs_query = "SELECT COUNT(DISTINCT livelogs_player_stats.log_ident) as total
-                                    FROM livelogs_servers
-                                    JOIN livelogs_player_stats ON livelogs_player_stats.log_ident = livelogs_servers.log_ident
-                                    WHERE steamid = '{$escaped_steamid}'";
+                $total_logs_query = "SELECT COUNT(log_ident) as total
+                                    FROM livelogs_player_details
+                                    WHERE steamid = '{$escaped_cid}'";
 
                 $total_logs_result = pg_query($ll_db, $total_logs_query);
                 if ($total_logs_result && pg_num_rows($total_logs_result) > 0)
@@ -74,14 +73,14 @@
                                             healing_done, healing_received, ubers_used, ubers_lost,
                                             headshots, backstabs, damage_dealt, damage_taken,
                                             dominations, revenges
-                                        FROM get_player_class_stats({$escaped_steamid})";
+                                        FROM get_player_class_stats({$escaped_cid})";
 
                 $class_results = pg_query($ll_db, $class_stats_query);
 
-                $name_query =   "SELECT name 
-                                FROM livelogs_player_stats JOIN livelogs_servers ON livelogs_player_stats.log_ident = livelogs_servers.log_ident 
-                                WHERE steamid = {$escaped_steamid} and name IS NOT NULL
-                                ORDER BY numeric_id DESC LIMIT 1"; //get the most recently used name
+                $name_query =  "SELECT name 
+                                FROM livelogs_player_details 
+                                WHERE steamid = {$escaped_cid}
+                                ORDER BY id DESC"; //get the most recently used name
 
                 $name_result = pg_query($ll_db, $name_query);
                 if (pg_num_rows($name_result) > 0)
@@ -144,7 +143,7 @@
             }
         ?>
 
-        <div class="player_details_container">
+        <div class="details_container">
             <span class="log_name_id">Name:</span> <span><a href="//steamcommunity.com/profiles/<?=$community_id?>"><?=htmlentities($player_name, ENT_QUOTES, "UTF-8")?></a></span> <br>
             <span class="log_name_id">Steam ID:</span> <span><?=big_int_to_steamid($community_id)?></span> <br>
         </div>
@@ -387,7 +386,7 @@
         pass the steamid, number of logs shown and the total number of logs to the datatables init
         so that we can make this shit work
         */
-        ll_paging.init("<?=$escaped_steamid?>", <?=pg_num_rows($player_logs_result)?>, <?=$total_player_logs?>);
+        ll_paging.init("<?=$escaped_cid?>", <?=pg_num_rows($player_logs_result)?>, <?=$total_player_logs?>);
     </script>
 
 </body>

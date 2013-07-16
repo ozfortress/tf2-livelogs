@@ -60,9 +60,9 @@
 
     //THE QUERIES----------------
 
-    $log_query = "SELECT DISTINCT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp
+    $log_query = "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp
                 FROM livelogs_servers
-                JOIN livelogs_player_stats ON livelogs_servers.log_ident = livelogs_player_stats.log_ident
+                JOIN livelogs_player_details ON livelogs_servers.log_ident = livelogs_player_details.log_ident
                 {$filter} 
                 {$order} 
                 {$limit}";
@@ -75,9 +75,8 @@
     if ($log_result && ($num_logs_found = pg_num_rows($log_result)) > 0)
     {
         //total length of data set
-        $total_logs_query = "SELECT COUNT(DISTINCT livelogs_player_stats.log_ident) as total
-                            FROM livelogs_servers
-                            JOIN livelogs_player_stats ON livelogs_player_stats.log_ident = livelogs_servers.log_ident
+        $total_logs_query = "SELECT COUNT(log_ident) as total
+                            FROM livelogs_player_details
                             {$filter}";
 
         $total_logs_result = pg_query($ll_db, $total_logs_query);
