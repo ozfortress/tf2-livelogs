@@ -103,47 +103,48 @@
 
         foreach ($player_stats as $index => $stat_data)
         {
-            $curr_cid = NULL;
-            $parray = array();
+            $curr_cid = $stat_data["steamid"];
+
+            if (empty($new_array[$curr_cid]))
+            {
+                $new_array[$curr_cid] = array(); //create a new array under the player's steamid
+            }
 
             foreach ($stat_data as $key => $value)
             {
                 //key is the database column names
                 //value is the value of that column
+
                 if ($key === "steamid")
                 {
-                    $curr_cid = $value;
-
                     continue; //skip to the next key
                 }
 
                 //check for the stat key in the player's array
-                if (empty($parray[$key]))
+                if (empty($new_array[$curr_cid][$key]))
                 {
-                    $parray[$key] = $value;
+                    $new_array[$curr_cid][$key] = $value;
                 }
                 else
                 {
                     if ($key === "class")
                     {
-                        $parray[$key] .= "," . $value;
+                        $new_array[$curr_cid][$key] .= "," . $value;
                     }
                     else if ($key === "team")
                     {
                         //just update the name/team to whatever this is
                         if (!empty($value))
                         {
-                            $parray[$key] = $value;
+                            $new_array[$curr_cid][$key] = $value;
                         }
                     }
                     else
                     {
-                        $parray[$key] += $value;
+                        $new_array[$curr_cid][$key] += $value;
                     }
                 }
             }
-
-            $new_array[$curr_cid] = $parray;
         }
 
         return $new_array;
