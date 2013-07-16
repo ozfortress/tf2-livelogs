@@ -358,14 +358,13 @@
                         //NAME:K:D:A:PC:PB:HS:PTS:DMG:DMGT:HEAL:DOM:R:KPD:DPD:DPR:DPM
 
                         if ($stat_result)
+                        {
                             $stat_array = pg_fetch_all($stat_result);
+                            $player_stats = merge_stat_array($stat_array);
+                        }
 
                         if ($name_result)
-                            $name_array = fetch_name_array($name_result);
-                        
-
-                        if ($name_array && $stat_array)
-                            $player_stats = merge_stat_array($stat_array);
+                            $name_array = fetch_name_array($name_result);  
 
                         //while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC))
                         foreach ($player_stats as $community_id => $pstat)
@@ -390,6 +389,7 @@
                             if (($pstat["healing_done"] > 0) || ($pstat["ubers_used"]) || ($pstat["ubers_lost"]))
                             {
                                 $mstats[$community_id] = $pstat;
+                                $mstats[$community_id]["name"] = $p_name;
                             }
                     ?>
                         

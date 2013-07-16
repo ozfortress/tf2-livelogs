@@ -237,10 +237,10 @@
 
         $name_array = array();
 
-        while ($row = pg_fetch_array($name_res, NULL, PGSQL_ASSOC)
+        while ($row = pg_fetch_array($name_res, NULL, PGSQL_ASSOC))
         {
             $narray = array();
-            
+
             foreach ($row as $column => $value)
             {
                 if ($column !== "steamid")
@@ -250,6 +250,8 @@
 
             $name_array[$row["steamid"]] = $narray;
         }
+
+        return $name_array;
     }
 ?>
 
