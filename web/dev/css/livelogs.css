@@ -38,10 +38,10 @@
     padding: 3px 10px;
 }
 
-.ll_table thead {
+.ll_table thead th {
     color: #339933;
     padding: 3px 18px 3px 10px;
-    border-bottom: 1px solid #dddddd;
+    /*border-bottom: 1px solid #dddddd;*/
     font-weight: bold;
 }
 
