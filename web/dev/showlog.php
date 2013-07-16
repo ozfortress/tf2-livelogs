@@ -13,7 +13,7 @@
         $escaped_serial = pg_escape_string($log_serial);
         
         $log_detail_query = "SELECT log_ident, log_name, server_ip, server_port, map, live, webtv_port, tstamp
-                            FROM livelogs_servers 
+                            FROM livelogs_log_index 
                             WHERE numeric_id = '{$escaped_serial}'";
 
         $log_detail_res = pg_query($ll_db, $log_detail_query);

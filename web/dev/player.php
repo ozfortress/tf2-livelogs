@@ -380,8 +380,9 @@
     </div>
     <?php include('static/footer.html'); ?>
 
+    <script src="/js/datatables_types.js" type="text/javascript"></script>
     <script src="/js/playerview.js" type="text/javascript"></script>
-    <script>
+    <script type="text/javascript">
         /*
         pass the steamid, number of logs shown and the total number of logs to the datatables init
         so that we can make this shit work

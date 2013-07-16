@@ -6,71 +6,119 @@
     {
         die("Unable to connect to database");
     }
+    
+    $table_cols = array("server_ip", "server_port", "map", "log_name", "tstamp");
 
-    if (!empty($ll_config["display"]["archive_num"]))
+    //Paging
+    $limit = "";
+    if (isset($_GET['iDisplayStart']) && $_GET['iDisplayLength'] != '-1')
     {
-        $num_logs = $ll_config["display"]["archive_num"];
+        $limit = "OFFSET " . intval($_GET['iDisplayStart']) . " LIMIT " . intval($_GET['iDisplayLength']);
     }
-    else
+
+    //Data ordering
+    $order = "ORDER BY numeric_id DESC";
+    if (isset($_GET['iSortCol_0']))
     {
-        $num_logs = 40;
-    }
-    
-    $search_term = $_GET["term"];
-    $result = "<tr>No results available</tr>";
-    
-    $split_search_term = explode(":", $search_term);
-    if (sizeof($split_search_term) == 2)
-    {
-        //we most likely have an ip:port search
-        $escaped_address = pg_escape_string(ip2long($split_search_term[0]));
-        $escaped_port = pg_escape_string((int)$split_search_term[1]);
-        
-        $search_query = "SELECT server_ip, server_port, numeric_id, log_name, map, tstamp 
-                        FROM livelogs_servers 
-                        WHERE (server_ip = '{$escaped_address}' AND server_port = CAST('{$escaped_port}' AS INT)) AND live='false'
-                        ORDER BY numeric_id DESC LIMIT {$num_logs}";
-    }
-    else
-    {
-        //did the user enter an IP?
-        $longip = ip2long($search_term);
-        
-        if ($longip)
+        $order = "ORDER BY ";
+        for ($i = 0; $i < intval($_GET['iSortingCols']); $i++)
         {
-            $escaped_search_term = pg_escape_string($longip);
+            if ($_GET['bSortable_'.intval($_GET['iSortCol_'.$i])] === "true")
+            {
+                $order .=  $table_cols[intval($_GET['iSortCol_'.$i])] . " " . ($_GET['sSortDir_'.$i] === 'asc' ? "ASC" : "DESC") . ", ";
+            }
+        }
+
+        $order = substr_replace($order, "", -2); //strip trailing ', '
+    }
+
+    //search filtering and querying
+    if (isset($_GET['sSearch']) && $_GET['sSearch'] != "")
+    {
+        $query_array = create_filtered_log_query($_GET['sSearch'], $order, $limit);
+        $log_query = $query_array[0];
+        $count_query = $query_array[1];
+    }
+    else
+    {
+        $log_query =   "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, tstamp 
+                        FROM livelogs_log_index 
+                        WHERE live='false'
+                        {$order}
+                        {$limit}";
+
+        $count_query = "SELECT COUNT(numeric_id) 
+                        FROM livelogs_log_index
+                        WHERE live='false'";
+    }
+
+    /*
+    ///////////// DOING STUFF WITH THE QUERY /////////////
+    */
+
+    file_put_contents("/tmp/past_paging_out.txt", $log_query + "\n");
+    file_put_contents("/tmp/past_paging_out.txt", $order, FILE_APPEND);
+
+    $log_result = pg_query($ll_db, $log_query);
+    //length of results
+    if ($log_result && ($num_logs_found = pg_num_rows($log_result)) > 0)
+    {
+        //total length of data set
+        $total_logs_query = $count_query;
+
+        $total_logs_result = pg_query($ll_db, $total_logs_query);
+        if ($total_logs_result && pg_num_rows($total_logs_result) > 0)
+        {
+            $total_logs_array = pg_fetch_array($total_logs_result, NULL, PGSQL_ASSOC);
+            $total_player_logs = $total_logs_array["total"];
         }
         else
-        {
-            $escaped_search_term = pg_escape_string($search_term);
-        }
-    
-        $search_query = "SELECT server_ip, server_port, numeric_id, log_name, map, tstamp 
-                        FROM livelogs_servers 
-                        WHERE (server_ip ~* '{$escaped_search_term}' OR log_name ~* '{$escaped_search_term}' OR map ~* '{$escaped_search_term}' OR tstamp ~* '{$escaped_search_term}') AND live='false'
-                        ORDER BY numeric_id DESC LIMIT {$num_logs}";
+            $total_player_logs = 0;
     }
-    
-    $search_result = pg_query($ll_db, $search_query);
-    
-    if (!$search_result)
+    else
     {
-        die("<tr>Unable to retrieve search results</tr>");
+        $num_logs_found = 0;
+        $total_player_logs = 0;
     }
-    
-    if (pg_num_rows($search_result) > 0)
+
+
+    //NOW WE SEND THIS SHIT!
+    $output = array(
+        "sEcho" => intval($_GET['sEcho']), //a challenge ID
+        "iTotalRecords" => $num_logs_found, //logs matching limit
+        "iTotalDisplayRecords" => $total_player_logs, //total logs found
+        "community_id" => $cid,
+        "aaData" => array()
+    );
+
+
+    /* populate the return array, and encode it to json */
+
+    while ($row = pg_fetch_array($log_result, NULL, PGSQL_ASSOC))
     {
-        $result = "";
-        while ($log = pg_fetch_array($search_result, NULL, PGSQL_ASSOC))
+        $odata = array();
+
+        foreach ($table_cols as $index => $key)
         {
-            $result .= '<tr>';
-            $result .= '<td class="server_ip">' . long2ip($log["server_ip"]) . '</td>';
-            $result .= '<td class="server_port">' . $log["server_port"] . '</td>';
-            $result .= '<td class="log_map">' . $log["map"] . '</td>';
-            $result .= '<td class="log_name"><a href="/view/' . $log["numeric_id"] . '">' . htmlentities($log["log_name"], ENT_QUOTES, "UTF-8") . '</a></td>';
-            $result .= '<td class="log_date">' . $log["tstamp"] . '</td>';
+            if ($key == "log_name")
+            {
+                /* this data should contain a link to the log */
+                $data = '<a href="/view/' . $row["numeric_id"] . '">' . htmlentities($row["log_name"], ENT_QUOTES, "UTF-8") . '</a>';
+            }
+            else
+            {
+                $data = $row[$key];
+            }
+
+            $odata[] = $data;
         }
+        
+        $output['aaData'][] = $odata;
     }
+
+    echo json_encode($output); //echo out the json encoded shiz
+
+    file_put_contents("/tmp/past_paging_out.txt", print_r($output, true), FILE_APPEND);
     
     pg_close($ll_db);
     

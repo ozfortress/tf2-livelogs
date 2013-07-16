@@ -54,7 +54,6 @@
             }
         }
 
-
     }*/
 
 
@@ -75,7 +74,7 @@
     if ($log_result && ($num_logs_found = pg_num_rows($log_result)) > 0)
     {
         //total length of data set
-        $total_logs_query = "SELECT COUNT(log_ident) as total
+        $total_logs_query = "SELECT COUNT(id) as total
                             FROM livelogs_player_details
                             {$filter}";
 
