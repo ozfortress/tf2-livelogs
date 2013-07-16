@@ -103,6 +103,9 @@
 
         foreach ($player_stats as $index => $stat_data)
         {
+            $curr_cid = NULL;
+            $parray = array();
+
             foreach ($stat_data as $key => $value)
             {
                 //key is the database column names
@@ -110,39 +113,37 @@
                 if ($key === "steamid")
                 {
                     $curr_cid = $value;
-                    if (empty($new_array[$value]))
-                    {
-                        $new_array[$value] = array(); //create a new array under the player's steamid
-                    }
 
                     continue; //skip to the next key
                 }
 
                 //check for the stat key in the player's array
-                if (empty($new_array[$curr_cid][$key]))
+                if (empty($parray[$key]))
                 {
-                    $new_array[$curr_cid][$key] = $value;
+                    $parray[$key] = $value;
                 }
                 else
                 {
                     if ($key === "class")
                     {
-                        $new_array[$curr_cid][$key] .= "," . $value;
+                        $parray[$key] .= "," . $value;
                     }
-                    else if ($key === "name" || $key === "team")
+                    else if ($key === "team")
                     {
                         //just update the name/team to whatever this is
                         if (!empty($value))
                         {
-                            $new_array[$curr_cid][$key] = $value;
+                            $parray[$key] = $value;
                         }
                     }
                     else
                     {
-                        $new_array[$curr_cid][$key] += $value;
+                        $parray[$key] += $value;
                     }
                 }
             }
+
+            $new_array[$curr_cid] = $parray;
         }
 
         return $new_array;
@@ -228,6 +229,27 @@
         return array(0 => $query,
                      1 => $count_query
                     );
-    }  
+    }
+
+    function fetch_name_array($name_res)
+    {
+        /* turns a pgsql result object with player names into an associative array wrt to cids */
+
+        $name_array = array();
+
+        while ($row = pg_fetch_array($name_res, NULL, PGSQL_ASSOC)
+        {
+            $narray = array();
+            
+            foreach ($row as $column => $value)
+            {
+                if ($column !== "steamid")
+                    $narray[$column] = $value;
+                
+            }
+
+            $name_array[$row["steamid"]] = $narray;
+        }
+    }
 ?>
 
