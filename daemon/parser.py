@@ -136,6 +136,7 @@ class parserClass(object):
         self.EVENT_TABLE = "log_event_%s" % self.UNIQUE_IDENT
         self.STAT_TABLE = "livelogs_player_stats"
         self.CHAT_TABLE = "livelogs_game_chat"
+        self.PLAYER_TABLE = "livelogs_player_details"
 
         self._item_dict = {
             'ammopack_small': 'ap_small',
@@ -883,27 +884,23 @@ class parserClass(object):
     def selectItemName(self, item_name):
         if item_name in self._item_dict:
             return self._item_dict[item_name]
+        else:
+            return "UNKNOWN"
 
     def pg_statupsert(self, table, column, steamid, name, value):
         #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
 
         cid = self.get_cid(steamid) #convert steamid to community id
-        
-        self.add_player(cid) #get this negro a player_data object!
 
-        name = name[:30] #max length of 30 characters for names
-        insert_query = "INSERT INTO %s (log_ident, steamid, name, %s, class) VALUES (E'%s', E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, 
-                            column, self.UNIQUE_IDENT, cid, name, value, self._players[cid].current_class())
+        name = name[:30] #max length of 30 characters for names        
+        if self.add_player(cid, name = name): #get this guy a player_data object!
+            self.insert_player_details(cid, name, new_player = True) #player just added, need to insert player details
 
-        if len(name) > 0 and (self.add_player(cid, name = name) or not self._players[cid].is_name_same(name)):
-                update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s, name = E'%s' WHERE steamid = E'%s' and log_ident = '%s' and class = '%s'" % (self.STAT_TABLE, 
-                        column, column, value, name, cid, self.UNIQUE_IDENT, self._players[cid].current_class())
+        insert_query = "INSERT INTO %s (log_ident, steamid, %s, class) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, 
+                                        self.UNIQUE_IDENT, cid, value, self._players[cid].current_class())
 
-                self._players[cid].set_name(name)
-            
-        else:
-            update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE steamid = E'%s' and log_ident = '%s' and class = '%s'" % (
-                                self.STAT_TABLE, column, column, value, cid, self.UNIQUE_IDENT, self._players[cid].current_class())
+        update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE steamid = E'%s' and log_ident = '%s' and class = '%s'" % (self.STAT_TABLE, column, 
+                                                column, value, cid, self.UNIQUE_IDENT, self._players[cid].current_class())
 
         self.add_qtq(insert_query, update_query)
 
@@ -969,6 +966,22 @@ class parserClass(object):
             #self.executeQuery(update_query, queue_priority = queryqueue.HIPRIO) #update the class ASAP
             self.execute_upsert(insert_query, update_query, queryqueue.HIPRIO) #need to add this class shit ASAP
 
+    def insert_player_details(self, cid, name, new_player=False):
+        if name:
+            details_query = None
+            if new_player:
+                #player just added, need to insert into details table
+                details_query = "INSERT INTO %s (steamid, log_ident, name) VALUES ('%s', '%s', E'%s')" % (self.PLAYER_TABLE,
+                                    cid, self.UNIQUE_IDENT, name)
+                
+            elif not self._players[cid].is_name_same(name):
+                #else if name changed, need to update
+                details_query = "UPDATE %s SET name = E'%s' WHERE steamid = '%s' and log_ident = '%s'" % (self.PLAYER_TABLE,
+                                    name, cid, self.UNIQUE_IDENT)
+
+            if details_query:
+                self.executeQuery(details_query, queue_priority = queryqueue.HIPRIO)
+
     def add_player(self, cid, pclass=None, name=None, team=None):
         if cid not in self._players:
             self._players[cid] = parser_lib.player_data(pclass, name, team)
@@ -986,8 +999,6 @@ class parserClass(object):
             if weapon in self._weapon_data[pclass]: #player's weapon matches this classes' weapon data
                 if self._players[cid].current_class() != pclass:
                     self.insert_player_class(sid, pclass) #add this class to the database
-
-                    #print "%s detected playing as %s, setting current class" % (self._players[cid].current_name(), pclass)
 
                 break
 
