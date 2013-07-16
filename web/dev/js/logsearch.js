@@ -32,7 +32,7 @@ var log_search = log_search || (function() {
                 "bInfo": false,
                 "bJQueryUI": false,
                 "bUseRendered": true,
-                "bFilter": false,
+                "bFilter": true,
                 "bPaginate": true,
                 "sPaginationType": "bootstrap",
                 "bLengthChange": false,

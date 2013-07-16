@@ -1,7 +1,8 @@
 <?php
     require "../../conf/ll_database.php";
     require "../../conf/ll_config.php";
-    
+    require "help_functions.php";
+
     if (!$ll_db)
     {
         die("Unable to connect to database");

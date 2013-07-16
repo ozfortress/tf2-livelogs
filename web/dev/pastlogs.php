@@ -6,7 +6,6 @@
     <?php
         include 'static/header.html';
         require "../conf/ll_config.php";
-        require "func/help_functions.php";
 
         if (!empty($ll_config["display"]["archive_num"]))
         {
@@ -62,11 +61,11 @@
     </div>    
     <div class="livelogs_wrapper">
         <div class="log_list_past_container">
-            <form class="form-search" action="javascript:void(0);" id="search_form">
+            <!--<form class="form-search" action="javascript:void(0);" id="search_form">
                 <input type="text" class="pastlogs_searchfield" placeholder="Search here" id="search_field" value="<?=$filter?>">
                 <button type="submit" class="btn" id="search_submit">Search</button>
-            </form>
-            <table class="table table-bordered table-hover ll_table" id="past_logs">
+            </form>-->
+            <table class="table table-bordered table-hover table-striped ll_table" id="past_logs">
                 <thead>
                     <tr class="stat_summary_title_bar info">
                         <th class="log_list_col_title">
