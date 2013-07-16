@@ -5,7 +5,6 @@
 
     <?php
         include 'static/header.html';
-        require "../conf/ll_database.php";
         require "../conf/ll_config.php";
         require "func/help_functions.php";
 
@@ -18,74 +17,10 @@
             $num_logs = 40;
         }
         
-        if (!$ll_db)
-        {
-            die("Unable to connect to database");
-        }
-
         if (empty($_GET["filter"]))
             $filter = null;
         else
             $filter = str_replace("/", "", $_GET["filter"]);
-        
-        if ($filter)
-        {
-            $split_filter = explode(":", $filter);
-            
-            if (preg_match("/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/", $split_filter[0]) && sizeof($split_filter) == 2)
-            {
-                //we have an ip:port search
-                $escaped_address = pg_escape_string($split_filter[0]);
-                $escaped_port = pg_escape_string($split_filter[1]);
-                
-                $past_query =  "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, tstamp 
-                                FROM livelogs_log_index 
-                                WHERE (TEXT(server_ip) = '{$escaped_address}' AND server_port = CAST('{$escaped_port}' AS INT)) AND live='false'
-                                ORDER BY numeric_id DESC 
-                                LIMIT {$num_logs}";
-            }
-            else if (preg_match("/^STEAM_(\d):(\d):(\d+)/", $filter))
-            {
-                //steam id match
-                $cid = steamid_to_bigint($filter);
-
-                $escaped_cid = pg_escape_string($cid);
-
-                $past_query =  "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp 
-                                FROM livelogs_log_index
-                                JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident 
-                                WHERE steamid = '{$escaped_cid}' AND live='false'
-                                ORDER BY numeric_id DESC
-                                LIMIT {$num_logs}";
-
-            }
-            else
-            {
-                $escaped_filter = pg_escape_string($filter);
-
-                $past_query =  "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, tstamp 
-                                FROM livelogs_log_index 
-                                JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident
-                                WHERE (
-                                        TEXT(server_ip) ~* '{$escaped_filter}' 
-                                        OR log_name ~* '{$escaped_filter}' 
-                                        OR map ~* '{$escaped_filter}' 
-                                        OR tstamp ~* '{$escaped_filter}'
-                                        OR name ~* '{$escaped_filter}'
-                                    )
-                                    AND live='false'
-                                ORDER BY numeric_id DESC LIMIT {$num_logs}";
-            }
-        }
-        else
-        {
-            $past_query =  "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, tstamp 
-                            FROM livelogs_log_index 
-                            WHERE live='false'
-                            ORDER BY numeric_id DESC LIMIT {$num_logs}";
-        }
-        
-        $past_res = pg_query($ll_db, $past_query);
     ?>
 
 </head>
@@ -131,7 +66,7 @@
                 <input type="text" class="pastlogs_searchfield" placeholder="Search here" id="search_field" value="<?=$filter?>">
                 <button type="submit" class="btn" id="search_submit">Search</button>
             </form>
-            <table class="table table-bordered table-hover ll_table">
+            <table class="table table-bordered table-hover ll_table" id="past_logs">
                 <thead>
                     <tr class="stat_summary_title_bar info">
                         <th class="log_list_col_title">
@@ -151,10 +86,10 @@
                         </th>
                     </tr>
                 </thead>
-                <tbody id="pastLogs">
+                <tbody>
                 <?php
-                while ($log = pg_fetch_array($past_res, NULL, PGSQL_ASSOC))
-                {
+                //while ($log = pg_fetch_array($past_res, NULL, PGSQL_ASSOC))
+                //{
                 ?>
                     
                     <tr>
@@ -165,7 +100,7 @@
                         <td class="log_date"><?=$log["tstamp"]?></td>
                     </tr>
                 <?php
-                }
+                //}
                 ?>
                 
                 </tbody>
@@ -176,8 +111,11 @@
     </div>
     <?php include('static/footer.html'); ?>
 
-    <script src="/js/bindWithDelay.js" type="text/javascript"></script>
+    <script src="/js/datatables_types.js" type="text/javascript"></script>
     <script src="/js/logsearch.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        log_search.init("<?=$filter?>", <?=$num_logs?>);
+    </script>
 </body>
 
 </html>
