@@ -261,20 +261,17 @@ DECLARE
     row RECORD;
     logrow RECORD;
 BEGIN
-
-    DROP TABLE IF EXISTS livelogs_player_logs;
-    PERFORM create_global_userlog_table();
-
     RAISE NOTICE 'Warning: This will take a while on a large database!';
 
     FOR row IN
-        SELECT steamid FROM livelogs_player_stats
+        SELECT DISTINCT log_ident, steamid FROM livelogs_player_stats
     LOOP
-        FOR logrow IN
-            SELECT log_ident FROM get_user_logs(row.steamid)
-        LOOP
-            INSERT INTO livelogs_player_logs (steamid, log_ident) VALUES (row.steamid, logrow.log_ident);
-        END LOOP;
+        SELECT name
+        FROM livelogs_player_stats JOIN livelogs_servers ON livelogs_player_stats.log_ident = livelogs_servers.log_ident 
+        WHERE steamid = row.steamid and name IS NOT NULL
+        ORDER BY numeric_id DESC LIMIT 1 INTO logrow;
+
+        INSERT INTO livelogs_player_details (steamid, log_ident, name) VALUES (row.steamid, row.log_ident, logrow.name);
     END LOOP;
     RETURN;
 END;

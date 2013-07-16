@@ -68,16 +68,6 @@ class parserClass(object):
             self.HAD_ERROR = True
             return
 
-        try:
-            conn = self.db.getconn()
-        except:
-            self.logger.exception("Exception getting database connection")
-
-            self.HAD_ERROR = True
-
-            self.__cleanup()
-            return
-
         self.closeListenerCallback = endfunc
         
         self.UNIQUE_IDENT = unique_ident
@@ -97,39 +87,53 @@ class parserClass(object):
         if (data.log_webtv_port == None):
             data.log_webtv_port = 0
         
-        if not log_uploaded:
-            try:
-                dbCursor = conn.cursor()
-                dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
+        self.INDEX_TABLE = "livelogs_log_index"
 
-                if (data.client_address != None):
-                    if not data.log_name:
-                        data.log_name = "log-%s" % time.strftime("%Y-%m-%d-%H-%M") #log-year-month-day-hour-minute
-                    
-                    dbCursor.execute("INSERT INTO livelogs_servers (server_ip, server_port, log_ident, map, log_name, live, webtv_port, tstamp) VALUES (%s, %s, %s, %s, %s, 'true', %s, %s) RETURNING numeric_id", 
-                                                (data.client_address[0], str(data.client_address[1]), self.UNIQUE_IDENT, self.current_map, data.log_name, data.log_webtv_port, time.strftime("%Y-%m-%d %H:%M:%S"),))
+        try:
+            conn = self.db.getconn()
+        except:
+            self.logger.exception("Exception getting database connection")
 
-                    return_data = dbCursor.fetchone()
-                    if return_data:
-                        self._numeric_id = return_data[0]
-                    else:
-                        self._numeric_id = 0
+            self.HAD_ERROR = True
 
-                conn.commit()
+            self.__cleanup()
+            return
 
+        try:
+            dbCursor = conn.cursor()
+            dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
 
-            except:
-                self.logger.exception("Exception during table init")
+            if (data.client_address != None):
+                if not data.log_name:
+                    data.log_name = "log-%s" % time.strftime("%Y-%m-%d-%H-%M") #log-year-month-day-hour-minute
+                
+                if log_uploaded:
+                    address = "0.0.0.0"
+                    port = "000000"
 
-                self.HAD_ERROR = True
+                else:
+                    address = data.client_address[0]
+                    port = str(data.client_address[1])
 
-                self.__cleanup(conn, dbCursor)
+                dbCursor.execute("INSERT INTO livelogs_log_index (server_ip, server_port, log_ident, map, log_name, live, webtv_port, tstamp) VALUES (%s, %s, %s, %s, %s, 'true', %s, %s) RETURNING numeric_id", 
+                                            (address, port, self.UNIQUE_IDENT, self.current_map, data.log_name, data.log_webtv_port, time.strftime("%Y-%m-%d %H:%M:%S"),))
 
-                return
+                return_data = dbCursor.fetchone()
+                if return_data:
+                    self._numeric_id = return_data[0]
+                else:
+                    self._numeric_id = 0
 
-        if (log_uploaded):
-            #TODO: Create an indexing method for logs that are manually uploaded and parsed
-            pass
+            conn.commit()
+
+        except:
+            self.logger.exception("Exception during table init")
+
+            self.HAD_ERROR = True
+
+            self.__cleanup(conn, dbCursor)
+
+            return
 
         self.__close_db_components(conn, dbCursor)
 
@@ -583,7 +587,10 @@ class parserClass(object):
             
             #point capture
             #/Team "(Blue|Red)" triggered "pointcaptured" \x28cp "(\d+)"\x29 \x28cpname "(.+)"\x29 \x28numcappers "(\d+)".+/
-            #Team "Red" triggered "pointcaptured" (cp "0") (cpname "#koth_viaduct_cap") (numcappers "5") (player1 "[v3] Faithless<47><STEAM_0:0:52150090><Red>") (position1 "-1370 59 229") (player2 "[v3] Chrome<48><STEAM_0:1:41365809><Red>") (position2 "-1539 87 231") (player3 "[v3] Jak<49><STEAM_0:0:18518582><Red>") (position3 "-1659 150 224") (player4 "[v3] Kaki<51><STEAM_0:1:35387674><Red>") (position4 "-1685 146 224") (player5 "[v3] taintedromance<52><STEAM_0:0:41933053><Red>") (position5 "-1418 182 236")
+            #Team "Red" triggered "pointcaptured" (cp "0") (cpname "#koth_viaduct_cap") (numcappers "5") (player1 "[v3] Faithless<47><STEAM_0:0:52150090><Red>") (position1 "-1370 59 229") 
+            #(player2 "[v3] Chrome<48><STEAM_0:1:41365809><Red>") (position2 "-1539 87 231") (player3 "[v3] Jak<49><STEAM_0:0:18518582><Red>") 
+            #(position3 "-1659 150 224") (player4 "[v3] Kaki<51><STEAM_0:1:35387674><Red>") (position4 "-1685 146 224") 
+            #(player5 "[v3] taintedromance<52><STEAM_0:0:41933053><Red>") (position5 "-1418 182 236")
             res = regex(parser_lib.point_capture, logdata)
             if res:
                 #print "Point captured"
@@ -973,7 +980,7 @@ class parserClass(object):
                 #player just added, need to insert into details table
                 details_query = "INSERT INTO %s (steamid, log_ident, name) VALUES ('%s', '%s', E'%s')" % (self.PLAYER_TABLE,
                                     cid, self.UNIQUE_IDENT, name)
-                
+
             elif not self._players[cid].is_name_same(name):
                 #else if name changed, need to update
                 details_query = "UPDATE %s SET name = E'%s' WHERE steamid = '%s' and log_ident = '%s'" % (self.PLAYER_TABLE,
@@ -1108,7 +1115,8 @@ class parserClass(object):
             if not self.HAD_ERROR:
                 if not self._players: #if player dict is empty, log must be empty
                     #if no players were added to the log, this log is invalid. therefore, we should delete it
-                    end_query = "DELETE FROM livelogs_servers WHERE log_ident = E'%(logid)s'; DELETE FROM livelogs_player_stats WHERE log_ident = '%(logid)s'" % {
+                    end_query = "DELETE FROM %(log_index)s WHERE log_ident = E'%(logid)s'; DELETE FROM %(log_index)s WHERE log_ident = '%(logid)s'" % {
+                            "log_index": self.INDEX_TABLE,
                             "logid": self.UNIQUE_IDENT
                         }
                         
@@ -1121,7 +1129,7 @@ class parserClass(object):
 
                 else:
                     #sets live to false
-                    live_end_query = "UPDATE livelogs_servers SET live = false WHERE log_ident = E'%s'" % (self.UNIQUE_IDENT)
+                    live_end_query = "UPDATE %s SET live = false WHERE log_ident = E'%s'" % (self.INDEX_TABLE, self.UNIQUE_IDENT)
 
                     if shutdown:
                         self.executeQuery(live_end_query, use_queue=False) #skip the queue

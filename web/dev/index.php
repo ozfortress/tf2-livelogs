@@ -21,10 +21,19 @@
             $num_past = 15;
         }
     
-        $live_query = "SELECT server_ip, server_port, numeric_id, log_name, map FROM livelogs_servers WHERE live='true' ORDER BY numeric_id DESC";
+        $live_query =  "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map 
+                        FROM livelogs_log_index
+                        WHERE live='true' 
+                        ORDER BY numeric_id DESC";
+
         $live_res = pg_query($ll_db, $live_query);
+
     
-        $past_query = "SELECT server_ip, server_port, numeric_id, log_name, map, tstamp FROM livelogs_servers WHERE live='false' ORDER BY numeric_id DESC LIMIT {$num_past}";
+        $past_query =  "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, tstamp 
+                        FROM livelogs_log_index
+                        WHERE live='false' 
+                        ORDER BY numeric_id DESC LIMIT {$num_past}";
+
         $past_res = pg_query($ll_db, $past_query);
     ?>
 
@@ -108,7 +117,7 @@
                     ?>
                        
                         <tr>
-                            <td class="server_ip"><?=long2ip($live["server_ip"])?></td>
+                            <td class="server_ip"><?=$live["server_ip"]?></td>
                             <td class="server_port"><?=$live["server_port"]?></td>
                             <td class="log_map"><?=$live["map"]?></td>
                             <td class="log_name"><a href="/view/<?=$live["numeric_id"]?>"><?=htmlentities($live["log_name"], ENT_QUOTES, "UTF-8")?></a></td>
@@ -168,7 +177,7 @@
                     ?>
                         
                         <tr>
-                            <td class="server_ip"><?=long2ip($past["server_ip"])?></td>
+                            <td class="server_ip"><?=$past["server_ip"]?></td>
                             <td class="server_port"><?=$past["server_port"]?></td>
                             <td class="log_map"><?=$past["map"]?></td>
                             <td class="log_name"><a href="/view/<?=$past["numeric_id"]?>"><?=htmlentities($past["log_name"], ENT_QUOTES, "UTF-8")?></a></td>

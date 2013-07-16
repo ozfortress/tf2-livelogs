@@ -38,8 +38,8 @@
             else
             {
                 $player_logs_query = "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp 
-                                      FROM livelogs_servers
-                                      JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_servers.log_ident 
+                                      FROM livelogs_log_index
+                                      JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident 
                                       WHERE steamid = '{$escaped_cid}'
                                       ORDER BY numeric_id DESC
                                       LIMIT {$ll_config["display"]["player_num_past"]}"; //get all the logs that a user has been in
@@ -144,8 +144,8 @@
         ?>
 
         <div class="details_container">
-            <span class="log_name_id">Name:</span> <span><a href="//steamcommunity.com/profiles/<?=$community_id?>"><?=htmlentities($player_name, ENT_QUOTES, "UTF-8")?></a></span> <br>
-            <span class="log_name_id">Steam ID:</span> <span><?=big_int_to_steamid($community_id)?></span> <br>
+            <span class="log_detail_id">Name:</span> <span><a href="//steamcommunity.com/profiles/<?=$community_id?>"><?=htmlentities($player_name, ENT_QUOTES, "UTF-8")?></a></span> <br>
+            <span class="log_detail_id">Steam ID:</span> <span><?=big_int_to_steamid($community_id)?></span> <br>
         </div>
 
         <div class="stat_table_container">

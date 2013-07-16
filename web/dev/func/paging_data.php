@@ -61,8 +61,8 @@
     //THE QUERIES----------------
 
     $log_query = "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp
-                FROM livelogs_servers
-                JOIN livelogs_player_details ON livelogs_servers.log_ident = livelogs_player_details.log_ident
+                FROM livelogs_log_index
+                JOIN livelogs_player_details ON livelogs_log_index.log_ident = livelogs_player_details.log_ident
                 {$filter} 
                 {$order} 
                 {$limit}";
