@@ -45,15 +45,23 @@
                 $escaped_event_table = pg_escape_string("log_event_" . $_unique_ident);
             }
             
-            $stat_query =  "SELECT steamid, team, name, class,
+            $stat_query =  "SELECT steamid, team, class,
                                     kills, deaths, assists, points, 
                                     healing_done, healing_received, ubers_used, ubers_lost, 
                                     headshots, damage_dealt, damage_taken,
                                     captures, captures_blocked, 
                                     dominations
-                            FROM livelogs_player_stats WHERE log_ident = '{$_unique_ident}'";
+                            FROM livelogs_player_stats
+                            WHERE log_ident = '{$_unique_ident}'";
 
             $stat_result = pg_query($ll_db, $stat_query);
+
+            $name_query =  "SELECT steamid, name 
+                            FROM livelogs_player_details
+                            WHERE log_ident = '{$_unique_ident}'";
+
+            $name_result = pg_query($ll_db, $name_query);
+
             
             $chat_query = "SELECT steamid, name, team, chat_type, chat_message FROM livelogs_game_chat WHERE log_ident = '{$_unique_ident}'";
             $chat_result = pg_query($ll_db, $chat_query);
@@ -68,7 +76,7 @@
                 $time_array = pg_fetch_all($time_result);
             }
 
-            if ((!$stat_result) || (!$chat_result))
+            if ((!$stat_result) || (!$chat_result) || (!$name_result))
             {
                 echo "PGSQL HAD ERROR: " . pg_last_error();
             }
@@ -349,17 +357,26 @@
                         $mstats = array();
                         //NAME:K:D:A:PC:PB:HS:PTS:DMG:DMGT:HEAL:DOM:R:KPD:DPD:DPR:DPM
 
-                        $stat_array = pg_fetch_all($stat_result);
+                        if ($stat_result)
+                            $stat_array = pg_fetch_all($stat_result);
 
-                        $player_stats = merge_stat_array($stat_array);
-                        //print_r($player_stats);
+                        if ($name_result)
+                            $name_array = fetch_name_array($name_result);
+                        
+
+                        if ($name_array && $stat_array)
+                            $player_stats = merge_stat_array($stat_array);
 
                         //while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC))
                         foreach ($player_stats as $community_id => $pstat)
                         {
-                            if (empty($pstat["name"]))
+                            if (empty($name_array[$community_id]["name"]))
                             {
-                                $pstat["name"] = "LL_INVALID_STRING";
+                                $p_name = "LL_INVALID_STRING";
+                            }
+                            else
+                            {
+                                $p_name = $name_array[$community_id]["name"];
                             }
 
                             $p_kpd = round($pstat["kills"] / (($pstat["deaths"]) ? $pstat["deaths"] : 1), 2); // kills/death
@@ -379,7 +396,7 @@
                         <tr>
                             <td>
                                 <?=player_classes($pstat["class"])?>
-                                <a id="<?=$community_id . ".name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=htmlentities($pstat["name"], ENT_QUOTES, "UTF-8")?></a>
+                                <a id="<?=$community_id . ".name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=htmlentities($p_name, ENT_QUOTES, "UTF-8")?></a>
                             </td>
                             <td id="<?=$community_id . ".kills"?>"><?=$pstat["kills"]?></td>
                             <td id="<?=$community_id . ".deaths"?>"><?=$pstat["deaths"]?></td>
