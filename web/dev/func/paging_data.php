@@ -41,7 +41,7 @@
     }
 
     //Filtering - filter by community id obviously, but also filter by others if search is enabled
-    $filter = "WHERE steamid = '{$cid}'";
+    $filter = "WHERE steamid = '{$cid}' and live = 'false'";
     
     /*if (isset($_GET['sSearch']) && $_GET['sSearch'] != "")
     {

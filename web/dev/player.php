@@ -40,7 +40,7 @@
                 $player_logs_query = "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp 
                                       FROM livelogs_log_index
                                       JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident 
-                                      WHERE steamid = '{$escaped_cid}'
+                                      WHERE steamid = '{$escaped_cid}' and live = 'false'
                                       ORDER BY numeric_id DESC
                                       LIMIT {$ll_config["display"]["player_num_past"]}"; //get all the logs that a user has been in
 
@@ -359,7 +359,7 @@
                         <td class="server_port"><?=$log["server_port"]?></td>
                         <td class="log_map"><?=$log["map"]?></td>
                         <td class="log_name"><a href="/view/<?=$log["numeric_id"]?>"><?=htmlentities($log["log_name"], ENT_QUOTES, "UTF-8")?></a></td>
-                        <td class="log_date"><?=($log["live"] === "t") ? "LIVE" : $log["tstamp"]?></td>
+                        <td class="log_date"><?=$log["tstamp"]?></td>
                     </tr>
                 <?php
                 }
