@@ -9,6 +9,8 @@ This will also allow greater flow control of parser database insertions
 
 import threading
 import collections
+import logging
+import pickle
 
 HIPRIO = 0 #high priority
 NMPRIO = 1 #normal priority
@@ -22,13 +24,9 @@ class query_queue(object):
 
         self.__queues = {} # dict of queues, which is populated on the fly
 
-        self.deserialise() #attempt to deserialise any existing queue
-
-        #populate the queues dict str8 up
-        #for queue_level in self.__queue_levels:
-        #    self.__allocate_empty_queue(queue_level) 
-
         self.__threading_lock = threading.Lock()
+
+        self.deserialise() #attempt to deserialise any existing queue
 
     def add_query(self, query_a, query_b=None, priority = NMPRIO):
         self.__add_query_to_queue((query_a, query_b), priority)
@@ -120,10 +118,9 @@ class query_queue(object):
 
         return rtn
 
-    def serialise():
+    def serialise(self):
         #serialise the objects of this class that are serialisible in a way they can be retrieved easily
         self.__get_lock()
-        import pickle
 
         logging.info("Serialising query queue...")
 
@@ -133,39 +130,45 @@ class query_queue(object):
             logging.error("Unable to open file to store serialised query queue")
 
         else:
-            pickle.dump(self.__queues, serial_file, pickle.HIGHEST_PROTOCOL)
+            try:
+                pickle.dump(self.__queues, serial_file, pickle.HIGHEST_PROTOCOL)
+
+                logging.info("Query queue successfully serialised")
+            except:
+                logging.exception("Exception serialising")
 
             serial_file.close()
 
-            logging.info("Query queue successfully serialised")
-
         self.__release_lock()
 
-    def deserialise():
+    def deserialise(self):
         self.__get_lock()
-        import pickle, os
+        import os
 
         logging.info("Attempting to deserialise query queue...")
         if not os.path.exists("livelogs_queryqueue.sobj"):
             logging.info("Serialised queue file does not exist, not deserialising")
 
         else:
-            serial_file = open("livelogs_queryqueue.sobj", "wb")
+            try:
+                serial_file = open("livelogs_queryqueue.sobj", "rb")
 
-            if serial_file:
-                tmp_queues = pickle.load(serial_file)
+                if serial_file:
+                    tmp_queues = pickle.load(serial_file)
 
-                if tmp_queues:
-                    self.__queues = tmp_queues
+                    if tmp_queues:
+                        self.__queues = tmp_queues
 
-                serial_file.close()
+                    serial_file.close()
 
-                logging.info("Query queue successfully deserialised. Queue lengths: %s", self.queue_length_all())
+                    logging.info("Query queue successfully deserialised. Queue lengths: %s", self.queue_length_all())
 
-                os.unlink("livelogs_queryqueue.sobj")
+                else:
+                    logging.info("Unable to open queue file")
+            except:
+                logging.exception("Exception deserialising. Ignoring previous queue")
 
-            else:
-                logging.info("Unable to open queue file")
+            os.unlink("livelogs_queryqueue.sobj")
 
         self.__release_lock()
 
