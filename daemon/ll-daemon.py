@@ -590,54 +590,12 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
         self.logger.info("Weapon data now contains custom weapons")
 
-if __name__ == '__main__':
-    cfg_parser = ConfigParser.SafeConfigParser()
-    if cfg_parser.read(r'll-config.ini'):
-        try:
-            server_ip = cfg_parser.get('log-listener', 'server_ip')
-            server_port = cfg_parser.getint('log-listener', 'server_port')
 
-            l_timeout = cfg_parser.getfloat('log-listener', 'listener_timeout')
-
-            process_frequency = cfg_parser.getfloat('log-listener', 'queue_process_frequency') #how often (in seconds) the query queue should be processed
-            min_quota = cfg_parser.getint('log-listener', 'queue_min_quota') #min num of queries to process
-            max_quota = cfg_parser.getint('log-listener', 'queue_max_quota') #how many queries should be processed per interval (MAX)
-
-            client_limit = cfg_parser.getint('log-listener', 'client_limit') #maximum number of clients to serve
-            
-        except:
-            sys.exit("Error reading config file")
-                
-    else:
-        #first run time, no config file present. create with default values and exit
-        print "No configuration file present. A new one will be generated in ll-config.ini"
-        make_new_config()
-
-        sys.exit("Configuration file generated. Please edit it before running the daemon again")
-
-    server_address = (server_ip, server_port)
-
-    llServer = llDaemon(server_address, l_timeout, process_frequency, min_quota, max_quota, client_limit, client_handler=llDaemonHandler)
-
-    llServer.prepare_server() #start threads/get database connection pool
-
-    logging.info("Server on %s:%s under PID %s", server_address[0], server_address[1], os.getpid())
-
-    try:
-        logging.info("Waiting for incoming data")
-        llServer.serve_forever() #listen for log requests!
-        
-    except:
-        #clean up the listener objects/parsers still running
-        logging.info("Exception while serving. Exiting")
-
-        cleanup_daemon(llServer)
-
-        logging.info("Shutdown successful")
-
-        sys.exit()
+"""
+Begin cleanup/startup functions
 
 
+"""
 def cleanup_daemon(server_obj):
     server_obj.timeout_event.set() #stop the timeout thread
     server_obj.timeout_thread.join(2) #wait 2 secs for thread to join before closing the interpreter
@@ -667,7 +625,6 @@ def cleanup_daemon(server_obj):
         #if the queues aren't empty, serialize them so they can be run next time
         serialise_query_queue(server_obj.query_queue)
     
-
 def serialise_query_queue(queue_obj):
     logging.info("Serializing query queue for continued processing next start-up...")
 
@@ -729,3 +686,51 @@ def uncaught_excepthook(excType, excValue, traceback):
     logging.error("Uncaught exception", exc_info=(excType, excValue, traceback))
 
 sys.excepthook = uncaught_excepthook
+
+
+if __name__ == '__main__':
+    cfg_parser = ConfigParser.SafeConfigParser()
+    if cfg_parser.read(r'll-config.ini'):
+        try:
+            server_ip = cfg_parser.get('log-listener', 'server_ip')
+            server_port = cfg_parser.getint('log-listener', 'server_port')
+
+            l_timeout = cfg_parser.getfloat('log-listener', 'listener_timeout')
+
+            process_frequency = cfg_parser.getfloat('log-listener', 'queue_process_frequency') #how often (in seconds) the query queue should be processed
+            min_quota = cfg_parser.getint('log-listener', 'queue_min_quota') #min num of queries to process
+            max_quota = cfg_parser.getint('log-listener', 'queue_max_quota') #how many queries should be processed per interval (MAX)
+
+            client_limit = cfg_parser.getint('log-listener', 'client_limit') #maximum number of clients to serve
+            
+        except:
+            sys.exit("Error reading config file")
+                
+    else:
+        #first run time, no config file present. create with default values and exit
+        print "No configuration file present. A new one will be generated in ll-config.ini"
+        make_new_config()
+
+        sys.exit("Configuration file generated. Please edit it before running the daemon again")
+
+    server_address = (server_ip, server_port)
+
+    llServer = llDaemon(server_address, l_timeout, process_frequency, min_quota, max_quota, client_limit, client_handler=llDaemonHandler)
+
+    llServer.prepare_server() #start threads/get database connection pool
+
+    logging.info("Server on %s:%s under PID %s", server_address[0], server_address[1], os.getpid())
+
+    try:
+        logging.info("Waiting for incoming data")
+        llServer.serve_forever() #listen for log requests!
+        
+    except:
+        #clean up the listener objects/parsers still running
+        logging.info("Exception while serving. Exiting")
+
+        cleanup_daemon(llServer)
+
+        logging.info("Shutdown successful")
+
+        sys.exit()
