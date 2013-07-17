@@ -21,7 +21,6 @@ import time
 import threading
 import math
 import ConfigParser
-import pickle
 
 from HTMLParser import HTMLParser
 from pprint import pprint
@@ -233,18 +232,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.timeout_thread = threading.Thread(target=self._listener_timeout_timer, args=(self.timeout_event,))
         self.timeout_thread.daemon = True
 
-        if os.path.isfile("livelogs_queryqueue.sobj"):
-            #attempt to load the query queue from last run
-            tmp_queue = deserialise_query_queue()
-            if tmp_queue:
-                self.query_queue = tmp_queue
-
-            else:
-                self.query_queue = queryqueue.query_queue() #couldn't load queue, get new query queue
-        else:
-            #past obj doesn't exist, get a new query queue
-            self.query_queue = queryqueue.query_queue() #new query queue
-        
+        self.query_queue = queryqueue.query_queue() #new query queue        
         self.queue_process_frequency = process_frequency
         self.queue_min_quota = min_process_quota
         self.queue_max_quota = max_process_quota
@@ -623,33 +611,7 @@ def cleanup_daemon(server_obj):
 
     if not server_obj.query_queue.queues_empty():
         #if the queues aren't empty, serialize them so they can be run next time
-        serialise_query_queue(server_obj.query_queue)
-    
-def serialise_query_queue(queue_obj):
-    logging.info("Serializing query queue for continued processing next start-up...")
-
-    pickle.dump(queue_obj, open("livelogs_queryqueue.sobj", "wb"), pickle.HIGHEST_PROTOCOL)
-
-    logging.info("Query queue successfully serialised")
-
-def deserialise_query_queue():
-    logging.info("Deserialising pickled query queue")
-
-    queue_file = open("livelogs_queryqueue.sobj", "rb")
-
-    if not queue_file:
-        logging.info("Unable to open serialised query queue file")
-        return None
-
-    queue_obj = pickle.load(queue_file)
-
-    queue_file.close()
-
-    os.unlink("livelogs_queryqueue.sobj")
-
-    logging.info("Successfully loaded previous queury queue")
-
-    return queue_obj
+        server_obj.query_queue.serialise()
 
 def make_new_config():
     try:

@@ -22,6 +22,8 @@ class query_queue(object):
 
         self.__queues = {} # dict of queues, which is populated on the fly
 
+        self.deserialise() #attempt to deserialise any existing queue
+
         #populate the queues dict str8 up
         #for queue_level in self.__queue_levels:
         #    self.__allocate_empty_queue(queue_level) 
@@ -117,6 +119,55 @@ class query_queue(object):
                 rtn.append("NaN")
 
         return rtn
+
+    def serialise():
+        #serialise the objects of this class that are serialisible in a way they can be retrieved easily
+        self.__get_lock()
+        import pickle
+
+        logging.info("Serialising query queue...")
+
+        serial_file = open("livelogs_queryqueue.sobj", "wb")
+
+        if not serial_file:
+            logging.error("Unable to open file to store serialised query queue")
+
+        else:
+            pickle.dump(self.__queues, serial_file, pickle.HIGHEST_PROTOCOL)
+
+            serial_file.close()
+
+            logging.info("Query queue successfully serialised")
+
+        self.__release_lock()
+
+    def deserialise():
+        self.__get_lock()
+        import pickle, os
+
+        logging.info("Attempting to deserialise query queue...")
+        if not os.path.exists("livelogs_queryqueue.sobj"):
+            logging.info("Serialised queue file does not exist, not deserialising")
+
+        else:
+            serial_file = open("livelogs_queryqueue.sobj", "wb")
+
+            if serial_file:
+                tmp_queues = pickle.load(serial_file)
+
+                if tmp_queues:
+                    self.__queues = tmp_queues
+
+                serial_file.close()
+
+                logging.info("Query queue successfully deserialised. Queue lengths: %s", self.queue_length_all())
+
+                os.unlink("livelogs_queryqueue.sobj")
+
+            else:
+                logging.info("Unable to open queue file")
+
+        self.__release_lock()
 
     def __get_lock(self):
         self.__threading_lock.acquire()
