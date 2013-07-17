@@ -357,7 +357,7 @@
                 <tbody>
 
                 </tbody>
-                <caption>Past logs (<?=$total_player_logs?> found)</caption>
+                <caption>Past and current logs (<?=$total_player_logs?> found)</caption>
             </table>
 
             <?php
