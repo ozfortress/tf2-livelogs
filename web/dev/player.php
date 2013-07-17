@@ -37,7 +37,7 @@
             }
             else
             {
-                $player_logs_query = "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp 
+                /*$player_logs_query = "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp 
                                       FROM livelogs_log_index
                                       JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident 
                                       WHERE steamid = '{$escaped_cid}'
@@ -50,24 +50,31 @@
                     $player_logs = pg_fetch_all($player_logs_result);
                 else
                     $player_logs = NULL;
-                
-                if (pg_num_rows($stat_result) > 0)
-                    $pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC);
-                else
-                    $pstat = NULL;
+                */
 
                 $total_logs_query = "SELECT COUNT(log_ident) as total
                                     FROM livelogs_player_details
                                     WHERE steamid = '{$escaped_cid}'";
 
                 $total_logs_result = pg_query($ll_db, $total_logs_query);
+
                 if ($total_logs_result && pg_num_rows($total_logs_result) > 0)
                 {
                     $total_logs_array = pg_fetch_array($total_logs_result, NULL, PGSQL_ASSOC);
                     $total_player_logs = $total_logs_array["total"];
                 }
                 else
+                {
                     $total_player_logs = 0;
+                }
+
+                if (pg_num_rows($stat_result) > 0)
+                    $pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC);
+                else
+                    $pstat = NULL;
+            
+                
+                
 
                 $class_stats_query =    "SELECT class, kills, deaths, assists, points,
                                             healing_done, healing_received, ubers_used, ubers_lost,
@@ -229,7 +236,6 @@
                         <td><?=$p_kpd?></td>
                         <td><?=$p_dpd?></td>
                     </tr>
-                    
                 </tbody>
                 <caption>Overall stats</caption>
             </table>
@@ -325,8 +331,8 @@
 
         <div class="log_list_past_container">
             <?php
-            if (sizeof($player_logs) > 0)
-            {
+            //if (sizeof($player_logs) > 0)
+            //{
             ?>
             <table class="table table-bordered table-hover table-striped ll_table" id="past_logs">
                 <thead>
@@ -349,28 +355,13 @@
                     </tr>
                 </thead>
                 <tbody>
-                <?php
-                foreach($player_logs as $idx => $log)
-                {
-                ?>
-
-                    <tr>
-                        <td class="server_ip"><?=$log["server_ip"]?></td>
-                        <td class="server_port"><?=$log["server_port"]?></td>
-                        <td class="log_map"><?=$log["map"]?></td>
-                        <td class="log_name"><a href="/view/<?=$log["numeric_id"]?>"><?=htmlentities($log["log_name"], ENT_QUOTES, "UTF-8")?></a></td>
-                        <td class="log_date"><?=$log["tstamp"]?></td>
-                    </tr>
-                <?php
-                }
-                ?>
 
                 </tbody>
                 <caption>Past logs (<?=$total_player_logs?> found)</caption>
             </table>
 
             <?php
-            }
+            //}
             ?>
 
         </div>
@@ -387,7 +378,7 @@
         pass the steamid, number of logs shown and the total number of logs to the datatables init
         so that we can make this shit work
         */
-        ll_paging.init("<?=$escaped_cid?>", <?=pg_num_rows($player_logs_result)?>, <?=$total_player_logs?>);
+        ll_paging.init("<?=$escaped_cid?>", <?=$ll_config["display"]["player_num_past"]?>);
     </script>
 
 </body>

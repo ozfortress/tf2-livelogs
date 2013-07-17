@@ -31,8 +31,8 @@ var ll_paging = ll_paging || (function() {
     var initialised = false;
 
     return {
-        init : function(community_id, num_preloaded, total_logs) {
-            console.log("cid: %s | num_preloaded: %s | total: %s", community_id, num_preloaded, total_logs);
+        init : function(community_id, display_length) {
+            console.log("cid: %s | display_length: %s", community_id, display_length);
             if (initialised) return;
 
             var past_table = $('#past_logs').dataTable( {
@@ -54,11 +54,10 @@ var ll_paging = ll_paging || (function() {
                 "bPaginate": true,
                 "sPaginationType": "bootstrap",
                 "bLengthChange": false,
-                "iDisplayLength": num_preloaded,
+                "iDisplayLength": display_length,
                 "bProcessing": true,
                 "bServerSide": true,
                 "sAjaxSource": "/func/paging_data.php",
-                "iDeferLoading": total_logs,
                 "fnServerData": ll_paging.datatables_pipeline,
                 "fnServerParams": function (aoData) {
                     aoData.push({ "name": "cid", "value": community_id });
