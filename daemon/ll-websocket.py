@@ -22,7 +22,7 @@ import time
 import threading
 import ConfigParser
 
-from livelib import dbmanager.dbManager
+from livelib import dbmanager
 
 from pprint import pprint
 
@@ -58,144 +58,242 @@ class llWSApplication(tornado.web.Application):
 
         self.update_rate = update_rate
         
-        self.log_clients = set() #set of ALL connected clients
-        self.log_ordered_clients = { "none": set() } #ordered clients dict will have data in the form of: [ "log ident": (client, client, client) ], where the clients are in a set corresponding to
-                                                #the log ident sent by the client. new clients are added to "none" upon connection, and moved when a log ident is received
-        self.log_db_managers = {} #a dictionary containing dbManager objects corresponding to log ids
+        self.log_data = {} #dict in the form of:
+        """
+                                { "log ident": {
+                                              "manager": db_manager
+                                              "clients": set(client, client, client) 
+                                               }
+                                }
+        """
 
         self.log_cache = [] #holds a set of tuples containing log idents, the last time they were updated, and the status (live/not live) | [(cache_time, log_ident, status<t/f>), (cache_time, log_ident, status<t/f>)]
 
         self.log_update_thread_event = threading.Event()
         self.log_update_thread = threading.Thread(target = self._sendUpdateThread, args=(self.log_update_thread_event,))
         self.log_update_thread.daemon = True
-
         self.log_update_thread.start()
 
+        self.cache_thread_event = threading.Event()
+        self.cache_thread = threading.Thread(target = self.__refresh_cache_thread)
+        self.cache_thread.daemon = True
+        self.cache_thread.start()
+
+        self.__threading_lock = threading.Lock()
+        self.__cache_threading_lock = threading.Lock()
+
         tornado.web.Application.__init__(self, handlers, **settings)
-        
-    def addToOrderedClients(self, log_id, client):
-        if log_id in self.log_ordered_clients:
-            #log_id key exists, just need client to add to set
-            self.logger.debug("log_id '%s' key exists. Adding client to list", log_id)
-            self.log_ordered_clients[log_id].add(client)
             
-        else:
-            #key doesn't exist with a set, so create the set and add the client to it
-            self.logger.debug("log_id '%s' key doesn't exist in ordered_clients. Creating", log_id)
-            self.log_ordered_clients[log_id] = set()
-            self.log_ordered_clients[log_id].add(client)
-            
-        self.log_ordered_clients["none"].discard(client) #remove from unallocated set
-        
-    def removeFromOrderedClients(self, client):
-        for key, client_set in self.log_ordered_clients.iteritems():
-            #key is a log ident, and set is the set of clients listening for this log ident
-            if client in client_set:
-                self.logger.debug("Client has key %s. Removing", key)
-                
-                client_set.remove(client)
-                if (len(client_set) == 0) and (key != "none"):
-                    self.logger.debug("key %s has empty set. deleting key", key)
-                    del self.log_ordered_clients[key]
-                    
-                    #we know the set is now empty of clients, so we don't need the dbManager for this log id anymore
-                    self.delDBManager(key)
-                    
-                break
-            
-    def addToCache(self, log_ident, status):
-        #cache_info = (cache_time, log_ident, status<t/f>)
+    def add_to_cache(self, log_ident, status):
+        self.__cache_threading_lock.acquire()
+
         self.log_cache.append((int(round(time.time())), log_ident, status))
+
+        self.__cache_threading_lock.release()
         
-    def removeFromCache(self, cache_item):
-        self.log_cache.remove(cache_item) #cache_item has same structure as shown in the addToCache method
+    def remove_from_cache(self, cache_item):
+        self.__cache_threading_lock.acquire()
+
+        self.log_cache.remove(cache_item)
+
+        self.__cache_threading_lock.release()
         
-        self.logger.debug("Removed cache item (%s, %s, %s)", cache_item[0], cache_item[1], cache_item[2])
+        self.logger.debug("Removed cache item %s", cache_item)
     
-    def addDBManager(self, log_ident, database = None, update_rate = None):
-        if log_ident not in self.log_db_managers:
-            self.logger.debug("Adding %s to dbManager dict", log_ident)
-            #now we need to create a new dbManager for this log id. the database handle is the momoko pool created @ startup
-            #and is the same for all clients
+    def get_log_cache(self, log_ident):
+        #return a cache only if the cache is valid
 
-            if not database:
-                database = self.db
-            if not update_rate:
-                update_rate = self.update_rate
+        for log_cache in self.application.log_cache:
+            #cache_info = (cache_time, log_ident, status<t/f>)
+            if log_cache[1] == log_ident:
+                time_ctime = int(round(time.time()))
+                if (time_ctime - log_cache[0]) > 60:
+                    #cache is expired
+                    self.application.remove_from_cache(log_cache)
+                    break
 
-            self.log_db_managers[log_ident] = dbManager(log_ident, database, update_rate, end_callback = self._logFinishedCallback)
-    
-    def delDBManager(self, log_ident):
-        if log_ident in self.log_db_managers:
-            #log_ident key in db_managers corresponds to a dbManager object
-            
-            self.logger.debug("Cleaning up dbManager object for log id %s", log_ident)
-            self.log_db_managers[log_ident].cleanup() #run the cleanup method, which ends the update thread. everything else is garbage collected
-            
-            self.logger.debug("Removing dbManager object for log id %s", log_ident)
-            del self.log_db_managers[log_ident]
-    
-    def sendLogUpdates(self):
-        if len(self.log_clients) == 0:
-            self.logger.info("sendLogUpdates: No clients connected")
+                else:
+                    return log_cache
 
+        return None
+
+
+    def add_client(self, client_obj, log_ident):
+        self.__threading_lock.acquire()
+
+        log_cache = self.get_log_cache(log_ident)
+
+        if log_ident in self.log_data:
+            self.log_data[log_ident]["clients"].add(client_obj)
+
+        else:
+            self.log_data[log_ident] = {
+                "manager": self.__get_dbmanager(log_ident)
+                "clients": set(client_obj)
+            }
+
+        self.__threading_lock.release()
+
+    def delete_client(self, client_obj, log_ident):
+        self.__threading_lock.acquire()
+
+        if log_ident in self.log_data:
+            log_data = self.log_data[log_ident]
+
+            if client_obj in log_data["clients"]:
+                log_data["clients"].discard(client_obj)
+
+        self.__threading_lock.release()
+
+    def __get_dbmanager(self, log_ident):
+        #creates a new db manager object and returns it
+        db_manager = dbmanager.dbManager(log_ident, self.update_rate, self._log_finished_callback)
+
+    def __free_dbmanager(self, log_ident):
+        #deletes a db manager and associated clients
+        self.__threading_lock.acquire()
+
+        if log_ident in self.log_data:
+            del self.log_data[log_ident]["manager"]
+
+            if len(self.log_data[log_ident]["clients"]) > 0:
+                self.__disconnect_clients(self.log_data[log_ident]["clients"])
+
+        self.__threading_lock.release()
+
+    def __disconnect_clients(self, client_set):
+        for client in client_set.copy():
+            client.write_message("LOG_END")
+            client.close()
+
+            client_set.discard(client)
+
+    def __get_num_clients(self, log_ident):
+        if log_ident in self.log_data:
+            return len(self.log_data[log_ident]["clients"])
+        
+        else:
+            return 0
+
+    def __get_total_clients(self):
+        total = 0
+
+        for log_ident in self.log_data:
+            total += self.__get_num_clients(log_ident)
+
+        return total
+
+    def __send_log_updates(self):
+        if len(self.log_data) == 0:
             return
         
-        self.logger.debug("%d: Sending updates. Number of clients: %d", int(round(time.time())), len(self.log_clients))
-        for log_id in self.log_ordered_clients:
-            if log_id != "none":
-                #the key will correspond to a set of client objects which are listening for updates on this log id
-                if log_id in self.log_db_managers:
-                    log_manager = self.log_db_managers[log_id]
+        self.__threading_lock.acquire() #lock while we iterate over the log_data dict, so nothing gets removed or added
 
-                    delta_update_dict = log_manager.compressedUpdate()
+        self.logger.debug("%d: Sending updates. Number of active logs: %d. Number of clients: %d", int(round(time.time())), len(self.log_data), self.__get_total_clients())
+
+        for log_id in self.log_data:
+            if self.__get_num_clients(log_id) == 0:
+                continue
+
+            log_manager = self.log_data[log_id]["manager"]
+
+            delta_update_dict = {}
+            full_update_dict = log_manager.full_update()
+
+            for client in self.log_data[log_id]["clients"]:
+                #client is a websocket client object, which data can be sent to using client.write_message, etc
+                #client.write_message("HELLO!")
+                if not client.HAD_FIRST_UPDATE:
+                    #need to send complete values on first update to keep clients in sync with the server
+                    if full_update_dict:
+                        #send a complete update to the client
+                        client.write_message(full_update_dict)
+                    
+                        client.HAD_FIRST_UPDATE = True
+                else:
+                    delta_update_dict = log_manager.compressed_update()
                     self.logger.debug("Got update dict for %s: %s", log_id, delta_update_dict)
+                    if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
+                        self.logger.debug("Sending update to client %s", client.cip)
+                        client.write_message(delta_update_dict)
 
-                    full_update_dict = {}
-
-                    for client in self.log_ordered_clients[log_id]:
-                        #client is a websocket client object, which data can be sent to using client.write_message, etc
-                        #client.write_message("HELLO!")
-                        if not client.HAD_FIRST_UPDATE:
-                            #need to send complete values on first update to keep clients in sync with the server
-                            #if we have data yet
-
-                            if not full_update_dict:
-                                if log_manager._stat_complete_table and log_manager._score_table:
-
-                                    full_update_dict = log_manager.firstUpdate()
-
-                            if full_update_dict:
-                                #send a complete update to the client
-                                client.write_message(full_update_dict)
-                            
-                                client.HAD_FIRST_UPDATE = True
-                        else:
-                            if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
-                                self.logger.debug("Sending update to client %s", client.cip)
-                                client.write_message(delta_update_dict)
+        self.__threading_lock.release()
     
-    def _sendUpdateThread(self, event):
+    def _send_update_timer(self, event):
         #this method is run in a thread, and acts as a timer
         while not event.is_set():
+            self.__send_log_updates()
+
             event.wait(self.update_rate)
 
-            self.sendLogUpdates()
-
-    def _logFinishedCallback(self, log_ident):
+    def _log_finished_callback(self, log_ident):
         self.logger.info("Log id %s is over. Closing connections", log_ident)
-        if log_ident in self.log_ordered_clients:
-            for client in self.log_ordered_clients[log_ident]:
-                client.write_message("LOG_END")
+        
+        self.__free_dbmanager(log_ident)
+
+    def _refresh_cache_timer(self, event):
+        while not event.is_set()
+            self.__refresh_cache()
+
+            event.wait(self.update_rate)
+
+    def __refresh_cache(self):
+        curr_ctime = int(round(time.time()))
+
+        for log_cache in self.log_cache:
+            if (curr_ctime - log_cache[0]) > 60:
+
+   def refresh_log_status(self, log_ident):
+        """
+        Executes the query to obtain the log status
+        """
+
+        #psycopg2 will automatically escape the string parameter, so we don't need to worry about sanity checking it for injections
+        try:
+            self.application.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (log_ident,), callback=self._status_callback)
+
+        except:
+            self.application.logger.exception("Exception occurred while trying to get log status")
+
+            #we should call getlogstatus again, because we need to get the log's status and it is most likely just an operational error
+            self.refresh_log_status(log_ident)
+
+    
+    @tornado.web.asynchronous
+    def _status_callback(self, cursor, error):
+        if error:
+            self.write_message("LOG_ERROR")
+            self.application.logger.error("Error querying database for log status")
+            
+            self.close()
+            return
+        
+        #if live is NOT NULL, then the log exists
+        #live == t means the log is live, and live == f means it's not live
+        
+        results = cursor.fetchone() #fetchone returns a list, we _should_ only have 1 element and it'll be the first (idx 0)
+        
+        disconnect_nl = True
+
+        if results and len(results) > 0:
+            live = results[0]
+        
+            if live == True:
+                self.application.logger.debug("Log %s is live on refreshed status", self._log_ident)
+                if self:
+                    self.write_message("LOG_IS_LIVE") #notify client the log is live
+                    
+                    self.application.add_to_cache(self._log_ident, True)
+
+                    self.application.add_client(self, self._log_ident)
+
+                    disconnect_nl = False
                 
-                client.close() #on_close will take care of empty sets and what not!
+            elif live == False:
+                self.application.logger.debug("Log %s is not live", self._log_ident)
+                self.application.add_to_cache(self._log_ident, False)
                 
-                self.delDBManager(log_ident)
 
-    def add_client(self, client_obj):
-
-
-    def delete_client(self, client_obj):
 
 
 class webtvRelayHandler(tornado.websocket.WebSocketHandler):
@@ -264,95 +362,9 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         #now we check if the log id exists, and if the game is still live
         #first, check the cache. invalid log idents will never be in the cache
 
-        log_cache = self.get_log_cache(log_ident)
-        if log_cache:
-            #log is cached
-            if log_cache[2] == True:
-                self.application.add_client(self, log_ident)
-                self.write("LOG_IS_LIVE")
-
-            else:
-                self.write("LOG_NOT_LIVE")
-                self.close()
-
-        else:
-            #couldn't find the log in the cache, so it's either fresh or invalid
-            self.application.logger.debug("Log id %s is not cached. Getting status", log_ident)
-            self.get_log_status(log_ident) #getLogStatus adds the ident to the cache if it is valid
-
-    def get_log_cache(self, log_ident):
-        #return a cache only if the cache is valid
-
-        for log_cache in self.application.log_cache:
-            #cache_info = (cache_time, log_ident, status<t/f>)
-            if log_cache[1] == log_ident:
-                time_ctime = int(round(time.time()))
-                if (time_ctime - log_cache[0]) > 60:
-                    #cache is expired
-                    self.application.remove_from_cache(log_cache)
-                    break
-
-                else:
-                    return log_cache
-
-        return None
-
-
-    def get_log_status(self, log_ident):
-        """
-        Executes the query to obtain the log status
-        """
-
-        #psycopg2 will automatically escape the string parameter, so we don't need to worry about sanity checking it for injections
-        try:
-            self.application.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (log_ident,), callback=self._status_callback)
-
-        except:
-            self.application.logger.exception("Exception occurred while trying to get log status")
-
-            #we should call getlogstatus again, because we need to get the log's status and it is most likely just an operational error
-            self.get_log_status(log_ident)
-
-    
-    @tornado.web.asynchronous
-    def _status_callback(self, cursor, error):
-        if error:
-            self.write_message("LOG_ERROR")
-            self.application.logger.error("Error querying database for log status")
-            
-            self.close()
-            return
-        
-        #if live is NOT NULL, then the log exists
-        #live == t means the log is live, and live == f means it's not live
-        
-        results = cursor.fetchone() #fetchone returns a list, we _should_ only have 1 element and it'll be the first (idx 0)
-        
-        if results and len(results) > 0:
-            live = results[0]
-        
-            if live == True:
-                #add the client to the ordered_clients dict with correct log ident
-                self.application.logger.debug("Log %s is live on refreshed status", self._log_ident)
-                if self:
-                    self.write_message("LOG_IS_LIVE") #notify client the log is live
-                    
-                    self.application.addToCache(self._log_ident, True)
-                    self.application.addDBManager(self._log_ident, self.application.db, self.application.update_rate)
-                    self.application.addToOrderedClients(self._log_ident, self)
+        self.application.add_client(self, log_ident)
                 
-            elif live == False:
-                self.application.logger.debug("Log %s is not live", self._log_ident)
-                self.application.addToCache(self._log_ident, False)
-                
-                self.closeLogUpdate()
-                
-            else:
-                self.closeLogUpdate()
-        else:
-            self.closeLogUpdate()
-                
-    def closeLogUpdate(self):
+    def disconnect_not_live(self):
         if self:
             self.write_message("LOG_NOT_LIVE")
         
