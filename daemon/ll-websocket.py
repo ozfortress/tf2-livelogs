@@ -192,13 +192,21 @@ class llWSApplication(tornado.web.Application):
                 
                 self.delDBManager(log_ident)
 
+    def add_client(self, client_obj):
+
+
+    def delete_client(self, client_obj):
+
+
 class webtvRelayHandler(tornado.websocket.WebSocketHandler):
     pass
         
 class logUpdateHandler(tornado.websocket.WebSocketHandler):
     def __init__(self, application, request, **kwargs):
-        self.LOG_IDENT_RECEIVED = False
-        self.LOG_IDENT = None
+        self._log_ident_received = False
+        self._log_ident = None
+
+        self.__valid_log_received = False
         
         self.HAD_FIRST_UPDATE = False
         
@@ -206,53 +214,26 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
     
     def open(self):
         #client connects
-        """
-        This is a bit confusing. We add the client object to a set of objects, so it can later be accessed to send messages (and the connection will be maintained).
-        All class variables (clients, log_idents, cache, etc) are required to be global accross the objects, so we add it to a set in the application class, which all logUpdateHandler objects inherit
-        
-        Hence, if we have a function that iterates over the client set, we can access each client's connection object and send messages
-        
-        A new object is created for every new client
-        """
-        
         #inherits object "request" (which is a HTTPRequest object defined in tornado.httpserver) from tornado.web.RequestHandler
+
         self.application.logger.info("Client connected. IP: %s", self.request.remote_ip)
 
         self.cip = self.request.remote_ip
         
-        self.application.log_clients.add(self)
-        self.application.log_ordered_clients["none"].add(self)
-        
     def on_close(self):
         #client disconnects
         self.application.logger.info("Client disconnected. IP: %s", self.request.remote_ip)
-        self.application.log_clients.remove(self)
 
-        self.application.removeFromOrderedClients(self)
+        self.application.delete_client(self)
         
         return
         
     def on_message(self, msg):
         #client will send the log ident upon successful connection
         self.application.logger.info("Client %s sent msg: %s", self.request.remote_ip, msg)
-        
-        #debug commands
-        if msg == "LIST_LOGS":
-            #send the ordered dict
-            self.write_message(self.application.log_ordered_clients)
-        elif msg == "LIST_CLIENTS":
-            #get a list of every connected client's IP
-            client_count = 0
-            client_list = {}
-            for client in self.application.log_clients.copy():
-                client_list[client_count] = client.cip
-                client_count += 1
 
-            self.write_message(client_list)
-
-
-        if (self.LOG_IDENT_RECEIVED):
-            self.application.logger.debug("Client %s has already sent log ident \"%s\"", self.request.remote_ip, self.LOG_IDENT)
+        if (self._log_ident_received):
+            self.application.logger.debug("Client %s has already sent log ident \"%s\"", self.request.remote_ip, self._log_ident)
             return
         
         #a standard message will be a json encoded message with key "ident"
@@ -267,97 +248,74 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             
             return
             
-        log_id = parsed_msg["ident"]
-        if not log_id:
-            #invalid message received. IGNORE
+        log_ident = str(parsed_msg["ident"])
+        if not log_ident:
+            #invalid message received, disconnect this bitch
+
+            self.close()
+
             return
-            
-        log_cached = False
         
-        self.LOG_IDENT_RECEIVED = True
-        self.LOG_IDENT = str(log_id)
+        self._log_ident_received = True
+        self._log_ident = log_ident
         
-        log_id = str(log_id)
-        
-        self.application.logger.debug("Received log ident '%s'. Checking cache", log_id)
+        self.application.logger.debug("Received log ident '%s'. Checking cache", log_ident)
         
         #now we check if the log id exists, and if the game is still live
         #first, check the cache. invalid log idents will never be in the cache
-        for cache_info in self.application.log_cache:
-            #cache_info = (cache_time, log_ident, status<t/f>)
-            #check for ident first
-            self.application.logger.debug("Cache info: %s", cache_info)
-            
-            if cache_info[1] == log_id:
-                self.application.logger.debug("Log ident is in the cache. Checking live status")
-                log_cached = True
-                
-                #was the log live @ last cache? (logs will never go live again after ending)
-                if (cache_info[2] == True):
-                    #need to check if the cache is outdated
-                    time_ctime = int(round(time.time()))
-                    self.application.logger.debug("Log id %s is cached as live", log_id)
-                    
-                    if ((time_ctime - cache_info[0]) > 60): #20 seconds have passed since last log check, so we need to refresh the cache
-                        self.application.logger.debug("Cache has expired for log id %s. Refreshing status", log_id)
-                        
-                        self.application.removeFromCache(cache_info)
-                        
-                        self.getLogStatus(log_id)
-                            
-                    else:
-                        #cached status is accurate enough
-                        #add the client to the ordered_clients dict with correct log ident
-                        self.application.logger.debug("Cache for %s is recent. Using cached status", log_id)
-                        
-                        self.write_message("LOG_IS_LIVE") #notify client the log is live
-                        
-                        self.application.addDBManager(log_id) #self.application.db, self.application.update_rate
-                        self.application.addToOrderedClients(log_id, self)
-                        
-                else:
-                    #notify client the log is inactive, and close connection
-                    
-                    #TODO: Add something to prevent repeat invalid connections from same IP
-                    
-                    self.application.logger.debug("Log id %s is not live. Closing connection", log_id)
-                    
-                    self.write_message("LOG_NOT_LIVE")
-                    self.close()
-                
-                break
-        
-        #couldn't find the log in the cache, so it's either fresh or invalid
-        if not log_cached:
-            self.application.logger.debug("Log id %s is not cached. Getting status", log_id)
-            self.getLogStatus(log_id) #getLogStatus adds the ident to the cache if it is valid
 
-    def getLogStatus(self, log_ident):
+        log_cache = self.get_log_cache(log_ident)
+        if log_cache:
+            #log is cached
+            if log_cache[2] == True:
+                self.application.add_client(self, log_ident)
+                self.write("LOG_IS_LIVE")
+
+            else:
+                self.write("LOG_NOT_LIVE")
+                self.close()
+
+        else:
+            #couldn't find the log in the cache, so it's either fresh or invalid
+            self.application.logger.debug("Log id %s is not cached. Getting status", log_ident)
+            self.get_log_status(log_ident) #getLogStatus adds the ident to the cache if it is valid
+
+    def get_log_cache(self, log_ident):
+        #return a cache only if the cache is valid
+
+        for log_cache in self.application.log_cache:
+            #cache_info = (cache_time, log_ident, status<t/f>)
+            if log_cache[1] == log_ident:
+                time_ctime = int(round(time.time()))
+                if (time_ctime - log_cache[0]) > 60:
+                    #cache is expired
+                    self.application.remove_from_cache(log_cache)
+                    break
+
+                else:
+                    return log_cache
+
+        return None
+
+
+    def get_log_status(self, log_ident):
         """
         Executes the query to obtain the log status
         """
-        
-        i = 0
-        for conn in self.application.db._pool:
-            if not conn.busy():
-                i += 1
-        
-        self.application.logger.info("Number of non-busy pSQL conns @ getLogStatus: %d", i)
-        
 
         #psycopg2 will automatically escape the string parameter, so we don't need to worry about sanity checking it for injections
         try:
-            self.application.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (log_ident,), callback=self._logStatusCallback)
+            self.application.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (log_ident,), callback=self._status_callback)
 
         except:
             self.application.logger.exception("Exception occurred while trying to get log status")
 
             #we should call getlogstatus again, because we need to get the log's status and it is most likely just an operational error
-            self.getLogStatus(log_ident)
+            self.get_log_status(log_ident)
 
     
     @tornado.web.asynchronous
-    def _logStatusCallback(self, cursor, error):
+    def _status_callback(self, cursor, error):
         if error:
             self.write_message("LOG_ERROR")
             self.application.logger.error("Error querying database for log status")
@@ -375,17 +333,17 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
             if live == True:
                 #add the client to the ordered_clients dict with correct log ident
-                self.application.logger.debug("Log %s is live on refreshed status", self.LOG_IDENT)
+                self.application.logger.debug("Log %s is live on refreshed status", self._log_ident)
                 if self:
                     self.write_message("LOG_IS_LIVE") #notify client the log is live
                     
-                    self.application.addToCache(self.LOG_IDENT, True)
-                    self.application.addDBManager(self.LOG_IDENT, self.application.db, self.application.update_rate)
-                    self.application.addToOrderedClients(self.LOG_IDENT, self)
+                    self.application.addToCache(self._log_ident, True)
+                    self.application.addDBManager(self._log_ident, self.application.db, self.application.update_rate)
+                    self.application.addToOrderedClients(self._log_ident, self)
                 
             elif live == False:
-                self.application.logger.debug("Log %s is not live", self.LOG_IDENT)
-                self.application.addToCache(self.LOG_IDENT, False)
+                self.application.logger.debug("Log %s is not live", self._log_ident)
+                self.application.addToCache(self._log_ident, False)
                 
                 self.closeLogUpdate()
                 
@@ -441,8 +399,8 @@ if __name__ == "__main__":
         
     llWebSocketServer.db = momoko.Pool(
             dsn = db_details,
-            minconn = 2, #minimum number of connections for the momoko pool to maintain
-            maxconn = 50, #max number of conns that will be opened
+            minconn = 1, #minimum number of connections for the momoko pool to maintain
+            maxconn = 4, #max number of conns that will be opened
             cleanup_timeout = 10, #how often (in seconds) connections are closed (cleaned up) when number of connections > minconn
         )
     

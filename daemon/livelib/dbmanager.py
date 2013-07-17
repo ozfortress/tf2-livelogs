@@ -1,6 +1,5 @@
 import threading
 import logging
-import logging.handlers
 import time
 
 try:

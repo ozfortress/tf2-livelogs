@@ -30,8 +30,6 @@ from livelib import queryqueue
 
 from livelib.parser_lib import stripHTMLTags
 
-import pdb
-
 log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
 
 log_file_handler = logging.handlers.TimedRotatingFileHandler("daemon.log", when="midnight")
@@ -560,8 +558,6 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 self.logger.debug("queue lengths: %s, dynamic quota: %s", self.query_queue.queue_length_all(), dynamic_quota)
 
                 self.__process_database_queue(dynamic_quota)
-
-                #pdb.set_trace()
 
             event.wait(self.queue_process_frequency) #run a time
 
