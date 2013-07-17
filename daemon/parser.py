@@ -1136,12 +1136,11 @@ class parserClass(object):
                     else:
                         self.executeQuery(live_end_query, queue_priority = queryqueue.NMPRIO)
                 
-                #begin ending timer
-                if self.closeListenerCallback is not None and game_over:
-                    self.closeListenerCallback(game_over)
-                
                 self.write_to_log("\n") #add a new line before EOF
                 self._close_log_file()
+
+                if self.closeListenerCallback is not None and game_over:
+                    self.closeListenerCallback(game_over)
 
         self.__end_log_lock.release()
 

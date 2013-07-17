@@ -21,6 +21,7 @@ import time
 import threading
 import math
 import ConfigParser
+import pickle
 
 from HTMLParser import HTMLParser
 from pprint import pprint
@@ -232,7 +233,18 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         self.timeout_thread = threading.Thread(target=self._listener_timeout_timer, args=(self.timeout_event,))
         self.timeout_thread.daemon = True
 
-        self.query_queue = queryqueue.query_queue() #our query queue object
+        if os.path.isfile("livelogs_queryqueue.sobj"):
+            #attempt to load the query queue from last run
+            tmp_queue = deserialise_query_queue()
+            if tmp_queue:
+                self.query_queue = tmp_queue
+
+            else:
+                self.query_queue = queryqueue.query_queue() #couldn't load queue, get new query queue
+        else:
+            #past obj doesn't exist, get a new query queue
+            self.query_queue = queryqueue.query_queue() #new query queue
+        
         self.queue_process_frequency = process_frequency
         self.queue_min_quota = min_process_quota
         self.queue_max_quota = max_process_quota
@@ -391,6 +403,27 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             self.logger.error("Database pool is closed")
             return None
 
+    def end_all_logs(self):
+        if not self.db.closed:
+            self.logger.info("Setting all logs to 'ended'")
+            try:
+                conn = self.db.getconn()
+            except:
+                self.logger.exception()
+                return
+
+            try:
+                cursor = conn.cursor()
+
+                cursor.execute("UPDATE livelogs_log_index SET live='false' WHERE live='true'");
+
+                conn.commit()
+
+            except:
+                self.logger.exception()
+                return
+
+
     def __open_dbpool(self):
         #open database pool
         cfg_parser = ConfigParser.SafeConfigParser()
@@ -464,7 +497,13 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             self.logger.exception("Exception getting database connection")
             return
 
-        cursor = conn.cursor()
+        try:
+            cursor = conn.cursor()
+        except:
+            self.logger.exception("Exception getting cursor")
+
+            self.db.putconn(conn)
+            return
 
         try:
             commit_threshold = int(math.ceil(process_quota / 4))
@@ -591,31 +630,69 @@ if __name__ == '__main__':
     except:
         #clean up the listener objects/parsers still running
         logging.info("Exception while serving. Exiting")
-        llServer.timeout_event.set() #stop the timeout thread
-        llServer.timeout_thread.join(2) #wait 2 secs for thread to join before closing the interpreter
 
-        #shallow copy of the listen object set, so it can be iterated on while items are being removed
-        for listenobj in llServer.listen_set.copy():
-            logging.info("Ending log with ident %s", listenobj.unique_parser_ident)
-
-            if not listenobj.listener.parser.LOG_PARSING_ENDED:
-                listenobj.listener.parser.endLogParsing(shutdown=True)
-                listenobj.listener.shutdown_listener()
-                
-            else:
-                logging.info("\tListen object is still present, but the log has actually ended")
-
-        llServer.queue_process_event.set() #stop the queue processing
-        llServer.queue_process_thread.join(5) #5 second join timeout
-
-        llServer.db.closeall() #close all database connections in the pool
-
-        llServer.shutdown() #stop listening
-        llServer.server_close() #close socket
+        cleanup_daemon(llServer)
 
         logging.info("Shutdown successful")
 
         sys.exit()
+
+
+def cleanup_daemon(server_obj):
+    server_obj.timeout_event.set() #stop the timeout thread
+    server_obj.timeout_thread.join(2) #wait 2 secs for thread to join before closing the interpreter
+
+    #shallow copy of the listen object set, so it can be iterated on while items are being removed
+    for listenobj in server_obj.listen_set.copy():
+        logging.info("Ending log with ident %s", listenobj.unique_parser_ident)
+
+        if not listenobj.listener.parser.LOG_PARSING_ENDED:
+            listenobj.listener.parser.endLogParsing(shutdown=True)
+            listenobj.listener.shutdown_listener()
+            
+        else:
+            logging.info("\tListen object is still present, but the log has actually ended")
+
+    server_obj.queue_process_event.set() #stop the queue processing
+    server_obj.queue_process_thread.join(5) #5 second join timeout
+
+    #server_obj.end_all_logs()
+
+    server_obj.db.closeall() #close all database connections in the pool
+
+    server_obj.shutdown() #stop listening
+    server_obj.server_close() #close socket
+
+    if not server_obj.query_queue.queues_empty():
+        #if the queues aren't empty, serialize them so they can be run next time
+        serialise_query_queue(server_obj.query_queue)
+    
+
+def serialise_query_queue(queue_obj):
+    logging.info("Serializing query queue for continued processing next start-up...")
+
+    pickle.dump(queue_obj, open("livelogs_queryqueue.sobj", "wb"), pickle.HIGHEST_PROTOCOL)
+
+    logging.info("Query queue successfully serialised")
+
+def deserialise_query_queue():
+    logging.info("Deserialising pickled query queue")
+
+    queue_file = open("livelogs_queryqueue.sobj", "rb")
+
+    if not queue_file:
+        logging.info("Unable to open serialised query queue file")
+        return None
+
+    queue_obj = pickle.load(queue_file)
+
+    queue_file.close()
+
+    os.unlink("livelogs_queryqueue.sobj")
+
+    logging.info("Successfully loaded previous queury queue")
+
+    return queue_obj
 
 def make_new_config():
     try:
