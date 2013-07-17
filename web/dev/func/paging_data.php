@@ -41,7 +41,7 @@
     }
 
     //Filtering - filter by community id obviously, but also filter by others if search is enabled
-    $filter = "WHERE steamid = '{$cid}' and live = 'false'";
+    $filter = "WHERE steamid = '{$cid}'";
     
     /*if (isset($_GET['sSearch']) && $_GET['sSearch'] != "")
     {
@@ -112,10 +112,14 @@
 
         foreach ($table_cols as $index => $key)
         {
-            if ($key == "log_name")
+            if ($key === "log_name")
             {
                 /* this data should contain a link to the log */
                 $data = '<a href="/view/' . $row["numeric_id"] . '">' . htmlentities($row["log_name"], ENT_QUOTES, "UTF-8") . '</a>';
+            }
+            else if (($key === "tstamp") && ($row["live"] === "t"))
+            {
+                $data = "LIVE";
             }
             else
             {
