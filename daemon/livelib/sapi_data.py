@@ -16,9 +16,18 @@ class Steam_API(object):
         logging.info("Getting SAPI items_game.txt location")
 
         steam_item_url = "http://api.steampowered.com/IEconItems_440/GetSchema/v0001/?key=%s&format=json" % (self.__api_key)
-        api_res = urllib2.urlopen(steam_item_url) #retrieve the items data
+        try:
+            api_res = urllib2.urlopen(steam_item_url) #retrieve the items data
+
+        except:
+            logging.exception("Unable to get api data")
+            return
 
         api_res_dict = json.load(api_res) #load the json result into a dict
+
+        api_res.close()
+
+        del api_res #free memory
 
         if api_res_dict and ("result" in api_res_dict):
             #we only want the items_game.txt from the api query
@@ -62,11 +71,18 @@ class Steam_API(object):
 
         logging.info("Getting item data")
         
-        items_game_res = urllib2.urlopen(self.__item_data_url)
+        try:
+            items_game_res = urllib2.urlopen(self.__item_data_url)
+        except:
+            logging.exception("Unable to load items_game.txt")
+            return
 
         kv_parser = keyvalues.KeyValues()
 
         items_game_data = kv_parser.parse(items_game_res.read()) #turn the items_game.txt result into a dict
+
+        items_game_res.close()
+        del items_game_res #free memory
 
         if not items_game_data:
             logging.info("Unable to get item data. Using only static weapon data")

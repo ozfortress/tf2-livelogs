@@ -542,7 +542,9 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         #this usually takes some time, so we just let this bitch do its shit in the thread
 
         sapi.get_item_data_loc() #required for more than non-static weapon log names
-        self.weapon_data = sapi.get_item_data()
+        self.weapon_data = sapi.get_item_data().copy()
+
+        del sapi #delete the api reference, so it all gets freed
 
         self.logger.info("Weapon data now contains custom weapons")
 
@@ -573,7 +575,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             self.logger.error("Unable to read config file")
             sys.exit("Unable to read config file")
 
-            
+
 """
 Begin cleanup/startup functions
 
