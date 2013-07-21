@@ -215,8 +215,11 @@ class llWSApplication(tornado.web.Application):
     def __end_log(self, log_ident):
         #deletes a db manager and associated clients
         self.__manager_threading_lock.acquire()
+        end_update_dict = None
 
         if log_ident in self.__db_managers:
+            end_update_dict = self.__db_managers[log_ident].full_update()
+
             del self.__db_managers[log_ident]
 
         self.__manager_threading_lock.release()
@@ -224,7 +227,7 @@ class llWSApplication(tornado.web.Application):
         clients = self.clients.get_vclients(log_ident)
         if clients:
             for client in clients:
-                client.disconnect_end()
+                client.disconnect_end(end_update_dict)
 
         self.clients.delete_ident(log_ident)
 
@@ -264,9 +267,9 @@ class llWSApplication(tornado.web.Application):
                 delta_update_dict = log_manager.compressed_update()
                 full_update_dict = log_manager.full_update()
 
-                for client in self.log_data[log_id]["clients"]:
+                for client in self.clients.get_vclients(log_id):
                     #client is a websocket client object, which data can be sent to using client.write_message, etc
-                    #client.write_message("HELLO!")
+                    client.write_message("HELLO!")
                     if not client.HAD_FIRST_UPDATE:
                         #need to send complete values on first update to keep clients in sync with the server
                         if full_update_dict:
@@ -429,8 +432,11 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
             self.close()
 
-    def disconnect_end(self):
+    def disconnect_end(self, end_update = None):
         if self:
+            if end_update:
+                self.write_message(end_update)
+                
             self.write_message("LOG_END")
 
             self.close()
