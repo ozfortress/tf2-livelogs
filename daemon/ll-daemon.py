@@ -409,34 +409,6 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 self.logger.exception()
                 return
 
-
-    def __open_dbpool(self):
-        #open database pool
-        cfg_parser = ConfigParser.SafeConfigParser()
-        if cfg_parser.read(r'll-config.ini'):
-            try:
-                db_host = cfg_parser.get('database', 'db_host')
-                db_port = cfg_parser.getint('database', 'db_port')
-                db_user = cfg_parser.get('database', 'db_user')
-                db_pass = cfg_parser.get('database', 'db_password')
-                db_name = cfg_parser.get('database', 'db_name')
-
-                #using psycopg2 pool wrapper
-                db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
-                            db_name, db_user, db_pass, db_host, db_port)
-
-                self.db = psycopg2.pool.ThreadedConnectionPool(minconn = 2, maxconn = 5, dsn = db_details) #dsn is passed to psycopg2.connect()
-
-            except:
-                self.logger.exception("Unable to read database options from config file, or unable to connect to database")
-                sys.exit("Unable to read database config or unable to connect to database")
-
-            finally:
-                self.logger.info("Successfully connected to database")
-        else:
-            self.logger.error("Unable to read config file")
-            sys.exit("Unable to read config file")
-
     def listenerTimeoutCheck(self):
         #loop over the listener objects to see if any of them have timed out
         listeners = self.listen_set.copy() #shallow copy the set, so we can iterate over it without worrying about issues when new objects are added
@@ -574,7 +546,34 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
         self.logger.info("Weapon data now contains custom weapons")
 
+    def __open_dbpool(self):
+        #open database pool
+        cfg_parser = ConfigParser.SafeConfigParser()
+        if cfg_parser.read(r'll-config.ini'):
+            try:
+                db_host = cfg_parser.get('database', 'db_host')
+                db_port = cfg_parser.getint('database', 'db_port')
+                db_user = cfg_parser.get('database', 'db_user')
+                db_pass = cfg_parser.get('database', 'db_password')
+                db_name = cfg_parser.get('database', 'db_name')
 
+                #using psycopg2 pool wrapper
+                db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
+                            db_name, db_user, db_pass, db_host, db_port)
+
+                self.db = psycopg2.pool.ThreadedConnectionPool(minconn = 2, maxconn = 5, dsn = db_details) #dsn is passed to psycopg2.connect()
+
+            except:
+                self.logger.exception("Unable to read database options from config file, or unable to connect to database")
+                sys.exit("Unable to read database config or unable to connect to database")
+
+            finally:
+                self.logger.info("Successfully connected to database")
+        else:
+            self.logger.error("Unable to read config file")
+            sys.exit("Unable to read config file")
+
+            
 """
 Begin cleanup/startup functions
 
