@@ -22,7 +22,7 @@ The database manager class holds copies of a log's data. It provides functions t
 currently stored data and new data (delta compression) which will be sent to the clients, along with time and chat data
 """
 class dbManager(object):
-    def __init__(self, log_id, db_conn, update_rate, end_callback = None):
+    def __init__(self, log_id, update_rate, end_callback = None):
         #end_callback is the function to be called when the log is no longer live
         
         self.log = logging.getLogger(log_id)
@@ -30,18 +30,17 @@ class dbManager(object):
         self.log.addHandler(log_file_handler)
 
         self.end_callback = end_callback
-        self.LOG_IDENT = log_id
+        self._unique_ident = log_id
         self.db = db_conn
         self.update_rate = update_rate
         
-        self.updateThread = None
-        
-        self.DB_STAT_TABLE = "log_stat_%s" % log_id
-        self.DB_CHAT_TABLE = "log_chat_%s" % log_id
+        self.DB_STAT_TABLE = "livelogs_player_stats"
+        self.DB_CHAT_TABLE = "livelogs_game_chat"
+        self.DB_PLAYER_TABLE = "livelogs_player_details"
         self.DB_EVENT_TABLE = "log_event_%s" % log_id
         
-        self._stat_difference_table = None #a dict containing the difference between stored and retrieved stat data, as dicts (_NOT_ TUPLES LIKE THE COMPLETE TABLE)
-        self._stat_complete_table = None #a dict containing tuples of stat data with respect to steamids
+        self._stat_difference_table = None #a dict containing the difference between stored and retrieved stat data
+        self._stat_table = None #a dict containing stat data
 
         self._chat_table = None #a dict containing recent chat messages
 
@@ -67,94 +66,54 @@ class dbManager(object):
         self._new_score_update = False
         self._new_time_update = False
 
-        self.STAT_KEYS = {
-                0: "name",
-                1: "kills",
-                2: "deaths",
-                3: "assists",
-                4: "points",
-                5: "healing_done",
-                6: "healing_received",
-                7: "ubers_used",
-                8: "ubers_lost",
-                9: "headshots",
-                10: "backstabs",
-                11: "damage_dealt",
-                12: "damage_taken",
-                13: "ap_small",
-                14: "ap_medium",
-                15: "ap_large",
-                16: "mk_small",
-                17: "mk_medium",
-                18: "mk_large",
-                19: "captures",
-                20: "captures_blocked",
-                21: "dominations",
-                22: "times_dominated",
-                23: "revenges",
-                24: "suicides",
-                25: "buildings_destroyed",
-                26: "extinguishes",
-                27: "kill_streak"
-            }
+        self.stat_columns = (
+                "steamid",
+                "team",
+                "class",
+                "kills",
+                "deaths",
+                "assists",
+                "points",
+                "healing_done",
+                "healing_received",
+                "ubers_used",
+                "ubers_lost",
+                "headshots",
+                "damage_dealt",
+                "damage_taken",
+                "captures",
+                "captures_blocked",
+                "dominations"
+            )
 
         self.updateThreadEvent = threading.Event()
         
         self.updateThread = threading.Thread(target = self._updateThread, args=(self.updateThreadEvent,))
         self.updateThread.daemon = True
         self.updateThread.start()
-        
-        #self.getDatabaseUpdate()
     
-    def steamCommunityID(self, steam_id):
-        #takes a steamid in the format STEAM_x:x:xxxxx and converts it to a 64bit community id
-        #self.log.debug("Converting SteamID %s to community id", steam_id)
-
-        auth_server = 0;
-        auth_id = 0;
-        
-        steam_id_tok = steam_id.split(':')
-
-        if len(steam_id_tok) is 3:
-            auth_server = int(steam_id_tok[1])
-            auth_id = int(steam_id_tok[2])
-            
-            community_id = auth_id * 2 #multiply auth id by 2
-            community_id += 76561197960265728 #add arbitrary number chosen by valve
-            community_id += auth_server #add the auth server. even ids are on server 0, odds on server 1
-
-        else:
-            community_id = "unknown"
-
-        return community_id
-    
-    def statIdxToName(self, index):
+    def stat_idx_to_name(self, index):
         #converts an index in the stat tuple to a name for use in dictionary keys
-        
-        index_name = self.STAT_KEYS[index]
-        #self.log "NAME FOR INDEX %d: %s" % (index, index_name)
-        
-        return index_name
+                
+        return self.stat_columns[index]
     
-    def statTupleToDict(self, stat_tuple):
-        #takes a tuple in the form:
-        #NAME:K:D:A:P:HD:HR:UU:UL:HS:BS:DMG:APsm:APmed:APlrg:MKsm:MKmed:MKlrg:CAP:CAPB:DOM:TDOM:REV:SUICD:BLD_DEST:EXTNG:KILL_STRK
-        #and converts it to a simple dictionary
+    def stat_tuple_to_dict(self, stat_tuple):
+        #takes a stat tuple and converts it to a simple dictionary
         
         stat_dict = {}
         
         for idx, val in enumerate(stat_tuple):
-            if idx >= 1: #skip stat_tuple[0], which is the player's name
+            if idx >= 1: #ignore the steamid, which is index 0
                 if val > 0: #ignore zero values when sending updates
-                    idx_name = self.statIdxToName(idx)
-                    if idx == 4: #catch the points, which are auto converted Decimal, and aren't handled by tornado's json encoder
-                        stat_dict[idx_name] = float(val)
+                    col = self.stat_idx_to_name(idx)
+                    if col == "points": #catch the points, which are auto converted Decimal, and aren't handled by tornado's json encoder
+                        stat_dict[col] = float(val)
                     else:
-                        stat_dict[idx_name] = val
+                        stat_dict[col] = val
                     
         return stat_dict
     
-    def firstUpdate(self):
+    def full_update(self):
         #constructs and returns a dictionary for a complete update to the client
         
         #_stat_complete_table has keys consisting of player's steamids, corresponding to their stats as a tuple in the form:
@@ -162,21 +121,16 @@ class dbManager(object):
         #we need to convert this to a dictionary, so it can be encoded as json by write_message, and then easily decoded by the client
         
         update_dict = {}
-        
-        stat_dict = {}
 
         if self._stat_complete_table:
-            for steam_id in self._stat_complete_table:
-                stat_dict[steam_id] = self.statTupleToDict(self._stat_complete_table[steam_id])
-
-        update_dict["stat"] = stat_dict
+            update_dict["stat"] = self._stat_table
 
         if self._score_table:
             update_dict["score"] = self._score_table
 
         return update_dict
     
-    def compressedUpdate(self):
+    def compressed_update(self):
         #returns a dictionary for a delta compressed update to the client
         update_stat_dict = {}
 
@@ -216,14 +170,15 @@ class dbManager(object):
 
         return update_dict
     
-    def updateStatTableDifference(self, old_table, new_table):
-        #calculates the difference between the currently stored data and an update
-        #tables in the form of dict[sid] = tuple of stats
+    def calc_stat_difference(self, old_table, new_table):
+        #calculates the difference between the currently stored stat data and an update
+
+        #tables are in the form of dict[sid] = dict of stats
         
         stat_dict_updated = {}
         
-        for steam_id in new_table:
-            new_stat_tuple = new_table[steam_id]
+        for cid in new_table:
+            new_stat_tuple = new_table[cid]
             
             if steam_id in old_table:
                 #steam_id is in the old table, so now we need to find the difference between the old and new tuples
@@ -274,39 +229,23 @@ class dbManager(object):
 
         return update_dict
 
-    def constructStatQuery(self):
+    def construct_stat_query(self):
         #constructs a select query from the STAT_KEYS dict, so we always know the order data is retrieved in
         #this means that new columns can be added to tables on the fly, while retaining a known format
-        query_keys = []
 
-        for idx, colname in self.STAT_KEYS.items():
-            #each key is one of the column names in STAT_KEYS
-            query_keys.append(colname)
-
-        query = "SELECT steamid, %s FROM %s" % (', '.join(query_keys), self.DB_STAT_TABLE)
+        query = "SELECT %s FROM %s" % (', '.join(self.stat_columns), self.DB_STAT_TABLE)
 
         return query
 
-    def getDatabaseUpdate(self):
+    def get_database_update(self, db):
         #executes the queries to obtain updates. called periodically
-        if self._log_status_check == True:
-            self.log.info("Currently checking log status. Waiting before more updates")
-            return
-            
-        i = 0
-        for conn in self.db._pool:
-            if not conn.busy():
-                i += 1
-            
-        self.log.debug("Number of non-busy pSQL connections: %d", i)
-            
         if self._update_no_diff > 10:
             self.log.info("Had 10 updates since there's been a difference. Checking log status")
 
             self._log_status_check = True
             
             try:
-                self.db.execute("SELECT live FROM livelogs_servers WHERE log_ident = %s", (self.LOG_IDENT,), callback = self._databaseStatusCallback)
+                self.db.execute("SELECT live FROM livelogs_log_index WHERE log_ident = %s", (self.LOG_IDENT,), callback = self._databaseStatusCallback)
                 
             except psycopg2.OperationalError:
                 self.log.exception("Operational error during log status check")
@@ -328,7 +267,7 @@ class dbManager(object):
             stat_query = self.constructStatQuery()
 
             if not self._chat_event_id:
-                chat_query = "SELECT MAX(eventid) FROM %s" % self.DB_CHAT_TABLE #need to get the most recent id for first update, to prevent chat duplicates
+                chat_query = "SELECT MAX(id) FROM %s WHERE log_ident = '%s'" % (self.DB_CHAT_TABLE, self.log_id #need to get the most recent id for first update, to prevent chat duplicates
             else:
                 chat_query = "SELECT * FROM %s WHERE eventid > '%d'" % (self.DB_CHAT_TABLE, self._chat_event_id)
 
@@ -396,19 +335,20 @@ class dbManager(object):
         try:
             stat_dict = {}
             
-            #iterate over the cursor
+            #iterate over the cursor, and convert it to a sensible dictionary
             for row in cursor:
                 #each row is a player's data as a tuple in the format of:
-                #SID:NAME:K:D:A:P:HD:HR:UU:UL:HS:BS:DMG:APsm:APmed:APlrg:MKsm:MKmed:MKlrg:CAP:CAPB:DOM:TDOM:REV:SUICD:BLD_DEST:EXTNG:KILL_STRK
-                sid = self.steamCommunityID(row[0]) #player's steamid as a community id
-                stat_dict[sid] = row[1:] #splice the rest of the data and store it under the player's steamid
-                
+                #SID:NAME:K:D:A:P:HD:HR:UU:UL: --- ETC
+                cid = row[0] #player's steamid as a community id
+                stat_dict[cid] = self.stat_tuple_to_dict(row) #splice the rest of the data and store it under the player's steamid    
             
-            if not self._stat_complete_table: #if this is the first callback
-                self._stat_complete_table = stat_dict
+            if not self._stat_table: #if this is the first callback, make the complete table this dict
+                self._stat_table = stat_dict
+
             else:
-                #we need to get the table difference before we update to the latest data
-                temp_table = self.updateStatTableDifference(self._stat_complete_table, stat_dict)
+                #we need to get the table difference between the previous complete set and the new dict before we update to the latest data
+                temp_table = self.stat_table_difference(self._stat_table, stat_dict)
+
                 if temp_table == self._stat_difference_table:
                     self._update_no_diff += 1 #increment number of times there's been an update with no difference
 
@@ -618,7 +558,6 @@ class dbManager(object):
                 self.updateThread.join(5)
                 
             self.log.info("Database update thread successfully closed")
-            
-    def __del__(self):
-        #make sure cleanup is run if the class is deconstructed randomly. update thread is a daemon thread, so it will exit on close
-        self.cleanup()
+
+
+
