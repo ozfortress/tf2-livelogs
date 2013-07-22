@@ -501,13 +501,13 @@ public gameRestartEvent(Handle:event, const String:name[], bool:dontBroadcast)
     //if teams are ready, get log listener address
     if (live_on_restart)
     {
-        if (create_new_log_file)
-        {
-            ServerCommand("log on"); //create new log file, enable console log output
-        }
-
         if (GetConVarInt(livelogs_enabled))
         {
+            if (create_new_log_file)
+            {
+                ServerCommand("log on"); //create new log file, enable console log output
+            }
+            
             requestListenerAddress();
 
             is_logging = true;
