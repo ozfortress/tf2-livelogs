@@ -261,8 +261,9 @@ class llWSApplication(tornado.web.Application):
         if num_idents == 0:
             return
 
-        self.__manager_threading_lock.acquire()
         try:
+            self.__manager_threading_lock.acquire()
+
             for log_id in valid_idents:
                 if self.clients.get_num_vclients(log_id) == 0:
                     continue
@@ -315,37 +316,43 @@ class llWSApplication(tornado.web.Application):
 
     def __process_log_status(self):
         self.logger.debug("Getting log status")
-        self.__end_lock.acquire()
-
-        self._invalid_idents = self.clients.get_invalid_idents() #a list of log idents in the invalid dict
-        self._valid_idents = self.clients.get_valid_idents()
-        
-        log_idents = self._invalid_idents + self._valid_idents
-        self.logger.debug("Current log idents: %s", log_idents)
-
-        if len(log_idents) == 0:
-            self.logger.debug("No log idents present to check status for")
-            return
-
-        #create a select statement to get status of all log idents in the queue
-        filter_string = ""
-
-        for log_ident in log_idents:
-            if len(filter_string) > 0:
-                filter_string += " OR "
-
-            filter_string += "log_ident = E'%s'" % (log_ident)
-
-        select_query = "SELECT log_ident, live, tstamp FROM livelogs_log_index WHERE (%s)" % (filter_string)
-
-        self.logger.info("status query: %s", select_query)
-
         try:
-            self.db.execute(select_query, callback = self._status_callback)
+            self.__end_lock.acquire()
+
+            self._invalid_idents = self.clients.get_invalid_idents() #a list of log idents in the invalid dict
+            self._valid_idents = self.clients.get_valid_idents()
+            
+            log_idents = self._invalid_idents + self._valid_idents
+            self.logger.debug("Current log idents: %s", log_idents)
+
+            if len(log_idents) == 0:
+                self.logger.debug("No log idents present to check status for")
+
+                self.__end_lock.release()
+                return
+
+            #create a select statement to get status of all log idents in the queue
+            filter_string = ""
+
+            for log_ident in log_idents:
+                if len(filter_string) > 0:
+                    filter_string += " OR "
+
+                filter_string += "log_ident = E'%s'" % (log_ident)
+
+            select_query = "SELECT log_ident, live, tstamp FROM livelogs_log_index WHERE (%s)" % (filter_string)
+
+            self.logger.info("status query: %s", select_query)
+
+            try:
+                self.db.execute(select_query, callback = self._status_callback)
+            except:
+                self.logger.exception()
+                
         except:
             self.logger.exception()
-
-        self.__end_lock.release()
+        finally:
+            self.__end_lock.release()
     
     @tornado.web.asynchronous
     def _status_callback(self, cursor, error):
