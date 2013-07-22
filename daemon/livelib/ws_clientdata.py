@@ -155,6 +155,8 @@ class client_data(object):
 
 		self.__release_invalid_lock()
 
+		logging.debug("Invalid clients: %s", il)
+		
 		return il
 
 
@@ -167,6 +169,8 @@ class client_data(object):
 			vl.append(log_ident)
 
 		self.__release_valid_lock()
+
+		logging.debug("Valid clients: %s", vl)
 
 		return vl
 
@@ -269,24 +273,28 @@ class client_data(object):
 
 	def __get_valid_lock(self):
 		try:
+			logging.debug("Getting valid lock")
 			self.__valid_client_lock.acquire()
 		except:
 			pass
 
 	def __release_valid_lock(self):
 		try:
+			logging.debug("Releasing valid lock")
 			self.__valid_client_lock.release()
 		except:
 			pass
 
 	def __get_invalid_lock(self):
 		try:
+			logging.debug("Getting invalid lock")
 			self.__invalid_client_lock.acquire()
 		except:
 			pass
 
 	def __release_invalid_lock(self):
 		try:
+			logging.debug("Releasing invalid lock")
 			self.__invalid_client_lock.release()
 		except:
 			pass
