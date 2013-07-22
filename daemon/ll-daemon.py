@@ -432,7 +432,9 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         except:
             self.logger.exception("Exception looping over listeners for timeout")
 
+        del listeners
 
+        
     def _listener_timeout_timer(self, event):
         while not event.is_set():
             self.listenerTimeoutCheck()
