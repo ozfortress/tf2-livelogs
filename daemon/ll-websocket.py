@@ -77,6 +77,8 @@ class llWSApplication(tornado.web.Application):
 
         self.__manager_threading_lock = threading.Lock()
         self.__cache_threading_lock = threading.Lock()
+        self.__end_lock = threading.Lock() #a lock to prevent logs being ended whilst they are being status checked
+        self.database_lock = threading.Lock() #a lock that is passed down to the db managers. this will prevent multiple db managers from trying to get status at the same time
 
         tornado.web.Application.__init__(self, handlers, **settings)
             
@@ -178,11 +180,11 @@ class llWSApplication(tornado.web.Application):
                 #log is not live, disconnect the client
                 client_obj.disconnect_not_live()
 
-    def add_live_ident(self, log_ident):
+    def add_live_ident(self, log_ident, tstamp):
         #log_ident is live after status check, so establish a db manager if it doesn't exist, and move clients to valid queue
 
         self.clients.move_invalid_ident(log_ident)
-        self.add_dbmanager(log_ident)
+        self.add_dbmanager(log_ident, tstamp)
         
 
     def close_invalid(self, log_ident, not_live = False):
@@ -200,17 +202,17 @@ class llWSApplication(tornado.web.Application):
 
         self.clients.delete_ident(log_ident)
 
-    def add_dbmanager(self, log_ident):
+    def add_dbmanager(self, log_ident, tstamp):
         self.__manager_threading_lock.acquire()
 
         if log_ident not in self.__db_managers:
-            self.__db_managers[log_ident] = self.__get_dbmanager(log_ident)
+            self.__db_managers[log_ident] = self.__get_dbmanager(log_ident, tstamp)
 
         self.__manager_threading_lock.release()
 
-    def __get_dbmanager(self, log_ident):
+    def __get_dbmanager(self, log_ident, tstamp):
         #creates a new db manager object and returns it
-        return dbmanager.dbManager(log_ident, self.update_rate, self._log_finished_callback)
+        return dbmanager.dbManager(self.db, log_ident, self.database_lock, self.update_rate, tstamp)
 
     def __end_log(self, log_ident):
         #deletes a db manager and associated clients
@@ -219,6 +221,8 @@ class llWSApplication(tornado.web.Application):
 
         if log_ident in self.__db_managers:
             end_update_dict = self.__db_managers[log_ident].full_update()
+
+            self.__db_managers[log_ident].cleanup()
 
             del self.__db_managers[log_ident]
 
@@ -232,7 +236,6 @@ class llWSApplication(tornado.web.Application):
         self.clients.delete_ident(log_ident)
 
         self.update_cache(log_ident, False)
-
 
     def _send_update_timer(self, event):
         #this method is run in a thread, and acts as a timer
@@ -290,8 +293,11 @@ class llWSApplication(tornado.web.Application):
 
     def _log_finished_callback(self, log_ident):
         self.logger.info("Log id %s is over. Closing connections", log_ident)
-        
-        self.__end_dbmanager(log_ident)
+        self.__end_lock.acquire()
+
+        self.__end_log(log_ident)
+
+        self.__end_lock.release()
 
     def _status_timer(self, event):
         while not event.is_set()
@@ -300,28 +306,33 @@ class llWSApplication(tornado.web.Application):
             event.wait(self.update_rate)
 
     def __process_log_status(self):
-        invalid_idents = self.clients.get_invalid_idents() #a list of log idents in the invalid dict
+        self.__end_lock.acquire()
 
-        self._invalid_idents = invalid_idents
+        self._invalid_idents = self.clients.get_invalid_idents() #a list of log idents in the invalid dict
+        self._valid_idents = self.clients.get_valid_idents()
+        
+        log_idents = self._invalid_idents + self._valid_idents
 
-        if len(invalid_idents) == 0:
+        if len(log_idents) == 0:
             return
 
         #create a select statement to get status of all log idents in the queue
         filter_string = ""
 
-        for log_ident in invalid_idents:
+        for log_ident in log_idents:
             if len(filter_string) > 0:
                 filter_string += " OR "
 
             filter_string += "log_ident = E'%s'" % (log_ident)
 
-        select_query = "SELECT log_ident, live FROM livelogs_log_index WHERE (%s)" % (filter_string)
+        select_query = "SELECT log_ident, live, tstamp FROM livelogs_log_index WHERE (%s)" % (filter_string)
 
         try:
             self.db.execute(select_query, callback = self._status_callback)
         except:
             self.logger.exception()
+
+        self.__end_lock.release()
     
     @tornado.web.asynchronous
     def _status_callback(self, cursor, error):
@@ -329,7 +340,7 @@ class llWSApplication(tornado.web.Application):
             self.application.logger.error("Error querying database for log status")
 
             return
-        
+
         #if live is NOT NULL, then the log exists
         #live == t means the log is live, and live == f means it's not live
         self.logger.debug("queue log status callback")
@@ -339,24 +350,31 @@ class llWSApplication(tornado.web.Application):
         if results and len(results) > 0:
             for log_status in results: #log_status is a tuple in form (log_ident, live)
                 self.logger.debug("log_status tuple: %s", log_status)
-                log_ident, live = log_status
+                log_ident, live, tstamp = log_status
 
                 self.add_to_cache(log_ident, live)
 
                 if live == True:
                     self.logger.debug("log is live")
 
-                    #move the queue to the dict of valid log idents
-                    self.add_live_ident(log_ident)
+                    if log_ident in self._invalid_idents:
+                        #move the queue to the dict of valid log idents
+                        self.add_live_ident(log_ident, tstamp)
                     
                 else:
                     self.application.logger.debug("log is not live, disconnecting clients")
-                    self.close_invalid(log_ident, not_live = True)
+                    if log_ident in self._valid_idents:
+                        #valid ident is no longer live, close it
+                        self._log_finished_callback(log_ident) #run the ending callback
+
+                    else:
+                        #unknown ident is not live
+                        self.close_invalid(log_ident, not_live = True)
 
                 self._invalid_idents.remove(log_ident)
 
 
-        #if idents are still in the valid dict... delete them
+        #if idents are still in the invalid dict... delete them because they are actually invalid and do not exist
         for log_ident in self._invalid_idents:
             self.close_invalid(log_ident)
 
@@ -436,7 +454,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         if self:
             if end_update:
                 self.write_message(end_update)
-                
+
             self.write_message("LOG_END")
 
             self.close()
@@ -482,7 +500,7 @@ if __name__ == "__main__":
         
     llWebSocketServer.db = momoko.Pool(
             dsn = db_details,
-            minconn = 1, #minimum number of connections for the momoko pool to maintain
+            minconn = 2, #minimum number of connections for the momoko pool to maintain
             maxconn = 4, #max number of conns that will be opened
             cleanup_timeout = 10, #how often (in seconds) connections are closed (cleaned up) when number of connections > minconn
         )
