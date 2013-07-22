@@ -20,6 +20,7 @@ import logging
 import logging.handlers
 import time
 import threading
+import sys
 import ConfigParser
 
 from livelib import dbmanager
@@ -321,7 +322,7 @@ class llWSApplication(tornado.web.Application):
         
         log_idents = self._invalid_idents + self._valid_idents
         self.logger.debug("Current log idents: %s", log_idents)
-        
+
         if len(log_idents) == 0:
             self.logger.debug("No log idents present to check status for")
             return
@@ -522,10 +523,11 @@ if __name__ == "__main__":
     
     try:
         tornado.ioloop.IOLoop.instance().start()
-    except KeyboardInterrupt:
+    except:
         llWebSocketServer.db.close()
         tornado.ioloop.IOLoop.instance().stop()
-        logger.info("Keyboard interrupt. Exiting")
+        logger.info("Exception whilst serving. Exiting")
+        sys.exit()
         
 
 

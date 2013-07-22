@@ -268,16 +268,28 @@ class client_data(object):
 		return clients
 
 	def __get_valid_lock(self):
-		self.__valid_client_lock.acquire()
+		try:
+			self.__valid_client_lock.acquire()
+		except:
+			pass
 
 	def __release_valid_lock(self):
-		self.__valid_client_lock.release()
+		try:
+			self.__valid_client_lock.release()
+		except:
+			pass
 
 	def __get_invalid_lock(self):
-		self.__invalid_client_lock.acquire()
+		try:
+			self.__invalid_client_lock.acquire()
+		except:
+			pass
 
 	def __release_invalid_lock(self):
-		self.__invalid_client_lock.release()
+		try:
+			self.__invalid_client_lock.release()
+		except:
+			pass
 
 
 
