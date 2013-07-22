@@ -136,19 +136,14 @@ class llWSApplication(tornado.web.Application):
             
             if add_res == True:
                 #log was not cached, but the client was added to a valid log ident. therefore, the log is still valid and should be re-added to the cache as such
-                self.add_dbmanager(log_ident)
-
                 self.add_to_cache(log_ident, True)
                 client.write_message("LOG_IS_LIVE")
 
-            #else, the client was added to the invalid list which will be checked by the status thread
-
+            #else, the client was added to the invalid list which will be checked by the status threa
 
         else:
             #we know the log is valid, so we can check the live status
             if log_cache[2] == True:
-                self.add_dbmanager(log_ident)
-
                 self.__add_valid_client(client_obj, cache_valid = True)
                 client.write_message("LOG_IS_LIVE")
 
@@ -345,7 +340,9 @@ class llWSApplication(tornado.web.Application):
                         #unknown ident is not live
                         self.close_invalid(log_ident, not_live = True)
 
-                self._invalid_idents.remove(log_ident)
+                #remove the log ident, because it's clearly not invalid
+                if log_ident in self._invalid_idents:
+                    self._invalid_idents.remove(log_ident)
 
 
         #if idents are still in the invalid dict... delete them because they are actually invalid and do not exist

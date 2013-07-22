@@ -35,7 +35,7 @@ stat_columns = (
             "captures",
             "captures_blocked",
             "dominations"
-            )
+        )
 
 
 team_stat_columns = (
@@ -125,6 +125,12 @@ class dbManager(object):
                         stat_dict[col] = val
                     
         return stat_dict
+
+    def merge_stat_dict(self, stat_dict):
+        #takes a stat dict with multiple entries per player and combines them on steamid
+        merged_dict = {}
+
+        return merged_dict
     
     def team_stat_tuple_to_dict(self, stat_tuple):
         #converts a team stat tuple to a dict
@@ -199,7 +205,7 @@ class dbManager(object):
     def calc_game_time(self):
         return int(round(time.time())) - self._start_time
 
-    def calc_table_delta(self, old_table, new_table):
+    def calc_table_delta(self, old_table, new_table, teams=False):
         """
         Calculates the delta update of two table dicts
 
@@ -218,7 +224,14 @@ class dbManager(object):
                 
                 else:
                     #we get the difference by subtracting the old from the new
-                    diff_dict[key] = new_table[key] - old_table[key]
+
+                    #special case for certain stat dict keys
+                    #if the key is "team" and this is a team stat dict, we want to keep the team the same
+                    if (key == "class" or key == "team") and ((new_table[key] != old_table[key]) or teams):
+                        diff_dict[key] = new_table[key]
+
+                    else:
+                        diff_dict[key] = new_table[key] - old_table[key]
                 
             else: #key is in new table, but not old, so it's new and doesnt have a difference to be found
                 diff_dict[key] = new_table[key]
@@ -349,7 +362,7 @@ class dbManager(object):
 
             else:
                 #get table diff
-                temp_table = self.calc_table_delta(self._team_stat_table, team_stats)
+                temp_table = self.calc_table_delta(self._team_stat_table, team_stats, teams = True)
 
                 if temp_table != self._team_stat_difference_table:
                     if self._new_team_stat_update:
