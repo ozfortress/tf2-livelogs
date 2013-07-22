@@ -44,7 +44,7 @@ log_file_handler.setFormatter(log_message_format)
 log_file_handler.setLevel(logging.DEBUG)
 
 class llWSApplication(tornado.web.Application):
-    def __init__(self, ioloop, update_rate=10):
+    def __init__(self, update_rate=10):
         handlers = [
             (r"/logupdate", logUpdateHandler),
             (r"/webrelay", webtvRelayHandler),
@@ -69,61 +69,32 @@ class llWSApplication(tornado.web.Application):
         self._sending_timer = tornado.ioloop.PeriodicCallback(self.__send_log_updates, self.update_rate * 1000)
         self._sending_timer.start()
 
-        #self.log_update_thread_event = threading.Event()
-        #self.log_update_thread = threading.Thread(target = self._send_update_timer, args=(self.log_update_thread_event,))
-        #self.log_update_thread.daemon = True
-        #self.log_update_thread.start()
-
         self._status_update_timer = tornado.ioloop.PeriodicCallback(self.__process_log_status, self.update_rate * 1000)
         self._status_update_timer.start()
 
-        #self.status_update_thread_event = threading.Event()
-        #self.status_update_thread = threading.Thread(target = self._status_timer, args=(self.status_update_thread_event,))
-        #self.status_update_thread.daemon = True
-        #self.status_update_thread.start()
-
-        self.__manager_threading_lock = threading.Lock()
-        self.__cache_threading_lock = threading.Lock()
-        self.__end_lock = threading.Lock() #a lock to prevent logs being ended whilst they are being status checked
         self.database_lock = threading.Lock() #a lock that is passed down to the db managers. this will prevent multiple db managers from trying to get status at the same time
 
         tornado.web.Application.__init__(self, handlers, **settings)
             
     def add_to_cache(self, log_ident, status):
-        self.__cache_threading_lock.acquire()
-
         self.log_cache.append((int(round(time.time())), log_ident, status))
 
-        self.__cache_threading_lock.release()
-        
-    def remove_from_cache(self, cache_item, locked=False):
-        if not locked:
-            self.__cache_threading_lock.acquire()
-
+    def remove_from_cache(self, cache_item):
         self.log_cache.remove(cache_item)
-
-        if not locked:
-            self.__cache_threading_lock.release()
         
         self.logger.debug("Removed cache item %s", cache_item)
 
     def update_cache(self, log_ident, status):
         #updates the status of a log ident
-
-        self.__cache_threading_lock.acquire()
-
         for log_cache in self.log_cache.copy():
             if log_ident == log_cache[1]:
                 self.remove_from_cache(log_cache, locked = True)
                 break
 
-        self.__cache_threading_lock.release()
-
         self.add_to_cache(log_ident, status)
     
     def get_log_cache(self, log_ident):
         #return a cache only if the cache is valid
-        self.__cache_threading_lock.acquire()
 
         rtn = None
 
@@ -145,8 +116,6 @@ class llWSApplication(tornado.web.Application):
 
                 else:
                     rtn = log_cache
-
-        self.__cache_threading_lock.release()
 
         return rtn
 
@@ -217,12 +186,9 @@ class llWSApplication(tornado.web.Application):
         self.clients.delete_ident(log_ident)
 
     def add_dbmanager(self, log_ident, tstamp):
-        self.__manager_threading_lock.acquire()
-
         if log_ident not in self.__db_managers:
             self.__db_managers[log_ident] = self.__get_dbmanager(log_ident, tstamp)
 
-        self.__manager_threading_lock.release()
 
     def __get_dbmanager(self, log_ident, tstamp):
         #creates a new db manager object and returns it
@@ -230,7 +196,6 @@ class llWSApplication(tornado.web.Application):
 
     def __end_log(self, log_ident):
         #deletes a db manager and associated clients
-        self.__manager_threading_lock.acquire()
         end_update_dict = None
 
         if log_ident in self.__db_managers:
@@ -239,8 +204,6 @@ class llWSApplication(tornado.web.Application):
             self.__db_managers[log_ident].cleanup()
 
             del self.__db_managers[log_ident]
-
-        self.__manager_threading_lock.release()
 
         clients = self.clients.get_vclients(log_ident)
         if clients:
@@ -268,8 +231,6 @@ class llWSApplication(tornado.web.Application):
             return
 
         try:
-            self.__manager_threading_lock.acquire()
-
             for log_id in valid_idents:
                 if self.clients.get_num_vclients(log_id) == 0:
                     continue
@@ -303,16 +264,9 @@ class llWSApplication(tornado.web.Application):
         except:
             self.logger.exception()
 
-        finally:
-            self.__manager_threading_lock.release()
-
     def _log_finished_callback(self, log_ident):
         self.logger.info("Log id %s is over. Closing connections", log_ident)
-        self.__end_lock.acquire()
-
         self.__end_log(log_ident)
-
-        self.__end_lock.release()
 
     def _status_timer(self, event):
         while not event.is_set():
@@ -323,8 +277,6 @@ class llWSApplication(tornado.web.Application):
     def __process_log_status(self):
         self.logger.debug("Getting log status")
         try:
-            self.__end_lock.acquire()
-
             self._invalid_idents = self.clients.get_invalid_idents() #a list of log idents in the invalid dict
             self._valid_idents = self.clients.get_valid_idents()
             
@@ -356,9 +308,6 @@ class llWSApplication(tornado.web.Application):
 
         except:
             self.logger.exception()
-
-        finally:
-            self.__end_lock.release()
     
     def _status_callback(self, cursor, error):
         if error:
