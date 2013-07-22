@@ -17,74 +17,83 @@ log_file_handler.setFormatter(log_message_format)
 log_file_handler.setLevel(logging.DEBUG)
 
 
+stat_columns = (
+            "steamid",
+            "team",
+            "class",
+            "kills",
+            "deaths",
+            "assists",
+            "points",
+            "healing_done",
+            "healing_received",
+            "ubers_used",
+            "ubers_lost",
+            "headshots",
+            "damage_dealt",
+            "damage_taken",
+            "captures",
+            "captures_blocked",
+            "dominations"
+            )
+
+
+team_stat_columns = (
+                "team_kills",
+                "team_deaths",
+                "team_healing_done",
+                "team_damage_dealt",
+                "team_damage_taken"
+            )
+
 """
 The database manager class holds copies of a log's data. It provides functions to calculate the difference between
 currently stored data and new data (delta compression) which will be sent to the clients, along with time and chat data
 """
 class dbManager(object):
-    def __init__(self, log_id, update_rate, end_callback = None):
+    def __init__(self, db, log_id, db_lock, update_rate, start_time):
         #end_callback is the function to be called when the log is no longer live
         
         self.log = logging.getLogger(log_id)
         self.log.setLevel(logging.DEBUG)
         self.log.addHandler(log_file_handler)
 
-        self.end_callback = end_callback
-        self._unique_ident = log_id
-        self.db = db_conn
+        self.db = db
+        self.database_lock = db_lock
         self.update_rate = update_rate
-        
+        self._unique_ident = log_id
+
         self.DB_STAT_TABLE = "livelogs_player_stats"
         self.DB_CHAT_TABLE = "livelogs_game_chat"
         self.DB_PLAYER_TABLE = "livelogs_player_details"
         self.DB_EVENT_TABLE = "log_event_%s" % log_id
         
-        self._stat_difference_table = None #a dict containing the difference between stored and retrieved stat data
         self._stat_table = None #a dict containing stat data
+        self._stat_difference_table = None #a dict containing the difference between stored and retrieved stat data
 
         self._chat_table = None #a dict containing recent chat messages
 
         self._score_table = None #a dict containing the most recent scores
         self._score_difference_table = None #a dict containing the difference in score updates
 
-        self._time_stamp = None #a variable containing the most recent timestamp available
+        self._start_time = int(round(time.mktime(time.strptime(start_time, "%Y-%m-%d %H:%M:%S")))) #a variable containing the log start time in seconds since epoch
         
-        self._update_no_diff = 0
+        self._team_stat_table = None #dict containing team stats
+        self._team_stat_difference_table = None #dict containing team stat differences
+
         self._log_status_check = False
         self._database_busy = False
         
         self._chat_event_id = 0 #maintain a copy of the last retreived chat event id
-        self._time_event_id = 0 #last event id used for time
 
         self._stat_query_complete = False
         self._chat_query_complete = False
         self._score_query_complete = False
-        self._time_query_complete = False
 
         self._new_stat_update = False
+        self._new_team_stat_update = False
         self._new_chat_update = False
         self._new_score_update = False
-        self._new_time_update = False
-
-        self.stat_columns = (
-                "steamid",
-                "team",
-                "class",
-                "kills",
-                "deaths",
-                "assists",
-                "points",
-                "healing_done",
-                "healing_received",
-                "ubers_used",
-                "ubers_lost",
-                "headshots",
-                "damage_dealt",
-                "damage_taken",
-                "captures",
-                "captures_blocked",
-                "dominations"
-            )
 
         self.updateThreadEvent = threading.Event()
         
@@ -92,10 +101,12 @@ class dbManager(object):
         self.updateThread.daemon = True
         self.updateThread.start()
     
-    def stat_idx_to_name(self, index):
+    def stat_idx_to_name(self, index, teams=False):
         #converts an index in the stat tuple to a name for use in dictionary keys
-                
-        return self.stat_columns[index]
+        if teams:
+            return team_stat_columns[index]
+        else:
+            return stat_columns[index]
     
     def stat_tuple_to_dict(self, stat_tuple):
         #takes a stat tuple and converts it to a simple dictionary
@@ -113,6 +124,18 @@ class dbManager(object):
                     
         return stat_dict
     
+    def team_stat_tuple_to_dict(self, stat_tuple):
+        #converts a team stat tuple to a dict
+        stat_dict = {}
+
+        for idx, val in enumerate(stat_tuple):
+            if val > 0: #ignore 0 values
+                col = self.stat_idx_to_name(idx, teams = True)
+
+                stat_dict[col] = val
+
+        return stat_dict
+
     def full_update(self):
         #constructs and returns a dictionary for a complete update to the client
         
@@ -122,29 +145,27 @@ class dbManager(object):
         
         update_dict = {}
 
-        if self._stat_complete_table:
+        if self._stat_table:
             update_dict["stat"] = self._stat_table
 
         if self._score_table:
             update_dict["score"] = self._score_table
 
+        if self._team_stat_table:
+            update_dict["team_stat"] = self._team_stat_table
+
+        update_dict["gametime"] = self.calc_game_time()
+
+
         return update_dict
     
     def compressed_update(self):
         #returns a dictionary for a delta compressed update to the client
-        update_stat_dict = {}
-
-        if self._stat_difference_table:
-            for steam_id in self._stat_difference_table:
-                player_stat_dict = self._stat_difference_table[steam_id]
-                if player_stat_dict: #if the dict is not empty
-                    update_stat_dict[steam_id] = player_stat_dict #add it to the stat update dict
-                
         update_dict = {}
 
-        if update_stat_dict and self._new_stat_update:
+        if self._stat_difference_table and self._new_stat_update:
             self.log.debug("Have stat update diff in compressedUpdate")
-            update_dict["stat"] = update_stat_dict
+            update_dict["stat"] = self._stat_difference_table
 
             self._new_stat_update = False
 
@@ -162,70 +183,63 @@ class dbManager(object):
             self._score_difference_table = None #clear score table to prevent duplicates
             self._new_score_update = False
 
-        if self._time_stamp and self._new_time_update:
-            update_dict["gametime"] = self._time_stamp
+        if self._team_stat_difference_table and self._new_team_stat_update:
+            self.log.debug("Have team stat update in compressedUpdate")
 
-            self._time_stamp = None
-            self._new_time_update = False
+            update_dict["team_stat"] = self._team_stat_difference_table
+
+            self._new_team_stat_update = False
+
+        update_dict["gametime"] = self.calc_game_time()
 
         return update_dict
     
-    def calc_stat_difference(self, old_table, new_table):
-        #calculates the difference between the currently stored stat data and an update
+    def calc_game_time(self):
+        return int(round(time.time())) - self._start_time
 
-        #tables are in the form of dict[sid] = dict of stats
+    def calc_table_delta(self, old_table, new_table):
+        """
+        Calculates the delta update of two table dicts
+
+        This means that we only want the difference between keys present in the old AND new tables, we don't care if a key is present in the old but not new.
+        Keys present in the new table are included in the delta update, because they are clearly an update if they weren't previously present
+
+        """
         
-        stat_dict_updated = {}
+        diff_dict = {}
         
-        for cid in new_table:
-            new_stat_tuple = new_table[cid]
-            
-            if steam_id in old_table:
-                #steam_id is in the old table, so now we need to find the difference between the old and new tuples
-                old_stat_tuple = old_table[steam_id]
-                
-                
-                temp_list = [] #temp list that will be populated with all the stat differences, and then converted to a tuple
-                
-                #first we need to initialise the temp_list so we can access it by index
-                for i in range(len(new_stat_tuple)):
-                    temp_list.append(0)
-                
-                #now we have two tuples with identical lengths, and possibly identical values
-                for idx, val in enumerate(new_stat_tuple):
-                    if idx >= 1:
-                        diff = val - old_stat_tuple[idx] #we have the difference between two values of the same index in the tuples
-                        
-                        temp_list[idx] = diff #store the new value in the temp tuple
-                    else:
-                        if val != old_stat_tuple[0]:
-                            temp_list[idx] = val #idx 0 is the name, you can't get the difference, but you can simply assign the name regardless of if it's different
-                
-                stat_dict_updated[steam_id] = self.statTupleToDict(tuple(temp_list)) #add the diff'd stat dict to the diff table
-                
-            else: #steam_id is present in the new table, but not old. therefore it is new and doesn't need to have the difference found
-                stat_dict_updated[steam_id] = self.statTupleToDict(new_stat_tuple)
-                
-        return stat_dict_updated
-    
-    def combineUpdateTable(self, old_table, new_table):
-        #this will add two dictionaries together in the case that two updates occur before data is sent
-
-        update_dict = {}
-
         for key in new_table:
             if key in old_table:
-                #table[key] can be another dict in the case of stat updates, because there's dicts with steamids, and then corresponding stats
-                if isinstance(new_table[key], dict) and isinstance(old_table[key], dict): #it's a stat update with key == steamid
-                    update_dict[key] = self.combineUpdateTable(old_table[key], new_table[key]) #recursively combine the lower levels
+                #find the difference
+                if isinstance(old_table[key], dict) and isinstance(new_table[key], dict): #keys are dicts, so we should do this recursively
+                    diff_dict[key] = self.calc_table_delta(old_table[key], new_table[key])
+                
                 else:
-                    update_dict[key] = new_table[key] + old_table[key]
-            else:
-                update_dict[key] = new_table[key]
+                    #we get the difference by subtracting the old from the new
+                    diff_dict[key] = new_table[key] - old_table[key]
+                
+            else: #key is in new table, but not old, so it's new and doesnt have a difference to be found
+                diff_dict[key] = new_table[key]
+                
+        return diff_dict
+    
+    def combine_update_table(self, table_a, table_b):
+        #this will add two dictionaries together in the case that two updates occur before data is sent
+        update_dict = {}
 
-        for key in old_table:
-            if key not in new_table:
-                update_dict[key] = old_table[key]
+        for key in table_a:
+            if key in table_b:
+                #table[key] can be another dict in the case of stat updates, because there's dicts with steamids, and then corresponding stats
+                if isinstance(table_a[key], dict) and isinstance(table_b[key], dict): #it's a stat update with key == steamid
+                    update_dict[key] = self.combine_update_table(table_a[key], table_b[key]) #recursively combine the lower levels
+                else:
+                    update_dict[key] = table_a[key] + table_b[key]
+            else:
+                update_dict[key] = table_a[key]
+
+        for key in table_b:
+            if key not in table_a:
+                update_dict[key] = table_b[key]
 
         return update_dict
 
@@ -233,96 +247,41 @@ class dbManager(object):
         #constructs a select query from the STAT_KEYS dict, so we always know the order data is retrieved in
         #this means that new columns can be added to tables on the fly, while retaining a known format
 
-        query = "SELECT %s FROM %s" % (', '.join(self.stat_columns), self.DB_STAT_TABLE)
+        query = "SELECT %s FROM %s WHERE log_ident = '%s'" % (', '.join(stat_columns), self.DB_STAT_TABLE, self._unique_ident)
 
         return query
 
-    def get_database_update(self, db):
+    def get_database_updates(self):
         #executes the queries to obtain updates. called periodically
-        if self._update_no_diff > 10:
-            self.log.info("Had 10 updates since there's been a difference. Checking log status")
+        self.log.info("Getting database update for log %s", self._unique_ident)
 
-            self._log_status_check = True
-            
-            try:
-                self.db.execute("SELECT live FROM livelogs_log_index WHERE log_ident = %s", (self.LOG_IDENT,), callback = self._databaseStatusCallback)
-                
-            except psycopg2.OperationalError:
-                self.log.exception("Operational error during log status check")
-                self._log_status_check = False
-                
-            except Exception as e:
-                self.log.exception("Unknown exception %s occurred during database update", e)
-                
-        elif not self._database_busy:    
-            self.log.info("Getting database update on table %s", self.DB_STAT_TABLE)
-            
-            self._database_busy = True
+        self._stat_query_complete = False
+        self._chat_query_complete = False
+        self._score_query_complete = False
+        
+        stat_query = self.construct_stat_query()
 
-            self._stat_query_complete = False
-            self._chat_query_complete = False
-            self._score_query_complete = False
-            self._time_query_complete = False
-            
-            stat_query = self.constructStatQuery()
-
-            if not self._chat_event_id:
-                chat_query = "SELECT MAX(id) FROM %s WHERE log_ident = '%s'" % (self.DB_CHAT_TABLE, self.log_id #need to get the most recent id for first update, to prevent chat duplicates
-            else:
-                chat_query = "SELECT * FROM %s WHERE eventid > '%d'" % (self.DB_CHAT_TABLE, self._chat_event_id)
-
-            score_query = "SELECT COALESCE(round_red_score, 0), COALESCE(round_blue_score, 0) FROM %s WHERE round_red_score IS NOT NULL AND round_blue_score IS NOT NULL ORDER BY eventid DESC LIMIT 1" % self.DB_EVENT_TABLE
-            time_query = "SELECT event_time FROM %s WHERE eventid = '1' UNION SELECT event_time FROM %s WHERE eventid = (SELECT MAX(eventid) FROM %s)" % (self.DB_EVENT_TABLE, self.DB_EVENT_TABLE, self.DB_EVENT_TABLE)
-
-            try:
-                self.db.execute(stat_query, callback = self._databaseStatUpdateCallback)
-                self.db.execute(chat_query, callback = self._databaseChatUpdateCallback)
-                self.db.execute(score_query, callback = self._databaseScoreUpdateCallback)
-                self.db.execute(time_query, callback = self._databaseTimeUpdateCallback)
-
-            except psycopg2.OperationalError:
-                self._database_busy = False
-                
-                self.log.exception("Op error during database update")
-                
-            except Exception, e:
-                self._database_busy = False
-                
-                self.log.exception("Unknown exception occurred during database update")
+        if not self._chat_event_id:
+            chat_query = "SELECT MAX(id) FROM %s WHERE log_ident = '%s'" % (self.DB_CHAT_TABLE, self._unique_ident) #need to get the most recent id for first update, to prevent chat duplicates
         else:
-            self.log.info("Busy getting database updates for log %s", self.LOG_IDENT)
-            
-    def _databaseStatusCallback(self, cursor, error):
-        if error:
-            self.log.error("Error querying database for log status: %s", error)
-            self._log_status_check = False
-            return
-            
-        self.log.debug("databaseStatusCallback")   
-        
-        try:
-            if cursor:
-                result = cursor.fetchone()
-                
-                if result and len(result) > 0:
-                    live = result[0]
-                    
-                    if (live == True):
-                        self._update_no_diff = 0 #reset the increment, because the log is actually still live
-                        self._log_status_check = False
-                        
-                        self.log.info("Log is still live. Continuing to update")
-                    else:
-                        #the log is no longer live
-                        self.log.info("Log is no longer live")
-                        self.cleanup()
-                        
-                        self.end_callback(self.LOG_IDENT)
+            chat_query = "SELECT id, name, team, chat_type, chat_message FROM %s WHERE id > '%d' AND log_ident = '%s'" % (self.DB_CHAT_TABLE, self._chat_event_id, self._unique_ident)
 
-        except Exception, e:
-            self.log.exception("Exception during databaseStatusCallback")
+        score_query = "SELECT COALESCE(round_red_score, 0), COALESCE(round_blue_score, 0) FROM %s WHERE round_red_score IS NOT NULL AND round_blue_score IS NOT NULL ORDER BY eventid DESC LIMIT 1" % (self.DB_EVENT_TABLE)
+
+        team_stat_query = "SELECT team, SUM(kills), SUM(deaths), SUM(healing_done), SUM(damage_dealt), SUM(damage_taken) FROM %s WHERE log_ident = '%s' and team IS NOT NULL GROUP BY team" % (self.DB_STAT_TABLE, self._unique_ident)
+
+        try:
+            self.db.execute(stat_query, callback = self._stat_update_callback)
+            self.db.execute(chat_query, callback = self._chat_update_callback)
+            self.db.execute(score_query, callback = self._score_update_callback)
+            self.db.execute(team_stat_query, callback = self._team_stat_update_callback)
+            
+        except:
+            self.log.exception("Unknown exception occurred during database update")
+        finally:
+            self._database_busy = False
         
-    def _databaseStatUpdateCallback(self, cursor, error):
+    def _stat_update_callback(self, cursor, error):
         #the callback for stat update queries
         if error:
             self.log.error("Error querying database for stat data: %s", error)
@@ -333,45 +292,78 @@ class dbManager(object):
         self.log.debug("Stat update callback")
 
         try:
-            stat_dict = {}
+            new_stat = {}
             
             #iterate over the cursor, and convert it to a sensible dictionary
             for row in cursor:
                 #each row is a player's data as a tuple in the format of:
-                #SID:NAME:K:D:A:P:HD:HR:UU:UL: --- ETC
+                #SID:K:D:A:P:HD:HR:UU:UL: --- ETC
                 cid = row[0] #player's steamid as a community id
-                stat_dict[cid] = self.stat_tuple_to_dict(row) #splice the rest of the data and store it under the player's steamid    
+                new_stat[cid] = self.stat_tuple_to_dict(row) #store stat data under steamid in dict  
             
             if not self._stat_table: #if this is the first callback, make the complete table this dict
-                self._stat_table = stat_dict
+                self._stat_table = new_stat
 
             else:
                 #we need to get the table difference between the previous complete set and the new dict before we update to the latest data
-                temp_table = self.stat_table_difference(self._stat_table, stat_dict)
+                temp_table = self.calc_table_delta(self._stat_table, new_stat)
 
-                if temp_table == self._stat_difference_table:
-                    self._update_no_diff += 1 #increment number of times there's been an update with no difference
-
-                else:
+                if temp_table != self._stat_difference_table:
                     if self._new_stat_update:
                         self.log.debug("There is a stat update waiting to be sent. Combining tables")
                         #there's already an update waiting to be sent. we should therefore combine updates
-                        self._stat_difference_table = self.combineUpdateTable(temp_table, self._stat_difference_table)
+                        self._stat_difference_table = self.combine_update_table(temp_table, self._stat_difference_table)
 
                     else:
                         self._stat_difference_table = temp_table
-                        self._stat_complete_table = stat_dict
+                        self._stat_table = stat_dict
 
                     self._new_stat_update = True
 
-        except Exception, e:
-            self.log.exception("Exception during _databaseStatUpdateCallback")
+        except:
+            self.log.exception("Exception during _stat_update_callback")
                 
         self._stat_query_complete = True
 
         self.__clear_busy_status()
+
+    def _team_stat_update_callback(self, cursor, error):
+        if error:
+            self.log.error("Error querying team stats: %s", error)
+
+            return
+
+        self.log.debug("Team stat update callback")
+
+        try:
+            team_stats = {}
+
+            for row in cursor:
+                team = row[0]
+                team_stats[team] = self.team_stat_tuple_to_dict(row[1:]) #splice the row so we just have the stats, and convert them to a dict
+
+            if not self._team_stat_table:
+                self._team_stat_table = team_stats
+
+            else:
+                #get table diff
+                temp_table = self.calc_table_delta(self._team_stat_table, team_stats)
+
+                if temp_table != self._team_stat_difference_table:
+                    if self._new_team_stat_update:
+                        #combine the updates
+                        self._team_stat_difference_table = self.combine_update_table(team_stats, self._team_stat_difference_table)
+
+                    else:
+                        self._team_stat_difference_table = temp_table
+                        self._team_stat_table = team_stats
+
+                    self._new_team_stat_update = True
+
+        except:
+            self.log.exception("Exception during _team_stat_update_callback")
         
-    def _databaseChatUpdateCallback(self, cursor, error):
+    def _chat_update_callback(self, cursor, error):
         if error:
             self.log.error("Error querying database for chat data: %s", error)
             self._chat_query_complete = True
@@ -395,39 +387,39 @@ class dbManager(object):
 
                 for row in cursor:
                     #each row will be a tuple in the format of:
-                    #eventid:steamid:name:team:chat_type:chat_msg
+                    #id, name, team, chat_type, chat_message
                     self._chat_event_id = row[0] #set the latest chat event id
 
-                    sid = self.steamCommunityID(row[1]) #convert to community id
+                    chat_id = row[0] #table row id
 
-                    chat_dict[sid] = {
-                            "name": row[2], 
-                            "team": row[3], 
-                            "msg_type": row[4], 
-                            "msg": row[5]
+                    chat_dict[chat_id] = {
+                            "name": row[1], 
+                            "team": row[2], 
+                            "msg_type": row[3], 
+                            "msg": row[4]
                         }
 
-                    self.log.debug("CHAT: ID: %s NAME: %s TEAM: %s MSG_TYPE: %s MSG: %s", sid, row[2], row[3], row[4], row[5])
+                    self.log.debug("CHAT: ID: %s NAME: %s TEAM: %s MSG_TYPE: %s MSG: %s", row[0], row[1], row[2], row[3], row[4])
 
                 if chat_dict:
                     if self._new_chat_update:
                         self.log.debug("There is a chat update waiting to be sent. Combining updates")
 
-                        self._chat_table = self.combineUpdateTable(self._chat_table, chat_dict)
+                        self._chat_table = self.combine_update_table(self._chat_table, chat_dict)
 
                     else: #no updates waiting, just assign the new dict
                         self._chat_table = chat_dict
 
                     self._new_chat_update = True
 
-        except Exception, e:
-            self.log.exception("Exception during _databaseChatUpdateCallback")
+        except:
+            self.log.exception("Exception during _chat_update_callback")
 
         self._chat_query_complete = True
 
         self.__clear_busy_status()
 
-    def _databaseScoreUpdateCallback(self, cursor, error):
+    def _score_update_callback(self, cursor, error):
         if error:
             self.log.error("Error querying database for score data: %s", error)
             self._score_query_complete = True
@@ -460,18 +452,13 @@ class dbManager(object):
                     self.log.debug("FIRST SCORE UPDATE: Red: %d Blue: %d", score_dict["red"], score_dict["blue"])
 
                 else:
-                    score_diff_dict = {}
-                    for team in score_dict:
-                        #score_dict has the most recent version
-                        score_diff = score_dict[team] - self._score_table[team]
-                        if score_diff:
-                            score_diff_dict[team] = score_diff
+                    score_diff_dict = self.calc_table_delta(self._score_table, score_dict)
 
                     if score_diff_dict:
                         if self._new_score_update:
                             self.log.debug("Score update waiting. Combining")
 
-                            self._score_difference_table = self.combineUpdateTable(self._score_difference_table, score_diff_dict)
+                            self._score_difference_table = self.combine_update_table(self._score_difference_table, score_diff_dict)
                         else:
                             self._score_difference_table = score_diff_dict
 
@@ -485,49 +472,10 @@ class dbManager(object):
                         "blue": 0
                     }
 
-        except Exception, e:
-            self.log.exception("Exception during _databaseScoreUpdateCallback")
+        except:
+            self.log.exception("Exception during _score_update_callback")
 
         self._score_query_complete = True
-
-        self.__clear_busy_status()
-
-    def _databaseTimeUpdateCallback(self, cursor, error):
-        if error:
-            self.log.error("Error querying database for time data: %s", error)
-            self._time_query_complete = True
-            self.__clear_busy_status()
-            return
-
-        self.log.debug("Time update callback")
-
-        #if there's data, data will be in the format (2 tuples inside a tuple): ((start_time,), (most_recent_time,))
-        #times are in the format "10/01/2012 21:38:18", so we need to convert them to epoch to get the difference
-        try:
-            times = cursor.fetchall() #two tuples in the format above
-            #self.log.debug("Time query returned %s", times)
-
-            if len(times) == 2:
-                if (len(times[0]) > 0) and (len(times[1]) > 0): #we have our expected results!
-                    time_format = "%m/%d/%Y %H:%M:%S"
-
-                    start_time = time.mktime(time.strptime(times[0][0], time_format))
-
-                    latest_time =time.mktime(time.strptime(times[1][0], time_format))
-
-                    #time_diff is in seconds as a float
-                    time_diff =  latest_time - start_time
-
-                    #self.log.debug("Time update difference: %0.2f", time_diff)
-
-                    self._time_stamp = time_diff
-
-                    self._new_time_update = True
-
-        except Exception, e:
-            self.log.exception("Exception during _databaseTimeUpdateCallback")
-
-        self._time_query_complete = True
 
         self.__clear_busy_status()
 
@@ -542,12 +490,19 @@ class dbManager(object):
         #it is also repeating, unlike a timer
         
         while not event.is_set(): #support signaling via an event to end the thread
-            self.getDatabaseUpdate()
+            self.database_lock.acquire() #acquire the lock, so only this manager can run the queries right now
+
+            self.get_database_updates()
+
+            self.database_lock.release()
             
             event.wait(self.update_rate)
 
     def cleanup(self):
-        #the only cleanup we need to do is releasing the update thread
+        #the only cleanup we need to do is releasing the update thread and deleting the stat tables
+
+        del self._stat_table
+        del self._team_stat_table
         
         #NOTE: WE DO ____NOT____ CLOSE THE DATABASE. IT IS THE MOMOKO POOL, AND IS RETAINED THROUGHOUT THE APPLICATION
         if self.updateThread.isAlive():
