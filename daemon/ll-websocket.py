@@ -44,7 +44,7 @@ log_file_handler.setFormatter(log_message_format)
 log_file_handler.setLevel(logging.DEBUG)
 
 class llWSApplication(tornado.web.Application):
-    def __init__(self, update_rate=10):
+    def __init__(self, ioloop, update_rate=10):
         handlers = [
             (r"/logupdate", logUpdateHandler),
             (r"/webrelay", webtvRelayHandler),
@@ -66,15 +66,21 @@ class llWSApplication(tornado.web.Application):
 
         self.clients = ws_clientdata.client_data() #a client_data object, which contains all valid/invalid clients
 
-        self.log_update_thread_event = threading.Event()
-        self.log_update_thread = threading.Thread(target = self._send_update_timer, args=(self.log_update_thread_event,))
-        self.log_update_thread.daemon = True
-        self.log_update_thread.start()
+        self._sending_timer = tornado.ioloop.PeriodicCallback(self.__send_log_updates, self.update_rate * 1000)
+        self._sending_timer.start()
 
-        self.status_update_thread_event = threading.Event()
-        self.status_update_thread = threading.Thread(target = self._status_timer, args=(self.status_update_thread_event,))
-        self.status_update_thread.daemon = True
-        self.status_update_thread.start()
+        #self.log_update_thread_event = threading.Event()
+        #self.log_update_thread = threading.Thread(target = self._send_update_timer, args=(self.log_update_thread_event,))
+        #self.log_update_thread.daemon = True
+        #self.log_update_thread.start()
+
+        self._status_update_timer = tornado.ioloop.PeriodicCallback(self.__process_log_status, self.update_rate * 1000)
+        self._status_update_timer.start()
+
+        #self.status_update_thread_event = threading.Event()
+        #self.status_update_thread = threading.Thread(target = self._status_timer, args=(self.status_update_thread_event,))
+        #self.status_update_thread.daemon = True
+        #self.status_update_thread.start()
 
         self.__manager_threading_lock = threading.Lock()
         self.__cache_threading_lock = threading.Lock()
