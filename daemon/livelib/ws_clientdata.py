@@ -30,7 +30,7 @@ class client_data(object):
 		self.__get_valid_lock()
 		self.__get_invalid_lock()
 
-		if cache_valid or (log_ident in self.__valid_clients):
+		if cache_valid or (clog_ident in self.__valid_clients):
 			#valid cache, or the log ident is in the valid clients dict, so just add straight to the valid clients
 			self.__add_valid_client(client_obj)
 			added_valid = True
@@ -106,7 +106,7 @@ class client_data(object):
 
 
 	def __delete_clients(self, client_set):
-		for client in client_set.copy()
+		for client in client_set.copy():
 			client_set.discard(client)
 
 
@@ -142,7 +142,7 @@ class client_data(object):
 		#returns a list of log idents that are considered invalid (ie, in the invalid_clients dict)
 		il = []
 
-		self.__get_valid_lock()
+		self.__get_invalid_lock()
 		
 		for log_ident in self.__invalid_clients:
 			il.append(log_ident)

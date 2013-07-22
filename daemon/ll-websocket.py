@@ -23,7 +23,7 @@ import threading
 import ConfigParser
 
 from livelib import dbmanager
-from livelogs import ws_clientdata
+from livelib import ws_clientdata
 
 from pprint import pprint
 
@@ -105,7 +105,7 @@ class llWSApplication(tornado.web.Application):
 
         self.__cache_threading_lock.acquire()
 
-        for log_cache in self.log_cache.copy()
+        for log_cache in self.log_cache.copy():
             if log_ident == log_cache[1]:
                 self.remove_from_cache(log_cache, locked = True)
                 break
@@ -179,6 +179,10 @@ class llWSApplication(tornado.web.Application):
             else:
                 #log is not live, disconnect the client
                 client_obj.disconnect_not_live()
+
+    def delete_client(self, client_obj):
+        if client_obj._log_ident:
+            self.clients.delete_client(client_obj)
 
     def add_live_ident(self, log_ident, tstamp):
         #log_ident is live after status check, so establish a db manager if it doesn't exist, and move clients to valid queue
@@ -300,7 +304,7 @@ class llWSApplication(tornado.web.Application):
         self.__end_lock.release()
 
     def _status_timer(self, event):
-        while not event.is_set()
+        while not event.is_set():
             self.__process_log_status()
 
             event.wait(self.update_rate)
@@ -406,7 +410,7 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         self.application.logger.info("Client disconnected. IP: %s", self.request.remote_ip)
 
         self.application.delete_client(self)
-        
+
         return
         
     def on_message(self, msg):
