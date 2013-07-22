@@ -98,8 +98,9 @@ class llWSApplication(tornado.web.Application):
         self.logger.info("Cleaning cache...")
 
         time_ctime = int(round(time.time()))
+        list_copy = list(self.log_cache)
 
-        for log_cache in self.log_cache.copy():
+        for log_cache in list_copy:
             time_diff = time_ctime - log_cache[0]
 
             if log_cache[2] == False:
@@ -110,7 +111,9 @@ class llWSApplication(tornado.web.Application):
             if time_diff > expiry_threshold:
                 self.remove_from_cache(log_cache)
         
-    
+        del list_copy #delete the copied list
+
+
     def get_log_cache(self, log_ident):
         #return a cache only if the cache is valid
 
@@ -319,14 +322,14 @@ class llWSApplication(tornado.web.Application):
             try:
                 self.db.execute(select_query, callback = self._status_callback)
             except:
-                self.logger.exception()
+                self.logger.exception("Exception executing status query")
 
         except:
-            self.logger.exception()
+            self.logger.exception("Exception getting status")
     
     def _status_callback(self, cursor, error):
         if error:
-            self.application.logger.error("Error querying database for log status")
+            self.logger.error("Error querying database for log status")
 
             return
 
@@ -351,7 +354,7 @@ class llWSApplication(tornado.web.Application):
                         self.add_live_ident(log_ident, tstamp)
                     
                 else:
-                    self.application.logger.debug("log is not live, disconnecting clients")
+                    self.logger.debug("log is not live, disconnecting clients")
                     if log_ident in self._valid_idents:
                         #valid ident is no longer live, close it
                         self._log_finished_callback(log_ident) #run the ending callback
