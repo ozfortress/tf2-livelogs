@@ -259,21 +259,25 @@ class llWSApplication(tornado.web.Application):
                     self.logger.error("log %s has clients and is considered valid, but has no db manager?")
                     continue
 
-                delta_update_dict = log_manager.compressed_update()
-                full_update_dict = log_manager.full_update()
+                delta_update_dict = {}
+                full_update_dict = {}
 
                 for client in self.clients.get_vclients(log_id):
                     #client is a websocket client object, which data can be sent to using client.write_message, etc
                     client.write_message("HELLO!")
                     if not client.HAD_FIRST_UPDATE:
                         #need to send complete values on first update to keep clients in sync with the server
-                        if full_update_dict:
-                            #send a complete update to the client
-                            client.write_message(full_update_dict)
-                        
-                            client.HAD_FIRST_UPDATE = True
+                        if not full_update_dict:
+                            full_update_dict = log_manager.full_update()
+
+                        #send a complete update to the client
+                        client.write_message(full_update_dict)
+                    
+                        client.HAD_FIRST_UPDATE = True
+
                     else:
                         self.logger.debug("Got update dict for %s: %s", log_id, delta_update_dict)
+                        
                         if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
                             self.logger.debug("Sending update to client %s", client.cip)
                             client.write_message(delta_update_dict)

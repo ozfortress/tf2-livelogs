@@ -140,7 +140,7 @@ class dbManager(object):
             if val > 0: #ignore 0 values
                 col = self.stat_idx_to_name(idx, teams = True)
 
-                stat_dict[col] = val
+                stat_dict[col] = int(val)
 
         return stat_dict
 
@@ -227,8 +227,9 @@ class dbManager(object):
 
                     #special case for certain stat dict keys
                     #if the key is "team" and this is a team stat dict, we want to keep the team the same
-                    if (key == "class" or key == "team") and ((new_table[key] != old_table[key]) or teams):
-                        diff_dict[key] = new_table[key]
+                    if (key == "class" or key == "team"):
+                        if (new_table[key] != old_table[key]) or teams:
+                            diff_dict[key] = new_table[key]
 
                     else:
                         diff_dict[key] = new_table[key] - old_table[key]
@@ -331,7 +332,7 @@ class dbManager(object):
 
                     else:
                         self._stat_difference_table = temp_table
-                        self._stat_table = stat_dict
+                        self._stat_table = new_stat
 
                     self._new_stat_update = True
 
