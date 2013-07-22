@@ -181,11 +181,14 @@ class llWSApplication(tornado.web.Application):
                 client_obj.disconnect_not_live()
 
     def delete_client(self, client_obj):
+        self.logger.info("Deleting client")
         if client_obj._log_ident:
             self.clients.delete_client(client_obj)
 
     def add_live_ident(self, log_ident, tstamp):
         #log_ident is live after status check, so establish a db manager if it doesn't exist, and move clients to valid queue
+
+        self.logger.debug("Moving log ident %s from invalid to valid. Time: %s", log_ident, tstamp)
 
         self.clients.move_invalid_ident(log_ident)
         self.add_dbmanager(log_ident, tstamp)
@@ -252,7 +255,7 @@ class llWSApplication(tornado.web.Application):
         valid_idents = self.clients.get_valid_idents()
         num_idents = len(valid_idents)
 
-        self.logger.debug("%d: Sending updates. Number of active logs: %d", int(round(time.time())), num_idents)
+        self.logger.debug("Sending updates. Number of active logs: %d", num_idents)
 
         if num_idents == 0:
             return
@@ -310,6 +313,7 @@ class llWSApplication(tornado.web.Application):
             event.wait(self.update_rate)
 
     def __process_log_status(self):
+        self.logger.debug("Getting log status")
         self.__end_lock.acquire()
 
         self._invalid_idents = self.clients.get_invalid_idents() #a list of log idents in the invalid dict
@@ -330,6 +334,8 @@ class llWSApplication(tornado.web.Application):
             filter_string += "log_ident = E'%s'" % (log_ident)
 
         select_query = "SELECT log_ident, live, tstamp FROM livelogs_log_index WHERE (%s)" % (filter_string)
+
+        self.logger.info("status query: %s", select_query)
 
         try:
             self.db.execute(select_query, callback = self._status_callback)

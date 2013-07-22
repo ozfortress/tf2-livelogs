@@ -47,6 +47,8 @@ class client_data(object):
 	def __add_valid_client(self, client_obj):
 		log_ident = client_obj._log_ident
 
+		logging.info("adding valid client to ident %s", log_ident)
+
 		if log_ident in self.__valid_clients:
 			self.__valid_clients[log_ident].add(client_obj)
 
@@ -57,6 +59,8 @@ class client_data(object):
 
 	def __add_invalid_client(self, client_obj):
 		log_ident = client_obj._log_ident
+
+		logging.info("adding invalid client to ident %s", log_ident)
 
 		if log_ident in self.__invalid_clients:
 			self.__invalid_clients[log_ident].add(client_obj)

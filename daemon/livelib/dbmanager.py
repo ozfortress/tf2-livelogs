@@ -100,6 +100,8 @@ class dbManager(object):
         self.updateThread = threading.Thread(target = self._updateThread, args=(self.updateThreadEvent,))
         self.updateThread.daemon = True
         self.updateThread.start()
+
+        self.log.info("DB Manager for log ident %s established", log_id)
     
     def stat_idx_to_name(self, index, teams=False):
         #converts an index in the stat tuple to a name for use in dictionary keys
