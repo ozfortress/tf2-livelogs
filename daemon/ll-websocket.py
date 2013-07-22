@@ -86,12 +86,30 @@ class llWSApplication(tornado.web.Application):
 
     def update_cache(self, log_ident, status):
         #updates the status of a log ident
-        for log_cache in self.log_cache.copy():
+        for log_cache in self.log_cache:
             if log_ident == log_cache[1]:
-                self.remove_from_cache(log_cache, locked = True)
+                self.remove_from_cache(log_cache)
                 break
 
         self.add_to_cache(log_ident, status)
+
+    def clean_cache(self):
+        #removes expired cache items
+        self.logger.info("Cleaning cache...")
+
+        time_ctime = int(round(time.time()))
+
+        for log_cache in self.log_cache.copy():
+            time_diff = time_ctime - log_cache[0]
+
+            if log_cache[2] == False:
+                expiry_threshold = 600
+            else:
+                expiry_threshold = 60
+
+            if time_diff > expiry_threshold:
+                self.remove_from_cache(log_cache)
+        
     
     def get_log_cache(self, log_ident):
         #return a cache only if the cache is valid
@@ -111,7 +129,7 @@ class llWSApplication(tornado.web.Application):
 
                 if time_diff > expiry_threshold:
                     #cache expired
-                    self.remove_from_cache(log_cache, locked = True)
+                    self.remove_from_cache(log_cache)
                     break
 
                 else:
@@ -272,6 +290,8 @@ class llWSApplication(tornado.web.Application):
     def __process_log_status(self):
         self.logger.debug("Getting log status")
         try:
+            self.clean_cache()
+
             self._invalid_idents = self.clients.get_invalid_idents() #a list of log idents in the invalid dict
             self._valid_idents = self.clients.get_valid_idents()
             
