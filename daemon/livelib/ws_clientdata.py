@@ -164,6 +164,25 @@ class client_data(object):
 
 		return vl
 
+	def get_idents(self):
+		#gets all idents, invalid and valid
+		self.__get_valid_lock()
+		self.__get_invalid_lock()
+		ident_list = []
+
+		for log_ident in self.__valid_clients:
+			ident_list.append(log_ident)
+
+
+		for log_ident in self.__invalid_clients:
+			ident_list.append(log_ident)
+
+		self.__release_valid_lock()
+		self.__release_invalid_lock()
+
+		return ident_list
+
+
 	def log_ident_valid(self, log_ident):
 		self.__get_valid_lock()
 
