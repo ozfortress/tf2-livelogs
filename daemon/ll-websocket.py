@@ -206,7 +206,7 @@ class llWSApplication(tornado.web.Application):
                 if not_live: #we're deleting this log because it's not live
                     client.disconnect_not_live()
                 else: #we're deleting this log because it's invalid, and no status could be obtained
-                    client.close()
+                    client.disconnect_invalid()
 
         self.clients.delete_ident(log_ident)
 
@@ -328,7 +328,6 @@ class llWSApplication(tornado.web.Application):
             if len(log_idents) == 0:
                 self.logger.debug("No log idents present to check status for")
 
-                self.__end_lock.release()
                 return
 
             #create a select statement to get status of all log idents in the queue
@@ -348,13 +347,13 @@ class llWSApplication(tornado.web.Application):
                 self.db.execute(select_query, callback = self._status_callback)
             except:
                 self.logger.exception()
-                
+
         except:
             self.logger.exception()
+
         finally:
             self.__end_lock.release()
     
-    @tornado.web.asynchronous
     def _status_callback(self, cursor, error):
         if error:
             self.application.logger.error("Error querying database for log status")
@@ -478,6 +477,10 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
             self.write_message("LOG_END")
 
             self.close()
+
+    def disconnect_invalid(self):
+        self.disconnect_not_live()
+
             
 if __name__ == "__main__": 
     cfg_parser = ConfigParser.SafeConfigParser()
@@ -516,6 +519,8 @@ if __name__ == "__main__":
     
     tornado.options.parse_command_line()
     
+    ioloop = tornado.ioloop.IOLoop.instance()
+
     llWebSocketServer = llWSApplication(update_rate = tornado.options.options.update_rate)
         
     llWebSocketServer.db = momoko.Pool(
@@ -529,7 +534,7 @@ if __name__ == "__main__":
     logger.info("Websocket server listening on %s:%s", tornado.options.options.ip, tornado.options.options.port)
     
     try:
-        tornado.ioloop.IOLoop.instance().start()
+        ioloop.start()
     except:
         llWebSocketServer.db.close()
         tornado.ioloop.IOLoop.instance().stop()
