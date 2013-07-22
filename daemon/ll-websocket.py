@@ -320,8 +320,10 @@ class llWSApplication(tornado.web.Application):
         self._valid_idents = self.clients.get_valid_idents()
         
         log_idents = self._invalid_idents + self._valid_idents
-
+        self.logger.debug("Current log idents: %s", log_idents)
+        
         if len(log_idents) == 0:
+            self.logger.debug("No log idents present to check status for")
             return
 
         #create a select statement to get status of all log idents in the queue

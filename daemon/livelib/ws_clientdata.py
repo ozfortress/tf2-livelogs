@@ -54,7 +54,8 @@ class client_data(object):
 
 		else:
 			#create new entry
-			self.__valid_clients[log_ident] = set(client_obj)
+			self.__valid_clients[log_ident] = set()
+			self.__valid_clients[log_ident].add(client_obj)
 
 
 	def __add_invalid_client(self, client_obj):
@@ -66,7 +67,8 @@ class client_data(object):
 			self.__invalid_clients[log_ident].add(client_obj)
 
 		else:
-			self.__invalid_clients[log_ident] = set(client_obj)
+			self.__invalid_clients[log_ident] = set()
+			self.__invalid_clients[log_ident].add(client_obj)
 
 	def delete_client(self, client_obj):
 		#delete the client from whatever dict he is in, if the client actually has a log ident
