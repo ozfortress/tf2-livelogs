@@ -370,7 +370,11 @@ var llWSClient = llWSClient || (function() {
                         var class_span = document.createElement("span"), name_link = document.createElement("a");
                         
                         class_span.id = sid + ".class";
-                        class_span.innerHTML = llWSClient.convert_player_classes(stats.class);
+                        if ("class" in stats) {
+                            class_span.innerHTML = llWSClient.convert_player_classes(stats.class);    
+                        } else {
+                            class_span.innerHTML = " ";
+                        }
 
                         name_link.id = sid + ".name";
                         name_link.href = "/player/" + sid;
@@ -378,16 +382,14 @@ var llWSClient = llWSClient || (function() {
 
                         $(name_link).addClass("player_community_id_link");
 
+                        name_class = "no_team_player";
+
                         if ("team" in stats) {
                             if (stats.team === "red") {
                                 name_class = "red_player";
                             } else if (stats.team === "blue") {
                                 name_class = "blue_player";
-                            } else {
-                                name_class = "no_team_player";
                             }
-                        } else {
-                            name_class = "no_team_player";
                         }
 
                         $(name_link).addClass(name_class);
@@ -592,9 +594,9 @@ var llWSClient = llWSClient || (function() {
 
         convert_player_classes : function(class_string) {
             if (typeof class_string === undefined) {
-                return " ":
+                return " ";
             }
-            
+
             var classes = class_string.split(','), rtn_string = " ", pclass;
 
             for (var i = 0; i < classes.length; i++) {
