@@ -160,7 +160,7 @@ class dbManager(object):
                         print "merged class: %s" % merged_stat[statcol]
 
                     elif statcol == "team":
-                        if player_stat[statcol] is not None:
+                        if player_data[statcol] is not None:
                             merged_stat[statcol] = player_data[statcol]
                     else:
                         #just add the values together
@@ -253,7 +253,10 @@ class dbManager(object):
             if key in old_table:
                 #find the difference
                 if isinstance(old_table[key], dict) and isinstance(new_table[key], dict): #keys are dicts, so we should do this recursively
-                    diff_dict[key] = self.calc_table_delta(old_table[key], new_table[key])
+                    tmp = self.calc_table_delta(old_table[key], new_table[key])
+                    
+                    if tmp:
+                        diff_dict[key] = tmp
                 
                 else:
                     #we get the difference by subtracting the old from the new
