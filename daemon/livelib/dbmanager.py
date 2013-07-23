@@ -97,11 +97,13 @@ class dbManager(object):
         self._new_chat_update = False
         self._new_score_update = False
 
-        self.updateThreadEvent = threading.Event()
+        self.update_timer = None
+
+        #self.updateThreadEvent = threading.Event()
         
-        self.updateThread = threading.Thread(target = self._updateThread, args=(self.updateThreadEvent,))
-        self.updateThread.daemon = True
-        self.updateThread.start()
+        #self.updateThread = threading.Thread(target = self._updateThread, args=(self.updateThreadEvent,))
+        #self.updateThread.daemon = True
+        #self.updateThread.start()
 
         self.log.info("DB Manager for log ident %s established", log_id)
     
@@ -151,7 +153,7 @@ class dbManager(object):
                     if statcol == "class":
                         merged_stat[statcol] = "%s,%s" % (merged_stat[statcol], player_stat[statcol])
                         print "merged class: %s" % merged_stat[statcol]
-                        
+
                     elif statcol == "team":
                         if player_stat[statcol] is not None:
                             merged_stat[statcol] = player_stat[statcol]
@@ -529,19 +531,17 @@ class dbManager(object):
             if self._stat_query_complete and self._score_query_complete and self._time_query_complete and self._chat_query_complete:
                 self._database_busy = False
 
-    def _updateThread(self, event):
+    def _update_timer(self):
         #this method is run in a thread, and acts as a timer. 
         #it is a daemon thread, and will exit cleanly with the main thread unlike a threading.Timer. 
         #it is also repeating, unlike a timer
         
-        while not event.is_set(): #support signaling via an event to end the thread
-            self.database_lock.acquire() #acquire the lock, so only this manager can run the queries right now
+        self.database_lock.acquire() #acquire the lock, so only this manager can run the queries right now
 
-            self.get_database_updates()
+        self.get_database_updates()
 
-            self.database_lock.release()
-            
-            event.wait(self.update_rate)
+        self.database_lock.release()
+        
 
     def cleanup(self):
         #the only cleanup we need to do is releasing the update thread and deleting the stat tables
@@ -549,15 +549,20 @@ class dbManager(object):
         del self._stat_table
         del self._team_stat_table
         
+        if self.update_timer:
+            self.update_timer.stop()
+
+        self.log.info("DB Manager cleaned up, and periodic callback stopped")
+
         #NOTE: WE DO ____NOT____ CLOSE THE DATABASE. IT IS THE MOMOKO POOL, AND IS RETAINED THROUGHOUT THE APPLICATION
-        if self.updateThread.isAlive():
-            self.updateThreadEvent.set() #trigger the threading event, terminating the update thread
-            
-            #the join loop is so that we wait for the last update to run before closing the thread. we don't want the thread to remain running while the dbManager object is closed, so we need to wait
-            while self.updateThread.isAlive(): 
-                self.updateThread.join(5)
-                
-            self.log.info("Database update thread successfully closed")
+        #if self.updateThread.isAlive():
+        #    self.updateThreadEvent.set() #trigger the threading event, terminating the update thread
+        #    
+        #    #the join loop is so that we wait for the last update to run before closing the thread. we don't want the thread to remain running while the dbManager object is closed, so we need to wait
+        #    while self.updateThread.isAlive(): 
+        #        self.updateThread.join(5)
+        #        
+        #    self.log.info("Database update thread successfully closed")
 
 
 

@@ -145,7 +145,7 @@ class llWSApplication(tornado.web.Application):
 
         if not log_ident:
             self.logger.debug("Client attempted adding without a log ident??")
-            client.close()
+            client_obj.close()
 
             return
 
@@ -158,7 +158,7 @@ class llWSApplication(tornado.web.Application):
             if add_res == True:
                 #log was not cached, but the client was added to a valid log ident. therefore, the log is still valid and should be re-added to the cache as such
                 self.add_to_cache(log_ident, True)
-                client.write_message("LOG_IS_LIVE")
+                client_obj.write_message("LOG_IS_LIVE")
 
             #else, the client was added to the invalid list which will be checked by the status threa
 
@@ -166,7 +166,7 @@ class llWSApplication(tornado.web.Application):
             #we know the log is valid, so we can check the live status
             if log_cache[2] == True:
                 self.clients.add_client(client_obj, cache_valid = True)
-                client.write_message("LOG_IS_LIVE")
+                client_obj.write_message("LOG_IS_LIVE")
 
             else:
                 #log is not live, disconnect the client
@@ -205,6 +205,9 @@ class llWSApplication(tornado.web.Application):
         if log_ident not in self.__db_managers:
             self.__db_managers[log_ident] = self.__get_dbmanager(log_ident, tstamp)
 
+            self.__db_managers[log_ident].update_timer = tornado.ioloop.PeriodicCallback(self.__db_managers[log_ident]._update_timer, self.__db_managers[log_ident].update_rate)
+            self.__db_managers[log_ident].update_timer.start()
+
 
     def __get_dbmanager(self, log_ident, tstamp):
         #creates a new db manager object and returns it
@@ -229,13 +232,6 @@ class llWSApplication(tornado.web.Application):
         self.clients.delete_ident(log_ident)
 
         self.update_cache(log_ident, False)
-
-    def _send_update_timer(self, event):
-        #this method is run in a thread, and acts as a timer
-        while not event.is_set():
-            self.__send_log_updates()
-
-            event.wait(self.update_rate)
 
     def __send_log_updates(self):
         valid_idents = self.clients.get_valid_idents()
@@ -287,12 +283,6 @@ class llWSApplication(tornado.web.Application):
     def _log_finished_callback(self, log_ident):
         self.logger.info("Log id %s is over. Closing connections", log_ident)
         self.__end_log(log_ident)
-
-    def _status_timer(self, event):
-        while not event.is_set():
-            self.__process_log_status()
-
-            event.wait(self.update_rate)
 
     def __process_log_status(self):
         self.logger.debug("Getting log status")
