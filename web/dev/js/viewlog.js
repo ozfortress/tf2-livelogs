@@ -370,7 +370,7 @@ var llWSClient = llWSClient || (function() {
                         var class_span = document.createElement("span"), name_link = document.createElement("a");
                         
                         class_span.id = sid + ".class";
-                        class_span.innerHTML = "[]";
+                        class_span.innerHTML = llWSClient.convert_player_classes(stats["class"]);
 
                         name_link.id = sid + ".name";
                         name_link.href = "/player/" + sid;
@@ -589,6 +589,22 @@ var llWSClient = llWSClient || (function() {
 
             table.fnAddTr(row_element, false);
         },
+
+        convert_player_classes : function(class_string) {
+            var classes = class_string.split(','), rtn_string = " ";
+
+            for (var i = 0; i < classes.length; i++) {
+                pclass = classes[i];
+
+                if (pclass === "UNKNOWN") {
+                    pclass = "noclass";
+                }
+
+                rtn_string += '<img src="/images/classes/' + pclass + '.png" style="max-width: 18px; max-height: 18px; height: auto; width: auto" alt="' . pclass . '"> ';
+            }
+
+            return rtn_string;
+        }
     };
 }());
 
