@@ -254,8 +254,10 @@ public OnPluginStart()
         {
             if (IsClientInGame(i) && IsClientAuthorized(i) && !IsFakeClient(i))
             {
-                GetClientAuthString(i, auth, sizeof(auth));
-                OnClientAuthorized(i, auth); //call to onclientauth, which will cache the auth for us
+                if (GetClientAuthString(i, auth, sizeof(auth)))
+                {
+                    OnClientAuthorized(i, auth); //call to onclientauth, which will cache the auth for us
+                }
             }
         }
         
@@ -507,7 +509,7 @@ public gameRestartEvent(Handle:event, const String:name[], bool:dontBroadcast)
             {
                 ServerCommand("log on"); //create new log file, enable console log output
             }
-            
+
             requestListenerAddress();
 
             is_logging = true;
@@ -535,7 +537,11 @@ public itemPickupEvent(Handle:event, const String:name[], bool:dontBroadcast)
 
         strcopy(auth_id, sizeof(auth_id), client_index_cache[clientidx]); //get the player ID from the cache if it's in there
 
-        GetClientName(clientidx, player_name, sizeof(player_name));
+        if (!GetClientName(clientidx, player_name, sizeof(player_name)))
+        {
+            return;
+        }
+
         GetTeamName(GetClientTeam(clientidx), team, sizeof(team));
         GetEventString(event, "item", item, sizeof(item));
 
