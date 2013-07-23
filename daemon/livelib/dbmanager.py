@@ -2,6 +2,8 @@ import threading
 import logging
 import time
 
+from pprint import pprint
+
 try:
     import psycopg2
 except ImportError:
@@ -130,6 +132,33 @@ class dbManager(object):
         #takes a stat dict with multiple entries per player and combines them on steamid
         merged_dict = {}
 
+        for cid in stat_dict:
+            curr_cid = cid
+
+            if cid not in merged_dict:
+                merged_dict[cid] = {}
+        
+            player_stat = stat_dict[cid] #cache the lower level of stat_dict for this iteration
+            merged_stat = merged_dict[cid] #stats for this player
+
+            for statcol in player_stat: #each cid in the stat_dict has a dict of stats, with table columns and values
+                if statcol not in merged_stat:
+                    #if the key doesn't exist in the merged dict, add it and assign the current value
+                    merged_stat[statcol] = player_stat[statcol]
+
+                else:
+                    #if the key DOES exist in the merged dict, we have to either add the value or append a string depending on the column
+                    if statcol == "class":
+                        merged_stat[statcol] += ",%s" % player_stat[statcol]
+                    elif statcol == "team":
+                        if player_stat[statcol] is not None:
+                            merged_stat[statcol] = player_stat[statcol]
+                    else:
+                        #just add the values together
+                        merged_stat[statcol] += player_stat[statcol]
+
+        pprint(merged_dict)
+
         return merged_dict
     
     def team_stat_tuple_to_dict(self, stat_tuple):
@@ -146,11 +175,6 @@ class dbManager(object):
 
     def full_update(self):
         #constructs and returns a dictionary for a complete update to the client
-        
-        #_stat_complete_table has keys consisting of player's steamids, corresponding to their stats as a tuple in the form:
-        #NAME:K:D:A:P:HD:HR:UU:UL:HS:BS:DMG:APsm:APmed:APlrg:MKsm:MKmed:MKlrg:CAP:CAPB:DOM:TDOM:REV:SUICD:BLD_DEST:EXTNG:KILL_STRK
-        #we need to convert this to a dictionary, so it can be encoded as json by write_message, and then easily decoded by the client
-        
         update_dict = {}
 
         if self._stat_table:
@@ -293,7 +317,8 @@ class dbManager(object):
             self.db.execute(team_stat_query, callback = self._team_stat_update_callback)
             
         except:
-            self.log.exception("Unknown exception occurred during database update")
+            self.log.exception("Exception occurred during database update")
+
         finally:
             self._database_busy = False
         
@@ -317,6 +342,8 @@ class dbManager(object):
                 cid = row[0] #player's steamid as a community id
                 new_stat[cid] = self.stat_tuple_to_dict(row) #store stat data under steamid in dict  
             
+            new_stat = self.merge_stat_dict(new_stat) #merge here, so all later tables will automatically use the merged dict
+
             if not self._stat_table: #if this is the first callback, make the complete table this dict
                 self._stat_table = new_stat
 

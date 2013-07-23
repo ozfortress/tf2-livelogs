@@ -277,7 +277,7 @@ class llWSApplication(tornado.web.Application):
 
                     else:
                         self.logger.debug("Got update dict for %s: %s", log_id, delta_update_dict)
-                        
+
                         if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
                             self.logger.debug("Sending update to client %s", client.cip)
                             client.write_message(delta_update_dict)
