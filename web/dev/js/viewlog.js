@@ -370,7 +370,7 @@ var llWSClient = llWSClient || (function() {
                         var class_span = document.createElement("span"), name_link = document.createElement("a");
                         
                         class_span.id = sid + ".class";
-                        class_span.innerHTML = llWSClient.convert_player_classes(stats["class"]);
+                        class_span.innerHTML = llWSClient.convert_player_classes(stats.class);
 
                         name_link.id = sid + ".name";
                         name_link.href = "/player/" + sid;
@@ -591,7 +591,11 @@ var llWSClient = llWSClient || (function() {
         },
 
         convert_player_classes : function(class_string) {
-            var classes = class_string.split(','), rtn_string = " ";
+            if (typeof class_string === undefined) {
+                return " ":
+            }
+            
+            var classes = class_string.split(','), rtn_string = " ", pclass;
 
             for (var i = 0; i < classes.length; i++) {
                 pclass = classes[i];
