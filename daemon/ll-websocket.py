@@ -259,7 +259,7 @@ class llWSApplication(tornado.web.Application):
                     self.logger.error("log %s has clients and is considered valid, but has no db manager?")
                     continue
 
-                delta_update_dict = {}
+                delta_update_dict = log_manager.compressed_update()
                 full_update_dict = {}
 
                 for client in self.clients.get_vclients(log_id):
