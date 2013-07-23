@@ -274,7 +274,7 @@ var llWSClient = llWSClient || (function() {
                 var element, element_id, special_element_tags = ["kpd", "dpd", "dpr", "dpm"], i, tmp, num_rounds, deaths, damage, kills, tmp_result;
                 num_rounds = Number(document.getElementById("red_score_value").innerHTML) + Number(document.getElementById("blue_score_value").innerHTML);
                 
-                var column_ids = ["kills", "deaths", "assists", "captures", "captures_blocked", "headshots", "points", "damage_dealt", "damage_taken",
+                var column_ids = ["name", "kills", "deaths", "assists", "captures", "captures_blocked", "headshots", "points", "damage_dealt", "damage_taken",
                     "healing_received", "dominations", "kpd", "dpd", "dpr", "dpm"];
 
                 $.each(stat_obj, function(sid, stats) {
@@ -362,10 +362,10 @@ var llWSClient = llWSClient || (function() {
                         column.id = sid + ".name";
                         column.innerHTML = sid;
 
-                        for (i = 0; i < column_ids.length; i++) {
+                        for (i = 1; i < column_ids.length; i++) {
                             tmp = column_ids[i];
 
-                            if (stats[tmp] !== undefined) {
+                            if (tmp in stats) {
                                 tmp_result = Number(stats[tmp]);
                             } else {
                                 tmp_result = 0;
@@ -397,7 +397,7 @@ var llWSClient = llWSClient || (function() {
             try {
                 var element, element_id, special_element_tags = ["dpm"], i, tmp, num_rounds, deaths, damage, kills, tmp_result;
 
-                var column_ids = ["team_kills", "team_deaths", "team_healing_done", "team_damage_dealt", "team_damage_taken", "team_dpm"];
+                var column_ids = ["team_name", "team_kills", "team_deaths", "team_healing_done", "team_damage_dealt", "team_damage_taken", "team_dpm"];
 
                 $.each(stat_obj, function(team, team_stat) {
                     if (document.getElementById(team + ".team")) {
@@ -456,10 +456,10 @@ var llWSClient = llWSClient || (function() {
                         column.id = team + ".team";
                         column.innerHTML = team.toUpperCase();
 
-                        for (i = 0; i < column_ids.length; i++) {
+                        for (i = 1; i < column_ids.length; i++) {
                             tmp = column_ids[i];
 
-                            if (team_stat[tmp] !== undefined) {
+                            if (tmp in team_stat) {
                                 tmp_result = Number(team_stat[tmp]);
                             } else {
                                 tmp_result = 0;
