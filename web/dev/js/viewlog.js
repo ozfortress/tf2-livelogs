@@ -271,6 +271,9 @@ var llWSClient = llWSClient || (function() {
                 var element, element_id, special_element_tags = ["kpd", "dpd", "dpr", "dpm"], i, tmp, num_rounds, deaths, damage, kills, tmp_result;
                 num_rounds = Number(document.getElementById("red_score_value").innerHTML) + Number(document.getElementById("blue_score_value").innerHTML);
                 
+                var column_ids = ["name", "kills", "deaths", "assists", "captures", "captures_blocked", "headshots", "points", "damage_dealt", "damage_taken",
+                    "healing_received", "dominations", "kpd", "dpd", "dpr", "dpm"];
+
                 $.each(stat_obj, function(sid, stats) {
                     //check if player exists on page already
                     if (document.getElementById(sid + ".name")) {
@@ -343,6 +346,29 @@ var llWSClient = llWSClient || (function() {
                     } else {
                         //this means the player needs to be added to the table, how do?
                         console.log("New player to be added. SID: %s", sid);
+                        //create new row using javascript, populate it with appropriate ids, then add it to the table
+
+                        var row = document.createElement("tr"); //create row
+
+                        /* 
+                        now loop over all column ids, so we have data in the right order
+                        if a column has no data attached to it, just set it to 0
+                        */
+                        for (i = 0; i < column_ids.length; i++) {
+                            tmp = column_ids[i];
+
+                            if (team_stat[tmp] !== undefined) {
+                                tmp_result = Number(team_stat[tmp]);
+                            } else {
+                                tmp_result = 0;
+                            }
+
+                            column = row.insertCell(i);
+                            column.id = team + "." + tmp;
+                            column.innerHTML = tmp_result;
+                        }
+
+                        llWSClient.addTableRow("#team_stats", row);
                     }
                 });
 
@@ -359,45 +385,74 @@ var llWSClient = llWSClient || (function() {
             try {
                 var element, element_id, special_element_tags = ["dpm"], i, tmp, num_rounds, deaths, damage, kills, tmp_result;
 
+                var column_ids = ["team", "team_kills", "team_deaths", "team_healing_done", "team_damage_dealt", "team_damage_taken", "team_dpm"];
+
                 $.each(stat_obj, function(team, team_stat) {
+                    if (document.getElementById(team + ".team")) {
+                        $.each(team_stat, function(stat, value) {
+                            element_id = team + "." + stat;
 
-                    $.each(team_stat, function(stat, value) {
-                        element_id = team + "." + stat;
+                            console.log("Team: %s, stat: %s, value: %s, element_id: %s", team, stat, value, element_id);
 
-                        element = llWSClient.get_element_cache(team, element_id);
+                            element = llWSClient.get_element_cache(team, element_id);
 
-                        if (element) {
-                            if (HAD_FIRST_UPDATE) {
-                                /* we've had the first update, so we want to increment values here */
-                                llWSClient.updateTableCell("#team_stats", element, Number(element.innerHTML) + Number(value));
+                            if (element) {
+                                if (HAD_FIRST_UPDATE) {
+                                    /* we've had the first update, so we want to increment values here */
+                                    llWSClient.updateTableCell("#team_stats", element, Number(element.innerHTML) + Number(value));
+                                }
+                                else {
+                                    llWSClient.updateTableCell("#team_stats", element, Number(value));
+                                }
                             }
-                            else {
-                                llWSClient.updateTableCell("#team_stats", element, Number(value));
-                            }
-                        }
-                    });
+                        });
 
-                    for (i = 0; i < special_element_tags.length; i++) {
-                        tmp = special_element_tags[i];
-                        element_id = team + "." + tmp;
+                        for (i = 0; i < special_element_tags.length; i++) {
+                            tmp = special_element_tags[i];
+                            element_id = team + "." + tmp;
 
-                        element = llWSClient.get_element_cache(team, element_id);
+                            element = llWSClient.get_element_cache(team, element_id);
 
-                        var damage_element = llWSClient.get_element_cache(team, team + ".team_damage_dealt");
+                            var damage_element = llWSClient.get_element_cache(team, team + ".team_damage_dealt");
 
-                        if (!damage_element) {
-                            continue;
-                        }
-
-                        damage = Number(damage_element.innerHTML);
-
-                        if (element) {
-                            if (tmp === "dpm") {
-                                tmp_result = Math.round(damage / (time_elapsed_sec/60 || 1) * 100) / 100;
+                            if (!damage_element) {
+                                continue;
                             }
 
-                            llWSClient.updateTableCell("#team_stats", element, tmp_result);
+                            damage = Number(damage_element.innerHTML);
+
+                            if (element) {
+                                if (tmp === "dpm") {
+                                    tmp_result = Math.round(damage / (time_elapsed_sec/60 || 1) * 100) / 100;
+                                }
+
+                                llWSClient.updateTableCell("#team_stats", element, tmp_result);
+                            }
                         }
+                    } else {
+                        //create new row using javascript, populate it with appropriate ids, then add it to the table
+
+                        var row = document.createElement("tr"); //create row
+
+                        /* 
+                        now loop over all column ids, so we have data in the right order
+                        if a column has no data attached to it, just set it to 0
+                        */
+                        for (i = 0; i < column_ids.length; i++) {
+                            tmp = column_ids[i];
+
+                            if (team_stat[tmp] !== undefined) {
+                                tmp_result = Number(team_stat[tmp]);
+                            } else {
+                                tmp_result = 0;
+                            }
+
+                            column = row.insertCell(i);
+                            column.id = team + "." + tmp;
+                            column.innerHTML = tmp_result;
+                        }
+
+                        llWSClient.addTableRow("#team_stats", row);
                     }
                 });
 
@@ -473,11 +528,10 @@ var llWSClient = llWSClient || (function() {
             return element;
         },
 
-        addStatRow : function() {
-            $("#general_stats").dataTable().fnAddData([
-                    "row1",
-                    "row2"
-                ]);
+        addTableRow : function(table_id, row_element) {
+            var table = $(table_id).dataTable();
+
+            table.fnAddTr(row_element, true);
         },
     };
 }());
