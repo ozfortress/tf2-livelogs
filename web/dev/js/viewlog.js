@@ -378,10 +378,10 @@ var llWSClient = llWSClient || (function() {
 
                         $(name_link).addClass("player_community_id_link");
 
-                        if (team in stats) {
-                            if (team === "red") {
+                        if ("team" in stats) {
+                            if (stats.team === "red") {
                                 name_class = "red_player";
-                            } else if (team === "blue") {
+                            } else if (stats.team === "blue") {
                                 name_class = "blue_player";
                             } else {
                                 name_class = "no_team_player";
