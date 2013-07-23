@@ -91,23 +91,15 @@ var llWSClient = llWSClient || (function() {
         
         clientConnect : function(ws_uri) {
             try {
-                if (!window.WebSocket) {
-                    if (window.MozWebSocket) {
-                        client = new MozWebSocket(ws_uri);
-                        client.onmessage = function(msg) { llWSClient.onMessage(msg); };
-                        client.onopen = function(event) { llWSClient.onOpen(event); };
-                        client.onclose = function(event) { llWSClient.onClose(event); };
-                        client.onerror = function(event) { llWSClient.onError(event); };
-                    } else {
-                        console.log("Websockets not supported");
-                        return;
-                    }
-                } else {
+                if (window.WebSocket) {
                     client = new WebSocket(ws_uri);
                     client.onmessage = function(msg) { llWSClient.onMessage(msg); };
                     client.onopen = function(event) { llWSClient.onOpen(event); };
                     client.onclose = function(event) { llWSClient.onClose(event); };
                     client.onerror = function(event) { llWSClient.onError(event); };
+                }
+                else {
+                    console.log("Websockets not supported");
                 }
             }
             catch (error) {
@@ -117,7 +109,7 @@ var llWSClient = llWSClient || (function() {
         },
         
         onOpen : function(event) {
-            console.log("Client websock opened. Sending connect message");
+            console.log("Client websock opened. Sending connect message. Event: %s", event.data);
             client.send(JSON.stringify(connect_msg));
         },
         
@@ -159,54 +151,44 @@ var llWSClient = llWSClient || (function() {
 
             } else {
                 //all other messages are json encoded packets
+
+                try {
+                    update_json = jQuery.parseJSON(msg_data);
+                }
+                catch (exception) {
+                    console.log("Error trying to decode or parse json. Message: %s, ERROR: %s", msg_data, exception);
+                    return;
+                }
+                
+                //update_json may contain any of the following structures:
+                //first structure: [{"time": "unix timestamp"}] - the timestamp will be the time between the start and current log time
+                //second structure: [{"score": [{"red": val}, {"blue": val}]}]
+                //third structure: [{"chat": [{"name": {{"message": msg}, {"msg_type": team/all}, {"team": team colour}}}, repeat]}]
+                //fourth structure: a stat object: [{"stat" : [{"sid": [{"type": val}, ...], {"sid": .....}, repeat]}]
+                //fifth: team stats (red/blue): [{"team_stat": {"team": [{"stat": val}, ...], {"team": [{ "stat": val, ...}, ...]}]
+
+                if (update_json.gametime !== undefined) {
+                    this.parseTimeUpdate(update_json.gametime);
+                }
+
+                if (update_json.score !== undefined) {
+                    this.parseScoreUpdate(update_json.score);
+                }
+
+                if (update_json.chat !== undefined) {
+                    this.parseChatUpdate(update_json.chat);
+                }
+
+                if (update_json.stat !== undefined) {
+                    this.parseStatUpdate(update_json.stat);
+                }
+
+                if (update_json.team_stat !== undefined) {
+                    this.parseTeamStatUpdate(update_json.team_stat);
+                }
+
                 if (!HAD_FIRST_UPDATE) {
-                    //the first message sent is a full _STAT_ and _SCORE_ update, so the client and server are in sync
-                    try {
-                        update_json = jQuery.parseJSON(msg_data);
-                    }
-                    catch (exception) {
-                        console.log("Error trying to decode or parse json. Message: %s, ERROR: %s", msg_data, exception);
-                        return;
-                    }
-                    if (update_json.score !== undefined) {
-                        this.parseScoreUpdate(update_json.score);
-                    }
-                    if (update_json.stat !== undefined) {
-                        this.parseStatUpdate(update_json.stat);
-                    }
-                        
                     HAD_FIRST_UPDATE = true;
-                    
-                } else {
-                    //every subsequent packet will contain more than just stat data
-                    try {
-                        update_json = jQuery.parseJSON(msg_data);
-                    }
-                    catch (exception) {
-                        console.log("Error trying to decode or parse json. Message: %s, ERROR: %s", msg_data, exception);
-                        return;
-                    }
-                    
-                    //update_json may contain any of the following structures:
-                    //first structure: [{"time": "unix timestamp"}] - the timestamp will be the time between the start and current log time
-                    //second structure: [{"score": [{"red": val}, {"blue": val}]}]
-                    //third structure: [{"chat": [{"name": {{"message": msg}, {"msg_type": team/all}, {"team": team colour}}}, repeat]}]
-                    //and finally, a stat object: [{"stat" : [{"sid": [{"type": val}, ...], {"sid": .....}, repeat]}]
-
-                    if (update_json.gametime !== undefined) {
-                        this.parseTimeUpdate(update_json.gametime);
-
-                    }
-                    if (update_json.score !== undefined) {
-                        this.parseScoreUpdate(update_json.score);
-
-                    }
-                    if (update_json.chat !== undefined) {
-                        this.parseChatUpdate(update_json.chat);
-                    }
-                    if (update_json.stat !== undefined) {
-                        this.parseStatUpdate(update_json.stat);
-                    }
                 }
             }
         },
@@ -259,7 +241,7 @@ var llWSClient = llWSClient || (function() {
         parseChatUpdate : function(chat_obj) {
             var chat_name, chat_team, chat_type, chat_message, team_class;
             //underneath "chat" is the player names and the message
-            $.each(chat_obj, function(sid, chat_data) {
+            $.each(chat_obj, function(chat_id, chat_data) {
                 //chat_data will be all the message shit
                 chat_name = chat_data.name;
                 chat_team = chat_data.team.toLowerCase();
@@ -303,16 +285,15 @@ var llWSClient = llWSClient || (function() {
                                 //console.log("Got element %s, VALUE: %s", element, element.innerHTML);
                                 if (HAD_FIRST_UPDATE) {                    
                                     if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost") {
-                                        element.innerHTML = Number(element.innerHTML) + Number(value);
-                                        llWSClient.highlight(element);
+                                        llWSClient.updateTableCell("#medic_stats", element, Number(element.innerHTML) + Number(value));
                                     } else {
-                                        llWSClient.updateStatCell(element, Number(element.innerHTML) + Number(value));
+                                        llWSClient.updateTableCell("#general_stats", element, Number(element.innerHTML) + Number(value));
                                     }
                                 } else {
                                     if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost") {
-                                        element.innerHTML = Number(value);
+                                        llWSClient.updateTableCell("#medic_stats", element, Number(value));
                                     } else {
-                                        llWSClient.updateStatCell(element, Number(value));
+                                        llWSClient.updateTableCell("#general_stats", element, Number(value));
                                     }
                                 }
                                 
@@ -320,7 +301,7 @@ var llWSClient = llWSClient || (function() {
                             }
                         });
                         
-                        /*now that we've looped through all the stats, we need to edit the combo columns like kpd, dpd and dpr*/
+                        /* now that we've looped through all the stats, we need to edit the combo columns like kpd, dpd and dpr */
                         for (i = 0; i < special_element_tags.length; i++) {
                             tmp = special_element_tags[i];
                             element_id = sid + "." + tmp;
@@ -356,9 +337,7 @@ var llWSClient = llWSClient || (function() {
                                     continue;
                                 }
 
-                                if (Number(element.innerHTML) !== tmp_result) {
-                                    llWSClient.updateStatCell(element, tmp_result);
-                                }
+                                llWSClient.updateTableCell("#general_stats", element, tmp_result);
                             }
                         }
                     } else {
@@ -368,10 +347,64 @@ var llWSClient = llWSClient || (function() {
                 });
 
                 //now we re-draw the table, so sorting is updated with new values
-                setTimeout(llWSClient.redraw_table, 3250);
+                setTimeout(function() { llWSClient.redraw_table("#general_stats"); }, 3250);
+                setTimeout(function() { llWSClient.redraw_table("#medic_stats"); }, 3250);
             }
             catch (exception) {
                 console.log("Exception trying to parse stat update. Error: %s", exception);
+            }
+        },
+
+        parseTeamStatUpdate : function(stat_obj) {
+            try {
+                var element, element_id, special_element_tags = ["dpm"], i, tmp, num_rounds, deaths, damage, kills, tmp_result;
+
+                $.each(stat_obj, function(team, team_stat) {
+
+                    $.each(team_stat, function(stat, value) {
+                        element_id = team + "." + stat;
+
+                        element = llWSClient.get_element_cache(team, element_id);
+
+                        if (element) {
+                            if (HAD_FIRST_UPDATE) {
+                                /* we've had the first update, so we want to increment values here */
+                                llWSClient.updateTableCell("#team_stats", element, Number(element.innerHTML) + Number(value));
+                            }
+                            else {
+                                llWSClient.updateTableCell("#team_stats", element, Number(value));
+                            }
+                        }
+                    });
+
+                    for (i = 0; i < special_element_tags.length; i++) {
+                        tmp = special_element_tags[i];
+                        element_id = team + "." + tmp;
+
+                        element = llWSClient.get_element_cache(team, element_id);
+
+                        var damage_element = llWSClient.get_element_cache(team, team + ".team_damage_dealt");
+
+                        if (!damage_element) {
+                            continue;
+                        }
+
+                        damage = Number(damage_element.innerHTML);
+
+                        if (element) {
+                            if (tmp === "dpm") {
+                                tmp_result = Math.round(damage / (time_elapsed_sec/60 || 1) * 100) / 100;
+                            }
+
+                            llWSClient.updateTableCell("#team_stats", element, tmp_result);
+                        }
+                    }
+                });
+
+                setTimeout(function() { llWSClient.redraw_table("#team_stats"); }, 3250);
+            }
+            catch (exception) {
+                console.log("Exception trying to parse team stat update: %s", exception);
             }
         },
 
@@ -395,8 +428,13 @@ var llWSClient = llWSClient || (function() {
             }
         },
 
-        updateStatCell : function(cell, new_value) {
-            var table = $("#general_stats").dataTable();
+        updateTableCell : function(table_id, cell, new_value) {
+            if (Number(cell.innerHTML) === new_value) {
+                //don't update table cell if the values are the same
+                return;
+            }
+
+            var table = $(table_id).dataTable();
 
             //cell_pos = [row index, col index (visible), col index (all)]
             var cell_pos = table.fnGetPosition(cell);
@@ -408,8 +446,8 @@ var llWSClient = llWSClient || (function() {
             this.highlight(cell);
         },
 
-        redraw_table : function() {
-            var table = $("#general_stats").dataTable();
+        redraw_table : function(table_id) {
+            var table = $(table_id).dataTable();
             table.fnDraw(true); //re-draws the table, resorting with updated cell values
                                 //this should help significantly with performance issues in redrawing the table for every stat that has been changed
         },
