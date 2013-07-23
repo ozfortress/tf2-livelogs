@@ -474,27 +474,29 @@
         <div class="stat_table_container stat_table_container_small">
             <table class="table table-bordered table-hover ll_table" id="team_stats">
                 <thead>
-                    <th class="stat_summary_title_bar">
-                        <abbr title="The team">Team</abbr>
-                    </th>
-                    <th class="stat_summary_title_bar">
-                        <abbr title="Total team kills">K</abbr>
-                    </th>
-                    <th class="stat_summary_title_bar">
-                        <abbr title="Total team deaths">D</abbr>
-                    </th>
-                    <th class="stat_summary_title_bar">
-                        <abbr title="Total team healing done">HD</abbr>
-                    </th>
-                    <th class="stat_summary_title_bar">
-                        <abbr title="Total team damage dealt">DMG</abbr>
-                    </th>
-                    <th class="stat_summary_title_bar">
-                        <abbr title="Total team damage taken">DT</abbr>
-                    </th>
-                    <th class="stat_summary_title_bar">
-                        <abbr title="Total team damage per minute">DPM</abbr>
-                    </th>
+                    <tr class="stat_summary_title_bar">
+                        <th class="stat_summary_col_title">
+                            <abbr title="The team">Team</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Total team kills">K</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Total team deaths">D</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Total team healing done">HD</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Total team damage dealt">DMG</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Total team damage taken">DT</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Total team damage per minute">DPM</abbr>
+                        </th>
+                    </tr>
                 </thead>
                 <tbody>
                 <?php
@@ -504,6 +506,7 @@
 
                         $team_class = sprintf("%s_score_tag %s", $tstat["team"], get_player_team_class(strtolower($tstat["team"])));
                 ?>
+                
                     <tr>
                         <td id="<?=$tstat["team"] . ".team"?>" class="<?=$team_class?>"><?=strtoupper($tstat["team"])?></td>
                         <td id="<?=$tstat["team"] . ".team_kills"?>"><?=$tstat["team_kills"]?></td>
