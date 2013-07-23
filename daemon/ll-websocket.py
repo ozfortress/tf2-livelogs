@@ -101,7 +101,7 @@ class llWSApplication(tornado.web.Application):
         list_copy = list(self.log_cache)
 
         for log_cache in list_copy:
-            time_diff = time_ctime - log_cache[0]
+            time_diff = time_ctime - int(log_cache[0])
 
             if log_cache[2] == False:
                 expiry_threshold = 600
@@ -205,7 +205,7 @@ class llWSApplication(tornado.web.Application):
         if log_ident not in self.__db_managers:
             self.__db_managers[log_ident] = self.__get_dbmanager(log_ident, tstamp)
 
-            self.__db_managers[log_ident].update_timer = tornado.ioloop.PeriodicCallback(self.__db_managers[log_ident]._update_timer, self.__db_managers[log_ident].update_rate)
+            self.__db_managers[log_ident].update_timer = tornado.ioloop.PeriodicCallback(self.__db_managers[log_ident]._update_timer, self.__db_managers[log_ident].update_rate * 1000)
             self.__db_managers[log_ident].update_timer.start()
 
 
