@@ -466,11 +466,6 @@
             </div>
         </div>
 
-        <?php
-        if ($team_stats_result && pg_num_rows($team_stats_result) > 0)
-        {
-        ?>
-
         <div class="stat_table_container stat_table_container_small">
             <table class="table table-bordered table-hover ll_table" id="team_stats">
                 <thead>
@@ -506,7 +501,7 @@
 
                         $team_class = sprintf("%s_score_tag %s", $tstat["team"], get_player_team_class(strtolower($tstat["team"])));
                 ?>
-                
+
                     <tr>
                         <td id="<?=$tstat["team"] . ".team"?>" class="<?=$team_class?>"><?=strtoupper($tstat["team"])?></td>
                         <td id="<?=$tstat["team"] . ".team_kills"?>"><?=$tstat["team_kills"]?></td>
@@ -525,7 +520,6 @@
             </table>
         </div>
         <?php
-        }
 
         if (($log_live) && ($log_details["webtv_port"]))
         {
