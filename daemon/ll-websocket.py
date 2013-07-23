@@ -165,7 +165,7 @@ class llWSApplication(tornado.web.Application):
         else:
             #we know the log is valid, so we can check the live status
             if log_cache[2] == True:
-                self.__add_valid_client(client_obj, cache_valid = True)
+                self.clients.add_client(client_obj, cache_valid = True)
                 client.write_message("LOG_IS_LIVE")
 
             else:

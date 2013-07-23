@@ -149,7 +149,8 @@ class dbManager(object):
                 else:
                     #if the key DOES exist in the merged dict, we have to either add the value or append a string depending on the column
                     if statcol == "class":
-                        merged_stat[statcol] += ",%s" % player_stat[statcol]
+                        merged_stat[statcol] = "%s,%s" % (merged_stat[statcol], player_stat[statcol])
+
                     elif statcol == "team":
                         if player_stat[statcol] is not None:
                             merged_stat[statcol] = player_stat[statcol]
