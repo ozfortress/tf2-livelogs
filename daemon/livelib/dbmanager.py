@@ -120,9 +120,12 @@ class dbManager(object):
         stat_dict = {}
         
         for idx, val in enumerate(stat_tuple):
-            if idx >= 1: #ignore the steamid, which is index 0
+            col = self.stat_idx_to_name(idx)
+            if col == "steamid":
+                stat_dict[col] = val
+
+            else:    
                 if val > 0: #ignore zero values when sending updates
-                    col = self.stat_idx_to_name(idx)
                     if col == "points": #catch the points, which are auto converted Decimal, and aren't handled by tornado's json encoder
                         stat_dict[col] = float(val)
                     else:
@@ -130,38 +133,40 @@ class dbManager(object):
                     
         return stat_dict
 
-    def merge_stat_dict(self, stat_dict):
-        #takes a stat dict with multiple entries per player and combines them on steamid
+    def merge_stat_list(self, player_list):
+        #takes a list of dicts with multiple dicts per player and combines them on steamid
         merged_dict = {}
 
-        for cid in stat_dict:
-            curr_cid = cid
+        for player_data in player_list:
+            cid = player_data["steamid"]
 
             if cid not in merged_dict:
                 merged_dict[cid] = {}
         
-            player_stat = stat_dict[cid] #cache the lower level of stat_dict for this iteration
             merged_stat = merged_dict[cid] #stats for this player
 
-            for statcol in player_stat: #each cid in the stat_dict has a dict of stats, with table columns and values
+            for statcol in player_data: #each cid in the stat_dict has a dict of stats, with table columns and values
+                if statcol == "steamid":
+                    continue #skip over the steamid key
+
                 if statcol not in merged_stat:
                     #if the key doesn't exist in the merged dict, add it and assign the current value
-                    merged_stat[statcol] = player_stat[statcol]
+                    merged_stat[statcol] = player_data[statcol]
 
                 else:
                     #if the key DOES exist in the merged dict, we have to either add the value or append a string depending on the column
                     if statcol == "class":
-                        merged_stat[statcol] = "%s,%s" % (merged_stat[statcol], player_stat[statcol])
+                        merged_stat[statcol] = "%s,%s" % (merged_stat[statcol], player_data[statcol])
                         print "merged class: %s" % merged_stat[statcol]
 
                     elif statcol == "team":
                         if player_stat[statcol] is not None:
-                            merged_stat[statcol] = player_stat[statcol]
+                            merged_stat[statcol] = player_data[statcol]
                     else:
                         #just add the values together
-                        merged_stat[statcol] += player_stat[statcol]
+                        merged_stat[statcol] += player_data[statcol]
 
-        #pprint(merged_dict)
+        pprint(merged_dict)
 
         return merged_dict
     
@@ -260,7 +265,10 @@ class dbManager(object):
                             diff_dict[key] = new_table[key]
 
                     else:
-                        diff_dict[key] = new_table[key] - old_table[key]
+                        diff = new_table[key] - old_table[key]
+
+                        if diff > 0: #ignore 0 values
+                            diff_dict[key] = diff
                 
             else: #key is in new table, but not old, so it's new and doesnt have a difference to be found
                 diff_dict[key] = new_table[key]
@@ -340,13 +348,14 @@ class dbManager(object):
             new_stat = {}
             
             #iterate over the cursor, and convert it to a sensible dictionary
+            temp_list = []
             for row in cursor:
                 #each row is a player's data as a tuple in the format of:
                 #SID:K:D:A:P:HD:HR:UU:UL: --- ETC
-                cid = row[0] #player's steamid as a community id
-                new_stat[cid] = self.stat_tuple_to_dict(row) #store stat data under steamid in dict  
+                
+                temp_list.append(self.stat_tuple_to_dict(row)) #convert stat tuple to a dict that we then iterate over  
             
-            new_stat = self.merge_stat_dict(new_stat) #merge here, so all later tables will automatically use the merged dict
+            new_stat = self.merge_stat_list(temp_list) #merge here, so all later tables will automatically use the merged dict
 
             if not self._stat_table: #if this is the first callback, make the complete table this dict
                 self._stat_table = new_stat
