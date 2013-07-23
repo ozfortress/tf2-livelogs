@@ -371,7 +371,6 @@
     </div>
     <?php include('static/footer.html'); ?>
 
-    <script src="/js/datatables_types.js" type="text/javascript"></script>
     <script src="/js/playerview.js" type="text/javascript"></script>
     <script type="text/javascript">
         /*

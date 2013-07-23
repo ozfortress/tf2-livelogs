@@ -149,6 +149,9 @@ var llWSClient = llWSClient || (function() {
 
                 element.innerHTML = "Complete"; 
 
+                /* we expect one last full update packet after this */
+                HAD_FIRST_UPDATE = false; // so the parsing will set instead of increment
+
             } else {
                 //all other messages are json encoded packets
 
@@ -271,7 +274,7 @@ var llWSClient = llWSClient || (function() {
                 var element, element_id, special_element_tags = ["kpd", "dpd", "dpr", "dpm"], i, tmp, num_rounds, deaths, damage, kills, tmp_result;
                 num_rounds = Number(document.getElementById("red_score_value").innerHTML) + Number(document.getElementById("blue_score_value").innerHTML);
                 
-                var column_ids = ["name", "kills", "deaths", "assists", "captures", "captures_blocked", "headshots", "points", "damage_dealt", "damage_taken",
+                var column_ids = ["kills", "deaths", "assists", "captures", "captures_blocked", "headshots", "points", "damage_dealt", "damage_taken",
                     "healing_received", "dominations", "kpd", "dpd", "dpr", "dpm"];
 
                 $.each(stat_obj, function(sid, stats) {
@@ -354,21 +357,30 @@ var llWSClient = llWSClient || (function() {
                         now loop over all column ids, so we have data in the right order
                         if a column has no data attached to it, just set it to 0
                         */
+
+                        var column = row.insertCell(0);
+                        column.id = sid + ".name";
+                        column.innerHTML = sid;
+
                         for (i = 0; i < column_ids.length; i++) {
                             tmp = column_ids[i];
 
-                            if (team_stat[tmp] !== undefined) {
-                                tmp_result = Number(team_stat[tmp]);
+                            if (stats[tmp] !== undefined) {
+                                tmp_result = Number(stats[tmp]);
                             } else {
                                 tmp_result = 0;
                             }
 
                             column = row.insertCell(i);
-                            column.id = team + "." + tmp;
+                            column.id = sid + "." + tmp;
                             column.innerHTML = tmp_result;
+
+                            console.log("new column to be added in new row, id: %s, value: %s", column.id, tmp_result);
                         }
 
-                        llWSClient.addTableRow("#team_stats", row);
+                        console.log(row);
+
+                        llWSClient.addTableRow("#general_stats", row);
                     }
                 });
 
@@ -385,7 +397,7 @@ var llWSClient = llWSClient || (function() {
             try {
                 var element, element_id, special_element_tags = ["dpm"], i, tmp, num_rounds, deaths, damage, kills, tmp_result;
 
-                var column_ids = ["team", "team_kills", "team_deaths", "team_healing_done", "team_damage_dealt", "team_damage_taken", "team_dpm"];
+                var column_ids = ["team_kills", "team_deaths", "team_healing_done", "team_damage_dealt", "team_damage_taken", "team_dpm"];
 
                 $.each(stat_obj, function(team, team_stat) {
                     if (document.getElementById(team + ".team")) {
@@ -438,6 +450,12 @@ var llWSClient = llWSClient || (function() {
                         now loop over all column ids, so we have data in the right order
                         if a column has no data attached to it, just set it to 0
                         */
+
+                        //first col is team name
+                        var column = row.insertCell(0);
+                        column.id = team + ".team";
+                        column.innerHTML = team.toUpperCase();
+
                         for (i = 0; i < column_ids.length; i++) {
                             tmp = column_ids[i];
 
@@ -450,7 +468,11 @@ var llWSClient = llWSClient || (function() {
                             column = row.insertCell(i);
                             column.id = team + "." + tmp;
                             column.innerHTML = tmp_result;
+
+                            console.log("new column to be added in new row, id: %s, value: %s", column.id, tmp_result);
                         }
+
+                        console.log(row);
 
                         llWSClient.addTableRow("#team_stats", row);
                     }
@@ -531,7 +553,7 @@ var llWSClient = llWSClient || (function() {
         addTableRow : function(table_id, row_element) {
             var table = $(table_id).dataTable();
 
-            table.fnAddTr(row_element, true);
+            table.fnAddTr(row_element, false);
         },
     };
 }());

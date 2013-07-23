@@ -95,7 +95,6 @@
     </div>
     <?php include('static/footer.html'); ?>
 
-    <script src="/js/datatables_types.js" type="text/javascript"></script>
     <script src="/js/logsearch.js" type="text/javascript"></script>
     <script type="text/javascript">
         log_search.init("<?=$filter?>", <?=$num_logs?>);
