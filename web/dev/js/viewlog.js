@@ -600,7 +600,7 @@ var llWSClient = llWSClient || (function() {
                     pclass = "noclass";
                 }
 
-                rtn_string += '<img src="/images/classes/' + pclass + '.png" style="max-width: 18px; max-height: 18px; height: auto; width: auto" alt="' . pclass . '"> ';
+                rtn_string += '<img src="/images/classes/' + pclass + '.png" style="max-width: 18px; max-height: 18px; height: auto; width: auto" alt="' + pclass + '"> ';
             }
 
             return rtn_string;
@@ -614,3 +614,5 @@ window.onbeforeunload = function() {
         llWSClient.client.close();
     }
 };
+
+
