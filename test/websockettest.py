@@ -3,7 +3,7 @@ import json
 
 def on_message(sock, message):
     try:
-        print "\n\n\n\n"
+        print "\n"
         print json.loads(message)
     except:
         print "RECEIVED: %s" % message
@@ -17,7 +17,7 @@ def on_close(sock):
 
 def on_open(sock):
     print "Websocket opened. Let's send a log ident!"
-    sock.send(json.dumps({"ident" : "3232244481_27015_1358161323"}))
+    sock.send(json.dumps({"ident" : "3232244481_20000_1374565435"}))
 
 if __name__ == "__main__":
     websocket.enableTrace(True)
@@ -26,5 +26,5 @@ if __name__ == "__main__":
     ws.on_open = on_open
     try:
         ws.run_forever()
-    except KeyboardInterrupt:
+    except:
         quit()
