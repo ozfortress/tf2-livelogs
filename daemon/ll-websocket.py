@@ -260,7 +260,7 @@ class llWSApplication(tornado.web.Application):
 
                 for client in self.clients.get_vclients(log_id):
                     #client is a websocket client object, which data can be sent to using client.write_message, etc
-                    client.write_message("HELLO!")
+                    #client.write_message("HELLO!")
                     if not client.HAD_FIRST_UPDATE:
                         #need to send complete values on first update to keep clients in sync with the server
                         if not full_update_dict:
