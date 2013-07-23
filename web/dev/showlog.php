@@ -395,7 +395,7 @@
                         
                         <tr>
                             <td>
-                                <?=player_classes($pstat["class"])?>
+                                <span id="<?=$community_id . ".class"?>"><?=player_classes($pstat["class"])?></span>
                                 <a id="<?=$community_id . ".name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=htmlentities($p_name, ENT_QUOTES, "UTF-8")?></a>
                             </td>
                             <td id="<?=$community_id . ".kills"?>"><?=$pstat["kills"]?></td>

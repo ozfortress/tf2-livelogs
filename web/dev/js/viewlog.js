@@ -141,10 +141,15 @@ var llWSClient = llWSClient || (function() {
 
                 element = document.getElementById("log_status_span");
 
-                if ($("#log_status_span").hasClass("text-success")) { //if it has the text-success class, remove it and add text-error (red)
-                    $("#log_status_span").removeClass("text-success");
+                if (!element) {
+                    return;
+                }
 
-                    $("#log_status_span").addClass("text-error");
+
+                if ($(element).hasClass("text-success")) { //if it has the text-success class, remove it and add text-error (red)
+                    $(element).removeClass("text-success");
+
+                    $(element).addClass("text-error");
                 }
 
                 element.innerHTML = "Complete"; 
@@ -346,6 +351,7 @@ var llWSClient = llWSClient || (function() {
                                 llWSClient.updateTableCell("#general_stats", element, tmp_result);
                             }
                         }
+
                     } else {
                         //this means the player needs to be added to the table, how do?
                         console.log("New player to be added. SID: %s", sid);
@@ -358,10 +364,38 @@ var llWSClient = llWSClient || (function() {
                         if a column has no data attached to it, just set it to 0
                         */
 
-                        var column = row.insertCell(0);
-                        column.id = sid + ".name";
-                        column.innerHTML = sid;
+                        var name_class, column = row.insertCell(0);
 
+                        /* construct the name link and class span & append it to the column as children */
+                        var class_span = document.createElement("span"), name_link = document.createElement("a");
+                        
+                        class_span.id = sid + ".class";
+                        class_span.innerHTML = "[]";
+
+                        name_link.id = sid + ".name";
+                        name_link.href = "/player/" + sid;
+                        name_link.innerHTML = sid;
+
+                        $(name_link).addClass("player_community_id_link");
+
+                        if (team in stats) {
+                            if (team === "red") {
+                                name_class = "red_player";
+                            } else if (team === "blue") {
+                                name_class = "blue_player";
+                            } else {
+                                name_class = "no_team_player";
+                            }
+                        } else {
+                            name_class = "no_team_player";
+                        }
+
+                        $(name_link).addClass(name_class);
+
+                        column.appendChild(class_span);
+                        column.appendChild(name_link);
+
+                        /* iterate over the rest of the columns */
                         for (i = 1; i < column_ids.length; i++) {
                             tmp = column_ids[i];
 

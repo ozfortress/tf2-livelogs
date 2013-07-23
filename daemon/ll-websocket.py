@@ -258,6 +258,8 @@ class llWSApplication(tornado.web.Application):
                 delta_update_dict = log_manager.compressed_update()
                 full_update_dict = {}
 
+                self.logger.debug("Got update dict for %s: %s", log_id, delta_update_dict)
+
                 for client in self.clients.get_vclients(log_id):
                     #client is a websocket client object, which data can be sent to using client.write_message, etc
                     #client.write_message("HELLO!")
@@ -272,8 +274,6 @@ class llWSApplication(tornado.web.Application):
                         client.HAD_FIRST_UPDATE = True
 
                     else:
-                        self.logger.debug("Got update dict for %s: %s", log_id, delta_update_dict)
-
                         if delta_update_dict: #if the dict is not empty, send it. else, just keep processing and waiting for new update
                             self.logger.debug("Sending update to client %s", client.cip)
                             client.write_message(delta_update_dict)
