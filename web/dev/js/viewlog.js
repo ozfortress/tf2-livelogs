@@ -294,8 +294,12 @@ var llWSClient = llWSClient || (function() {
                             
                             if (element) {
                                 //console.log("Got element %s, VALUE: %s", element, element.innerHTML);
-                                if (HAD_FIRST_UPDATE) {                    
-                                    if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost") {
+                                if (HAD_FIRST_UPDATE) {
+                                    if (stat === "class") {
+
+                                    } else if (stat === "team") {
+
+                                    } else if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost") {
                                         llWSClient.updateTableCell("#medic_stats", element, Number(element.innerHTML) + Number(value));
                                     } else {
                                         llWSClient.updateTableCell("#general_stats", element, Number(element.innerHTML) + Number(value));
@@ -370,11 +374,7 @@ var llWSClient = llWSClient || (function() {
                         var class_span = document.createElement("span"), name_link = document.createElement("a");
                         
                         class_span.id = sid + ".class";
-                        if ("class" in stats) {
-                            class_span.innerHTML = llWSClient.convert_player_classes(stats.class);    
-                        } else {
-                            class_span.innerHTML = " ";
-                        }
+                        class_span.innerHTML = llWSClient.convert_player_classes(stats.class);    
 
                         name_link.id = sid + ".name";
                         name_link.href = "/player/" + sid;
@@ -593,8 +593,8 @@ var llWSClient = llWSClient || (function() {
         },
 
         convert_player_classes : function(class_string) {
-            if (typeof class_string === undefined) {
-                return " ";
+            if (typeof class_string === 'undefined') {
+                return '<img src="/images/classes/noclass.png" style="max-width: 18px; max-height: 18px; height: auto; width: auto" alt="noclass"> ';
             }
 
             var classes = class_string.split(','), rtn_string = " ", pclass;
