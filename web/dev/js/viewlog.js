@@ -201,30 +201,33 @@ var llWSClient = llWSClient || (function() {
         parseScoreUpdate : function (score_obj) {
             var red_score = 0, blue_score = 0, red_element, blue_element;
 
-            if (score_obj.red !== undefined) {
+            red_element = llWSClient.get_element_cache("global", "red_score_value");
+            blue_element = llWSClient.get_element_cache("global", "blue_score_value");
+
+            if (!red_element || !blue_element) {
+                console.log("ERROR: Unable to get score elements for both teams");
+                return;
+            }
+
+            if (typeof score_obj.red !== 'undefined') {
                 red_score = Number(score_obj.red);
             }
-            if (score_obj.blue !== undefined) {
+            if (typeof score_obj.blue !== 'undefined') {
                 blue_score = Number(score_obj.blue);
             }
 
             console.log("SCORE UPDATE. RED: +%d BLUE: +%d", red_score, blue_score);
+
             if (!HAD_FIRST_UPDATE) {
-                document.getElementById("red_score_value").innerHTML = red_score;
-                document.getElementById("blue_score_value").innerHTML = blue_score;
+                red_element.innerHTML = red_score;
+                blue_element.innerHTML = blue_score;
 
             } else { //it's a delta compressed score update
                 if (red_score) {
-                    red_element = document.getElementById("red_score_value");
-                    if (red_element) {
-                        red_element.innerHTML = Number(red_element.innerHTML) + red_score;
-                    }
+                    red_element.innerHTML = Number(red_element.innerHTML) + red_score;
                 }
                 if (blue_score) {
-                    blue_element = document.getElementById("blue_score_value");
-                    if (blue_element) {
-                        blue_element.innerHTML = Number(blue_element.innerHTML) + blue_score;
-                    }
+                    blue_element.innerHTML = Number(blue_element.innerHTML) + blue_score;
                 }
             }
         },
@@ -257,7 +260,7 @@ var llWSClient = llWSClient || (function() {
                 special_element_tags = ["kpd", "dpd", "dpr", "dpm"], i, 
                 tmp, num_rounds, deaths, damage, kills, tmp_result;
 
-                num_rounds = Number(document.getElementById("red_score_value").innerHTML) + Number(document.getElementById("blue_score_value").innerHTML);
+                num_rounds = Number(llWSClient.get_element_cache("global", "red_score_value").innerHTML) + Number(llWSClient.get_element_cache("global", "blue_score_value").innerHTML);
 
                 $.each(stat_obj, function(sid, stats) {
                     //check if player exists on page already
@@ -267,7 +270,7 @@ var llWSClient = llWSClient || (function() {
                         $.each(stats, function(stat, value) {
                             element_id = sid + "." + stat;
                 
-                            console.log("SID: %s, STAT: %s, VALUE: %s, HTML ELEMENT: %s", sid, stat, value, element_id);
+                            //console.log("SID: %s, STAT: %s, VALUE: %s, HTML ELEMENT: %s", sid, stat, value, element_id);
 
                             if (stat === "team") {
                                 /* this is a team colour, which we should set the player's name class to */
@@ -392,7 +395,7 @@ var llWSClient = llWSClient || (function() {
                         $.each(team_stat, function(stat, value) {
                             element_id = team + "." + stat;
 
-                            console.log("Team: %s, stat: %s, value: %s, element_id: %s", team, stat, value, element_id);
+                            //console.log("Team: %s, stat: %s, value: %s, element_id: %s", team, stat, value, element_id);
 
                             element = llWSClient.get_element_cache(team, element_id);
 
