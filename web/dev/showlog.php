@@ -447,11 +447,14 @@
                     <?php                        
                         foreach ($mstats as $community_id => $mstat)
                         {
+
                             $team_class = get_player_team_class(strtolower($mstat["team"]));
                         ?>
                         
                         <tr>
-                            <td><a class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=htmlentities($mstat["name"], ENT_QUOTES, "UTF-8")?></a></td>
+                            <td>
+                                <a id="<?=$community_id . ".med_name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=htmlentities($mstat["name"], ENT_QUOTES, "UTF-8")?></a>
+                            </td>
                             <td id="<?=$community_id . ".healing_done"?>"><?=$mstat["healing_done"]?></td>
                             <td id="<?=$community_id . ".ubers_used"?>"><?=$mstat["ubers_used"]?></td>
                             <td id="<?=$community_id . ".ubers_lost"?>"><?=$mstat["ubers_lost"]?></td>
