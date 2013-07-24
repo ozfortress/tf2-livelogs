@@ -258,9 +258,6 @@ var llWSClient = llWSClient || (function() {
                 tmp, num_rounds, deaths, damage, kills, tmp_result;
 
                 num_rounds = Number(document.getElementById("red_score_value").innerHTML) + Number(document.getElementById("blue_score_value").innerHTML);
-                
-                var column_ids = ["name", "kills", "deaths", "assists", "captures", "captures_blocked", "headshots", "points", "damage_dealt", "damage_taken",
-                    "healing_received", "dominations", "kpd", "dpd", "dpr", "dpm"];
 
                 $.each(stat_obj, function(sid, stats) {
                     //check if player exists on page already
@@ -274,44 +271,44 @@ var llWSClient = llWSClient || (function() {
 
                             if (stat === "team") {
                                 /* this is a team colour, which we should set the player's name class to */
-                                name_class = llWSClient.get_name_class(team);
+                                name_class = llWSClient.get_name_class(value);
 
                                 if (!$(name_element).hasClass(name_class)) {
                                     $(name_element).addClass(name_class);
                                 }
 
-                                continue; //nothing more can be done on this key
-                            }
-
-                            var element = llWSClient.get_element_cache(sid, element_id);
-                            
-                            if (element) {
-                                if (stat === "class") {
-                                    classes = llWSClient.convert_player_classes(value);
-
-                                    llWSClient.updateTableCell("#general_stats", element, classes);
-                                    
-                                    /*med_element = llWSClient.get_element_cache(sid, sid + ".med_class");
-
-                                    if (med_element) {
-                                        llWSClient.updateTableCell("#medic_stats", med_element, classes);
-                                    }*/
-
-                                } else if (HAD_FIRST_UPDATE) {
-                                    if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost") {
-                                        llWSClient.updateTableCell("#medic_stats", element, Number(element.innerHTML) + Number(value));
-                                    } else {
-                                        llWSClient.updateTableCell("#general_stats", element, Number(element.innerHTML) + Number(value));
-                                    }
-                                } else {
-                                    if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost") {
-                                        llWSClient.updateTableCell("#medic_stats", element, Number(value));
-                                    } else {
-                                        llWSClient.updateTableCell("#general_stats", element, Number(value));
-                                    }
-                                }
+                            } else {
+                                element = llWSClient.get_element_cache(sid, element_id);
                                 
-                                //console.log("Element new value: %s", element.innerHTML);
+                                if (element) {
+                                    if (stat === "class") {
+                                        classes = llWSClient.convert_player_classes(value);
+                                        console.log("have class key, class img string: %s", classes);
+
+                                        llWSClient.updateTableCell("#general_stats", element, classes);
+                                        
+                                        /*med_element = llWSClient.get_element_cache(sid, sid + ".med_class");
+
+                                        if (med_element) {
+                                            llWSClient.updateTableCell("#medic_stats", med_element, classes);
+                                        }*/
+
+                                    } else if (HAD_FIRST_UPDATE) {
+                                        if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost") {
+                                            llWSClient.updateTableCell("#medic_stats", element, Number(element.innerHTML) + Number(value));
+                                        } else {
+                                            llWSClient.updateTableCell("#general_stats", element, Number(element.innerHTML) + Number(value));
+                                        }
+                                    } else {
+                                        if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost") {
+                                            llWSClient.updateTableCell("#medic_stats", element, Number(value));
+                                        } else {
+                                            llWSClient.updateTableCell("#general_stats", element, Number(value));
+                                        }
+                                    }
+                                    
+                                    //console.log("Element new value: %s", element.innerHTML);
+                                }
                             }
                         });
                         
@@ -360,54 +357,12 @@ var llWSClient = llWSClient || (function() {
                         console.log("New player to be added. SID: %s", sid);
                         //create new row using javascript, populate it with appropriate ids, then add it to the table
 
-                        var row = document.createElement("tr"); //create row
+                        llWSClient.add_new_stat_row(sid, stats);
 
-                        /* 
-                        now loop over all column ids, so we have data in the right order
-                        if a column has no data attached to it, just set it to 0
-                        */
-
-                        var name_class, column = row.insertCell(0);
-
-                        /* construct the name link and class span & append it to the column as children */
-                        var class_span = document.createElement("span"), name_link = document.createElement("a");
-                        
-                        class_span.id = sid + ".class";
-                        class_span.innerHTML = llWSClient.convert_player_classes(stats.class);    
-
-                        name_link.id = sid + ".name";
-                        name_link.href = "/player/" + sid;
-                        name_link.innerHTML = sid;
-
-                        $(name_link).addClass("player_community_id_link");
-
-                        name_class = llWSClient.get_name_class(stats.team);
-
-                        $(name_link).addClass(name_class);
-
-                        column.appendChild(class_span);
-                        column.appendChild(name_link);
-
-                        /* iterate over the rest of the columns */
-                        for (i = 1; i < column_ids.length; i++) {
-                            tmp = column_ids[i];
-
-                            if (tmp in stats) {
-                                tmp_result = Number(stats[tmp]);
-                            } else {
-                                tmp_result = 0;
-                            }
-
-                            column = row.insertCell(i);
-                            column.id = sid + "." + tmp;
-                            column.innerHTML = tmp_result;
-
-                            console.log("new column to be added in new row, id: %s, value: %s", column.id, tmp_result);
+                        if ("healing_done" in stats || "ubers_used" in stats || "ubers_lost" in stats) {
+                            //player is a medic, need to add medic stat row
+                            llWSClient.add_new_medic_row(sid, stats);
                         }
-
-                        console.log(row);
-
-                        llWSClient.addTableRow("#general_stats", row);
                     }
                 });
 
@@ -423,8 +378,6 @@ var llWSClient = llWSClient || (function() {
         parseTeamStatUpdate : function(stat_obj) {
             try {
                 var element, element_id, special_element_tags = ["dpm"], i, tmp, num_rounds, deaths, damage, kills, tmp_result;
-
-                var column_ids = ["team_name", "team_kills", "team_deaths", "team_healing_done", "team_damage_dealt", "team_damage_taken", "team_dpm"];
 
                 $.each(stat_obj, function(team, team_stat) {
                     if (document.getElementById(team + ".team")) {
@@ -471,37 +424,7 @@ var llWSClient = llWSClient || (function() {
                     } else {
                         //create new row using javascript, populate it with appropriate ids, then add it to the table
 
-                        var row = document.createElement("tr"); //create row
-
-                        /* 
-                        now loop over all column ids, so we have data in the right order
-                        if a column has no data attached to it, just set it to 0
-                        */
-
-                        //first col is team name
-                        var column = row.insertCell(0);
-                        column.id = team + ".team";
-                        column.innerHTML = team.toUpperCase();
-
-                        for (i = 1; i < column_ids.length; i++) {
-                            tmp = column_ids[i];
-
-                            if (tmp in team_stat) {
-                                tmp_result = Number(team_stat[tmp]);
-                            } else {
-                                tmp_result = 0;
-                            }
-
-                            column = row.insertCell(i);
-                            column.id = team + "." + tmp;
-                            column.innerHTML = tmp_result;
-
-                            console.log("new column to be added in new row, id: %s, value: %s", column.id, tmp_result);
-                        }
-
-                        console.log(row);
-
-                        llWSClient.addTableRow("#team_stats", row);
+                        llWSClient.add_new_team_row(team, team_stat);
                     }
                 });
 
@@ -577,6 +500,155 @@ var llWSClient = llWSClient || (function() {
             return element;
         },
 
+        add_new_stat_row : function(sid, stats) {
+            var column_ids = ["name", "kills", "deaths", "assists", "captures", "captures_blocked", "headshots", "points", "damage_dealt", "damage_taken",
+                    "healing_received", "dominations", "kpd", "dpd", "dpr", "dpm"];
+
+            var row, i, column, tmp, tmp_result, name_class, class_span, name_link;
+
+            row = document.createElement("tr"); //create row
+            /* 
+            now loop over all column ids, so we have data in the right order
+            if a column has no data attached to it, just set it to 0
+            */
+
+            column = row.insertCell(0);
+
+            /* construct the name link and class span & append it to the column as children */
+            class_span = document.createElement("span"); 
+            name_link = document.createElement("a");
+            
+            class_span.id = sid + ".class";
+            class_span.innerHTML = this.convert_player_classes(stats.class);    
+
+            name_link.id = sid + ".name";
+            name_link.href = "/player/" + sid;
+            name_link.innerHTML = sid;
+
+            $(name_link).addClass("player_community_id_link");
+
+            name_class = this.get_name_class(stats.team);
+
+            $(name_link).addClass(name_class);
+
+            column.appendChild(class_span);
+            column.appendChild(name_link);
+
+            /* iterate over the rest of the columns */
+            for (i = 1; i < column_ids.length; i++) {
+                tmp = column_ids[i];
+
+                if (tmp in stats) {
+                    tmp_result = Number(stats[tmp]);
+                } else {
+                    tmp_result = 0;
+                }
+
+                column = row.insertCell(i);
+                column.id = sid + "." + tmp;
+                column.innerHTML = tmp_result;
+
+                console.log("new column to be added in new row, id: %s, value: %s", column.id, tmp_result);
+            }
+
+            console.log(row);
+
+           this.addTableRow("#general_stats", row);
+        },
+
+        add_new_medic_row : function(sid, stats) {
+            var column_ids = ["name", "healing_done", "ubers_used", "ubers_lost"];
+
+            var row, i, column, tmp, tmp_result, name_class, class_span, name_link;
+
+            row = document.createElement("tr"); //create row
+            /* 
+            now loop over all column ids, so we have data in the right order
+            if a column has no data attached to it, just set it to 0
+            */
+
+            column = row.insertCell(0);
+
+            /* construct the name link and class span & append it to the column as children */
+            class_span = document.createElement("span");
+            name_link = document.createElement("a");
+            
+            class_span.id = sid + ".med_class";
+            class_span.innerHTML = this.convert_player_classes(stats.class);    
+
+            name_link.id = sid + ".med_name";
+            name_link.href = "/player/" + sid;
+            name_link.innerHTML = sid;
+
+            $(name_link).addClass("player_community_id_link");
+
+            name_class = this.get_name_class(stats.team);
+
+            $(name_link).addClass(name_class);
+
+            column.appendChild(class_span);
+            column.appendChild(name_link);
+
+            for (i = 1; i < column_ids.length; i++) {
+                tmp = column_ids[i];
+
+                if (tmp in stats) {
+                    tmp_result = Number(stats[tmp]);
+                }
+                else {
+                    tmp_result = 0;
+                }
+
+                column = row.insertCell(i);
+                column.id = sid + "." + tmp;
+                column.innerHTML = tmp_result;
+            }
+
+            console.log(row);
+
+            this.addTableRow("#medic_stats", row);
+        },
+
+        add_new_team_row : function(team, team_stats) {
+            var column_ids = ["team_name", "team_kills", "team_deaths", "team_healing_done", "team_damage_dealt", "team_damage_taken", "team_dpm"];
+            
+            var row, i, column, tmp, tmp_result;
+
+            row = document.createElement("tr"); //create row
+
+            /* 
+            now loop over all column ids, so we have data in the right order
+            if a column has no data attached to it, just set it to 0
+            */
+
+            //first col is team name
+            column = row.insertCell(0);
+            column.id = team + ".team";
+            column.innerHTML = team.toUpperCase();
+
+            $(column).addClass(this.get_team_class(team));
+
+            for (i = 1; i < column_ids.length; i++) {
+                tmp = column_ids[i];
+
+                if (tmp in team_stats) {
+                    tmp_result = Number(team_stats[tmp]);
+                } else {
+                    tmp_result = 0;
+                }
+
+                column = row.insertCell(i);
+                column.id = team + "." + tmp;
+                column.innerHTML = tmp_result;
+
+                console.log("new column to be added in new row, id: %s, value: %s", column.id, tmp_result);
+            }
+
+            console.log(row);
+
+            this.addTableRow("#team_stats", row);
+        },
+
         addTableRow : function(table_id, row_element) {
             var table = $(table_id).dataTable();
 
@@ -604,6 +676,7 @@ var llWSClient = llWSClient || (function() {
         },
 
         get_name_class : function(team) {
+            /* converts a team to a player CSS class for styling */
             if (typeof team === 'undefined') {
                 return "no_team_player";
 
@@ -615,6 +688,22 @@ var llWSClient = llWSClient || (function() {
 
             } else {
                 return "no_team_player";
+            }
+        },
+
+        get_team_class : function(team) {
+            /* converts a team to the team CSS classes for team stats styling */
+            if (typeof team === 'undefined') {
+                return "no_team_player";
+
+            } else if (team === "red") {
+                return "red_score_tag " + this.get_name_class(team);
+
+            } else if (team === "blue") {
+                return "blue_score_tag " + this.get_name_class(team);
+
+            } else {
+                return;
             }
         }
     };
