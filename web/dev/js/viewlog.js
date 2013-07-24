@@ -261,7 +261,7 @@ var llWSClient = llWSClient || (function() {
 
                 $.each(stat_obj, function(sid, stats) {
                     //check if player exists on page already
-                    name_element = llWSClient.get_element_cache(sid + ".name");
+                    name_element = llWSClient.get_element_cache(sid, sid + ".name");
 
                     if (name_element) {
                         $.each(stats, function(stat, value) {
@@ -481,6 +481,10 @@ var llWSClient = llWSClient || (function() {
 
         get_element_cache : function(sid, element_id) {
             //this function caches element objects, so they do not need to be retrieved for every stat update
+            if (typeof sid === 'undefined' || typeof element_id === 'undefined') {
+                console.log("ERROR: BAD PARAMETERS PASSED TO get_element_cache");
+                return null;
+            }
 
             if (!(sid in client_index)) {
                 //add the client sid to the element cache. the sid will contain an array of stats and their page elements
@@ -491,7 +495,7 @@ var llWSClient = llWSClient || (function() {
 
             if (!(element_id in client_index.sid) || (client_index.sid.element_id === null)) {
                 element = document.getElementById(element_id);
-                
+
                 if (element === null) {
                     return null;
                 }
@@ -500,8 +504,6 @@ var llWSClient = llWSClient || (function() {
             } else {
                 element = client_index.sid.element_id;
             }
-
-            console.log("%s value in cache: %s", element_id, element);
 
             //return the element
             return element;
