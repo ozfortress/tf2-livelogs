@@ -488,12 +488,20 @@ var llWSClient = llWSClient || (function() {
             }
 
             var element = null;
+
             if (!(element_id in client_index.sid) || (client_index.sid.element_id === null)) {
                 element = document.getElementById(element_id);
+                
+                if (element === null) {
+                    return null;
+                }
+
                 client_index.sid.element_id = element; //add the element to the client's element cache
             } else {
                 element = client_index.sid.element_id;
             }
+
+            console.log("%s value in cache: %s", element_id, element);
 
             //return the element
             return element;
@@ -547,7 +555,7 @@ var llWSClient = llWSClient || (function() {
                 column.id = sid + "." + tmp;
                 column.innerHTML = tmp_result;
 
-                console.log("new column to be added in new row, id: %s, value: %s", column.id, tmp_result);
+                //console.log("new column to be added in new row, id: %s, value: %s", column.id, tmp_result);
             }
 
             console.log(row);
@@ -640,7 +648,7 @@ var llWSClient = llWSClient || (function() {
                 column.id = team + "." + tmp;
                 column.innerHTML = tmp_result;
 
-                console.log("new column to be added in new row, id: %s, value: %s", column.id, tmp_result);
+                //console.log("new column to be added in new row, id: %s, value: %s", column.id, tmp_result);
             }
 
             console.log(row);
