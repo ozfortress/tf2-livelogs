@@ -276,6 +276,8 @@ var llWSClient = llWSClient || (function() {
                                 if (!$(name_element).hasClass(name_class)) {
                                     $(name_element).addClass(name_class);
                                 }
+                            } else if (stat === "name") {
+                                name_element.innerHTML = value;
 
                             } else {
                                 element = llWSClient.get_element_cache(sid, element_id);
@@ -285,7 +287,7 @@ var llWSClient = llWSClient || (function() {
                                         classes = llWSClient.convert_player_classes(value);
                                         console.log("have class key, class img string: %s", classes);
 
-                                        llWSClient.updateTableCell("#general_stats", element, classes);
+                                        element.innerHTML = classes;
                                         
                                         /*med_element = llWSClient.get_element_cache(sid, sid + ".med_class");
 
@@ -532,7 +534,7 @@ var llWSClient = llWSClient || (function() {
 
             name_link.id = sid + ".name";
             name_link.href = "/player/" + sid;
-            name_link.innerHTML = sid;
+            name_link.innerHTML = typeof stats.name === 'undefined' ? sid : stats.name;
 
             $(name_link).addClass("player_community_id_link");
 
