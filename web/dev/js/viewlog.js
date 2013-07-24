@@ -58,25 +58,11 @@ $(document).ready(function()
 
 });
 
-jQuery.fn.dataTableExt.oSort['dt-numeric-html-asc'] = function(a,b) {
-    "use strict";
-    var x = a.replace( /<.*?>/g, "" ), y = b.replace( /<.*?>/g, "" );
-    x = parseFloat( x );
-    y = parseFloat( y );
-    return ((x < y) ? -1 : ((x > y) ? 1 : 0));
-};
-
-jQuery.fn.dataTableExt.oSort['dt-numeric-html-desc'] = function(a,b) {
-    "use strict";
-    var x = a.replace( /<.*?>/g, "" ), y = b.replace( /<.*?>/g, "" );
-    x = parseFloat( x );
-    y = parseFloat( y );
-    return ((x < y) ? 1 : ((x > y) ? -1 : 0));
-};
-
 var llWSClient = llWSClient || (function() {
     "use strict";
-    var client, ws, connect_msg = {}, HAD_FIRST_UPDATE = false, auto_update = true, time_elapsed_sec, client_index = []; //our client socket and message that will be sent on connect, containing the log id
+
+    //our client socket and message that will be sent on connect, containing the log id
+    var client, ws, connect_msg = {}, HAD_FIRST_UPDATE = false, auto_update = true, time_elapsed_sec, client_index = [];
 
     return {
         init : function(ip, port, log_id) {
@@ -97,8 +83,7 @@ var llWSClient = llWSClient || (function() {
                     client.onopen = function(event) { llWSClient.onOpen(event); };
                     client.onclose = function(event) { llWSClient.onClose(event); };
                     client.onerror = function(event) { llWSClient.onError(event); };
-                }
-                else {
+                } else {
                     console.log("Websockets not supported");
                 }
             }
@@ -144,7 +129,6 @@ var llWSClient = llWSClient || (function() {
                 if (!element) {
                     return;
                 }
-
 
                 if ($(element).hasClass("text-success")) { //if it has the text-success class, remove it and add text-error (red)
                     $(element).removeClass("text-success");
@@ -242,7 +226,6 @@ var llWSClient = llWSClient || (function() {
                         blue_element.innerHTML = Number(blue_element.innerHTML) + blue_score;
                     }
                 }
-
             }
         },
 
@@ -256,13 +239,7 @@ var llWSClient = llWSClient || (function() {
                 chat_type = chat_data.msg_type;
                 chat_message = chat_data.msg;
 
-                if (chat_team === "red") {
-                    team_class = "red_player";
-                } else if (chat_team === "blue") {
-                    team_class = "blue_player";
-                } else {
-                    team_class = "no_team_player";
-                }
+                team_class = llWSClient.get_name_class(chat_team);
 
                 console.log("CHAT: player %s (team: %s) msg: (%s) %s", chat_name, chat_team, chat_type, chat_message);
 
@@ -276,7 +253,10 @@ var llWSClient = llWSClient || (function() {
         
         parseStatUpdate : function(stat_obj) {
             try {
-                var element, element_id, special_element_tags = ["kpd", "dpd", "dpr", "dpm"], i, tmp, num_rounds, deaths, damage, kills, tmp_result;
+                var element, element_id, med_element, name_class, name_element, classes, 
+                special_element_tags = ["kpd", "dpd", "dpr", "dpm"], i, 
+                tmp, num_rounds, deaths, damage, kills, tmp_result;
+
                 num_rounds = Number(document.getElementById("red_score_value").innerHTML) + Number(document.getElementById("blue_score_value").innerHTML);
                 
                 var column_ids = ["name", "kills", "deaths", "assists", "captures", "captures_blocked", "headshots", "points", "damage_dealt", "damage_taken",
@@ -284,22 +264,41 @@ var llWSClient = llWSClient || (function() {
 
                 $.each(stat_obj, function(sid, stats) {
                     //check if player exists on page already
-                    if (document.getElementById(sid + ".name")) {
+                    name_element = llWSClient.get_element_cache(sid + ".name");
+
+                    if (name_element) {
                         $.each(stats, function(stat, value) {
                             element_id = sid + "." + stat;
                 
                             console.log("SID: %s, STAT: %s, VALUE: %s, HTML ELEMENT: %s", sid, stat, value, element_id);
 
+                            if (stat === "team") {
+                                /* this is a team colour, which we should set the player's name class to */
+                                name_class = llWSClient.get_name_class(team);
+
+                                if (!$(name_element).hasClass(name_class)) {
+                                    $(name_element).addClass(name_class);
+                                }
+
+                                continue; //nothing more can be done on this key
+                            }
+
                             var element = llWSClient.get_element_cache(sid, element_id);
                             
                             if (element) {
-                                //console.log("Got element %s, VALUE: %s", element, element.innerHTML);
-                                if (HAD_FIRST_UPDATE) {
-                                    if (stat === "class") {
+                                if (stat === "class") {
+                                    classes = llWSClient.convert_player_classes(value);
 
-                                    } else if (stat === "team") {
+                                    llWSClient.updateTableCell("#general_stats", element, classes);
+                                    
+                                    /*med_element = llWSClient.get_element_cache(sid, sid + ".med_class");
 
-                                    } else if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost") {
+                                    if (med_element) {
+                                        llWSClient.updateTableCell("#medic_stats", med_element, classes);
+                                    }*/
+
+                                } else if (HAD_FIRST_UPDATE) {
+                                    if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost") {
                                         llWSClient.updateTableCell("#medic_stats", element, Number(element.innerHTML) + Number(value));
                                     } else {
                                         llWSClient.updateTableCell("#general_stats", element, Number(element.innerHTML) + Number(value));
@@ -382,15 +381,7 @@ var llWSClient = llWSClient || (function() {
 
                         $(name_link).addClass("player_community_id_link");
 
-                        name_class = "no_team_player";
-
-                        if ("team" in stats) {
-                            if (stats.team === "red") {
-                                name_class = "red_player";
-                            } else if (stats.team === "blue") {
-                                name_class = "blue_player";
-                            }
-                        }
+                        name_class = llWSClient.get_name_class(stats.team);
 
                         $(name_link).addClass(name_class);
 
@@ -610,6 +601,21 @@ var llWSClient = llWSClient || (function() {
             }
 
             return rtn_string;
+        },
+
+        get_name_class : function(team) {
+            if (typeof team === 'undefined') {
+                return "no_team_player";
+
+            } else if (team === "red") {
+                return "red_player";
+
+            } else if (team === "blue") {
+                return "blue_player";
+
+            } else {
+                return "no_team_player";
+            }
         }
     };
 }());
