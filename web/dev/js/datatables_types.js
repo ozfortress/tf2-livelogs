@@ -165,7 +165,7 @@ jQuery.extend( jQuery.fn.dataTableExt.oSort, {
         /* convert our date and time to single numbers */
         var x = (date_a[0]*10000 + date_a[1]*100 + date_a[2] + time_a[0]*10000 + time_a[1]*100 + time_a[2]);
         
-        console.log("y: %s | date_split: %s | time_split: %s | return: %d", y, date_a, time_a, x);
+        //console.log("y: %s | date_split: %s | time_split: %s | return: %d", y, date_a, time_a, x);
         return x;
     },
 
@@ -179,7 +179,7 @@ jQuery.extend( jQuery.fn.dataTableExt.oSort, {
         this is asc, so if a > b, we want a to be moved up, if a < b, a should be moved down
         */
 
-        console.log("asc logic: %d", ((a > b) ? 1 : ((a < b) ? -1 : 0)));
+        //console.log("asc logic: %d", ((a > b) ? 1 : ((a < b) ? -1 : 0)));
         return ((a > b) ? 1 : ((a < b) ? -1 : 0));
 
     },
@@ -193,9 +193,24 @@ jQuery.extend( jQuery.fn.dataTableExt.oSort, {
         //if a and b are equal, return 0. if a is > b, return -1 meaning a moves down, 1 when a < b
         //x represents a, y represents b
         
-        console.log("desc logic: %d", ((a > b) ? -1 : ((a < b) ? 1 : 0)));
+        //console.log("desc logic: %d", ((a > b) ? -1 : ((a < b) ? 1 : 0)));
         return ((a > b) ? -1 : ((a < b) ? 1 : 0));
+    },
+
+    "dt-numeric-html-asc" : function (a, b) {
+        var x = a.replace( /<.*?>/g, "" ), y = b.replace( /<.*?>/g, "" );
+        x = parseFloat( x );
+        y = parseFloat( y );
+        return ((x < y) ? -1 : ((x > y) ? 1 : 0));
+    },
+
+    "dt-numeric-html-desc" : function(a, b) {
+        var x = a.replace( /<.*?>/g, "" ), y = b.replace( /<.*?>/g, "" );
+        x = parseFloat( x );
+        y = parseFloat( y );
+        return ((x < y) ? 1 : ((x > y) ? -1 : 0));
     }
+
 });
 
 /* api function for adding row elements to datatables while maintaining custom classes/ids */
