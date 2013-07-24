@@ -70,18 +70,20 @@ class dbManager(object):
         self.DB_PLAYER_TABLE = "livelogs_player_details"
         self.DB_EVENT_TABLE = "log_event_%s" % log_id
         
-        self._stat_table = None #a dict containing stat data
-        self._stat_difference_table = None #a dict containing the difference between stored and retrieved stat data
+        self._stat_table = {} #a dict containing stat data
+        self._stat_difference_table = {} #a dict containing the difference between stored and retrieved stat data
 
-        self._chat_table = None #a dict containing recent chat messages
+        self._chat_table = {} #a dict containing recent chat messages
 
-        self._score_table = None #a dict containing the most recent scores
-        self._score_difference_table = None #a dict containing the difference in score updates
+        self._score_table = {} #a dict containing the most recent scores
+        self._score_difference_table = {} #a dict containing the difference in score updates
 
         self._start_time = int(round(time.mktime(time.strptime(start_time, "%Y-%m-%d %H:%M:%S")))) #a variable containing the log start time in seconds since epoch
         
-        self._team_stat_table = None #dict containing team stats
-        self._team_stat_difference_table = None #dict containing team stat differences
+        self._team_stat_table = {} #dict containing team stats
+        self._team_stat_difference_table = {} #dict containing team stat differences
+
+        self._name_table = {} #a dict containing player names wrt to steamids
 
         self._log_status_check = False
         self._database_busy = False
@@ -166,6 +168,8 @@ class dbManager(object):
                         #just add the values together
                         merged_stat[statcol] += player_data[statcol]
 
+        self.add_player_names(merged_dict) #add names here so that we don't have to worry about doing it elsewhere
+        
         pprint(merged_dict)
 
         return merged_dict
@@ -196,7 +200,6 @@ class dbManager(object):
             update_dict["team_stat"] = self._team_stat_table
 
         update_dict["gametime"] = self.calc_game_time()
-
 
         return update_dict
     
@@ -254,20 +257,26 @@ class dbManager(object):
                 #find the difference
                 if isinstance(old_table[key], dict) and isinstance(new_table[key], dict): #keys are dicts, so we should do this recursively
                     tmp = self.calc_table_delta(old_table[key], new_table[key])
-                    
+
                     if tmp:
                         diff_dict[key] = tmp
                 
                 else:
-                    #we get the difference by subtracting the old from the new
-
                     #special case for certain stat dict keys
                     #if the key is "team" and this is a team stat dict, we want to keep the team the same
-                    if (key == "class" or key == "team"):
-                        if (new_table[key] != old_table[key]) or teams:
+                    if key == "class":
+                        if new_table[key] != old_table[key]:
+                            diff_dict[key] = new_table[key]
+
+                    elif key == "team":
+                        diff_dict[key] = new_table[key]
+
+                    elif key == "name":
+                        if new_table[key] != old_table[key]:
                             diff_dict[key] = new_table[key]
 
                     else:
+                        #we get the difference by subtracting the old from the new
                         diff = new_table[key] - old_table[key]
 
                         if diff > 0: #ignore 0 values
@@ -288,15 +297,38 @@ class dbManager(object):
                 if isinstance(table_a[key], dict) and isinstance(table_b[key], dict): #it's a stat update with key == steamid
                     update_dict[key] = self.combine_update_table(table_a[key], table_b[key]) #recursively combine the lower levels
                 else:
-                    update_dict[key] = table_a[key] + table_b[key]
+                    if key == "class":
+                        if table_a[key] != table_b[key]:
+                            #whichever key has the longest team string will be the most recent one, because it has the most classes in it
+
+                            if len(table_a[key]) > len(table_b[key]):
+                                update_dict[key] = table_a[key]
+                            else:
+                                update_dict[key] = table_b[key]
+
+                    elif key == "team":
+                        update_dict[key] = table_b[key]
+
+                    elif key == "name":
+                        update_dict[key] = table_b[key]
+
+                    else:
+                        update_dict[key] = table_a[key] + table_b[key]
             else:
                 update_dict[key] = table_a[key]
 
+        #loop over table_b for any keys that are in b but not a
         for key in table_b:
             if key not in table_a:
                 update_dict[key] = table_b[key]
 
         return update_dict
+
+    def add_player_names(self, stat_dict):
+        if self._name_table:
+            for cid in self._name_table:
+                if cid in stat_dict:
+                    stat_dict[cid]["name"] = self._name_table[cid]
 
     def construct_stat_query(self):
         #constructs a select query from the STAT_KEYS dict, so we always know the order data is retrieved in
@@ -323,23 +355,44 @@ class dbManager(object):
 
         score_query = "SELECT COALESCE(round_red_score, 0), COALESCE(round_blue_score, 0) FROM %s WHERE round_red_score IS NOT NULL AND round_blue_score IS NOT NULL ORDER BY eventid DESC LIMIT 1" % (self.DB_EVENT_TABLE)
 
-        team_stat_query = "SELECT team, SUM(kills), SUM(deaths), SUM(healing_done), SUM(damage_dealt), SUM(damage_taken) FROM %s WHERE log_ident = '%s' and team IS NOT NULL GROUP BY team" % (self.DB_STAT_TABLE, self._unique_ident)
+        team_stat_query = "SELECT team, SUM(kills), SUM(deaths), SUM(healing_done), SUM(damage_dealt), SUM(damage_taken) FROM %s WHERE (log_ident = '%s' AND team IS NOT NULL) GROUP BY team" % (self.DB_STAT_TABLE, self._unique_ident)
+
+        name_query = "SELECT DISTINCT(%(det_table)s.name), %(det_table)s.steamid FROM %(stat_table)s JOIN %(det_table)s ON %(stat_table)s.log_ident = %(det_table)s.log_ident WHERE %(stat_table)s.log_ident = '%(log_ident)s'" % {
+                "det_table": self.DB_PLAYER_TABLE,
+                "stat_table": self.DB_STAT_TABLE,
+                "log_ident": self._unique_ident
+            }
 
         try:
             self.db.execute(stat_query, callback = self._stat_update_callback)
-            self.db.execute(chat_query, callback = self._chat_update_callback)
-            self.db.execute(score_query, callback = self._score_update_callback)
-            self.db.execute(team_stat_query, callback = self._team_stat_update_callback)
-            
         except:
-            self.log.exception("Exception occurred during database update")
+            self.log.exception("Exception occured during stat query")
 
-        finally:
-            self._database_busy = False
+        try:
+            self.db.execute(chat_query, callback = self._chat_update_callback)
+        except:
+            self.log.exception("Exception occured during chat query")
+
+        try:
+            self.db.execute(score_query, callback = self._score_update_callback)
+        except:
+            self.log.exception("Exception occured during score query")
+
+        try:
+            self.db.execute(team_stat_query, callback = self._team_stat_update_callback)
+        except:
+            self.log.exception("Exception occured during team stat query")
+
+        #we only need to perform a name query when we don't have enough names to match against all the players in the log
+        if len(self._name_table) != len(self._stat_table):
+            try:
+                self.db.execute(name_query, callback = self._name_update_callback)
+            except:
+                self.log.exception("Exception occured during stat query")
         
     def _stat_update_callback(self, cursor, error):
         #the callback for stat update queries
-        if error:
+        if error or not cursor:
             self.log.error("Error querying database for stat data: %s", error)
             self._stat_query_complete = True
             self.__clear_busy_status()
@@ -352,6 +405,7 @@ class dbManager(object):
             
             #iterate over the cursor, and convert it to a sensible dictionary
             temp_list = []
+
             for row in cursor:
                 #each row is a player's data as a tuple in the format of:
                 #SID:K:D:A:P:HD:HR:UU:UL: --- ETC
@@ -387,7 +441,7 @@ class dbManager(object):
         self.__clear_busy_status()
 
     def _team_stat_update_callback(self, cursor, error):
-        if error:
+        if error or not cursor:
             self.log.error("Error querying team stats: %s", error)
 
             return
@@ -399,7 +453,9 @@ class dbManager(object):
 
             for row in cursor:
                 team = row[0]
-                team_stats[team] = self.team_stat_tuple_to_dict(row[1:]) #splice the row so we just have the stats, and convert them to a dict
+
+                if team:
+                    team_stats[team] = self.team_stat_tuple_to_dict(row[1:]) #splice the row so we just have the stats, and convert them to a dict
 
             if not self._team_stat_table:
                 self._team_stat_table = team_stats
@@ -423,7 +479,7 @@ class dbManager(object):
             self.log.exception("Exception during _team_stat_update_callback")
         
     def _chat_update_callback(self, cursor, error):
-        if error:
+        if error or not cursor:
             self.log.error("Error querying database for chat data: %s", error)
             self._chat_query_complete = True
             self.__clear_busy_status()
@@ -479,7 +535,7 @@ class dbManager(object):
         self.__clear_busy_status()
 
     def _score_update_callback(self, cursor, error):
-        if error:
+        if error or not cursor:
             self.log.error("Error querying database for score data: %s", error)
             self._score_query_complete = True
             self.__clear_busy_status()
@@ -538,17 +594,31 @@ class dbManager(object):
 
         self.__clear_busy_status()
 
+    def _name_update_callback(self, cursor, error):
+        if error or not cursor:
+            self.log.error("Error querying database for name data: %s", error)
+            return
+
+        try:
+            name_dict = {}
+
+            for row in cursor:
+                #row in the form (name, steamid)
+                self._name_table[row[1]] = row[0]
+
+        except:
+            self.log.exception("Exception during _name_update_callback")
+
+
     def __clear_busy_status(self):
         if self._database_busy:
             if self._stat_query_complete and self._score_query_complete and self._time_query_complete and self._chat_query_complete:
                 self._database_busy = False
 
     def _update_timer(self):
-        #this method is run in a thread, and acts as a timer. 
-        #it is a daemon thread, and will exit cleanly with the main thread unlike a threading.Timer. 
-        #it is also repeating, unlike a timer
+        #called by the main tornado IOLoop in a periodic callback
         
-        self.database_lock.acquire() #acquire the lock, so only this manager can run the queries right now
+        self.database_lock.acquire() #acquire the lock, so only this manager can run queries right now
 
         self.get_database_updates()
 
