@@ -488,11 +488,10 @@ var llWSClient = llWSClient || (function() {
             }
 
             var element = null;
-            if (!(element_id in client_index.sid)) {
+            if (!(element_id in client_index.sid) || (client_index.sid.element_id === null)) {
                 element = document.getElementById(element_id);
                 client_index.sid.element_id = element; //add the element to the client's element cache
-            }
-            else {
+            } else {
                 element = client_index.sid.element_id;
             }
 
