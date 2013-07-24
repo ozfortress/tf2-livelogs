@@ -388,10 +388,12 @@ var llWSClient = llWSClient || (function() {
 
         parseTeamStatUpdate : function(stat_obj) {
             try {
-                var element, element_id, special_element_tags = ["team_dpm"], i, tmp, num_rounds, deaths, damage, kills, tmp_result;
+                var element, element_id, team_name, special_element_tags = ["team_dpm"], i, tmp, num_rounds, deaths, damage, kills, tmp_result;
 
                 $.each(stat_obj, function(team, team_stat) {
-                    if (document.getElementById(team + ".team")) {
+                    team_name = llWSClient.get_element_cache(team, team + ".team");
+
+                    if (team_name) {
                         $.each(team_stat, function(stat, value) {
                             element_id = team + "." + stat;
 
@@ -434,8 +436,9 @@ var llWSClient = llWSClient || (function() {
                         }
                     } else {
                         //create new row using javascript, populate it with appropriate ids, then add it to the table
-
-                        llWSClient.add_new_team_row(team, team_stat);
+                        if (team !== "None") {
+                            llWSClient.add_new_team_row(team, team_stat);
+                        }
                     }
                 });
 

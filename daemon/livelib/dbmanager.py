@@ -170,7 +170,7 @@ class dbManager(object):
 
         self.add_player_names(merged_dict) #add names here so that we don't have to worry about doing it elsewhere
         
-        pprint(merged_dict)
+        #pprint(merged_dict)
 
         return merged_dict
     
@@ -296,6 +296,7 @@ class dbManager(object):
                 #table[key] can be another dict in the case of stat updates, because there's dicts with steamids, and then corresponding stats
                 if isinstance(table_a[key], dict) and isinstance(table_b[key], dict): #it's a stat update with key == steamid
                     update_dict[key] = self.combine_update_table(table_a[key], table_b[key]) #recursively combine the lower levels
+                    
                 else:
                     if key == "class":
                         if table_a[key] != table_b[key]:
@@ -319,7 +320,7 @@ class dbManager(object):
 
         #loop over table_b for any keys that are in b but not a
         for key in table_b:
-            if key not in table_a:
+            if key not in table_a and key is not None:
                 update_dict[key] = table_b[key]
 
         return update_dict
@@ -475,7 +476,7 @@ class dbManager(object):
                         self._team_stat_table = team_stats
 
                     pprint(self._team_stat_difference_table)
-                    
+
                     self._new_team_stat_update = True
 
         except:
