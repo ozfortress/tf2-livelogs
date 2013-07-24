@@ -452,6 +452,7 @@ class dbManager(object):
             team_stats = {}
 
             for row in cursor:
+                self.log.debug("team update row: %s", row)
                 team = row[0]
 
                 if team:
@@ -473,6 +474,8 @@ class dbManager(object):
                         self._team_stat_difference_table = temp_table
                         self._team_stat_table = team_stats
 
+                    pprint(self._team_stat_difference_table)
+                    
                     self._new_team_stat_update = True
 
         except:
