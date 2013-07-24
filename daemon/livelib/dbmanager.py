@@ -48,6 +48,46 @@ team_stat_columns = (
                 "team_damage_taken"
             )
 
+
+"""
+This object is a round robin query selector.
+It will select 1 query at every interval to be executed, rather than attempting to execute all queries each interval.
+This should optimise the database usage somewhat, but will cause updates to clients to be delayed
+
+"""
+class rr_query_arbitrator(object):
+    def __init__(self, num_queries):
+        self.arbitration_count = num_queries
+
+        self.arbitrator_list = []
+
+        self._queries = {} #a dict mapped by the ids in arbitrator_list
+
+        self._arb_pos = 0
+
+    def select(self):
+        if self._arb_pos >= len(self.arbitrator_list):
+            self._arb_pos = 0
+
+        return self._queries[self.arbitrator_list[self._arb_pos]]
+
+    def __goto_next(self):
+
+
+    def add_query(self, qid, query):
+        self._queries[qid] = query
+        self.arbitrator_list.append(qid)
+
+    def clear_queries(self):
+        #clears all queries in the arbitrator
+        del self.arbitrator_list
+        del self._queries
+
+        self._queries = {}
+        self.arbitrator_list = []
+
+
+
 """
 The database manager class holds copies of a log's data. It provides functions to calculate the difference between
 currently stored data and new data (delta compression) which will be sent to the clients, along with time and chat data
@@ -57,7 +97,7 @@ class dbManager(object):
         #end_callback is the function to be called when the log is no longer live
         
         self.log = logging.getLogger(log_id)
-        self.log.setLevel(logging.DEBUG)
+        self.log.setLevel(logging.INFO)
         self.log.addHandler(log_file_handler)
 
         self.db = db
@@ -159,7 +199,7 @@ class dbManager(object):
                     #if the key DOES exist in the merged dict, we have to either add the value or append a string depending on the column
                     if statcol == "class":
                         merged_stat[statcol] = "%s,%s" % (merged_stat[statcol], player_data[statcol])
-                        print "merged class: %s" % merged_stat[statcol]
+                        #print "merged class: %s" % merged_stat[statcol]
 
                     elif statcol == "team":
                         if player_data[statcol] is not None:
@@ -296,7 +336,7 @@ class dbManager(object):
                 #table[key] can be another dict in the case of stat updates, because there's dicts with steamids, and then corresponding stats
                 if isinstance(table_a[key], dict) and isinstance(table_b[key], dict): #it's a stat update with key == steamid
                     update_dict[key] = self.combine_update_table(table_a[key], table_b[key]) #recursively combine the lower levels
-                    
+
                 else:
                     if key == "class":
                         if table_a[key] != table_b[key]:
@@ -475,7 +515,7 @@ class dbManager(object):
                         self._team_stat_difference_table = temp_table
                         self._team_stat_table = team_stats
 
-                    pprint(self._team_stat_difference_table)
+                    #pprint(self._team_stat_difference_table)
 
                     self._new_team_stat_update = True
 
@@ -505,6 +545,9 @@ class dbManager(object):
                 chat_dict = {}
 
                 for row in cursor:
+                    if len(row) < 5:
+                        continue
+
                     #each row will be a tuple in the format of:
                     #id, name, team, chat_type, chat_message
                     self._chat_event_id = row[0] #set the latest chat event id
