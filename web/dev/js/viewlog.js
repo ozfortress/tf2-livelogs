@@ -279,6 +279,12 @@ var llWSClient = llWSClient || (function() {
                             } else if (stat === "name") {
                                 name_element.innerHTML = value;
 
+                                med_element = llWSClient.get_element_cache(sid, sid + ".med_name");
+
+                                if (med_element) {
+                                    med_element.innerHTML = value;
+                                }
+
                             } else {
                                 element = llWSClient.get_element_cache(sid, element_id);
                                 
@@ -379,7 +385,7 @@ var llWSClient = llWSClient || (function() {
 
         parseTeamStatUpdate : function(stat_obj) {
             try {
-                var element, element_id, special_element_tags = ["dpm"], i, tmp, num_rounds, deaths, damage, kills, tmp_result;
+                var element, element_id, special_element_tags = ["team_dpm"], i, tmp, num_rounds, deaths, damage, kills, tmp_result;
 
                 $.each(stat_obj, function(team, team_stat) {
                     if (document.getElementById(team + ".team")) {
@@ -416,7 +422,7 @@ var llWSClient = llWSClient || (function() {
                             damage = Number(damage_element.innerHTML);
 
                             if (element) {
-                                if (tmp === "dpm") {
+                                if (tmp === "team_dpm") {
                                     tmp_result = Math.round(damage / (time_elapsed_sec/60 || 1) * 100) / 100;
                                 }
 
