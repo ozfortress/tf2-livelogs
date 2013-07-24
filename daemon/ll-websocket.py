@@ -55,7 +55,7 @@ class llWSApplication(tornado.web.Application):
         }
 
         self.logger = logging.getLogger("WS APP")
-        self.logger.setLevel(logging.DEBUG)
+        self.logger.setLevel(logging.INFO)
         self.logger.addHandler(log_file_handler)
 
         self.update_rate = update_rate
@@ -81,8 +81,6 @@ class llWSApplication(tornado.web.Application):
 
     def remove_from_cache(self, cache_item):
         self.log_cache.remove(cache_item)
-        
-        self.logger.debug("Removed cache item %s", cache_item)
 
     def update_cache(self, log_ident, status):
         #updates the status of a log ident
@@ -173,7 +171,7 @@ class llWSApplication(tornado.web.Application):
                 client_obj.disconnect_not_live()
 
     def delete_client(self, client_obj):
-        self.logger.info("Deleting client")
+        self.logger.debug("Deleting client")
         if client_obj._log_ident:
             self.clients.delete_client(client_obj)
 
@@ -237,7 +235,7 @@ class llWSApplication(tornado.web.Application):
         valid_idents = self.clients.get_valid_idents()
         num_idents = len(valid_idents)
 
-        self.logger.debug("Sending updates. Number of active logs: %d", num_idents)
+        self.logger.info("Sending updates. Number of active logs: %d", num_idents)
 
         if num_idents == 0:
             return
@@ -311,7 +309,7 @@ class llWSApplication(tornado.web.Application):
 
             select_query = "SELECT log_ident, live, tstamp FROM livelogs_log_index WHERE (%s)" % (filter_string)
 
-            self.logger.info("status query: %s", select_query)
+            self.logger.debug("status query: %s", select_query)
 
             try:
                 self.db.execute(select_query, callback = self._status_callback)
@@ -335,7 +333,7 @@ class llWSApplication(tornado.web.Application):
         
         if results and len(results) > 0:
             for log_status in results: #log_status is a tuple in form (log_ident, live)
-                self.logger.debug("log_status tuple: %s", log_status)
+                #self.logger.debug("log_status tuple: %s", log_status)
                 log_ident, live, tstamp = log_status
 
                 self.add_to_cache(log_ident, live)
@@ -495,7 +493,7 @@ if __name__ == "__main__":
     llWebSocketServer.db = momoko.Pool(
             dsn = db_details,
             minconn = 2, #minimum number of connections for the momoko pool to maintain
-            maxconn = 4, #max number of conns that will be opened
+            maxconn = 8, #max number of conns that will be opened
             cleanup_timeout = 10, #how often (in seconds) connections are closed (cleaned up) when number of connections > minconn
         )
     
