@@ -263,7 +263,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             return False
 
     def server_busy(self):
-        if len(self.listen_set) < self.client_limit:
+        if len(self.listen_set) <= self.client_limit:
             return False #server is capable of serving more clients
         else:
             return True #we're already serving the maximum, so we need to reject further connections
@@ -434,7 +434,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
         del listeners
 
-        
+
     def _listener_timeout_timer(self, event):
         while not event.is_set():
             self.listenerTimeoutCheck()
