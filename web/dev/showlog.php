@@ -426,48 +426,46 @@
         </div>
 
         <div class="stat_table_container stat_table_container_small">
-            <div class="medic_stat_summary">
-                <table class="table table-bordered table-striped table-hover ll_table" id="medic_stats">
-                    <thead>
-                        <tr class="stat_summary_title_bar">
-                            <th class="stat_summary_col_title">
-                                <abbr title="Player Name">Name</abbr>
-                            </th>
-                            <th class="stat_summary_col_title">
-                                <abbr title="Healing Done">Healing</abbr>
-                            </th>
-                            <th class="stat_summary_col_title">
-                                <abbr title="Ubers Used">U</abbr>
-                            </th>
-                            <th class="stat_summary_col_title">
-                                <abbr title="Ubers Lost">UL</abbr>
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php                        
-                        foreach ($mstats as $community_id => $mstat)
-                        {
+            <table class="table table-bordered table-striped table-hover ll_table" id="medic_stats">
+                <thead>
+                    <tr class="stat_summary_title_bar">
+                        <th class="stat_summary_col_title">
+                            <abbr title="Player Name">Name</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Healing Done">Healing</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Ubers Used">U</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Ubers Lost">UL</abbr>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                <?php                        
+                    foreach ($mstats as $community_id => $mstat)
+                    {
 
-                            $team_class = get_player_team_class(strtolower($mstat["team"]));
-                        ?>
-                        
-                        <tr>
-                            <td>
-                                <a id="<?=$community_id . ".med_name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=htmlentities($mstat["name"], ENT_QUOTES, "UTF-8")?></a>
-                            </td>
-                            <td id="<?=$community_id . ".healing_done"?>"><?=$mstat["healing_done"]?></td>
-                            <td id="<?=$community_id . ".ubers_used"?>"><?=$mstat["ubers_used"]?></td>
-                            <td id="<?=$community_id . ".ubers_lost"?>"><?=$mstat["ubers_lost"]?></td>
-                        </tr>
-                    <?php
-                        }
+                        $team_class = get_player_team_class(strtolower($mstat["team"]));
                     ?>
                     
-                    </tbody>
-                    <caption>Summary of medic statistics</caption>
-                </table>
-            </div>
+                    <tr>
+                        <td>
+                            <a id="<?=$community_id . ".med_name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=htmlentities($mstat["name"], ENT_QUOTES, "UTF-8")?></a>
+                        </td>
+                        <td id="<?=$community_id . ".healing_done"?>"><?=$mstat["healing_done"]?></td>
+                        <td id="<?=$community_id . ".ubers_used"?>"><?=$mstat["ubers_used"]?></td>
+                        <td id="<?=$community_id . ".ubers_lost"?>"><?=$mstat["ubers_lost"]?></td>
+                    </tr>
+                <?php
+                    }
+                ?>
+                
+                </tbody>
+                <caption>Summary of medic statistics</caption>
+            </table>
         </div>
 
         <div class="stat_table_container stat_table_container_small">
