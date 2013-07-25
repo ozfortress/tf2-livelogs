@@ -50,45 +50,6 @@ team_stat_columns = (
 
 
 """
-This object is a round robin query selector.
-It will select 1 query at every interval to be executed, rather than attempting to execute all queries each interval.
-This should optimise the database usage somewhat, but will cause updates to clients to be delayed
-
-"""
-class rr_query_arbitrator(object):
-    def __init__(self, num_queries):
-        self.arbitration_count = num_queries
-
-        self.arbitrator_list = []
-
-        self._queries = {} #a dict mapped by the ids in arbitrator_list
-
-        self._arb_pos = 0
-
-    def select(self):
-        if self._arb_pos >= len(self.arbitrator_list):
-            self._arb_pos = 0
-
-        return self._queries[self.arbitrator_list[self._arb_pos]]
-
-    def __goto_next(self):
-
-
-    def add_query(self, qid, query):
-        self._queries[qid] = query
-        self.arbitrator_list.append(qid)
-
-    def clear_queries(self):
-        #clears all queries in the arbitrator
-        del self.arbitrator_list
-        del self._queries
-
-        self._queries = {}
-        self.arbitrator_list = []
-
-
-
-"""
 The database manager class holds copies of a log's data. It provides functions to calculate the difference between
 currently stored data and new data (delta compression) which will be sent to the clients, along with time and chat data
 """
