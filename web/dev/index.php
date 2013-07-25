@@ -50,6 +50,9 @@
                     <li>
                         <a href="/past">Archive</a>
                     </li>
+                    <li>
+                        <a href="/leaders">Leaderboard</a>
+                    </li>
                 </ul>
                 <ul class="nav pull-right">
                     <li class="dropdown">

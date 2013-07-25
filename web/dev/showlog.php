@@ -152,6 +152,9 @@
                     <li>
                         <a href="/past">Archive</a>
                     </li>
+                    <li>
+                        <a href="/leaders">Leaderboard</a>
+                    </li>
                     <li class="dropdown active">
                         <a class="dropdown-toggle" data-toggle="dropdown" href="#">View Settings <b class="caret"></b></a>
                         <ul class="dropdown-menu">

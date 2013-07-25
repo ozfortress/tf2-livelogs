@@ -9,7 +9,7 @@
         require 'func/help_functions.php';
 
         if (!$ll_db)
-            die("Unable to connect to database");
+            die("<title>500 Internal Server Error</title>");
 
         if (empty($_GET['id']))
             $invalid_player = true;
@@ -117,6 +117,9 @@
                     </li>
                     <li>
                         <a href="/past">Archive</a>
+                    </li>
+                    <li>
+                        <a href="/leaders">Leaderboard</a>
                     </li>
                 </ul>
                 <ul class="nav pull-right">
