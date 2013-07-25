@@ -264,8 +264,10 @@ class llWSApplication(tornado.web.Application):
     def __get_dbmanager_updates(self):
         #cyclicly update db managers, 1 per periodic callback (i.e round robin queue)
         
+        self.log.info("Getting DB Manager updates")
         if len(self.__db_managers) > 0:
             cycle_manager_ident, cycle_manager = self.__db_managers.popleft() #pop the left-most manager
+
             cycle_manager.get_database_updates() #get db updates
 
             self.__db_managers.append((cycle_manager_ident, cycle_manager)) #re-add to the right side of the queue

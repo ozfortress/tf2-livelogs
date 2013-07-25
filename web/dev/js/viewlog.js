@@ -276,7 +276,7 @@ var llWSClient = llWSClient || (function() {
                                 /* this is a team colour, which we should set the player's name class to */
                                 name_class = llWSClient.get_name_class(value);
 
-                                if (!$(name_element).hasClass(name_class)) {
+                                if (name_class !== "no_team_player" && !$(name_element).hasClass(name_class)) {
                                     $(name_element).addClass(name_class);
                                 }
                             } else if (stat === "name") {
