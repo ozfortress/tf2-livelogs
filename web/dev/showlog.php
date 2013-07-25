@@ -255,7 +255,7 @@
         ?>
 
             
-            <span class="log_detail_id">Server: </span><span class="log_detail"><?=long2ip($log_details["server_ip"])?>:<?=$log_details["server_port"]?></span><br>
+            <span class="log_detail_id">Server: </span><span class="log_detail"><?=$log_details["server_ip"]?>:<?=$log_details["server_port"]?></span><br>
             <span class="log_detail_id">Map: </span><span class="log_detail"><?=$log_details["map"]?></span><br>
 
             <div>
