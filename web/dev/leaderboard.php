@@ -55,8 +55,14 @@
         </div>
     </div>
     <div class="livelogs_wrapper">
+    	<div class="stat_table_container stat_table_container_small">
+	    	<table class="table table-bordered table-striped table-hover ll_table">
 
-    <?php include('static/logo.html'); ?>
+	    	</table>
+	    </div>
+
+
+    	<?php include('static/logo.html'); ?>
 
     </div>
     <?php include('static/footer.html'); ?>
