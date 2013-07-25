@@ -8,6 +8,12 @@
         require "../conf/ll_config.php";
         require 'func/help_functions.php';
 
+        /*
+        THE BIG QUERY:
+        SELECT class, steamid, SUM(kills) as kills, SUM(deaths) as deaths, SUM(assists) as assists, SUM(points) as points FROM livelogs_player_stats WHERE class != 'UNKNOWN' GROUP BY class, steamid ORDER BY class DESC;
+        */
+
+
         if (!$ll_db)
             die();
     ?>
