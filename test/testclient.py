@@ -69,7 +69,7 @@ class testclient(object):
                     #client.send("R%s\r\n" % line)
                         
                     x += 1
-                    time.sleep(random.uniform(1, 2))
+                    time.sleep(random.uniform(0.1, 0.3))
 
                 log_file.close()
 
@@ -85,7 +85,7 @@ class testclient(object):
 def do_threads():
     clients = set()
 
-    for i in range(0, 1):
+    for i in range(0, 100):
         portno = 20000 + i
 
         client = testclient()
@@ -96,7 +96,7 @@ def do_threads():
         client.thread.daemon = True
         client.thread.start()
 
-        time.sleep(random.randint(3, 8))
+        time.sleep(random.randint(1, 2))
     try:
         while len(clients) > 0:
             for client in clients.copy():
