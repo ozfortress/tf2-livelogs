@@ -13,7 +13,7 @@
         $escaped_serial = pg_escape_string($log_serial);
         
         $log_detail_query = "SELECT log_ident, log_name, HOST(server_ip) as server_ip, server_port, map, live, webtv_port, tstamp
-                            FROM livelogs_log_index 
+                            FROM {$ll_config["tables"]["log_index"]} 
                             WHERE numeric_id = '{$escaped_serial}'";
 
         $log_detail_res = pg_query($ll_db, $log_detail_query);
@@ -51,19 +51,19 @@
                                     headshots, damage_dealt, damage_taken,
                                     captures, captures_blocked, 
                                     dominations
-                            FROM livelogs_player_stats
+                            FROM {$ll_config["tables"]["player_stats"]}
                             WHERE log_ident = '{$_unique_ident}'";
 
             $stat_result = pg_query($ll_db, $stat_query);
 
             $name_query =  "SELECT steamid, name 
-                            FROM livelogs_player_details
+                            FROM {$ll_config["tables"]["player_details"]}
                             WHERE log_ident = '{$_unique_ident}'";
 
             $name_result = pg_query($ll_db, $name_query);
 
             
-            $chat_query = "SELECT steamid, name, team, chat_type, chat_message FROM livelogs_game_chat WHERE log_ident = '{$_unique_ident}'";
+            $chat_query = "SELECT steamid, name, team, chat_type, chat_message FROM {$ll_config["tables"]["game_chat"]} WHERE log_ident = '{$_unique_ident}'";
             $chat_result = pg_query($ll_db, $chat_query);
 
             if (!$log_live)
@@ -101,7 +101,7 @@
             $team_stats_query = "SELECT team, SUM(kills) as team_kills, SUM(deaths) AS team_deaths, 
                                 SUM(healing_done) as team_healing_done, 
                                 SUM(damage_dealt) as team_damage_dealt, SUM(damage_taken) as team_damage_taken
-                                FROM livelogs_player_stats
+                                FROM {$ll_config["tables"]["player_stats"]}
                                 WHERE log_ident = '{$_unique_ident}' and team IS NOT NULL
                                 GROUP BY team";
 

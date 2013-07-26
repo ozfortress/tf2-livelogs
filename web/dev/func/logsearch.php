@@ -43,13 +43,13 @@
     else
     {
         $log_query =   "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, tstamp 
-                        FROM livelogs_log_index 
+                        FROM {$ll_config["tables"]["log_index"]} 
                         WHERE live='false'
                         {$order}
                         {$limit}";
 
         $count_query = "SELECT COUNT(numeric_id) as total
-                        FROM livelogs_log_index
+                        FROM {$ll_config["tables"]["log_index"]}
                         WHERE live='false'";
     }
 

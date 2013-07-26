@@ -22,7 +22,7 @@
         }
     
         $live_query =  "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map 
-                        FROM livelogs_log_index
+                        FROM {$ll_config["tables"]["log_index"]}
                         WHERE live='true' 
                         ORDER BY numeric_id DESC";
 
@@ -30,7 +30,7 @@
 
     
         $past_query =  "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, tstamp 
-                        FROM livelogs_log_index
+                        FROM {$ll_config["tables"]["log_index"]}
                         WHERE live='false' 
                         ORDER BY numeric_id DESC LIMIT {$num_past}";
 
@@ -80,7 +80,7 @@
     <div class="livelogs_wrapper">
         <div class="text_blurb">
             <p align="center">Welcome to Livelogs beta version 2! You will notice a number of improvements and differences from the previous version. As always, report any bugs you encounter.</p>
-            <p>Below you will find live logs (if any are running) that you may view, or a list of past logs. Clicking 'See more' will allow you to view the log archive, which contains all logs recorded</p>
+            <p align="center">Below you will find live logs (if any are running) that you may view, or a list of past logs. Clicking 'See more' will allow you to view the log archive, which contains all logs recorded</p>
         </div>
         <div align="center">
             <?php

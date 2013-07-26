@@ -27,7 +27,7 @@
                                     SUM(dominations) as dominations, SUM(revenges) as revenges, SUM(times_dominated) as times_dominated,
                                     SUM(ap_small) as ap_small, SUM(ap_medium) as ap_medium, SUM(ap_large) as ap_large,
                                     SUM(mk_small) as mk_small, SUM(mk_medium) as mk_medium, SUM(mk_large) as mk_large
-                            FROM livelogs_player_stats WHERE steamid = '{$escaped_cid}'";
+                            FROM {$ll_config["tables"]["player_stats"]} WHERE steamid = '{$escaped_cid}'";
 
             $stat_result = pg_query($ll_db, $stat_query);
 
@@ -38,8 +38,8 @@
             else
             {
                 /*$player_logs_query = "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp 
-                                      FROM livelogs_log_index
-                                      JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident 
+                                      FROM {$ll_config["tables"]["log_index"]}
+                                      JOIN {$ll_config["tables"]["player_details"]} ON {$ll_config["tables"]["player_details"]}.log_ident = {$ll_config["tables"]["log_index"]}.log_ident 
                                       WHERE steamid = '{$escaped_cid}'
                                       ORDER BY numeric_id DESC
                                       LIMIT {$ll_config["display"]["player_num_past"]}"; //get all the logs that a user has been in
@@ -53,7 +53,7 @@
                 */
 
                 $total_logs_query = "SELECT COUNT(log_ident) as total
-                                    FROM livelogs_player_details
+                                    FROM {$ll_config["tables"]["player_details"]}
                                     WHERE steamid = '{$escaped_cid}'";
 
                 $total_logs_result = pg_query($ll_db, $total_logs_query);
@@ -76,16 +76,18 @@
                 
                 
 
-                $class_stats_query =    "SELECT class, kills, deaths, assists, points,
-                                            healing_done, healing_received, ubers_used, ubers_lost,
-                                            headshots, backstabs, damage_dealt, damage_taken,
-                                            dominations, revenges
-                                        FROM get_player_class_stats({$escaped_cid})";
+                $class_stats_query =    "SELECT class, SUM(kills) as kills, SUM(deaths) as deaths, SUM(assists) as assists, SUM(points) as points, 
+                                           SUM(healing_done) as healing_done, SUM(healing_received) as healing_received, SUM(ubers_used) as ubers_used, SUM(ubers_lost) as ubers_lost, 
+                                           SUM(headshots) as headshots, SUM(backstabs) as backstabs, SUM(damage_dealt) as damage_dealt, SUM(damage_taken) as damage_taken,
+                                           SUM(dominations) as dominations, SUM(revenges) as revenges
+                                        FROM {$ll_config["tables"]["player_stats"]}
+                                        WHERE class != 'UNKNOWN' AND steamid = '{$escaped_cid}'
+                                        GROUP BY class";
 
                 $class_results = pg_query($ll_db, $class_stats_query);
 
                 $name_query =  "SELECT name 
-                                FROM livelogs_player_details 
+                                FROM {$ll_config["tables"]["player_details"]} 
                                 WHERE steamid = {$escaped_cid}
                                 ORDER BY id DESC"; //get the most recently used name
 

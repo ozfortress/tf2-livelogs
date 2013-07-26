@@ -12,4 +12,9 @@
     $ll_config["ozfortress"]["active"] = false;
     $ll_config["ozfortress"]["hashkey"] = "";
     $ll_config["ozfortress"]["hashtype"] = "sha1";
+
+    $ll_config["tables"]["log_index"] = "livelogs_log_index";
+    $ll_config["tables"]["player_stats"] = "livelogs_player_stats";
+    $ll_config["tables"]["game_chat"] = "livelogs_game_chat";
+    $ll_config["tables"]["player_details"] = "livelogs_player_details";
 ?>

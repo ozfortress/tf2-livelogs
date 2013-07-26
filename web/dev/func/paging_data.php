@@ -60,8 +60,8 @@
     //THE QUERIES----------------
 
     $log_query = "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp
-                FROM livelogs_log_index
-                JOIN livelogs_player_details ON livelogs_log_index.log_ident = livelogs_player_details.log_ident
+                FROM {$ll_config["tables"]["log_index"]}
+                JOIN {$ll_config["tables"]["player_details"]} ON {$ll_config["tables"]["log_index"]}.log_ident = {$ll_config["tables"]["player_details"]}.log_ident
                 {$filter} 
                 {$order} 
                 {$limit}";
@@ -75,7 +75,7 @@
     {
         //total length of data set
         $total_logs_query = "SELECT COUNT(id) as total
-                            FROM livelogs_player_details
+                            FROM {$ll_config["tables"]["player_details"]}
                             {$filter}";
 
         $total_logs_result = pg_query($ll_db, $total_logs_query);

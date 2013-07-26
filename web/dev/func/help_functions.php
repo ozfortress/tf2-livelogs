@@ -163,7 +163,7 @@
             $escaped_port = pg_escape_string($split_filter[1]);
             
             $query =   "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, tstamp 
-                        FROM livelogs_log_index 
+                        FROM {$ll_config["tables"]["log_index"]} 
                         WHERE (
                                 TEXT(server_ip) = '{$escaped_address}' 
                                 AND server_port = CAST('{$escaped_port}' AS INT)
@@ -173,7 +173,7 @@
                         {$limit}";
 
             $count_query = "SELECT COUNT(numeric_id) as total
-                        FROM livelogs_log_index 
+                        FROM {$ll_config["tables"]["log_index"]} 
                         WHERE (
                                 TEXT(server_ip) = '{$escaped_address}' 
                                 AND server_port = CAST('{$escaped_port}' AS INT)
@@ -188,15 +188,15 @@
             $escaped_cid = pg_escape_string($cid);
 
             $query =   "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp 
-                        FROM livelogs_log_index
-                        JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident 
+                        FROM {$ll_config["tables"]["log_index"]}
+                        JOIN {$ll_config["tables"]["player_details"]} ON {$ll_config["tables"]["player_details"]}.log_ident = {$ll_config["tables"]["log_index"]}.log_ident 
                         WHERE steamid = '{$escaped_cid}' AND live='false'
                         {$order}
                         {$limit}";
 
             $count_query = "SELECT COUNT(numeric_id) as total
-                        FROM livelogs_log_index
-                        JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident 
+                        FROM {$ll_config["tables"]["log_index"]}
+                        JOIN {$ll_config["tables"]["player_details"]} ON {$ll_config["tables"]["player_details"]}.log_ident = {$ll_config["tables"]["log_index"]}.log_ident 
                         WHERE steamid = '{$escaped_cid}' AND live='false'";
         }
         else
@@ -204,8 +204,8 @@
             $escaped_filter = pg_escape_string($filter);
 
             $query =   "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, tstamp 
-                        FROM livelogs_log_index 
-                        JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident
+                        FROM {$ll_config["tables"]["log_index"]} 
+                        JOIN {$ll_config["tables"]["player_details"]} ON {$ll_config["tables"]["player_details"]}.log_ident = {$ll_config["tables"]["log_index"]}.log_ident
                         WHERE (
                                 TEXT(server_ip) ~* '{$escaped_filter}' 
                                 OR log_name ~* '{$escaped_filter}' 
@@ -218,8 +218,8 @@
                         {$limit}";
 
             $count_query = "SELECT COUNT(numeric_id) as total
-                            FROM livelogs_log_index 
-                            JOIN livelogs_player_details ON livelogs_player_details.log_ident = livelogs_log_index.log_ident
+                            FROM {$ll_config["tables"]["log_index"]} 
+                            JOIN {$ll_config["tables"]["player_details"]} ON {$ll_config["tables"]["player_details"]}.log_ident = {$ll_config["tables"]["log_index"]}.log_ident
                             WHERE (
                                     TEXT(server_ip) ~* '{$escaped_filter}' 
                                     OR log_name ~* '{$escaped_filter}' 
