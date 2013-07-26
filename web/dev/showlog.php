@@ -35,15 +35,6 @@
                 $log_live = false;
             else
                 $log_live = true;
-
-            if (function_exists("pg_escape_identifier"))
-            {
-                $escaped_event_table = pg_escape_identifier("log_event_" . $_unique_ident);
-            }
-            else
-            {
-                $escaped_event_table = pg_escape_string("log_event_" . $_unique_ident);
-            }
             
             $stat_query =  "SELECT steamid, team, class,
                                     kills, deaths, assists, points, 
@@ -68,9 +59,9 @@
 
             if (!$log_live)
             {
-                $time_query =  "SELECT event_time FROM {$escaped_event_table} WHERE eventid = '1' 
+                $time_query =  "SELECT event_time FROM {$ll_config["tables"]["log_events"]} WHERE eventid = '1' 
                                 UNION 
-                                SELECT event_time FROM {$escaped_event_table} WHERE eventid = (SELECT MAX(eventid) FROM {$escaped_event_table})";
+                                SELECT event_time FROM {$ll_config["tables"]["log_events"]} WHERE eventid = (SELECT MAX(eventid) FROM {$ll_config["tables"]["log_events"]})";
             
                 $time_result = pg_query($ll_db, $time_query);
                 $time_array = pg_fetch_all($time_result);
@@ -82,7 +73,8 @@
             }
             
             $score_query = "SELECT COALESCE(round_red_score, 0) as red_score, COALESCE(round_blue_score, 0) as blue_score 
-                            FROM {$escaped_event_table} WHERE round_red_score IS NOT NULL AND round_blue_score IS NOT NULL 
+                            FROM {$ll_config["tables"]["log_events"]} 
+                            WHERE (round_red_score IS NOT NULL AND round_blue_score IS NOT NULL) AND log_ident = '{$_unique_ident}'
                             ORDER BY eventid DESC LIMIT 1";
                             
             $score_result = pg_query($ll_db, $score_query);

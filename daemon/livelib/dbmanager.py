@@ -69,7 +69,7 @@ class dbManager(object):
         self.DB_STAT_TABLE = "livelogs_player_stats"
         self.DB_CHAT_TABLE = "livelogs_game_chat"
         self.DB_PLAYER_TABLE = "livelogs_player_details"
-        self.DB_EVENT_TABLE = "log_event_%s" % log_id
+        self.DB_EVENT_TABLE = "livelogs_game_events"
         
         self._stat_table = {} #a dict containing stat data
         self._stat_difference_table = {} #a dict containing the difference between stored and retrieved stat data
@@ -355,7 +355,7 @@ class dbManager(object):
         else:
             chat_query = "SELECT id, name, team, chat_type, chat_message FROM %s WHERE id > '%d' AND log_ident = '%s'" % (self.DB_CHAT_TABLE, self._chat_event_id, self._unique_ident)
 
-        score_query = "SELECT COALESCE(round_red_score, 0), COALESCE(round_blue_score, 0) FROM %s WHERE round_red_score IS NOT NULL AND round_blue_score IS NOT NULL ORDER BY eventid DESC LIMIT 1" % (self.DB_EVENT_TABLE)
+        score_query = "SELECT COALESCE(round_red_score, 0), COALESCE(round_blue_score, 0) FROM %s WHERE (round_red_score IS NOT NULL AND round_blue_score IS NOT NULL) AND log_ident = '%s' ORDER BY eventid DESC LIMIT 1" % (self.DB_EVENT_TABLE, self._unique_ident)
 
         team_stat_query = "SELECT team, SUM(kills), SUM(deaths), SUM(healing_done), SUM(damage_dealt), SUM(damage_taken) FROM %s WHERE (log_ident = '%s' AND team IS NOT NULL) GROUP BY team" % (self.DB_STAT_TABLE, self._unique_ident)
 

@@ -23,7 +23,19 @@ CREATE TABLE livelogs_game_chat (id serial, log_ident varchar(64), steamid bigin
 
 CREATE TABLE livelogs_log_index (numeric_id serial, server_ip cidr NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean, webtv_port integer, tstamp text); --holds server log information
 CREATE INDEX log_ident_index ON livelogs_log_index(log_ident);
+CREATE INDEX log_ip_text_index ON livelogs_log_index(TEXT(server_ip));
 
 CREATE TABLE livelogs_player_details (id serial, steamid bigint, log_ident varchar(64), name text);
 CREATE INDEX details_ident_index ON livelogs_player_details(log_ident);
 
+
+CREATE TABLE livelogs_game_events (eventid serial PRIMARY KEY, log_ident varchar(64), event_time text, event_type text,
+                            kill_attacker_id bigint, kill_attacker_pos varchar(32),
+                            kill_assister_id bigint, kill_assister_pos varchar(32),
+                            kill_victim_id bigint, kill_victim_pos varchar(32),
+                            medic_steamid bigint, medic_uber_used integer, medic_uber_lost integer, medic_healing integer,
+                            capture_name varchar(64), capture_team varchar(16), capture_num_cappers integer, capture_blocked integer,
+                            round_winner varchar(16), round_red_score integer, round_blue_score integer, round_length decimal,
+                            game_over_reason varchar(128));
+
+CREATE INDEX events_ident_index ON livelogs_game_events(log_ident);

@@ -17,4 +17,5 @@
     $ll_config["tables"]["player_stats"] = "livelogs_player_stats";
     $ll_config["tables"]["game_chat"] = "livelogs_game_chat";
     $ll_config["tables"]["player_details"] = "livelogs_player_details";
+    $ll_config["tables"]["log_events"] = "livelogs_game_events";
 ?>
