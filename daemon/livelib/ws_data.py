@@ -312,7 +312,7 @@ class manager_data(object):
 
     def add_manager(self, manager_tuple):
         #add the manager tuple in the form (log_ident, manager) to the left of the deque
-        self.__managers.addleft(manager_tuple)
+        self.__managers.appendleft(manager_tuple)
 
     def get_manager(self, log_ident):
         #get the db manager object corresponding to the log ident
