@@ -25,29 +25,35 @@ BEGIN
     FOR index_row IN
         SELECT log_ident FROM livelogs_log_index
     LOOP
-        FOR log_row IN
-            EXECUTE 'SELECT name, team,
-                    kills, deaths, assists, points,
-                    healing_done, healing_received, ubers_used, ubers_lost,
-                    headshots, backstabs, damage_dealt, damage_taken,
-                    captures, captures_blocked,
-                    dominations, times_dominated, revenges,
-                    suicides, buildings_destroyed, extinguishes
-                    FROM log_stat_' || index_row.log_ident
-        LOOP
-            INSERT INTO livelogs_player_stats (log_ident, steamid, team, class, kills, deaths, assists, points, healing_done, healing_received, ubers_used, ubers_lost,
-                                                headshots, backstabs, damage_dealt, damage_taken, captures, captures_blocked, dominations, times_dominated, revenges,
-                                                suicides, buildings_destroyed, extinguishes)
-                VALUES (index_row.log_ident, fake_id, log_row.team, 'UNKNOWN', log_row.kills, log_row.deaths, log_row.assists, log_row.points, log_row.healing_done, log_row.healing_received, log_row.ubers_used,
-                        log_row.ubers_lost, log_row.headshots, log_row.backstabs, log_row.damage_dealt, log_row.damage_taken, log_row.captures, log_row.captures_blocked, log_row.dominations, log_row.times_dominated,
-                        log_row.revenges, log_row.suicides, log_row.buildings_destroyed, log_row.extinguishes);
+        IF EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_name = 'log_stat_' || index_row.log_ident
+        )
+        THEN
+            FOR log_row IN
+                EXECUTE 'SELECT name, team,
+                        kills, deaths, assists, points,
+                        healing_done, healing_received, ubers_used, ubers_lost,
+                        headshots, backstabs, damage_dealt, damage_taken,
+                        captures, captures_blocked,
+                        dominations, times_dominated, revenges,
+                        suicides, buildings_destroyed, extinguishes
+                        FROM log_stat_' || index_row.log_ident
+            LOOP
+                INSERT INTO livelogs_player_stats (log_ident, steamid, team, class, kills, deaths, assists, points, healing_done, healing_received, ubers_used, ubers_lost,
+                                                    headshots, backstabs, damage_dealt, damage_taken, captures, captures_blocked, dominations, times_dominated, revenges,
+                                                    suicides, buildings_destroyed, extinguishes)
+                    VALUES (index_row.log_ident, fake_id, log_row.team, 'UNKNOWN', log_row.kills, log_row.deaths, log_row.assists, log_row.points, log_row.healing_done, log_row.healing_received, log_row.ubers_used,
+                            log_row.ubers_lost, log_row.headshots, log_row.backstabs, log_row.damage_dealt, log_row.damage_taken, log_row.captures, log_row.captures_blocked, log_row.dominations, log_row.times_dominated,
+                            log_row.revenges, log_row.suicides, log_row.buildings_destroyed, log_row.extinguishes);
 
-            INSERT INTO livelogs_player_details (steamid, log_ident, name) VALUES (fake_id, index_row.log_ident, log_row.name);
+                INSERT INTO livelogs_player_details (steamid, log_ident, name) VALUES (fake_id, index_row.log_ident, log_row.name);
 
-            fake_id := fake_id + 1;
-        END LOOP;
+                fake_id := fake_id + 1;
+            END LOOP;
+        END IF;
     END LOOP;
-
 END;
 $_$ LANGUAGE 'plpgsql';
 
