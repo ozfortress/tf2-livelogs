@@ -906,8 +906,8 @@ class parserClass(object):
         insert_query = "INSERT INTO %s (log_ident, steamid, %s, class) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, 
                                         self.UNIQUE_IDENT, cid, value, self._players[cid].current_class())
 
-        update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE steamid = E'%s' and log_ident = '%s' and class = '%s'" % (self.STAT_TABLE, column, 
-                                                column, value, cid, self.UNIQUE_IDENT, self._players[cid].current_class())
+        update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE (log_ident = '%s' AND steamid = E'%s' AND class = '%s')" % (self.STAT_TABLE, column, 
+                                                column, value, self.UNIQUE_IDENT, cid, self._players[cid].current_class())
 
         self.add_qtq(insert_query, update_query)
 
@@ -950,7 +950,7 @@ class parserClass(object):
         if team_to_insert:
             for team_tuple in team_insert_list:
                 #insert_query = "INSERT INTO %s (log_ident, steamid, team) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, team_tuple[0], team_tuple[1])
-                update_query = "UPDATE %s SET team = E'%s' WHERE steamid = E'%s' and log_ident = '%s'" % (self.STAT_TABLE, team_tuple[1], team_tuple[0], self.UNIQUE_IDENT)
+                update_query = "UPDATE %s SET team = E'%s' WHERE log_ident = '%s' AND steamid = E'%s'" % (self.STAT_TABLE, team_tuple[1],  self.UNIQUE_IDENT, team_tuple[0])
 
                 self.executeQuery(update_query) #we only ever want to update the team, never insert
 
@@ -966,7 +966,7 @@ class parserClass(object):
             insert_query = "INSERT INTO %s (log_ident, steamid, class, team) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, sid, pclass, self._players[sid].current_team())
 
             #if the class was inserted as unknown, it is likely that the 'unknown' class is now this class. this is what we'll assume, anyway
-            update_query = "UPDATE %s SET class = '%s' WHERE steamid = E'%s' and log_ident = '%s' and class='UNKNOWN'" % (self.STAT_TABLE, pclass, sid, self.UNIQUE_IDENT)
+            update_query = "UPDATE %s SET class = '%s' WHERE (log_ident = '%s' AND steamid = E'%s' AND class = 'UNKNOWN')" % (self.STAT_TABLE, pclass, self.UNIQUE_IDENT, sid)
             
             #print "update query for %s: %s" % (self._players[sid].current_name(), update_query)
 
@@ -983,8 +983,8 @@ class parserClass(object):
 
             elif not self._players[cid].is_name_same(name):
                 #else if name changed, need to update
-                details_query = "UPDATE %s SET name = E'%s' WHERE steamid = '%s' and log_ident = '%s'" % (self.PLAYER_TABLE,
-                                    name, cid, self.UNIQUE_IDENT)
+                details_query = "UPDATE %s SET name = E'%s' WHERE log_ident = '%s' AND steamid = E'%s'" % (self.PLAYER_TABLE,
+                                    name, self.UNIQUE_IDENT, cid)
 
             if details_query:
                 self.executeQuery(details_query, queue_priority = queryqueue.HIPRIO)
