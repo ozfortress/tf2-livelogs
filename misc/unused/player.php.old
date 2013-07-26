@@ -1,0 +1,68 @@
+ <div class="stat_table_container stat_table_container_small">
+            <?php
+            if (($pstat["healing_done"] > 0) || ($pstat["ubers_used"]) || ($pstat["ubers_lost"])) 
+            {
+            ?>
+
+            <table class="table table-bordered table-hover ll_table">
+                <thead>
+                    <tr>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Healing Done">Healing</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Ubers Used">Ubers</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Ubers Lost">UL</abbr>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><?=$pstat["healing_done"]?></td>
+                        <td><?=$pstat["ubers_used"]?></td>
+                        <td><?=$pstat["ubers_lost"]?></td>
+                    </tr>
+                </tbody>
+                <caption>Player medic stats</caption>
+            </table>
+            <?php
+            }
+            ?>
+            <table class="table table-bordered table-hover ll_table">
+                <thead>
+                    <tr>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Medkit (Small)">MK S</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Medkit (Medium)">MK M</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Medkit (Large)">MK L</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Ammo pack (Small)">AP S</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Ammo pack (Medium)">AP M</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Ammo pack (Large)">AP L</abbr>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><?=$pstat["mk_small"]?></td>
+                        <td><?=$pstat["mk_medium"]?></td>
+                        <td><?=$pstat["mk_large"]?></td>
+                        <td><?=$pstat["ap_small"]?></td>
+                        <td><?=$pstat["ap_medium"]?></td>
+                        <td><?=$pstat["ap_large"]?></td>
+                    </tr>
+                </tbody>
+                <caption>Total item pickups</caption>
+            </table>
+        </div>

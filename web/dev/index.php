@@ -21,10 +21,19 @@
             $num_past = 15;
         }
     
-        $live_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='true' ORDER BY numeric_id DESC";
+        $live_query =  "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map 
+                        FROM {$ll_config["tables"]["log_index"]}
+                        WHERE live='true' 
+                        ORDER BY numeric_id DESC";
+
         $live_res = pg_query($ll_db, $live_query);
+
     
-        $past_query = "SELECT server_ip, server_port, log_ident, log_name, map FROM livelogs_servers WHERE live='false' ORDER BY numeric_id DESC LIMIT {$num_past}";
+        $past_query =  "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, tstamp 
+                        FROM {$ll_config["tables"]["log_index"]}
+                        WHERE live='false' 
+                        ORDER BY numeric_id DESC LIMIT {$num_past}";
+
         $past_res = pg_query($ll_db, $past_query);
     ?>
 
@@ -40,6 +49,9 @@
                     </li>
                     <li>
                         <a href="/past">Archive</a>
+                    </li>
+                    <li>
+                        <a href="/leaders">Leaderboard</a>
                     </li>
                 </ul>
                 <ul class="nav pull-right">
@@ -66,8 +78,9 @@
         </div>
     </div>
     <div class="livelogs_wrapper">
-        <div class="index_welcome">
-            <p>Welcome to Livelogs! Below you will find a list of logs that are currently live (if any), and a list of past logs that you may view.</p>
+        <div class="text_blurb">
+            <p align="center">Welcome to Livelogs beta version 2! You will notice a number of improvements and differences from the previous version. As always, report any bugs you encounter.</p>
+            <p align="center">Below you will find live logs (if any are running) that you may view, or a list of past logs. Clicking 'See more' will allow you to view the log archive, which contains all logs recorded</p>
         </div>
         <div align="center">
             <?php
@@ -108,10 +121,10 @@
                     ?>
                        
                         <tr>
-                            <td class="server_ip"><?=long2ip($live["server_ip"])?></td>
+                            <td class="server_ip"><?=$live["server_ip"]?></td>
                             <td class="server_port"><?=$live["server_port"]?></td>
                             <td class="log_map"><?=$live["map"]?></td>
-                            <td class="log_name"><a href="/view/<?=$live["log_ident"]?>"><?=htmlentities($live["log_name"], ENT_QUOTES, "UTF-8")?></a></td>
+                            <td class="log_name"><a href="/view/<?=$live["numeric_id"]?>"><?=htmlentities($live["log_name"], ENT_QUOTES, "UTF-8")?></a></td>
                         </tr>
                     <?php
                     }
@@ -165,16 +178,14 @@
                     while ($past = pg_fetch_array($past_res, NULL, PGSQL_ASSOC))
                     {
                         //server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
-                        $log_split = explode("_", $past["log_ident"]); //3232244481_27015_1356076576
-                        
                     ?>
                         
                         <tr>
-                            <td class="server_ip"><?=long2ip($past["server_ip"])?></td>
+                            <td class="server_ip"><?=$past["server_ip"]?></td>
                             <td class="server_port"><?=$past["server_port"]?></td>
                             <td class="log_map"><?=$past["map"]?></td>
-                            <td class="log_name"><a href="/view/<?=$past["log_ident"]?>"><?=htmlentities($past["log_name"], ENT_QUOTES, "UTF-8")?></a></td>
-                            <td class="log_date"><?=date("d/m/Y H:i:s", $log_split[2])?></td>
+                            <td class="log_name"><a href="/view/<?=$past["numeric_id"]?>"><?=htmlentities($past["log_name"], ENT_QUOTES, "UTF-8")?></a></td>
+                            <td class="log_date"><?=$past["tstamp"]?></td>
                         </tr>
                     <?php
                     }

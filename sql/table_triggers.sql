@@ -92,9 +92,6 @@ BEGIN
         IF NEW.extinguishes IS NULL THEN
                 NEW.extinguishes := 0;
         END IF;
-        IF NEW.kill_streak IS NULL THEN
-                NEW.kill_streak := 0;
-        END IF;
 
         RETURN NEW;
 END;

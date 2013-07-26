@@ -16,7 +16,7 @@ class llListenerHandler(SocketServer.BaseRequestHandler):
         else:
             #don't need to remove null byte
             data = self.request[0].lstrip("\xFF").rstrip()
-
+            
         #strip leading log information, so logs are written just like a server log
         #we do this by tokenising, getting all tokens after first token and rejoining
 
@@ -27,23 +27,26 @@ class llListenerHandler(SocketServer.BaseRequestHandler):
 
 
 class llListener(SocketServer.UDPServer):
-    def __init__(self, logger, listener_address, timeout, listener_object, handler_class=llListenerHandler):
-        self.logger = logger
+    def __init__(self, data, handler_class=llListenerHandler):
+        self.logger = data.listener_logger
         self.logger.info("Initialised log listener. Waiting for logs")
         self.parser = None
 
-        self._timeout = timeout
+        self.client_secret = data.client_secret
+
+        self._timeout = data.log_timeout
 
         #self.timeoutTimer = threading.Timer(timeout, self.handle_server_timeout)
         #self.timeoutTimer.start()
         self._using_secret = False
 
-        self.listener_object = listener_object #llListenerObject address, which holds this listener. needed to end the listening thread, and remove the object from the daemon's set
+        self.listener_thread = data.listener_thread #listener thread, to prevent deadlocks later on
+        self.listener_callback = data.listener_callback
 
         self._ended = False
         self._last_message_time = time.time() #set the init time to this, so we can still timeout if nothing is received at all
 
-        SocketServer.UDPServer.__init__(self, listener_address, handler_class)
+        SocketServer.UDPServer.__init__(self, data.listener_address, handler_class)
 
     def verify_request(self, request, client_address):
         """
@@ -109,49 +112,58 @@ class llListener(SocketServer.UDPServer):
             return False
 
     def __listener_shutdown(self):
-        if threading.current_thread() is self.listener_object.lthread:
+        if self.listener_thread and threading.current_thread() is self.listener_thread:
             self.logger.error("__listener_shutdown called from the same thread as the listener. will cause deadlock")
 
             return
 
         self.logger.info("Shutting down listener on %s:%s", self.server_address[0], self.server_address[1])
 
-        #need to close the parser's database connection
-        if self.parser.db:
-            if not self.parser.db.closed: #cancel current operations and end the log
-                #self.parser.db.cancel()
-                self.parser.endLogParsing()
+        #need to end the log
+        if not self.parser.LOG_PARSING_ENDED:
+            self.parser.endLogParsing()
                   
         self.shutdown() #call the class's in-built shutdown method, which stops listening for new data
         self.server_close() #closes the server socket
         
         #should no longer be listening or anything now, so we can call close_object, which will join the thread and remove llListenerObject from the daemon's set
-        self.listener_object.close_object()
+        self.listener_callback()
 
 class llListenerObject(object):
-    def __init__(self, db_pool, client_secret, listen_ip, client_address, current_map, log_name, end_function, webtv_port=None, timeout=90.0):
-        self.unique_parser_ident = "%s_%s_%s" % (self.ip2long(client_address[0]), client_address[1], int(round(time.time())))
+    def __init__(self, data):
+        self.unique_parser_ident = "%s_%s_%s" % (self.ip2long(data.client_address[0]), data.client_address[1], int(round(time.time())))
 
-        self.logger = logging.getLogger("LISTENER #%s" % self.unique_parser_ident)
+        self.lthread = None
+
+        self.data = data
+
+        self.logger = logging.getLogger(self.unique_parser_ident)
         self.logger.setLevel(logging.DEBUG)
 
-        self.listen_ip = listen_ip
+        self.listen_ip = data.server_ip
 
         self.listenAddress = (self.listen_ip, 0)
-        self.listener = llListener(self.logger, self.listenAddress, timeout, self, handler_class=llListenerHandler)
 
-        self.logger.info("Initialising parser. Log name: %s, Map: %s, WebTV port: %s", log_name, current_map, webtv_port)
-        
-        self.listener.parser = parser.parserClass(db_pool, self.unique_parser_ident, server_address = client_address, current_map = current_map, log_name = log_name, endfunc = self.listener.handle_server_timeout, webtv_port = webtv_port)
-        
-        self.listener.client_server_address = client_address #tuple containing the client's server IP and PORT
-        self.listener.client_secret = client_secret
-        
-        self.lip, self.lport = self.listener.server_address #get the listener's address, so it can be sent to the client
+        data.listener_thread = self.lthread
+        data.listener_callback = self.close_object
+        data.listener_logger = self.logger
+        data.listener_address = self.listenAddress
+        data.unique_parser_ident = self.unique_parser_ident
 
-        self.client_address = client_address
+        self.listener = llListener(data, handler_class=llListenerHandler)
+
+        self.logger.info("Initialising parser. Log name: %s, Map: %s, WebTV port: %s", data.log_name, data.log_map, data.log_webtv_port)
         
-        self.end_function = end_function
+        self.listener.parser = parser.parserClass(data, endfunc = self.listener.handle_server_timeout)
+        
+        self.listener.client_server_address = data.client_address #tuple containing the client's server IP and PORT
+        
+        self.listen_ip, self.listen_port = self.listener.server_address #get the listener's address, so it can be sent to the client
+
+        self.client_address = data.client_address
+        
+        self.end_function = data.end_callback
+        self.lthread = None
 
     def startListening(self):
         #start serving in a thread. the object will be stored in a set owned by the daemon object, so the thread will be kept alive
@@ -172,7 +184,6 @@ class llListenerObject(object):
             return True
 
     def error_cleanup(self):
-        self.listener.timeoutTimer.cancel()
         self.listener.shutdown_listener()
         
     def close_object(self): #only ever called by listener.__listener_shutdown()
@@ -182,3 +193,8 @@ class llListenerObject(object):
         self.logger.info("Listener thread joined. Removing listener object from set")
         
         self.end_function(self) #self is the same as the newListen object added by the daemon
+
+    def get_numeric_id(self):
+        return self.listener.parser._numeric_id
+
+

@@ -19,11 +19,16 @@ import sys
 import os
 import time
 import threading
+import math
 import ConfigParser
+
 from HTMLParser import HTMLParser
 from pprint import pprint
 
 import listener
+from livelib import queryqueue
+
+from livelib.parser_lib import stripHTMLTags
 
 log_message_format = logging.Formatter(fmt="[(%(levelname)s) %(process)s %(asctime)s %(module)s:%(name)s:%(lineno)s] %(message)s", datefmt="%H:%M:%S")
 
@@ -33,41 +38,35 @@ log_file_handler.setLevel(logging.DEBUG)
 
 logging.getLogger().addHandler(log_file_handler) #add the file handler to the root logger, so all logs are saved to a file
 
-#this class is used to remove all HTML tags from player strings
-class HTMLStripper(HTMLParser):
-    def __init__(self):
-        self.reset()
-        self.fed = [] #fed is what is fed to the class by the function
-
-    def handle_data(self, d):
-        self.fed.append(d)
-
-    def get_data(self):
-        return ''.join(self.fed)
-
-def stripHTMLTags(string):
-    stripper = HTMLStripper()
-    stripper.feed(string)
-
-    return stripper.get_data() #get the text out
-
+class llData(object):
+    #an object that contains various data which is passed down
+    def __init__(self, db, secret, sip, client_address, log_map, log_name, end_callback, timeout, webtv_port):
+        self.db = db
+        self.client_secret = secret
+        self.server_ip = sip
+        self.client_address = client_address
+        self.log_map = log_map
+        self.log_name = log_name
+        self.end_callback = end_callback
+        self.log_timeout = timeout
+        self.log_webtv_port = webtv_port
 
 class llDaemonHandler(SocketServer.BaseRequestHandler):
     def __init__(self, request, client_address, server):
-        self.logger = logging.getLogger('handler')
-        self.logger.setLevel(logging.DEBUG)
+        self.logger = server.handler_logger
 
         self.newListen = None
         
         self.cip, self.cport = client_address
 
         SocketServer.BaseRequestHandler.__init__(self, request, client_address, server)
-        
+
+    def setup(self):
+        self.data = self.request.recv(1024) #read up to 1024 bytes of data
+        self.logger.debug('Received "%s" from client %s:%s', self.data, self.cip, self.cport)
+
     def handle(self):
-        rcvd = self.request.recv(1024) #read up to 1024 bytes of data
-
-        self.logger.debug('Received "%s" from client %s:%s', rcvd, self.cip, self.cport)
-
+        rcvd = self.data 
         #FORMAT OF LOG REQUEST: LIVELOG!KEY!SIP!SPORT!MAP!NAME!WEBTV_PORT(OPTIONAL)
         
         try:
@@ -91,16 +90,16 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
             client_details = None
 
             if client_info is not None:
-                #client_details is a list of tuples
+                #client_details is a list of tuples, because hosted environments use the same IPs for different users
                 for details in client_info:
-                    if msg[1] == details[2]: #if the auth key matches one of the returned keys
+                    if msg[1] == details[2]: #if the auth key matches one of the returned keys, the user is valid
                         client_details = details #copy the details to our individual client's details
 
             if client_details is not None:
                 client_api_key = client_details[2]
 
-                self.logger.debug("Key is correct for client %s (%s) @ %s", client_details[0], client_details[1], self.cip)
-                
+                self.logger.info("Key is correct for client %s (%s) @ %s", client_details[0], client_details[1], self.cip)
+
                 if self.resolve_dns(msg[2]):
                     #msg[2] is an IP, so use the api key as the log secret
                     client_secret = client_api_key
@@ -108,19 +107,24 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 else:
                     #msg[2] is not an IP, so use it as the log secret
                     client_secret = msg[2]
-
+                
                 self.ll_clientip = self.cip #use the IP used for this connection as the server's address
                 self.ll_clientport = msg[3]
 
-                if self.server.clientExists(self.ll_clientip, self.ll_clientport):
-                    self.logger.debug("Client %s:%s already has a listener", self.ll_clientip, self.ll_clientport)
-                    dict_key = "c" + self.ll_clientip + self.ll_clientport
-                    listen_ip, listen_port = self.server.clientDict[dict_key]
+                old_listener = self.server.get_client_listener(self.ll_clientip, self.ll_clientport)
+                if old_listener:
+                    self.logger.info("Client %s:%s already has a listener", self.ll_clientip, self.ll_clientport)
                     
-                    returnMsg = "LIVELOG!%s!%s!%s!REUSE" % (client_api_key, listen_ip, listen_port)
-                    self.logger.debug("RESENDING LISTENER INFO: %s", returnMsg)
-                    self.request.send(returnMsg)
-                    return    
+                    if msg[4] != old_listener.data.log_map and not old_listener.listener.parser.LOG_PARSING_ENDED:
+                        #client changed maps, so this log needs to be ended and a new one started
+                        self.logger.info("Request has different map. Ending old listener")
+                        old_listener.listener.shutdown_listener() #end the log and close the listener
+
+                    else:
+                        returnMsg = "LIVELOG!%s!%s!%s!REUSE" % (client_api_key, old_listener.listen_ip, old_listener.listen_port)
+                        self.logger.debug("RESENDING LISTENER INFO: %s", returnMsg)
+                        self.request.send(returnMsg)
+                        return
 
                 sip = self.server.server_address[0] #get our server info, so we know what IP to listen on
                 webtv_port = None
@@ -135,20 +139,25 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
                 log_name = self.escapeString(msg[5])
 
-                self.newListen = listener.llListenerObject(self.server.db, client_secret, sip, (self.ll_clientip, self.ll_clientport), msg[4], log_name, 
-                                                            self.server.removeListenerObject, timeout=self.server.listener_timeout, webtv_port = webtv_port)
+                data_obj = llData(self.server.db, client_secret, sip, (self.ll_clientip, self.ll_clientport), msg[4], log_name,
+                                    self.server.removeListenerObject, self.server.listener_timeout, webtv_port)
+
+                data_obj.weapon_data = self.server.weapon_data
+                data_obj.query_queue = self.server.query_queue
+
+                self.newListen = listener.llListenerObject(data_obj)
                 
                 if not self.newListen.had_error(): #check if the parser had an error during init or not
-                    lport = self.newListen.lport #port the listener is on
-                    self.logger.debug("Listener port: %s", lport)
+                    lport = self.newListen.listen_port #port the listener is on
+                    #self.logger.debug("Listener port: %s", lport)
                     
                     #REPLY FORMAT: LIVELOG!KEY!LISTEN_IP!LISTEN_PORT!UNIQUE_IDENT
-                    returnMsg = "LIVELOG!%s!%s!%s!%s" % (client_api_key, sip, lport, self.newListen.unique_parser_ident)
+                    returnMsg = "LIVELOG!%s!%s!%s!%s" % (client_api_key, sip, lport, self.newListen.get_numeric_id())
                     
                     self.logger.debug("RESPONSE: %s", returnMsg)
                     self.request.send(returnMsg)
                     
-                    self.server.addClient(self.ll_clientip, self.ll_clientport, (sip, lport)) #add the client to a dict and store its listener address
+                    self.server.add_client(self.ll_clientip, self.ll_clientport, self.newListen) #add the client to a dict and store its listener
 
                     self.server.addListenerObject(self.newListen) #add the listener object to a set, so it remains alive
                     
@@ -200,54 +209,102 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         self.server.close_request(self.request) #close the connection, as we've finished the request
 
 
+
 class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
-    def __init__(self, server_ip, handler=llDaemonHandler):
+    def __init__(self, server_address, l_timeout, process_frequency, min_process_quota, max_process_quota, client_limit, client_handler=llDaemonHandler):
         self.logger = logging.getLogger('daemon')
+
+        self.handler_logger = logging.getLogger('dhandler')
+        self.handler_logger.setLevel(logging.DEBUG)
 
         self.allow_reuse_address = True
         self.daemon_threads = True
 
+        self.clientDict = {}
         self.listen_set = set()
+        self.listener_timeout = l_timeout
+        self.client_limit = client_limit
+        self.weapon_data = {} #empty until it's updated by the thread
 
         self.timeout_event = threading.Event()
-        self.timeout_thread = threading.Thread(target=self._listenerTimeoutThread, args=(self.timeout_event,))
+        self.timeout_thread = threading.Thread(target=self._listener_timeout_timer, args=(self.timeout_event,))
         self.timeout_thread.daemon = True
-        self.timeout_thread.start()
-        
-        SocketServer.TCPServer.__init__(self, server_ip, handler)
+
+        self.query_queue = queryqueue.query_queue() #new query queue        
+        self.queue_process_frequency = process_frequency
+        self.queue_min_quota = min_process_quota
+        self.queue_max_quota = max_process_quota
+
+        self.queue_process_event = threading.Event()
+        self.queue_process_thread = threading.Thread(target=self._process_queue_timer, args=(self.queue_process_event,))
+        self.queue_process_thread.daemon = True
+
+        self.__daemon_lock = threading.Lock()
+
+        self._weapon_thread = threading.Thread(target=self.__get_weapon_data)
+        self._weapon_thread.daemon = True
+
+        SocketServer.TCPServer.__init__(self, server_address, client_handler)
         
     def server_activate(self):
         self.logger.debug('Starting TCP listener')
         
-
         SocketServer.TCPServer.server_activate(self)
 
-    def addClient(self, ip, port, listen_tuple):
+    def verify_request(self, request, client_address):
+        if not self.server_busy():
+            return True
+        else:
+            self.logger.info("************* Server busy, rejecting connection from %s:%s *************", client_address[0], client_address[1])
+            request.send("LIVELOGS_BUSY")
+
+            self.close_request(request) #close the request before returning
+
+            return False
+
+    def server_busy(self):
+        if len(self.listen_set) <= self.client_limit:
+            return False #server is capable of serving more clients
+        else:
+            return True #we're already serving the maximum, so we need to reject further connections
+
+    def prepare_server(self):
+        self.__open_dbpool()
+
+        self.queue_process_thread.start()
+        self.timeout_thread.start()
+
+        self._weapon_thread.start()
+
+    def add_client(self, ip, port, listener):
         dict_key = "c" + ip + port
         if dict_key not in self.clientDict:
-            self.clientDict[dict_key] = listen_tuple
-            self.logger.debug('Added %s:%s to client dict with key %s', ip, port, dict_key)
+            self.clientDict[dict_key] = listener
+            #self.logger.debug('Added %s:%s to client dict with key %s', ip, port, dict_key)
         
         return
 
-    def clientExists(self, ip, port):
+    def get_client_listener(self, ip, port):
         #print "Keys in self.clientDict: "
         #pprint(self.clientDict.keys())
 
         dict_key = "c" + ip + port
+        self.__daemon_lock.acquire() #use a lock to prevent another thread from deleting while checking
 
+        result = None
         if dict_key in self.clientDict:
             #self.logger.debug('Key %s is in client dict', dict_key)
-            return True
-        else:
-            #self.logger.debug('Key %s is NOT in client dict', dict_key)
-            return False
+            result = self.clientDict[dict_key]
 
-    def removeClient(self, ip, port):
+        self.__daemon_lock.release()
+
+        return result
+
+    def remove_client(self, ip, port):
         dict_key = "c" + ip + port
         if dict_key in self.clientDict:
             del self.clientDict[dict_key]
-            self.logger.debug('Removed client %s:%s from client dict', ip, port)
+            #self.logger.debug('Removed client %s:%s from client dict', ip, port)
 
         return
 
@@ -255,18 +312,23 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         #add the listener object to a set
         if listener_object in self.listen_set:
             self.logger.info("Listen object %s is already in the listen set. wat & why?", listener_object)
-        else:    
+        else:
+            self.__daemon_lock.acquire() #use lock so that another thread doesnt add/remove to/from the set at the same time
             self.listen_set.add(listener_object)
+            self.__daemon_lock.release()
         
     def removeListenerObject(self, listener_object):
         #removes the object from the set
         if listener_object in self.listen_set:
-            self.logger.info("Listener object is in set. Removing")
+            self.__daemon_lock.acquire() #lock so another thread doesn't add/remove at the same time
+            #self.logger.info("Listener object is in set. Removing")
             client_ip, client_server_port = listener_object.client_address
         
-            self.removeClient(client_ip, client_server_port)
+            self.remove_client(client_ip, client_server_port)
             
             self.listen_set.discard(listener_object)
+
+            self.__daemon_lock.release()
         else:
             self.logger.info("There was an attempt to remove a listener object that is not in the listener set")
 
@@ -280,6 +342,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         if not self.db.closed:
             user_details = None
             curs = None
+            conn = None
             try:
                 try:
                     conn = self.db.getconn() #get a connection object from the psycopg2.pool
@@ -312,12 +375,13 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
             except:
                 self.logger.exception("Exception trying to get api key for ip %s", ip)
+                conn.rollback()
 
             finally:
-                if not curs.closed:
+                if curs and not curs.closed:
                     curs.close()
-                
-                self.db.putconn(conn)
+                if conn:
+                    self.db.putconn(conn)
 
                 return user_details
 
@@ -325,32 +389,25 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             self.logger.error("Database pool is closed")
             return None
 
-    def open_dbpool(self):
-        #open database pool
-        cfg_parser = ConfigParser.SafeConfigParser()
-        if cfg_parser.read(r'll-config.ini'):
+    def end_all_logs(self):
+        if not self.db.closed:
+            self.logger.info("Setting all logs to 'ended'")
             try:
-                db_host = cfg_parser.get('database', 'db_host')
-                db_port = cfg_parser.getint('database', 'db_port')
-                db_user = cfg_parser.get('database', 'db_user')
-                db_pass = cfg_parser.get('database', 'db_password')
-                db_name = cfg_parser.get('database', 'db_name')
+                conn = self.db.getconn()
+            except:
+                self.logger.exception()
+                return
 
-                #using psycopg2 pool wrapper
-                db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
-                            db_name, db_user, db_pass, db_host, db_port)
+            try:
+                cursor = conn.cursor()
 
-                self.db = psycopg2.pool.ThreadedConnectionPool(minconn = 2, maxconn = 8, dsn = db_details) #dsn is passed to psycopg2.connect()
+                cursor.execute("UPDATE livelogs_log_index SET live='false' WHERE live='true'");
+
+                conn.commit()
 
             except:
-                self.logger.exception("Unable to read database options from config file, or unable to connect to database")
-                sys.exit("Unable to read database config or unable to connect to database")
-
-            finally:
-                self.logger.info("Successfully connected to database")
-        else:
-            self.logger.error("Unable to read config file")
-            sys.exit("Unable to read config file")
+                self.logger.exception()
+                return
 
     def listenerTimeoutCheck(self):
         #loop over the listener objects to see if any of them have timed out
@@ -375,81 +432,185 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         except:
             self.logger.exception("Exception looping over listeners for timeout")
 
+        del listeners
 
-    def _listenerTimeoutThread(self, event):
+
+    def _listener_timeout_timer(self, event):
         while not event.is_set():
             self.listenerTimeoutCheck()
 
             event.wait(2) #run a timeout check every 2 seconds
 
+    def __process_database_queue(self, process_quota):
+        """
+        this will process a queue of database queries that are required to be performed by parser objects
+        each stat upsert or similar query is added to this queue. things like event queries, or chat queries that
+        require something to be returned are not done using this queue, as they have a higher priority
+        """
+        if self.db.closed:
+            self.logger.error("DB POOL IS CLOSED, CANNOT PROCESS DATABASE QUEUE. PLZ RESTART")
+            return
 
-if __name__ == '__main__':
-    cfg_parser = ConfigParser.SafeConfigParser()
-    if cfg_parser.read(r'll-config.ini'):
         try:
-            server_ip = cfg_parser.get('log-listener', 'server_ip')
-                
-            serverAddr = (server_ip, cfg_parser.getint('log-listener', 'server_port'))
-            l_timeout = cfg_parser.getfloat('log-listener', 'listener_timeout')
-            
+            conn = self.db.getconn() #get a connection object from the psycopg2.pool
         except:
-            sys.exit("Unable to read log-listener section in config file")
-                
-    else:
-        #first run time, no config file present. create with default values and exit
-        print "No configuration file present. A new one will be generated"
-        make_new_config()
+            self.logger.exception("Exception getting database connection")
+            return
 
-        sys.exit("Configuration file generated. Please edit it before running the daemon again")
-    
-    llServer = llDaemon(serverAddr, llDaemonHandler)
-    llServer.clientDict = dict()
-    llServer.listener_timeout = l_timeout
+        try:
+            cursor = conn.cursor()
+        except:
+            self.logger.exception("Exception getting cursor")
 
-    sip, sport = llServer.server_address   
+            self.db.putconn(conn)
+            return
 
-    logger = logging.getLogger('MAIN')
-    logger.setLevel(logging.DEBUG)
+        try:
+            commit_threshold = int(math.ceil(process_quota / 4))
+            queries_completed = 0
+            for i in xrange(0, process_quota): #process at most 'process_quota' queries every queue cycle
+                cursor.execute("SAVEPOINT queue_savepoint")
 
-    llServer.open_dbpool()
-    logger.info("Server on %s:%s under PID %s", sip, sport, os.getpid())
-    
-    try:
-        logger.info("Waiting for incoming data")
-        llServer.serve_forever() #listen for log requests!
-        
-    except KeyboardInterrupt:
-        logger.info("Keyboard interrupt. Closing daemon")
-        llServer.timeout_event.set() #stop the timeout thread
+                query_tuple = self.query_queue.get_next_query()
 
-        #shallow copy of the listen object set, so it can be iterated on while items are being removed
-        for listenobj in llServer.listen_set.copy():
-            logger.info("Ending log with ident %s", listenobj.unique_parser_ident)
+                if query_tuple: #if we have queries to execute
+                    query_a = query_tuple[0]
+                    query_b = query_tuple[1]
 
-            if not listenobj.listener.parser.LOG_PARSING_ENDED:
-                listenobj.listener.parser.endLogParsing()
-                listenobj.listener.shutdown_listener()
-                
-            else:
-                logger.info("\tListen object is still present, but the log has actually ended")
+                    #print "process iter %d: query: %s" % (i, query_tuple)
 
-        llServer.db.closeall() #close all database connections in the pool
+                    if query_a and query_b:
+                        #we have an insert/update query (upsert). query_a is the insert, query_b is the update
+                        try:
+                            cursor.execute("SELECT pgsql_upsert(%s, %s)", (query_a, query_b,))
+                            
+                        except:
+                            self.logger.exception("ERROR UPSERTING. INSERT QUERY: \"%s\" | UPDATE QUERY: \"%s\"" % (query_a, query_b))
+                            cursor.execute("ROLLBACK TO SAVEPOINT queue_savepoint") #rollback to savepoint
+                            #self.query_queue.readd_query(query_tuple) #re-add the query
 
-        llServer.shutdown() #stop listening
-        llServer.server_close() #close socket
+                    else:
+                        #we just have a single query to perform
+                        try:
+                            cursor.execute(query_a)
+                        except:
+                            self.logger.exception("ERROR INSERTING. INSERT QUERY: \"%s\"" % (query_a))
+                            cursor.execute("ROLLBACK TO SAVEPOINT queue_savepoint") #rollback to savepoint
+                            #self.query_queue.readd_query(query_tuple) #re-add the query
+                else:
+                    #nothing in any queues, just break out until next loop
+                    break
 
-        logger.info("Shutdown successful")
+                queries_completed += 1
+                if not (queries_completed % commit_threshold):
+                    conn.commit() #commit changes to database every commit_threshold 
 
-        sys.exit("KeyboardInterrupt")
+            self.logger.info("queue lengths (after process): %s, num completed: %d", self.query_queue.queue_length_all(), queries_completed)
+            if queries_completed > 0:
+                conn.commit() #commit any changes that havent been committed yet
 
-    except:
-        logger.exception("Exception listening for log requests")
+        except:
+            self.logger.exception("ERROR PROCESSING QUERY QUEUE")
 
-        if not llServer.db.closed:
-            llServer.db.closeall()
+        if not conn.closed:
+            cursor.close()
 
-        sys.exit(2)
+        self.db.putconn(conn)
 
+    def _process_queue_timer(self, event):
+        while not event.is_set():
+            if not self.query_queue.queues_empty():
+                norm_queue_length = self.query_queue.queue_length(queryqueue.NMPRIO)
+                dynamic_quota = norm_queue_length / 4 #process 1/4 of the queue each run, for a minimum of 200
+
+                #cap the process quota at the configured min/maximum
+                if dynamic_quota > self.queue_max_quota:
+                    dynamic_quota = self.queue_max_quota
+                elif dynamic_quota < self.queue_min_quota:
+                    dynamic_quota = self.queue_min_quota
+
+                self.logger.debug("queue lengths: %s, dynamic quota: %s", self.query_queue.queue_length_all(), dynamic_quota)
+
+                self.__process_database_queue(dynamic_quota)
+
+            event.wait(self.queue_process_frequency) #run a time
+
+    def __get_weapon_data(self):
+        from livelib import sapi_data
+
+        sapi = sapi_data.Steam_API()
+        self.weapon_data = sapi.get_default_weapons() #make the weapon data the default shit until the API is g2g
+        self.logger.info("Weapon data is now default")
+        #this usually takes some time, so we just let this bitch do its shit in the thread
+
+        sapi.get_item_data_loc() #required for more than non-static weapon log names
+        self.weapon_data = sapi.get_item_data().copy()
+
+        del sapi #delete the api reference, so it all gets freed
+
+        self.logger.info("Weapon data now contains custom weapons")
+
+    def __open_dbpool(self):
+        #open database pool
+        cfg_parser = ConfigParser.SafeConfigParser()
+        if cfg_parser.read(r'll-config.ini'):
+            try:
+                db_host = cfg_parser.get('database', 'db_host')
+                db_port = cfg_parser.getint('database', 'db_port')
+                db_user = cfg_parser.get('database', 'db_user')
+                db_pass = cfg_parser.get('database', 'db_password')
+                db_name = cfg_parser.get('database', 'db_name')
+
+                #using psycopg2 pool wrapper
+                db_details = 'dbname=%s user=%s password=%s host=%s port=%s' % (
+                            db_name, db_user, db_pass, db_host, db_port)
+
+                self.db = psycopg2.pool.ThreadedConnectionPool(minconn = 2, maxconn = 5, dsn = db_details) #dsn is passed to psycopg2.connect()
+
+            except:
+                self.logger.exception("Unable to read database options from config file, or unable to connect to database")
+                sys.exit("Unable to read database config or unable to connect to database")
+
+            finally:
+                self.logger.info("Successfully connected to database")
+        else:
+            self.logger.error("Unable to read config file")
+            sys.exit("Unable to read config file")
+
+
+"""
+Begin cleanup/startup functions
+
+
+"""
+def cleanup_daemon(server_obj):
+    server_obj.timeout_event.set() #stop the timeout thread
+    server_obj.timeout_thread.join(2) #wait 2 secs for thread to join before closing the interpreter
+
+    #shallow copy of the listen object set, so it can be iterated on while items are being removed
+    for listenobj in server_obj.listen_set.copy():
+        logging.info("Ending log with ident %s", listenobj.unique_parser_ident)
+
+        if not listenobj.listener.parser.LOG_PARSING_ENDED:
+            listenobj.listener.parser.endLogParsing(shutdown=True)
+            listenobj.listener.shutdown_listener()
+            
+        else:
+            logging.info("\tListen object is still present, but the log has actually ended")
+
+    server_obj.queue_process_event.set() #stop the queue processing
+    server_obj.queue_process_thread.join(5) #5 second join timeout
+
+    #server_obj.end_all_logs()
+
+    server_obj.db.closeall() #close all database connections in the pool
+
+    server_obj.shutdown() #stop listening
+    server_obj.server_close() #close socket
+
+    if not server_obj.query_queue.queues_empty():
+        #if the queues aren't empty, serialize them so they can be run next time
+        server_obj.query_queue.serialise()
 
 def make_new_config():
     try:
@@ -462,6 +623,10 @@ def make_new_config():
     cfg_parser.set('log-listener', 'server_port', '61222')
     cfg_parser.set('log-listener', 'listener_timeout', '90.0')
     cfg_parser.set('log-listener', 'log_directory', 'logs')
+    cfg_parser.set('log-listener', 'queue_process_frequency', '0.5')
+    cfg_parser.set('log-listener', 'queue_min_quota', '300')
+    cfg_parser.set('log-listener', 'queue_max_quota', '800')
+    cfg_parser.set('log-listener', 'client_limit', '100')
     
     cfg_parser.add_section('websocket-server')
     cfg_parser.set('websocket-server', 'server_ip', '')
@@ -478,7 +643,57 @@ def make_new_config():
     cfg_parser.write(cfg_file)
 
 
-def uncaught_excepthook(excType, excValue, traceback, logger=logging.getLogger(__name__)):
-    logger.error("Uncaught exception", exc_info=(excType, excValue, traceback))
+def uncaught_excepthook(excType, excValue, traceback):
+    logging.error("Uncaught exception", exc_info=(excType, excValue, traceback))
 
 sys.excepthook = uncaught_excepthook
+
+
+if __name__ == '__main__':
+    cfg_parser = ConfigParser.SafeConfigParser()
+    if cfg_parser.read(r'll-config.ini'):
+        try:
+            server_ip = cfg_parser.get('log-listener', 'server_ip')
+            server_port = cfg_parser.getint('log-listener', 'server_port')
+
+            l_timeout = cfg_parser.getfloat('log-listener', 'listener_timeout')
+
+            process_frequency = cfg_parser.getfloat('log-listener', 'queue_process_frequency') #how often (in seconds) the query queue should be processed
+            min_quota = cfg_parser.getint('log-listener', 'queue_min_quota') #min num of queries to process
+            max_quota = cfg_parser.getint('log-listener', 'queue_max_quota') #how many queries should be processed per interval (MAX)
+
+            client_limit = cfg_parser.getint('log-listener', 'client_limit') #maximum number of clients to serve
+            
+        except:
+            sys.exit("Error reading config file")
+                
+    else:
+        #first run time, no config file present. create with default values and exit
+        print "No configuration file present. A new one will be generated in ll-config.ini"
+        make_new_config()
+
+        sys.exit("Configuration file generated. Please edit it before running the daemon again")
+
+    server_address = (server_ip, server_port)
+
+    llServer = llDaemon(server_address, l_timeout, process_frequency, min_quota, max_quota, client_limit, client_handler=llDaemonHandler)
+
+    llServer.prepare_server() #start threads/get database connection pool
+
+    logging.info("Server on %s:%s under PID %s", server_address[0], server_address[1], os.getpid())
+
+    try:
+        logging.info("Waiting for incoming data")
+        llServer.serve_forever() #listen for log requests!
+        
+    except:
+        #clean up the listener objects/parsers still running
+        logging.info("Exception while serving. Exiting")
+
+        cleanup_daemon(llServer)
+
+        logging.info("Shutdown successful")
+
+        sys.exit()
+
+

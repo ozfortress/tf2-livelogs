@@ -1,14 +1,25 @@
 <?php
+    /*
+    This script gets database data and returns it in a format that DataTables can understand,
+    which is required for paging that does not involve loading thousands of rows at the same time
+    */
+
     require "../../conf/ll_database.php";
     require "../../conf/ll_config.php";
-    require "help_functions.php";
 
     if (!$ll_db)
-    {
         die("");
-    }
-    
+
     $table_cols = array("server_ip", "server_port", "map", "log_name", "tstamp");
+
+    if (!isset($_GET["cid"]))
+    {
+        die("STEAMID NOT SPECIFIED");
+    }
+    else
+    {
+        $cid = intval($_GET["cid"]);
+    }
 
     //Paging
     $limit = "";
@@ -18,7 +29,7 @@
     }
 
     //Data ordering
-    $order = "ORDER BY numeric_id DESC";
+    $order = "ORDER BY numeric_id DESC, ";
     if (isset($_GET['iSortCol_0']))
     {
         $order = "ORDER BY ";
@@ -33,39 +44,43 @@
         $order = substr_replace($order, "", -2); //strip trailing ', '
     }
 
-    //search filtering and querying
-    if (isset($_GET['sSearch']) && $_GET['sSearch'] != "")
+    //Filtering - filter by community id obviously, but also filter by others if search is enabled
+    $filter = "WHERE steamid = '{$cid}'";
+    
+    /*if (isset($_GET['sSearch']) && $_GET['sSearch'] != "")
     {
-        $query_array = create_filtered_log_query($_GET['sSearch'], $order, $limit);
-        $log_query = $query_array[0];
-        $count_query = $query_array[1];
-    }
-    else
-    {
-        $log_query =   "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, tstamp 
-                        FROM {$ll_config["tables"]["log_index"]} 
-                        WHERE live='false'
-                        {$order}
-                        {$limit}";
+        $filter .= " AND (";
+        for ($i = 0; $i < count($table_cols); $i++)
+        {
+            if (isset($_GET['bSearchable_'.$i]) && $_GET['bSearchable_'.$i] === "true")
+            {
+                $filter .= " " . $table_cols[$i] . "~* " . pg_escape_string($_GET['sSearch']) . " OR ";
+            }
+        }
 
-        $count_query = "SELECT COUNT(numeric_id) as total
-                        FROM {$ll_config["tables"]["log_index"]}
-                        WHERE live='false'";
-    }
+    }*/
 
-    /*
-    ///////////// DOING STUFF WITH THE QUERY /////////////
-    */
 
-    file_put_contents("/tmp/past_paging_out.txt", $log_query + "\n");
-    file_put_contents("/tmp/past_paging_out.txt", $order, FILE_APPEND);
+    //THE QUERIES----------------
+
+    $log_query = "SELECT HOST(server_ip) as server_ip, server_port, numeric_id, log_name, map, live, tstamp
+                FROM {$ll_config["tables"]["log_index"]}
+                JOIN {$ll_config["tables"]["player_details"]} ON {$ll_config["tables"]["log_index"]}.log_ident = {$ll_config["tables"]["player_details"]}.log_ident
+                {$filter} 
+                {$order} 
+                {$limit}";
+
+    file_put_contents("/tmp/paging_out.txt", $log_query + "\n");
+    file_put_contents("/tmp/paging_out.txt", $order, FILE_APPEND);
 
     $log_result = pg_query($ll_db, $log_query);
     //length of results
     if ($log_result && ($num_logs_found = pg_num_rows($log_result)) > 0)
     {
         //total length of data set
-        $total_logs_query = $count_query;
+        $total_logs_query = "SELECT COUNT(id) as total
+                            FROM {$ll_config["tables"]["player_details"]}
+                            {$filter}";
 
         $total_logs_result = pg_query($ll_db, $total_logs_query);
         if ($total_logs_result && pg_num_rows($total_logs_result) > 0)
@@ -87,7 +102,7 @@
     $output = array(
         "sEcho" => intval($_GET['sEcho']), //a challenge ID
         "iTotalRecords" => $num_logs_found, //logs matching limit
-        "iTotalDisplayRecords" => $total_player_logs, //total logs found
+        "iTotalDisplayRecords" => $total_player_logs, //total logs
         "community_id" => $cid,
         "aaData" => array()
     );
@@ -101,10 +116,14 @@
 
         foreach ($table_cols as $index => $key)
         {
-            if ($key == "log_name")
+            if ($key === "log_name")
             {
                 /* this data should contain a link to the log */
                 $data = '<a href="/view/' . $row["numeric_id"] . '">' . htmlentities($row["log_name"], ENT_QUOTES, "UTF-8") . '</a>';
+            }
+            else if (($key === "tstamp") && ($row["live"] === "t"))
+            {
+                $data = "LIVE";
             }
             else
             {
@@ -119,7 +138,7 @@
 
     echo json_encode($output); //echo out the json encoded shiz
 
-    file_put_contents("/tmp/past_paging_out.txt", print_r($output, true), FILE_APPEND);
-    
+    file_put_contents("/tmp/paging_out.txt", print_r($output, true), FILE_APPEND);
+
     pg_close($ll_db);
 ?>
