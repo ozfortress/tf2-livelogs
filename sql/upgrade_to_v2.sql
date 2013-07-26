@@ -25,13 +25,14 @@ BEGIN
     FOR index_row IN
         SELECT log_ident FROM livelogs_log_index
     LOOP
+        RAISE NOTICE 'Checking if table exists for %', index_row.log_ident;
         IF EXISTS (
             SELECT 1
             FROM information_schema.tables
             WHERE table_name = 'log_stat_' || index_row.log_ident
         )
         THEN
-            RAISE NOTICE 'Getting stats for log %s', index_row.log_ident;
+            RAISE NOTICE 'Getting stats for log %', index_row.log_ident;
             FOR log_row IN
                 EXECUTE 'SELECT name, team,
                         kills, deaths, assists, points,
@@ -71,12 +72,14 @@ BEGIN
     FOR index_row IN
         SELECT log_ident FROM livelogs_log_index
     LOOP
+    RAISE NOTICE 'Checking if chat table for log % exists', index_row.log_ident;
         IF EXISTS (
             SELECT 1
             FROM information_schema.tables
             WHERE table_name = 'log_chat_' || index_row.log_ident
         )
         THEN
+            RAISE NOTICE 'Getting chat for %', index_row.log_ident;
             FOR chat_row IN
                 EXECUTE 'SELECT steamid, name, team,
                         chat_type, chat_message
@@ -86,6 +89,8 @@ BEGIN
                     VALUES (index_row.log_ident, fake_id, chat_row.name, chat_row.team, chat_row.chat_type, chat_row.chat_message);
 
                 fake_id := fake_id + 1;
+
+                RAISE NOTICE 'Chat data inserted into new table';
             END LOOP;
         END IF;
     END LOOP;
