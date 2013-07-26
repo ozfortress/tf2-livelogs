@@ -74,9 +74,9 @@
                 <input type="text" class="pastlogs_searchfield" placeholder="Search here" id="search_field" value="<?=$filter?>">
                 <button type="submit" class="btn" id="search_submit">Search</button>
             </form>-->
-            <table class="table table-bordered table-hover table-striped ll_table" id="past_logs">
+            <table class="table table-bordered table-striped table-hover ll_table" id="past_logs">
                 <thead>
-                    <tr class="stat_summary_title_bar info">
+                    <tr class="stat_summary_title_bar">
                         <th class="log_list_col_title">
                             Server IP
                         </th>
@@ -97,6 +97,7 @@
                 <tbody>
                 
                 </tbody>
+                <caption> </caption>
             </table>
         </div>
 

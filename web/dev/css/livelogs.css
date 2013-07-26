@@ -125,9 +125,6 @@
 .no_team_player {
     color: #000000;
 }
-.stat_summary_col_title_secondary {
-    border-left: solid 4px black;
-}
 
 .player_community_id_link {
     font-weight: bold;
