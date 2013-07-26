@@ -1,7 +1,7 @@
 
 CREATE TABLE livelogs_auth_keys (user_name text, user_email text, user_key text, user_ip text); --holds user authentication keys and contact details
 
-CREATE TABLE livelogs_player_stats (index serial, log_ident varchar(64), steamid bigint, team text, class text,
+CREATE TABLE livelogs_player_stats (num_id serial, log_ident varchar(64), steamid bigint, team text, class text,
                                     kills integer, deaths integer, assists integer, points decimal, 
                                     healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer, 
                                     headshots integer, backstabs integer, damage_dealt integer, damage_taken integer,
