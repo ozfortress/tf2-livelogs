@@ -1,4 +1,4 @@
-CREATE FUNCTION restore_index() RETURNS void AS $_$
+CREATE OR REPLACE FUNCTION restore_index() RETURNS void AS $_$
 DECLARE
     index_row RECORD;
     tstamp_data TEXT;
@@ -9,12 +9,12 @@ BEGIN
         SELECT * FROM old_index ORDER BY numeric_id DESC
     LOOP
         INSERT INTO livelogs_log_index (server_ip, server_port, log_ident, map, log_name, live, webtv_port, tstamp)
-        VALUES (index_row.server_ip, index_row.server_port, index_row.log_ident, index_row.map, index_row.log_name, 'false', 0, tstamp_data);
+        VALUES (CAST(index_row.server_ip AS CIDR), index_row.server_port, index_row.log_ident, index_row.map, index_row.log_name, 'false', 0, tstamp_data);
     END LOOP;
 END;
 $_$ LANGUAGE 'plpgsql';
 
-CREATE FUNCTION restore_stats_and_names() RETURNS void AS $_$
+CREATE OR REPLACE FUNCTION restore_stats_and_names() RETURNS void AS $_$
 DECLARE
     index_row RECORD;
     log_row RECORD;
@@ -51,7 +51,7 @@ BEGIN
 END;
 $_$ LANGUAGE 'plpgsql';
 
-CREATE FUNCTION retore_chat() RETURNS void AS $_$
+CREATE OR REPLACE FUNCTION restore_chat() RETURNS void AS $_$
 DECLARE
     index_row RECORD;
     chat_row RECORD;
