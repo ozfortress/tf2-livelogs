@@ -155,6 +155,8 @@
 
     function create_filtered_log_query($filter, $order, $limit)
     {
+        require "../../conf/ll_config.php";
+
         $split_filter = explode(":", $filter);
         if (preg_match("/\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}/", $split_filter[0]) && sizeof($split_filter) == 2)
         {
