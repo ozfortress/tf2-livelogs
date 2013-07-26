@@ -88,7 +88,6 @@
         "sEcho" => intval($_GET['sEcho']), //a challenge ID
         "iTotalRecords" => $num_logs_found, //logs matching limit
         "iTotalDisplayRecords" => $total_player_logs, //total logs found
-        "community_id" => $cid,
         "aaData" => array()
     );
 
