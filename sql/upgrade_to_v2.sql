@@ -68,16 +68,23 @@ BEGIN
     FOR index_row IN
         SELECT log_ident FROM livelogs_log_index
     LOOP
-        FOR chat_row IN
-            EXECUTE 'SELECT steamid, name, team,
-                    chat_type, chat_message
-                    FROM log_chat_' || index_row.log_ident
-        LOOP
-            INSERT INTO livelogs_game_chat (log_ident, steamid, name, team, chat_type, chat_message)
-                VALUES (index_row.log_ident, fake_id, chat_row.name, chat_row.team, chat_row.chat_type, chat_row.chat_message);
+        IF EXISTS (
+            SELECT 1
+            FROM information_schema.columns
+            WHERE table_name = 'log_chat_' || index_row.log_ident
+        )
+        THEN
+            FOR chat_row IN
+                EXECUTE 'SELECT steamid, name, team,
+                        chat_type, chat_message
+                        FROM log_chat_' || index_row.log_ident
+            LOOP
+                INSERT INTO livelogs_game_chat (log_ident, steamid, name, team, chat_type, chat_message)
+                    VALUES (index_row.log_ident, fake_id, chat_row.name, chat_row.team, chat_row.chat_type, chat_row.chat_message);
 
-            fake_id := fake_id + 1;
-        END LOOP;
+                fake_id := fake_id + 1;
+            END LOOP;
+        END IF;
     END LOOP;
 END;
 $_$ LANGUAGE 'plpgsql';
