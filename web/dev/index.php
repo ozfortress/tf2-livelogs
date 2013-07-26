@@ -79,7 +79,8 @@
     </div>
     <div class="livelogs_wrapper">
         <div class="index_welcome">
-            <p>Welcome to Livelogs! Below you will find a list of logs that are currently live (if any), and a list of past logs that you may view.</p>
+            <p>Welcome to Livelogs beta version 2! You will notice a number of improvements and differences from the previous version. As always, report any bugs you encounter.</p>
+            <p>Below you will find live logs (if any are running) that you may view, or a list of past logs. Clicking 'See more' will allow you to view the log archive, which contains all logs recorded</p>
         </div>
         <div align="center">
             <?php

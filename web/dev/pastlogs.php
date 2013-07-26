@@ -63,6 +63,10 @@
         </div>
     </div>    
     <div class="livelogs_wrapper">
+        <p>Welcome to the Livelogs Archive</p>
+        <p>You may sort the logs in accordance with any of the columns, and you may use the search to filter the logs you wish to view. 
+            Possible searches include Steam ID, server, name, map name, log name, date, server ip or port, etc
+        </p>
         <div class="log_list_past_container">
             <!--<form class="form-search" action="javascript:void(0);" id="search_form">
                 <input type="text" class="pastlogs_searchfield" placeholder="Search here" id="search_field" value="<?=$filter?>">
