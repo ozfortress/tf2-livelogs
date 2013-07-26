@@ -31,6 +31,7 @@ BEGIN
             WHERE table_name = 'log_stat_' || index_row.log_ident
         )
         THEN
+            RAISE NOTICE 'Getting stats for log ' || index_row.log_ident;
             FOR log_row IN
                 EXECUTE 'SELECT name, team,
                         kills, deaths, assists, points,
@@ -49,6 +50,8 @@ BEGIN
                             log_row.revenges, log_row.suicides, log_row.buildings_destroyed, log_row.extinguishes);
 
                 INSERT INTO livelogs_player_details (steamid, log_ident, name) VALUES (fake_id, index_row.log_ident, log_row.name);
+
+                RAISE NOTICE 'Data inserted into new tables';
 
                 fake_id := fake_id + 1;
             END LOOP;
