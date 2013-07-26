@@ -78,8 +78,8 @@
         </div>
     </div>
     <div class="livelogs_wrapper">
-        <div class="index_welcome">
-            <p>Welcome to Livelogs beta version 2! You will notice a number of improvements and differences from the previous version. As always, report any bugs you encounter.</p>
+        <div class="text_blurb">
+            <p align="center">Welcome to Livelogs beta version 2! You will notice a number of improvements and differences from the previous version. As always, report any bugs you encounter.</p>
             <p>Below you will find live logs (if any are running) that you may view, or a list of past logs. Clicking 'See more' will allow you to view the log archive, which contains all logs recorded</p>
         </div>
         <div align="center">
