@@ -39,7 +39,7 @@ BEGIN
                                                 headshots, backstabs, damage_dealt, damage_taken, captures, captures_blocked, dominations, times_dominated, revenges,
                                                 suicides, buildings_destroyed, extinguishes)
                 VALUES (index_row.log_ident, fake_id, log_row.team, 'UNKNOWN', log_row.kills, log_row.deaths, log_row.assists, log_row.points, log_row.healing_done, log_row.healing_received, log_row.ubers_used,
-                        log_row.ubers_lost, log_row.headshots, log_row.backstabs, log_row.damage_dealt, log_row.damage_taken, log_row.captures, log_row.captures_blocked, log_row.domnations, log_row.times_dominated,
+                        log_row.ubers_lost, log_row.headshots, log_row.backstabs, log_row.damage_dealt, log_row.damage_taken, log_row.captures, log_row.captures_blocked, log_row.dominations, log_row.times_dominated,
                         log_row.revenges, log_row.suicides, log_row.buildings_destroyed, log_row.extinguishes);
 
             INSERT INTO livelogs_player_details (steamid, log_ident, name) VALUES (fake_id, index_row.log_ident, log_row.name);
