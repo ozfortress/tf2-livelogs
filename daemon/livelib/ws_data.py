@@ -1,5 +1,6 @@
 import threading
 import logging
+import collections
 
 """
 Holds all data related to websocket clients for the livelogs websocket server
@@ -299,5 +300,58 @@ class client_data(object):
 		except:
 			pass
 
+"""
+Manager data object, to hold db managers and provide ez access functions
 
+"""
+
+
+class manager_data(object):
+	def __init__(self):
+		self.__managers = collections.deque()
+
+	def add_manager(self, manager_tuple):
+		#add the manager tuple in the form (log_ident, manager) to the left of the deque
+		self.__managers.addleft(manager_tuple)
+
+	def get_manager(self, log_ident):
+        #get the db manager object corresponding to the log ident
+        for manager_ident, manager in self.__managers:
+            if manager_ident == log_ident:
+                return manager
+
+        return None
+
+    def __len__(self):
+    	return len(self.__managers)
+
+    def __contains__(self, item):
+    	return self.__manager_exists(item)
+
+    def exists(self, log_ident):
+    	return self.__manager_exists(log_ident)
+
+    def __manager_exists(self, log_ident):
+        #loop over the deque to see if this db manager exists or not
+        for manager_data in self.__managers:
+            if manager_data[0] == log_ident:
+                return True
+
+        return False
+
+    def delete_manager(self, log_ident):
+        for manager_data in self.__managers:
+            if manager_data[0] == log_ident:
+                self.__managers.remove(manager_data)
+                break
+
+    def cycle(self):
+    	#cycles the db managers, by moving the first manager to the end
+    	#return the db manager that was moved to the end, so updates can be performed on it
+
+    	manager_ident, manager = self.__managers.popleft()
+
+    	self.__managers.append((manager_ident, manager))
+
+    	return manager
 

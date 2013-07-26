@@ -21,11 +21,10 @@ import logging.handlers
 import time
 import threading
 import sys
-import collections
 import ConfigParser
 
 from livelib import dbmanager
-from livelib import ws_clientdata
+from livelib import ws_data
 
 from pprint import pprint
 
@@ -61,11 +60,11 @@ class llWSApplication(tornado.web.Application):
 
         self.update_rate = update_rate
         
-        self.__db_managers = collections.deque() #a deque containing tuples of (log_ident, dbManager)
+        self.__db_managers = ws_data.manager_data() #a manager_data object that will manage db manager data!
 
         self.log_cache = [] #holds a set of tuples containing log idents, the last time they were updated, and the status (live/not live) | [(cache_time, log_ident, status<t/f>), (cache_time, log_ident, status<t/f>)]
 
-        self.clients = ws_clientdata.client_data() #a client_data object, which contains all valid/invalid clients
+        self.clients = ws_data.client_data() #a client_data object, which contains all valid/invalid clients
 
         self._sending_timer = tornado.ioloop.PeriodicCallback(self.__send_log_updates, self.update_rate * 1000)
         self._sending_timer.start()
@@ -204,9 +203,9 @@ class llWSApplication(tornado.web.Application):
         self.clients.delete_ident(log_ident)
 
     def add_dbmanager(self, log_ident, tstamp):
-        if not self.__dbmanager_exists(log_ident):
+        if log_ident not in self.__db_managers:
             #add the db manager to the left of the queue, so that it gets updates next turn
-            self.__db_managers.appendleft((log_ident, self.__new_dbmanager(log_ident, tstamp)))
+            self.__db_managers.add_manager((log_ident, self.__new_dbmanager(log_ident, tstamp)))
 
             #self.__db_managers[log_ident].update_timer = tornado.ioloop.PeriodicCallback(self.__db_managers[log_ident]._update_timer, self.__db_managers[log_ident].update_rate * 1000)
             #self.__db_managers[log_ident].update_timer.start()
@@ -216,41 +215,18 @@ class llWSApplication(tornado.web.Application):
         #creates a new db manager object and returns it
         return dbmanager.dbManager(self.db, log_ident, self.database_lock, self.update_rate, tstamp)
 
-    def __get_dbmanager(self, log_ident):
-        #get the db manager object corresponding to the log ident
-        for manager_ident, manager in self.__db_managers:
-            if manager_ident == log_ident:
-                return manager
-
-        return None
-
-    def __dbmanager_exists(self, log_ident):
-        #loop over the deque to see if this db manager exists or not
-        for manager_data in self.__db_managers:
-            if manager_data[0] == log_ident:
-                return True
-
-        return False
-
-    def __delete_dbmanager(self, log_ident):
-        for manager_data in self.__db_managers:
-            if manager_data[0] == log_ident:
-                self.__db_managers.remove(manager_data)
-                break
-
-
     def __end_log(self, log_ident):
         #deletes a db manager and associated clients
         end_update_dict = None
 
-        if self.__dbmanager_exists(log_ident):
-            manager = self.__get_dbmanager(log_ident)
+        if log_ident in self.__db_managers:
+            manager = self.__db_managers.get_manager(log_ident)
 
             end_update_dict = manager.full_update()
 
             manager.cleanup()
 
-            self.__delete_dbmanager(log_ident)
+            self.__db_managers.delete_manager(log_ident)
 
         clients = self.clients.get_vclients(log_ident)
         if clients:
@@ -266,11 +242,9 @@ class llWSApplication(tornado.web.Application):
         
         self.log.info("Getting DB Manager updates")
         if len(self.__db_managers) > 0:
-            cycle_manager_ident, cycle_manager = self.__db_managers.popleft() #pop the left-most manager
+            cycle_manager = self.__db_managers.cycle()
 
-            cycle_manager.get_database_updates() #get db updates
-
-            self.__db_managers.append((cycle_manager_ident, cycle_manager)) #re-add to the right side of the queue
+            cycle_manager.get_database_updates()
 
     def __send_log_updates(self):
         valid_idents = self.clients.get_valid_idents()
@@ -286,8 +260,8 @@ class llWSApplication(tornado.web.Application):
                 if self.clients.get_num_vclients(log_id) == 0:
                     continue
 
-                if self.__dbmanager_exists(log_id):
-                    log_manager = self.__get_dbmanager(log_id)
+                if log_id in self.__db_managers:
+                    log_manager = self.__db_managers.get_manager(log_id)
 
                 else:
                     #no log manager exists for this... how & why?
