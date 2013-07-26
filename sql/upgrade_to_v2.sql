@@ -27,11 +27,11 @@ BEGIN
     LOOP
         IF EXISTS (
             SELECT 1
-            FROM information_schema.columns
+            FROM information_schema.tables
             WHERE table_name = 'log_stat_' || index_row.log_ident
         )
         THEN
-            RAISE NOTICE 'Getting stats for log ' || index_row.log_ident;
+            RAISE NOTICE 'Getting stats for log %s', index_row.log_ident;
             FOR log_row IN
                 EXECUTE 'SELECT name, team,
                         kills, deaths, assists, points,
@@ -73,7 +73,7 @@ BEGIN
     LOOP
         IF EXISTS (
             SELECT 1
-            FROM information_schema.columns
+            FROM information_schema.tables
             WHERE table_name = 'log_chat_' || index_row.log_ident
         )
         THEN
