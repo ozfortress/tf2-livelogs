@@ -59,9 +59,19 @@
 
             if (!$log_live)
             {
-                $time_query =  "SELECT event_time FROM {$ll_config["tables"]["log_events"]} WHERE eventid = '1' 
+                $time_query =  "SELECT event_time 
+                                FROM {$ll_config["tables"]["log_events"]} 
+                                WHERE eventid = (SELECT MIN(eventid) 
+                                                FROM {$ll_config["tables"]["log_events"]}
+                                                WHERE log_ident = '{$_unique_ident}')
+                                        AND log_ident = '{$_unique_ident}'
                                 UNION 
-                                SELECT event_time FROM {$ll_config["tables"]["log_events"]} WHERE eventid = (SELECT MAX(eventid) FROM {$ll_config["tables"]["log_events"]})";
+                                SELECT event_time 
+                                FROM {$ll_config["tables"]["log_events"]} 
+                                WHERE eventid = (SELECT MAX(eventid) 
+                                                FROM {$ll_config["tables"]["log_events"]}
+                                                WHERE log_ident = '{$_unique_ident}')
+                                        AND log_ident = '{$_unique_ident}'";
             
                 $time_result = pg_query($ll_db, $time_query);
                 $time_array = pg_fetch_all($time_result);
