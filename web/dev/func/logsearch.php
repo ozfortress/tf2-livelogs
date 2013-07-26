@@ -5,7 +5,7 @@
 
     if (!$ll_db)
     {
-        die("Unable to connect to database");
+        die("");
     }
     
     $table_cols = array("server_ip", "server_port", "map", "log_name", "tstamp");

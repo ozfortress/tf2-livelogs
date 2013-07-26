@@ -5,6 +5,10 @@
     */
 
     require "../../conf/ll_database.php";
+    require "../../conf/ll_config.php";
+
+    if (!$ll_db)
+        die("");
 
     $table_cols = array("server_ip", "server_port", "map", "log_name", "tstamp");
 
