@@ -19,3 +19,4 @@
     $ll_config["tables"]["player_details"] = "livelogs_player_details";
     $ll_config["tables"]["log_events"] = "livelogs_game_events";
 ?>
+
