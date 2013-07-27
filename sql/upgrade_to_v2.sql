@@ -14,7 +14,7 @@ BEGIN
 END;
 $_$ LANGUAGE 'plpgsql';
 
-CREATE OR REPLACE FUNCTION restore_stats_and_names() RETURNS void AS $_$
+CREATE OR REPLACE FUNCTION restore_stats_and_names() RETURNS setof TEXT AS $_$
 DECLARE
     index_row RECORD;
     log_row RECORD;
@@ -44,7 +44,7 @@ BEGIN
                         suicides, buildings_destroyed, extinguishes
                         FROM log_stat_' || index_row.log_ident
             LOOP
-                RAISE NOTICE '%', 'INSERT INTO livelogs_player_stats (log_ident, steamid, team, class, kills, deaths, assists, points, healing_done, healing_received, ubers_used, ubers_lost,
+                RETURN NEXT 'INSERT INTO livelogs_player_stats (log_ident, steamid, team, class, kills, deaths, assists, points, healing_done, healing_received, ubers_used, ubers_lost,
                                                     headshots, backstabs, damage_dealt, damage_taken, captures, captures_blocked, dominations, times_dominated, revenges,
                                                     suicides, buildings_destroyed, extinguishes)
                     VALUES (''' || index_row.log_ident || ''', ' || fake_id || ', ''' || log_row.team || ''', ''UNKNOWN'' , ' || log_row.kills || ', ' || log_row.deaths || ' ,' || log_row.assists || ', ' || log_row.points || ', ' ||
@@ -54,7 +54,7 @@ BEGIN
                             log_row.revenges || ', ' || log_row.suicides || ', ' || log_row.buildings_destroyed || ', ' || log_row.extinguishes || ');';
                 
 
-                RAISE NOTICE '%', 'INSERT INTO livelogs_player_details (steamid, log_ident, name) VALUES (' || fake_id || ', ''' || index_row.log_ident || ''', ''' || log_row.name || ''');';
+                RETURN NEXT 'INSERT INTO livelogs_player_details (steamid, log_ident, name) VALUES (' || fake_id || ', ''' || index_row.log_ident || ''', ''' || log_row.name || ''');';
 
                 RAISE NOTICE 'Data inserted into new tables';
 
