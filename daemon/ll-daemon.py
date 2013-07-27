@@ -84,21 +84,13 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
             return
 
         if (msg_len >= 6 and msg[0] == "LIVELOG"):
-            client_info = self.server.getClientInfo(self.cip)
+            client_info = self.server.getClientInfo(msg[1])
             self.logger.info("Client info for IP %s: %s", self.cip, client_info)
 
-            client_details = None
-
             if client_info is not None:
-                #client_details is a list of tuples, because hosted environments use the same IPs for different users
-                for details in client_info:
-                    if msg[1] == details[2]: #if the auth key matches one of the returned keys, the user is valid
-                        client_details = details #copy the details to our individual client's details
+                client_api_key = msg[1]
 
-            if client_details is not None:
-                client_api_key = client_details[2]
-
-                self.logger.info("Key is correct for client %s (%s) @ %s", client_details[0], client_details[1], self.cip)
+                self.logger.info("Key sent by %s matches client %s (%s)", self.cip, client_info[0], client_info[1])
 
                 if self.resolve_dns(msg[2]):
                     #msg[2] is an IP, so use the api key as the log secret
@@ -332,11 +324,9 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         else:
             self.logger.info("There was an attempt to remove a listener object that is not in the listener set")
 
-    def getClientInfo(self, ip):
+    def getClientInfo(self, api_key):
         """
-        gets the API key for client with IP ip, so IPs will require unique keys, preventing unauthorised users
-        users using hosted implementations may have the same IP, however, so we need to check all results for an
-        auth key match
+        gets the user data matching the specified API key. A user may have as many servers as they like on a single key
         """
 
         if not self.db.closed:
@@ -369,12 +359,12 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
                 curs = conn.cursor()
 
-                curs.execute("SELECT user_name, user_email, user_key FROM livelogs_auth_keys WHERE user_ip = %s", (ip,))
+                curs.execute("SELECT user_name, user_email FROM livelogs_auth_keys WHERE user_key = %s", (api_key,))
 
-                user_details = curs.fetchall()
+                user_details = curs.fetchone()
 
             except:
-                self.logger.exception("Exception trying to get api key for ip %s", ip)
+                self.logger.exception("Exception trying to get details for key %s", api_key)
                 conn.rollback()
 
             finally:
