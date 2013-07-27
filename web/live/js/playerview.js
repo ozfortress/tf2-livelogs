@@ -55,7 +55,7 @@ var ll_paging = ll_paging || (function() {
                 "sPaginationType": "bootstrap",
                 "bLengthChange": false,
                 "iDisplayLength": display_length,
-                "bProcessing": true,
+                "bProcessing": false,
                 "bServerSide": true,
                 "sAjaxSource": "/func/paging_data.php",
                 "fnServerData": ll_paging.datatables_pipeline,
