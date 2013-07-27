@@ -895,8 +895,9 @@ class parserClass(object):
         cid = self.get_cid(steamid) #convert steamid to community id
 
         name = name[:30] #max length of 30 characters for names        
-        if self.add_player(cid, name = name): #get this guy a player_data object!
-            self.insert_player_details(cid, name, new_player = True) #player just added, need to insert player details
+        self.add_player(cid, name = name) #get this guy a player_data object!
+        
+        self.insert_player_details(cid, name)
 
         insert_query = "INSERT INTO %s (log_ident, steamid, %s, class) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, column, 
                                         self.UNIQUE_IDENT, cid, value, self._players[cid].current_class())
@@ -968,10 +969,10 @@ class parserClass(object):
             #self.executeQuery(update_query, queue_priority = queryqueue.HIPRIO) #update the class ASAP
             self.execute_upsert(insert_query, update_query, queryqueue.HIPRIO) #need to add this class shit ASAP
 
-    def insert_player_details(self, cid, name, new_player=False):
+    def insert_player_details(self, cid, name):
         if name:
             details_query = None
-            if new_player:
+            if not self._players[cid].details_inserted:
                 #player just added, need to insert into details table
                 details_query = "INSERT INTO %s (steamid, log_ident, name) VALUES ('%s', '%s', E'%s')" % (self.PLAYER_TABLE,
                                     cid, self.UNIQUE_IDENT, name)
@@ -982,11 +983,14 @@ class parserClass(object):
                                     name, self.UNIQUE_IDENT, cid)
 
             if details_query:
+                self._players[cid].details_inserted = True
                 self.executeQuery(details_query, queue_priority = queryqueue.HIPRIO)
 
     def add_player(self, cid, pclass=None, name=None, team=None):
         if cid not in self._players:
             self._players[cid] = parser_lib.player_data(pclass, name, team)
+            
+            self.insert_player_details(cid, name)
 
             return True
         else:

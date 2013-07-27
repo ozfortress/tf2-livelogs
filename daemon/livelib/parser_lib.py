@@ -79,6 +79,8 @@ The player data object
 class player_data(object):
     #class to hold all player information that is set throughout parsing the log
     def __init__(self, pclass, name, team):
+        self.details_inserted = False
+
         self._player_class = {
             "scout": False,
             "soldier": False,
