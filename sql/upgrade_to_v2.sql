@@ -6,7 +6,7 @@ BEGIN
     SELECT CAST(to_char(now(), 'YYYY-MM-DD HH24:MI:SS') as TEXT) INTO tstamp_data;
 
     FOR index_row IN
-        SELECT * FROM old_index ORDER BY numeric_id DESC
+        SELECT * FROM old_index WHERE numeric_id > 8000 ORDER BY numeric_id ASC
     LOOP
         INSERT INTO livelogs_log_index (server_ip, server_port, log_ident, map, log_name, live, webtv_port, tstamp)
         VALUES (CAST('0.0.0.0' AS CIDR), index_row.server_port, index_row.log_ident, index_row.map, index_row.log_name, 'false', 0, tstamp_data);
