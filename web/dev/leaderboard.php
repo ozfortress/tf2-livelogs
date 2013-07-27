@@ -61,6 +61,9 @@
         </div>
     </div>
     <div class="livelogs_wrapper">
+        <div class="text_blurb">
+            <p align="center">Placeholder</p>
+        </div>
     	<div class="stat_table_container stat_table_container_small">
 	    	<table class="table table-bordered table-striped table-hover ll_table">
 
