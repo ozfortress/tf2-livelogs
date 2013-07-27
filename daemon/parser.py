@@ -212,62 +212,60 @@ class parserClass(object):
             #don't want to record stats that happen after round_win (bonustime kills and shit)
             if not self.ROUND_PAUSE:
             #begin round_pause blocking
-                #ignore these checks if we're using livelogs output (damage taken AND damage dealt in 1 line)
-                if not self._using_livelogs_output:
-                    #damage dealt
-                    res = regex(parser_lib.damage_dealt, logdata)
-                    if res:
-                        #print "Damage dealt"
-                        #pprint(res.groups())
-                        #('[v3] Kaki', '51', 'STEAM_0:1:35387674', 'Red', '40')
-                        sid = regml(res, 3)
-                        name = self.escapePlayerString(regml(res, 1))
-                        dmg = regml(res, 5)
 
-                        #pg_statupsert(self, table, column, steamid, name, value)
-                        self.pg_statupsert(self.STAT_TABLE, "damage_dealt", sid, name, dmg)        
-                        
-                        self.insert_player_team(sid, regml(res, 4).lower())
-                        
-                        return
+                #damage taken and dealt (if appropriate log level is set (damage taken and damage dealt))
+                #"Cinderella:wu<5><STEAM_0:1:18947653><Blue>" triggered "damage" against "jmh<19><STEAM_0:1:101867><Red>" (damage "56")
+                res = regex(parser_lib.player_damage, logdata)
+                if res:
+                    a_sid = regml(res, 3)
+                    a_name = self.escapePlayerString(regml(res, 1))
 
-                    #damage taken (if log level is 1 in livelogs) shouldn't get double ups, but have toggling variable just in case
-                    res = regex(parser_lib.damage_taken, logdata)
-                    if res:
-                        sid = regml(res, 3)
-                        name = self.escapePlayerString(regml(res, 1))
-                        dmg = regml(res, 5)
+                    v_sid = regml(res, 7)
+                    v_name = self.escapePlayerString(regml(res, 5))
 
-                        self.pg_statupsert(self.STAT_TABLE, "damage_taken", sid, name, dmg)
+                    dmg = regml(res, 9)
 
-                        self.insert_player_team(sid, regml(res, 4).lower())
+                    if a_sid == v_sid: #players can deal self damage. if so, don't record damage_dealt for this
+                        self.insert_player_team(a_sid, regml(res, 4).lower())
 
-                        return
-                else:
-                    #damage taken and dealt (if appropriate log level is set (damage taken and damage dealt))
-                    #"Cinderella:wu<5><STEAM_0:1:18947653><Blue>" triggered "damage" against "jmh<19><STEAM_0:1:101867><Red>" (damage "56")
-                    res = regex(parser_lib.player_damage, logdata)
-                    if res:
-                        a_sid = regml(res, 3)
-                        a_name = self.escapePlayerString(regml(res, 1))
+                    else:
+                        self.pg_statupsert(self.STAT_TABLE, "damage_dealt", a_sid, a_name, dmg)
+                        self.insert_player_team(a_sid, regml(res, 4).lower(), v_sid, regml(res, 8).lower())
 
-                        v_sid = regml(res, 7)
-                        v_name = self.escapePlayerString(regml(res, 5))
+                    self.pg_statupsert(self.STAT_TABLE, "damage_taken", v_sid, v_name, dmg)
 
-                        dmg = regml(res, 9)
+                    return
 
-                        if a_sid == v_sid: #players can deal self damage. if so, don't record damage_dealt for this
-                            self.insert_player_team(a_sid, regml(res, 4).lower())
+                #damage dealt
+                res = regex(parser_lib.damage_dealt, logdata)
+                if res:
+                    #print "Damage dealt"
+                    #pprint(res.groups())
+                    #('[v3] Kaki', '51', 'STEAM_0:1:35387674', 'Red', '40')
+                    sid = regml(res, 3)
+                    name = self.escapePlayerString(regml(res, 1))
+                    dmg = regml(res, 5)
 
-                        else:
-                            self.pg_statupsert(self.STAT_TABLE, "damage_dealt", a_sid, a_name, dmg)
-                            self.insert_player_team(a_sid, regml(res, 4).lower(), v_sid, regml(res, 8).lower())
+                    #pg_statupsert(self, table, column, steamid, name, value)
+                    self.pg_statupsert(self.STAT_TABLE, "damage_dealt", sid, name, dmg)        
+                    
+                    self.insert_player_team(sid, regml(res, 4).lower())
+                    
+                    return
 
-                        self.pg_statupsert(self.STAT_TABLE, "damage_taken", v_sid, v_name, dmg)
+                #damage taken (if log level is 1 in livelogs) shouldn't get double ups, but have toggling variable just in case
+                res = regex(parser_lib.damage_taken, logdata)
+                if res:
+                    sid = regml(res, 3)
+                    name = self.escapePlayerString(regml(res, 1))
+                    dmg = regml(res, 5)
 
-                        self._using_livelogs_output = True
+                    self.pg_statupsert(self.STAT_TABLE, "damage_taken", sid, name, dmg)
 
-                        return
+                    self.insert_player_team(sid, regml(res, 4).lower())
+
+                    return
+
 
                 #healing done
                 #"vsn.RynoCerus<6><STEAM_0:0:23192637><Blue>" triggered "healed" against "Hyperbrole<3><STEAM_0:1:22674758><Blue>" (healing "26")
