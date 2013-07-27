@@ -19,6 +19,7 @@ DECLARE
     index_row RECORD;
     log_row RECORD;
     fake_id integer := 1;
+    log_count integer := 0;
 BEGIN
     RAISE NOTICE 'Updating stat table with previous stats. This will take a LONG while';
 
@@ -43,20 +44,25 @@ BEGIN
                         suicides, buildings_destroyed, extinguishes
                         FROM log_stat_' || index_row.log_ident
             LOOP
-                INSERT INTO livelogs_player_stats (log_ident, steamid, team, class, kills, deaths, assists, points, healing_done, healing_received, ubers_used, ubers_lost,
+                RAISE NOTICE '%', 'INSERT INTO livelogs_player_stats (log_ident, steamid, team, class, kills, deaths, assists, points, healing_done, healing_received, ubers_used, ubers_lost,
                                                     headshots, backstabs, damage_dealt, damage_taken, captures, captures_blocked, dominations, times_dominated, revenges,
                                                     suicides, buildings_destroyed, extinguishes)
-                    VALUES (index_row.log_ident, fake_id, log_row.team, 'UNKNOWN', log_row.kills, log_row.deaths, log_row.assists, log_row.points, log_row.healing_done, log_row.healing_received, log_row.ubers_used,
-                            log_row.ubers_lost, log_row.headshots, log_row.backstabs, log_row.damage_dealt, log_row.damage_taken, log_row.captures, log_row.captures_blocked, log_row.dominations, log_row.times_dominated,
-                            log_row.revenges, log_row.suicides, log_row.buildings_destroyed, log_row.extinguishes);
+                    VALUES (' || index_row.log_ident || ', ' || fake_id || ', ' || log_row.team || ', ''UNKNOWN'' , ' || log_row.kills || ', ' || log_row.deaths || ' ,' || log_row.assists || ', ' || log_row.points || ', ' ||
+                            log_row.healing_done || ', ' || log_row.healing_received || ', ' || log_row.ubers_used || ', ' ||
+                            log_row.ubers_lost || ', ' || log_row.headshots || ', ' || log_row.backstabs || ', ' || log_row.damage_dealt || ', ' || log_row.damage_taken || ', ' || log_row.captures || ', ' ||
+                            log_row.captures_blocked || ', ' || log_row.dominations || ', ' || log_row.times_dominated || ', ' ||
+                            log_row.revenges || ', ' || log_row.suicides || ', ' || log_row.buildings_destroyed || ', ' || log_row.extinguishes || ');';
+                
 
-                INSERT INTO livelogs_player_details (steamid, log_ident, name) VALUES (fake_id, index_row.log_ident, log_row.name);
+                RAISE NOTICE '%', 'INSERT INTO livelogs_player_details (steamid, log_ident, name) VALUES (' || fake_id || ', ' || index_row.log_ident || ', ' || log_row.name || ');';
 
                 RAISE NOTICE 'Data inserted into new tables';
 
                 fake_id := fake_id + 1;
             END LOOP;
         END IF;
+        log_count := log_count + 1;
+        RAISE NOTICE 'Finished log #%', log_count;
     END LOOP;
 END;
 $_$ LANGUAGE 'plpgsql';
