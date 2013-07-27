@@ -1,8 +1,26 @@
-/* Uses ajax to get search results using a php script */
-
-var log_search = log_search || (function() {
+/* init data tables */
+$(document).ready(function() {
     "use strict";
-    var search, past_search, state_obj = {}, search_field = null;
+    var stat_table = $('#class_stats').dataTable( {
+        "aaSorting": [[1, 'desc']],
+        "aoColumnDefs": [
+            { "sType": "alt-string", "bSearchable": false, "aTargets": [0] },
+            { "sType": "numeric", "bSearchable": false, "aTargets": ["_all"] },
+            { "asSorting": [ "desc", "asc" ], "aTargets": [ "_all" ] }
+        ],
+        "bPaginate": false,
+        "bAutoWidth": false,
+        "bSortClasses": false,
+        "bSearchable": false,
+        "bInfo": false,
+        "bJQueryUI": false,
+        "bUseRendered": true,
+        "bFilter": false
+    });
+});
+
+var ll_paging = ll_paging || (function() {
+    "use strict";
 
     var pipe_cache = {
             cache_start: -1,
@@ -11,10 +29,11 @@ var log_search = log_search || (function() {
         };
 
     var initialised = false;
+
     return {
-        init : function(default_search, display_length) {
-            console.log("search: %s | display_length: %s", default_search, display_length);
-            if (initialised) { return; }
+        init : function(community_id, display_length) {
+            console.log("cid: %s | display_length: %s", community_id, display_length);
+            if (initialised) return;
 
             var past_table = $('#past_logs').dataTable( {
                 "aaSorting": [[4, 'desc']],
@@ -27,20 +46,22 @@ var log_search = log_search || (function() {
                 ],
                 "bAutoWidth": false,
                 "bSortClasses": false,
-                "bSearchable": true,
-                "oSearch": { "sSearch": default_search },
+                "bSearchable": false,
                 "bInfo": false,
                 "bJQueryUI": false,
                 "bUseRendered": true,
-                "bFilter": true,
+                "bFilter": false,
                 "bPaginate": true,
                 "sPaginationType": "bootstrap",
                 "bLengthChange": false,
                 "iDisplayLength": display_length,
                 "bProcessing": true,
                 "bServerSide": true,
-                "sAjaxSource": "/func/logsearch.php",
-                "fnServerData": log_search.datatables_pipeline
+                "sAjaxSource": "/func/paging_data.php",
+                "fnServerData": ll_paging.datatables_pipeline,
+                "fnServerParams": function (aoData) {
+                    aoData.push({ "name": "cid", "value": community_id });
+                }
             });
 
             initialised = true;
@@ -65,13 +86,11 @@ var log_search = log_search || (function() {
         },
 
         datatables_pipeline : function(data_source, request_data, datatables_callback) {
-            console.log(request_data);
-
             var pipe_len = 8, /* how many pages to preload */
             need_server = false, 
-            challenge_echo = log_search.datatables_getkey(request_data, "sEcho"),
-            request_start = log_search.datatables_getkey(request_data, "iDisplayStart"),
-            display_length = log_search.datatables_getkey(request_data, "iDisplayLength"),
+            challenge_echo = ll_paging.datatables_getkey(request_data, "sEcho"),
+            request_start = ll_paging.datatables_getkey(request_data, "iDisplayStart"),
+            display_length = ll_paging.datatables_getkey(request_data, "iDisplayLength"),
             request_end = request_start + display_length;
 
             pipe_cache.display_start = request_start;
@@ -114,8 +133,8 @@ var log_search = log_search || (function() {
                 pipe_cache.display_length = display_length;
 
                 //set the request_data's lengths to the lengths of the pipeline
-                log_search.datatables_setkey(request_data, "iDisplayStart", request_start);
-                log_search.datatables_setkey(request_data, "iDisplayLength", display_length * pipe_len);
+                ll_paging.datatables_setkey(request_data, "iDisplayStart", request_start);
+                ll_paging.datatables_setkey(request_data, "iDisplayLength", display_length * pipe_len);
 
                 $.getJSON(data_source, request_data, function(json) {
                     pipe_cache.last_json = jQuery.extend(true, {}, json);
@@ -140,42 +159,7 @@ var log_search = log_search || (function() {
 
                 datatables_callback(json);
             }
-
-            log_search.set_search_url(log_search.datatables_getkey(request_data, "sSearch"));
-        },
-
-        submitCallback : function() {
-            log_search.searchLogs();
-        },
-
-        keyupCallback : function(e) {
-            if (e.keyCode !== 13) {
-                log_search.searchLogs();
-            }
-        },
-
-        set_search_url : function(search) {
-            if (typeof search !== 'undefined') {
-                state_obj.search = search;
-                history.pushState(state_obj, "Search result for " + search, "/past/" + search.replace(" ", "%20"));
-            }
         }
-    };
+    }
 }());
-
-$(document).ready(function() 
-{
-    "use strict";
-    /*
-    After a user lets go of a key (i.e, they've entered something in the search box,
-    we use jquery.get() to call a php script that will return the results (if there are any)
-    */
-    
-    //$("#search_field").bindWithDelay("keyup", {when: "delay", optional: "eventData"}, log_search.keyupCallback, 300);
-
-    $("#search_form").submit(function(e) {
-        log_search.submitCallback();
-        e.preventDefault();
-    });
-});
 
