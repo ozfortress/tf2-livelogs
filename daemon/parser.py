@@ -18,6 +18,16 @@ import logging
 from pprint import pprint
 from livelib import parser_lib, queryqueue
 
+def regex(compiled_regex, string): #helper function for performing regular expression checks. avoids having to compile and match in-function 1000 times
+    #preg = re.compile(expression, re.IGNORECASE | re.MULTILINE)
+    
+    match = compiled_regex.search(string)
+
+    return match
+
+def regml(retuple, index): #get index of re group tuple
+    return retuple.group(index)
+
 class parserClass(object):
     def __init__(self, data, endfunc = None, log_uploaded = False):
         self.HAD_ERROR = False
@@ -169,9 +179,6 @@ class parserClass(object):
         try:
             event_time = None
             #self.logger.debug("PARSING LOG: %s", logdata)
-
-            regex = self.regex #avoid having to use fucking self.regex every time (ANNOYING++++)
-            regml = self.regml #local def for regml ^^^
 
             self.write_to_log(logdata + "\n")
 
@@ -875,17 +882,6 @@ class parserClass(object):
 
         except Exception, e:
             self.logger.exception("Exception parsing log data: %s", logdata)
-
-
-    def regex(self, compiled_regex, string): #helper function for performing regular expression checks. avoids having to compile and match in-function 1000 times
-        #preg = re.compile(expression, re.IGNORECASE | re.MULTILINE)
-        
-        match = compiled_regex.search(string)
-
-        return match
-
-    def regml(self, retuple, index): #get index of re group tuple
-        return retuple.group(index)
 
     def selectItemName(self, item_name):
         if item_name in self._item_dict:
