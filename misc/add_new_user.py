@@ -27,12 +27,11 @@ if __name__ == "__main__":
 
     parser.add_argument('--name', help="User's name")
     parser.add_argument('--email', help="User's email")
-    parser.add_argument('--ip', help="User's server IP")
     parser.add_argument('--key', help="User's API key (optional)")
 
     args = parser.parse_args()
 
-    if not (args.name and args.email and args.ip):
+    if not (args.name and args.email):
         print "Invalid usage"
         quit()
 
@@ -52,8 +51,8 @@ if __name__ == "__main__":
         try:
             cursor = db.cursor()
 
-            cursor.execute("INSERT INTO livelogs_auth_keys (user_name, user_email, user_key, user_ip) VALUES (%s, %s, %s, %s)",
-                                                            (args.name, args.email, client_key, args.ip,))
+            cursor.execute("INSERT INTO livelogs_auth_keys (user_name, user_email, user_key) VALUES (%s, %s, %s)",
+                                                            (args.name, args.email, client_key,))
 
             cursor.close()
 
