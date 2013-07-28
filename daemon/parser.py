@@ -928,8 +928,6 @@ class parserClass(object):
         team_insert_list = []
         team_to_insert = False
 
-        print "teams and sids: a: (%s, %s), b: (%s, %s)" % (a_sid, a_team, b_sid, b_team)
-
         if a_sid and (a_team is not None) and (a_team != "None"):
             a_cid = self.get_cid(a_sid)
             if self.add_player(a_cid, team = a_team) or not self._players[a_cid].is_team_same(a_team):

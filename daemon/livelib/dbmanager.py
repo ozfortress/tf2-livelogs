@@ -58,7 +58,7 @@ class dbManager(object):
         #end_callback is the function to be called when the log is no longer live
         
         self.log = logging.getLogger(log_id)
-        self.log.setLevel(logging.DEBUG)
+        self.log.setLevel(logging.INFO)
         self.log.addHandler(log_file_handler)
 
         self.db = db
@@ -469,7 +469,7 @@ class dbManager(object):
             else:
                 #get table diff
                 temp_table = self.calc_table_delta(old_table = self._team_stat_table, new_table = team_stats)
-                pprint(temp_table)
+                #pprint(temp_table)
 
                 if temp_table != self._team_stat_difference_table:
                     if self._new_team_stat_update:
@@ -481,7 +481,7 @@ class dbManager(object):
                         self._team_stat_difference_table = temp_table
                         self._team_stat_table = team_stats
 
-                    pprint(self._team_stat_difference_table)
+                    #pprint(self._team_stat_difference_table)
 
                     self._new_team_stat_update = True
 
