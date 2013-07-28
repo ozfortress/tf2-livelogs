@@ -18,6 +18,16 @@ import logging
 from pprint import pprint
 from livelib import parser_lib, queryqueue
 
+
+item_dict = {
+            'ammopack_small': 'ap_small',
+            'ammopack_medium': 'ap_medium', 
+            'tf_ammo_pack': 'ap_large', 
+            'medkit_small': 'mk_small', 
+            'medkit_medium': 'mk_medium', 
+            'medkit_large': 'mk_large'
+            }
+
 def regex(compiled_regex, string): #helper function for performing regular expression checks. avoids having to compile and match in-function 1000 times
     #preg = re.compile(expression, re.IGNORECASE | re.MULTILINE)
     
@@ -27,6 +37,12 @@ def regex(compiled_regex, string): #helper function for performing regular expre
 
 def regml(retuple, index): #get index of re group tuple
     return retuple.group(index)
+
+def selectItemName(self, item_name):
+    if item_name in item_dict:
+        return item_dict[item_name]
+    else:
+        return None
 
 class parserClass(object):
     def __init__(self, data, endfunc = None, log_uploaded = False):
@@ -151,15 +167,6 @@ class parserClass(object):
         self.STAT_TABLE = "livelogs_player_stats"
         self.CHAT_TABLE = "livelogs_game_chat"
         self.PLAYER_TABLE = "livelogs_player_details"
-
-        self._item_dict = {
-            'ammopack_small': 'ap_small',
-            'ammopack_medium': 'ap_medium', 
-            'tf_ammo_pack': 'ap_large', 
-            'medkit_small': 'mk_small', 
-            'medkit_medium': 'mk_medium', 
-            'medkit_large': 'mk_large'
-            }
             
         self._players = {} #a dict of player data objects wrt steamid
         
@@ -309,7 +316,7 @@ class parserClass(object):
                     sid = regml(res, 3)
                     name = self.escapePlayerString(regml(res, 1))
 
-                    colname = self.selectItemName(regml(res, 5))
+                    colname = selectItemName(regml(res, 5))
 
                     if not colname:
                         return
@@ -882,12 +889,6 @@ class parserClass(object):
 
         except Exception, e:
             self.logger.exception("Exception parsing log data: %s", logdata)
-
-    def selectItemName(self, item_name):
-        if item_name in self._item_dict:
-            return self._item_dict[item_name]
-        else:
-            return "UNKNOWN"
 
     def pg_statupsert(self, table, column, steamid, name, value):
         #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
