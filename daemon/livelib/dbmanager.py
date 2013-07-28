@@ -242,7 +242,7 @@ class dbManager(object):
     def calc_game_time(self):
         return int(round(time.time())) - self._start_time
 
-    def calc_table_delta(self, old_table, new_table, teams=False):
+    def calc_table_delta(self, old_table=None, new_table=None):
         """
         Calculates the delta update of two table dicts
 
@@ -252,6 +252,9 @@ class dbManager(object):
         """
         
         diff_dict = {}
+
+        if not old_table or not new_table:
+            return diff_dict
         
         for key in new_table:
             if key in old_table:
@@ -465,11 +468,12 @@ class dbManager(object):
 
             else:
                 #get table diff
-                temp_table = self.calc_table_delta(self._team_stat_table, team_stats, teams = True)
+                temp_table = self.calc_table_delta(old_table = self._team_stat_table, new_table = team_stats)
 
                 if temp_table != self._team_stat_difference_table:
                     if self._new_team_stat_update:
                         #combine the updates
+                        self.log.debug("There is a team stat update waiting. Combining tables")
                         self._team_stat_difference_table = self.combine_update_table(team_stats, self._team_stat_difference_table)
 
                     else:
