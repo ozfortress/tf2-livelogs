@@ -655,7 +655,7 @@ class parserClass(object):
             if res:
                 team = regml(res, 5)
 
-                if team == "Spectator":
+                if team == "Spectator" or team == "None":
                     return
 
                 sid = regml(res, 3)
@@ -928,14 +928,15 @@ class parserClass(object):
         team_insert_list = []
         team_to_insert = False
 
-        a_sid = self.get_cid(a_sid)
-        if self.add_player(a_sid, team = a_team) or not self._players[a_sid].is_team_same(a_team):
-            self._players[a_sid].set_team(a_team)
-            team_insert_list.append((a_sid, a_team))
+        if a_sid and a_team is not None and a_team != "None":
+            a_sid = self.get_cid(a_sid)
+            if self.add_player(a_sid, team = a_team) or not self._players[a_sid].is_team_same(a_team):
+                self._players[a_sid].set_team(a_team)
+                team_insert_list.append((a_sid, a_team))
 
-            team_to_insert = True
+                team_to_insert = True
         
-        if b_sid and b_team:
+        if b_sid and b_team is not None and b_team != "None":
             b_sid = self.get_cid(b_sid)
             if self.add_player(b_sid, team = b_team) or not self._players[b_sid].is_team_same(b_team):
                 self._players[b_sid].set_team(b_team)
