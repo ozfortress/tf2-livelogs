@@ -453,10 +453,10 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
 
     def disconnect_end(self, end_update = None):
         if self:
+            self.write_message("LOG_END")
+
             if end_update:
                 self.write_message(end_update)
-
-            self.write_message("LOG_END")
 
             self.close()
 
