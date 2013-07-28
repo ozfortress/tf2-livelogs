@@ -58,7 +58,7 @@ class dbManager(object):
         #end_callback is the function to be called when the log is no longer live
         
         self.log = logging.getLogger(log_id)
-        self.log.setLevel(logging.INFO)
+        self.log.setLevel(logging.DEBUG)
         self.log.addHandler(log_file_handler)
 
         self.db = db
@@ -260,7 +260,7 @@ class dbManager(object):
             if key in old_table:
                 #find the difference
                 if isinstance(old_table[key], dict) and isinstance(new_table[key], dict): #keys are dicts, so we should do this recursively
-                    tmp = self.calc_table_delta(old_table[key], new_table[key])
+                    tmp = self.calc_table_delta(old_table = old_table[key], new_table = new_table[key])
 
                     if tmp:
                         diff_dict[key] = tmp
@@ -469,6 +469,7 @@ class dbManager(object):
             else:
                 #get table diff
                 temp_table = self.calc_table_delta(old_table = self._team_stat_table, new_table = team_stats)
+                pprint(temp_table)
 
                 if temp_table != self._team_stat_difference_table:
                     if self._new_team_stat_update:
@@ -480,7 +481,7 @@ class dbManager(object):
                         self._team_stat_difference_table = temp_table
                         self._team_stat_table = team_stats
 
-                    #pprint(self._team_stat_difference_table)
+                    pprint(self._team_stat_difference_table)
 
                     self._new_team_stat_update = True
 
@@ -569,10 +570,11 @@ class dbManager(object):
                 else:
                     score_dict["red"] = 0
 
-                if scores[1]:
-                    score_dict["blue"] = scores[1]
-                else:
-                    score_dict["blue"] = 0
+                if len(scores) >= 2:
+                    if scores[1]:
+                        score_dict["blue"] = scores[1]
+                    else:
+                        score_dict["blue"] = 0
 
                 if not self._score_table:
                     self._score_table = score_dict
