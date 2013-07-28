@@ -460,7 +460,7 @@ class dbManager(object):
                 self.log.debug("team update row: %s", row)
                 team = row[0]
 
-                if team:
+                if team != "None":
                     team_stats[team] = self.team_stat_tuple_to_dict(row[1:]) #splice the row so we just have the stats, and convert them to a dict
 
             if not self._team_stat_table:
@@ -475,7 +475,7 @@ class dbManager(object):
                     if self._new_team_stat_update:
                         #combine the updates
                         self.log.debug("There is a team stat update waiting. Combining tables")
-                        self._team_stat_difference_table = self.combine_update_table(team_stats, self._team_stat_difference_table)
+                        self._team_stat_difference_table = self.combine_update_table(temp_table, self._team_stat_difference_table)
 
                     else:
                         self._team_stat_difference_table = temp_table

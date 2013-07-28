@@ -237,7 +237,7 @@ class parserClass(object):
 
                     else:
                         self.pg_statupsert(self.STAT_TABLE, "damage_dealt", a_sid, a_name, dmg)
-                        self.insert_player_team(a_sid, regml(res, 4).lower(), v_sid, regml(res, 8).lower())
+                        self.insert_player_team(a_sid, regml(res, 4).lower(), b_sid = v_sid, b_team = regml(res, 8).lower())
 
                     self.pg_statupsert(self.STAT_TABLE, "damage_taken", v_sid, v_name, dmg)
 
@@ -293,7 +293,7 @@ class parserClass(object):
                     self.pg_statupsert(self.STAT_TABLE, "points", medic_sid, medic_name, medic_points)
                     self.pg_statupsert(self.STAT_TABLE, "healing_received", healt_sid, healt_name, medic_healing)
 
-                    self.insert_player_team(medic_sid, regml(res, 4).lower(), healt_sid, regml(res, 8).lower())
+                    self.insert_player_team(medic_sid, regml(res, 4).lower(), b_sid = healt_sid, b_team = regml(res, 8).lower())
 
                     self.insert_player_class(medic_sid, "medic")
 
@@ -347,7 +347,7 @@ class parserClass(object):
                                                             self.UNIQUE_IDENT, event_time, "kill", self.get_cid(k_sid), k_pos, self.get_cid(v_sid), v_pos) #creates a new, unique eventid with details of the event
                     self.executeQuery(event_insert_query)
 
-                    self.insert_player_team(k_sid, regml(res, 4).lower(), v_sid, regml(res, 8).lower())
+                    self.insert_player_team(k_sid, regml(res, 4).lower(), b_sid = v_sid, b_team = regml(res, 8).lower())
 
                     return
 
@@ -397,7 +397,7 @@ class parserClass(object):
                                                             self.UNIQUE_IDENT, event_time, event_type, self.get_cid(k_sid), k_pos, self.get_cid(v_sid), v_pos)
                     self.executeQuery(event_insert_query)
 
-                    self.insert_player_team(k_sid, regml(res, 4).lower(), v_sid, regml(res, 8).lower())
+                    self.insert_player_team(k_sid, regml(res, 4).lower(), b_sid = v_sid, b_team = regml(res, 8).lower())
                     
                     return
                 
@@ -928,26 +928,30 @@ class parserClass(object):
         team_insert_list = []
         team_to_insert = False
 
-        if a_sid and a_team is not None and a_team != "None":
-            a_sid = self.get_cid(a_sid)
-            if self.add_player(a_sid, team = a_team) or not self._players[a_sid].is_team_same(a_team):
-                self._players[a_sid].set_team(a_team)
-                team_insert_list.append((a_sid, a_team))
+        print "teams and sids: a: (%s, %s), b: (%s, %s)" % (a_sid, a_team, b_sid, b_team)
+
+        if a_sid and (a_team is not None) and (a_team != "None"):
+            a_cid = self.get_cid(a_sid)
+            if self.add_player(a_cid, team = a_team) or not self._players[a_cid].is_team_same(a_team):
+                self._players[a_cid].set_team(a_team)
+
+                team_insert_list.append((a_cid, a_team))
 
                 team_to_insert = True
         
-        if b_sid and b_team is not None and b_team != "None":
-            b_sid = self.get_cid(b_sid)
-            if self.add_player(b_sid, team = b_team) or not self._players[b_sid].is_team_same(b_team):
-                self._players[b_sid].set_team(b_team)
-                team_insert_list.append((b_sid, b_team))
+        if b_sid and (b_team is not None) and (b_team != "None"):
+            b_cid = self.get_cid(b_sid)
+            if self.add_player(b_cid, team = b_team) or not self._players[b_cid].is_team_same(b_team):
+                self._players[b_cid].set_team(b_team)
+
+                team_insert_list.append((b_cid, b_team))
 
                 team_to_insert = True
         
         if team_to_insert:
             for team_tuple in team_insert_list:
                 #insert_query = "INSERT INTO %s (log_ident, steamid, team) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, team_tuple[0], team_tuple[1])
-                update_query = "UPDATE %s SET team = E'%s' WHERE log_ident = '%s' AND steamid = E'%s'" % (self.STAT_TABLE, team_tuple[1],  self.UNIQUE_IDENT, team_tuple[0])
+                update_query = "UPDATE %s SET team = E'%s' WHERE log_ident = '%s' AND steamid = E'%s'" % (self.STAT_TABLE, team_tuple[1], self.UNIQUE_IDENT, team_tuple[0])
 
                 self.executeQuery(update_query) #we only ever want to update the team, never insert
 
