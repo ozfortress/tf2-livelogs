@@ -93,10 +93,6 @@ class dbManager(object):
         
         self._chat_event_id = 0 #maintain a copy of the last retreived chat event id
 
-        self._stat_query_complete = False
-        self._chat_query_complete = False
-        self._score_query_complete = False
-
         self._new_stat_update = False
         self._new_team_stat_update = False
         self._new_chat_update = False
@@ -359,12 +355,7 @@ class dbManager(object):
 
     def get_database_updates(self):
         #executes the queries to obtain updates. called periodically
-        self.log.info("Getting database update for log %s", self._unique_ident)
-
-        self._stat_query_complete = False
-        self._chat_query_complete = False
-        self._score_query_complete = False
-        
+        self.log.info("Getting database update for log %s", self._unique_ident)        
 
         if not self._chat_event_id:
             chat_query = self._default_chat_query
@@ -402,8 +393,6 @@ class dbManager(object):
         #the callback for stat update queries
         if error or not cursor:
             self.log.error("Error querying database for stat data: %s", error)
-            self._stat_query_complete = True
-            self.__clear_busy_status()
             return
 
         if self.ended:
@@ -446,10 +435,6 @@ class dbManager(object):
 
         except:
             self.log.exception("Exception during _stat_update_callback")
-                
-        self._stat_query_complete = True
-
-        self.__clear_busy_status()
 
     def _team_stat_update_callback(self, cursor, error):
         if error or not cursor:
@@ -500,8 +485,6 @@ class dbManager(object):
     def _chat_update_callback(self, cursor, error):
         if error or not cursor:
             self.log.error("Error querying database for chat data: %s", error)
-            self._chat_query_complete = True
-            self.__clear_busy_status()
             return
 
         if self.ended:
@@ -555,15 +538,9 @@ class dbManager(object):
         except:
             self.log.exception("Exception during _chat_update_callback")
 
-        self._chat_query_complete = True
-
-        self.__clear_busy_status()
-
     def _score_update_callback(self, cursor, error):
         if error or not cursor:
             self.log.error("Error querying database for score data: %s", error)
-            self._score_query_complete = True
-            self.__clear_busy_status()
             return
 
         if self.ended:
@@ -619,10 +596,6 @@ class dbManager(object):
         except:
             self.log.exception("Exception during _score_update_callback")
 
-        self._score_query_complete = True
-
-        self.__clear_busy_status()
-
     def _name_update_callback(self, cursor, error):
         if error or not cursor:
             self.log.error("Error querying database for name data: %s", error)
@@ -641,11 +614,6 @@ class dbManager(object):
         except:
             self.log.exception("Exception during _name_update_callback")
 
-
-    def __clear_busy_status(self):
-        if self._database_busy:
-            if self._stat_query_complete and self._score_query_complete and self._time_query_complete and self._chat_query_complete:
-                self._database_busy = False
 
     def _update_timer(self):
         #called by the main tornado IOLoop in a periodic callback
