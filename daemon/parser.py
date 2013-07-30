@@ -19,6 +19,8 @@ from pprint import pprint
 from livelib import parser_lib, queryqueue
 
 
+spawn_swap_classes = ["spy", "sniper", "pyro", "engineer"] #classes typically joined as to swap between forward/back spawns, don't add these classes unless player gets a kill
+
 item_dict = {
             'ammopack_small': 'ap_small',
             'ammopack_medium': 'ap_medium', 
@@ -782,16 +784,16 @@ class parserClass(object):
                 #pprint(res.groups())
 
                 #NOW WE ADD CLASSES O GOD
-
+                pclass = regml(res, 5)
                 sid = regml(res, 3)
                 team = regml(res, 4).lower()
-                pclass = regml(res, 5)
 
                 self.insert_player_team(sid, team)
 
-                self.insert_player_class(sid, pclass)
+                if pclass not in spawn_swap_classes:
+                    self.insert_player_class(sid, pclass)
 
-                self._players[self.get_cid(sid)].set_class(pclass)
+                    self._players[self.get_cid(sid)].set_class(pclass)
 
                 return
 
