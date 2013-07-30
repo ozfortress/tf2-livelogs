@@ -185,6 +185,15 @@ def stripHTMLTags(string):
 """
 definitions of functions used by the parser
 """
+item_dict = {
+            'ammopack_small': 'ap_small',
+            'ammopack_medium': 'ap_medium', 
+            'tf_ammo_pack': 'ap_large', 
+            'medkit_small': 'mk_small', 
+            'medkit_medium': 'mk_medium', 
+            'medkit_large': 'mk_large'
+        }
+
 def selectItemName(item_name):
     if item_name in item_dict:
         return item_dict[item_name]

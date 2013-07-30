@@ -20,17 +20,7 @@ from livelib import parser_lib, queryqueue
 
 from livelib.parser_lib import selectItemName, get_cid, escapePlayerString
 
-
 spawn_swap_classes = ["spy", "sniper", "pyro", "engineer"] #classes typically joined as to swap between forward/back spawns, don't add these classes unless player gets a kill
-
-item_dict = {
-            'ammopack_small': 'ap_small',
-            'ammopack_medium': 'ap_medium', 
-            'tf_ammo_pack': 'ap_large', 
-            'medkit_small': 'mk_small', 
-            'medkit_medium': 'mk_medium', 
-            'medkit_large': 'mk_large'
-            }
 
 def regex(compiled_regex, string): #helper function for performing regular expression checks. avoids having to compile and match in-function 1000 times
     #preg = re.compile(expression, re.IGNORECASE | re.MULTILINE)
