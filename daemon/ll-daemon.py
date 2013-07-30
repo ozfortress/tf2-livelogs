@@ -495,7 +495,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 if not (queries_completed % commit_threshold):
                     conn.commit() #commit changes to database every commit_threshold 
 
-            self.logger.info("queue lengths (after process): %s, num completed: %d", self.query_queue.queue_length_all(), queries_completed)
+            #self.logger.debug("queue lengths (after process): %s, num completed: %d", self.query_queue.queue_length_all(), queries_completed)
             if queries_completed > 0:
                 conn.commit() #commit any changes that havent been committed yet
 
@@ -519,7 +519,8 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                 elif dynamic_quota < self.queue_min_quota:
                     dynamic_quota = self.queue_min_quota
 
-                self.logger.debug("queue lengths: %s, dynamic quota: %s", self.query_queue.queue_length_all(), dynamic_quota)
+                #self.logger.debug("queue lengths: %s, dynamic quota: %s", self.query_queue.queue_length_all(), dynamic_quota)
+                self.logger.info("Processing query queue")
 
                 self.__process_database_queue(dynamic_quota)
 
