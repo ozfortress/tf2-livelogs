@@ -664,7 +664,7 @@ class parserClass(object):
             if res:
                 team = regml(res, 5)
 
-                if team == "Spectator" or team == "None":
+                if team == "Spectator" or team == "None" or team is None:
                     return
 
                 sid = regml(res, 3)
@@ -896,6 +896,9 @@ class parserClass(object):
         #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
 
         cid = self.get_cid(steamid) #convert steamid to community id
+        if cid == 0:
+            self.logger.debug("player %s (%s) has cid of 0?", name, steamid)
+            return
 
         name = name[:30] #max length of 30 characters for names        
         self.add_player(cid, name = name) #get this guy a player_data object!
