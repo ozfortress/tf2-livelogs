@@ -40,7 +40,7 @@ def regex(compiled_regex, string): #helper function for performing regular expre
 def regml(retuple, index): #get index of re group tuple
     return retuple.group(index)
 
-def selectItemName(self, item_name):
+def selectItemName(item_name):
     if item_name in item_dict:
         return item_dict[item_name]
     else:
