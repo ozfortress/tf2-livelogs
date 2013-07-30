@@ -182,3 +182,49 @@ def stripHTMLTags(string):
 
     return stripper.get_data() #get the text out
 
+"""
+definitions of functions used by the parser
+"""
+def selectItemName(item_name):
+    if item_name in item_dict:
+        return item_dict[item_name]
+    else:
+        return None
+
+def get_cid(steam_id):
+    #takes a steamid in the format STEAM_x:x:xxxxx and converts it to a 64bit community id
+
+    auth_server = 0;
+    auth_id = 0;
+    
+    steam_id_tok = steam_id.split(':')
+
+    if len(steam_id_tok) == 3:
+        auth_server = int(steam_id_tok[1])
+        auth_id = int(steam_id_tok[2])
+        
+        community_id = auth_id * 2 #multiply auth id by 2
+        community_id += 76561197960265728 #add arbitrary number chosen by valve
+        community_id += auth_server #add the auth server. even ids are on server 0, odds on server 1
+
+    else:
+        community_id = 0
+
+    return community_id
+
+def escapePlayerString(unescaped_string):
+
+    def remove_non_ascii(string):
+        return "".join(i for i in string if ord(i) < 128)
+
+
+    escaped_string = unescaped_string.decode('utf-8', 'ignore') #decode strings into unicode where applicable
+    escaped_string = escaped_string.replace("'", "''").replace("\\", "\\\\") #escape slashes and apostrophes
+    #escaped_string = remove_non_ascii(escaped_string)
+    escaped_string = stripHTMLTags(escaped_string) #strip any html tags
+
+    if len(escaped_string) == 0:
+        return "LL_INVALID_STRING"; #if the string is empty, return invalid string
+
+    return escaped_string
+

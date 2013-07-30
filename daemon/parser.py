@@ -18,6 +18,8 @@ import logging
 from pprint import pprint
 from livelib import parser_lib, queryqueue
 
+from livelib.parser_lib import selectItemName, get_cid, escapePlayerString
+
 
 spawn_swap_classes = ["spy", "sniper", "pyro", "engineer"] #classes typically joined as to swap between forward/back spawns, don't add these classes unless player gets a kill
 
@@ -39,12 +41,6 @@ def regex(compiled_regex, string): #helper function for performing regular expre
 
 def regml(retuple, index): #get index of re group tuple
     return retuple.group(index)
-
-def selectItemName(item_name):
-    if item_name in item_dict:
-        return item_dict[item_name]
-    else:
-        return None
 
 class parserClass(object):
     def __init__(self, data, endfunc = None, log_uploaded = False):
@@ -234,10 +230,10 @@ class parserClass(object):
                 res = regex(parser_lib.player_damage, logdata)
                 if res:
                     a_sid = regml(res, 3)
-                    a_name = self.escapePlayerString(regml(res, 1))
+                    a_name = escapePlayerString(regml(res, 1))
 
                     v_sid = regml(res, 7)
-                    v_name = self.escapePlayerString(regml(res, 5))
+                    v_name = escapePlayerString(regml(res, 5))
 
                     dmg = regml(res, 9)
 
@@ -259,7 +255,7 @@ class parserClass(object):
                     #pprint(res.groups())
                     #('[v3] Kaki', '51', 'STEAM_0:1:35387674', 'Red', '40')
                     sid = regml(res, 3)
-                    name = self.escapePlayerString(regml(res, 1))
+                    name = escapePlayerString(regml(res, 1))
                     dmg = regml(res, 5)
 
                     #pg_statupsert(self, table, column, steamid, name, value)
@@ -273,7 +269,7 @@ class parserClass(object):
                 res = regex(parser_lib.damage_taken, logdata)
                 if res:
                     sid = regml(res, 3)
-                    name = self.escapePlayerString(regml(res, 1))
+                    name = escapePlayerString(regml(res, 1))
                     dmg = regml(res, 5)
 
                     self.pg_statupsert(self.STAT_TABLE, "damage_taken", sid, name, dmg)
@@ -291,11 +287,11 @@ class parserClass(object):
                     #pprint(res.groups())
 
                     medic_sid = regml(res, 3)
-                    medic_name = self.escapePlayerString(regml(res, 1))
+                    medic_name = escapePlayerString(regml(res, 1))
                     medic_healing = regml(res, 9)
                     medic_points = round(int(medic_healing) / 600, 2)
 
-                    healt_name = self.escapePlayerString(regml(res, 5))
+                    healt_name = escapePlayerString(regml(res, 5))
                     healt_sid = regml(res, 7)
                     
                     self.pg_statupsert(self.STAT_TABLE, "healing_done", medic_sid, medic_name, medic_healing)
@@ -316,7 +312,7 @@ class parserClass(object):
                     #pprint(res.groups())
 
                     sid = regml(res, 3)
-                    name = self.escapePlayerString(regml(res, 1))
+                    name = escapePlayerString(regml(res, 1))
 
                     colname = selectItemName(regml(res, 5))
 
@@ -334,12 +330,12 @@ class parserClass(object):
                     #print "Player killed (normal kill)"
                     #pprint(res.groups())
                     k_sid = regml(res, 3)
-                    k_name = self.escapePlayerString(regml(res, 1))
+                    k_name = escapePlayerString(regml(res, 1))
                     k_pos = regml(res, 10)
                     k_weapon = regml(res, 9)
 
                     v_sid = regml(res, 7)
-                    v_name = self.escapePlayerString(regml(res, 5))
+                    v_name = escapePlayerString(regml(res, 5))
                     v_pos = regml(res, 11)
 
                     self.detect_player_class(k_sid, k_weapon) #update class before inserting anything, so we can be sure that the data is going to the right class
@@ -353,7 +349,7 @@ class parserClass(object):
 
                     #increment event ids and SHIT
                     event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type, kill_attacker_id, kill_attacker_pos, kill_victim_id, kill_victim_pos) VALUES (E'%s', E'%s', E'%s', E'%s', E'%s', E'%s', E'%s')" % (self.EVENT_TABLE, 
-                                                            self.UNIQUE_IDENT, event_time, "kill", self.get_cid(k_sid), k_pos, self.get_cid(v_sid), v_pos) #creates a new, unique eventid with details of the event
+                                                            self.UNIQUE_IDENT, event_time, "kill", get_cid(k_sid), k_pos, get_cid(v_sid), v_pos) #creates a new, unique eventid with details of the event
                     self.executeQuery(event_insert_query)
 
                     self.insert_player_team(k_sid, regml(res, 4).lower(), b_sid = v_sid, b_team = regml(res, 8).lower())
@@ -375,12 +371,12 @@ class parserClass(object):
                     event_type = "kill_custom"
                 
                     k_sid = regml(res, 3)
-                    k_name = self.escapePlayerString(regml(res, 1))
+                    k_name = escapePlayerString(regml(res, 1))
                     k_pos = regml(res, 11)
                     k_weapon = regml(res, 9)
 
                     v_sid = regml(res, 7)
-                    v_name = self.escapePlayerString(regml(res, 5))
+                    v_name = escapePlayerString(regml(res, 5))
                     v_pos = regml(res, 12)
 
                     self.detect_player_class(k_sid, k_weapon)
@@ -403,7 +399,7 @@ class parserClass(object):
                         return
 
                     event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type, kill_attacker_id, kill_attacker_pos, kill_victim_id, kill_victim_pos) VALUES (E'%s', E'%s', '%s', E'%s', E'%s', E'%s', E'%s')" % (self.EVENT_TABLE,
-                                                            self.UNIQUE_IDENT, event_time, event_type, self.get_cid(k_sid), k_pos, self.get_cid(v_sid), v_pos)
+                                                            self.UNIQUE_IDENT, event_time, event_type, get_cid(k_sid), k_pos, get_cid(v_sid), v_pos)
                     self.executeQuery(event_insert_query)
 
                     self.insert_player_team(k_sid, regml(res, 4).lower(), b_sid = v_sid, b_team = regml(res, 8).lower())
@@ -417,7 +413,7 @@ class parserClass(object):
                     #print "Player assisted in kill"
                     #pprint(res.groups())
                     a_sid = regml(res, 3)
-                    a_name = self.escapePlayerString(regml(res, 1))
+                    a_name = escapePlayerString(regml(res, 1))
                     a_pos = regml(res, 9)
 
                     #increment stats!
@@ -426,7 +422,7 @@ class parserClass(object):
 
                     #kill assist ALWAYS (99.9999999999999%) comes after a kill, so we use the previous event id from inserting the kill into the event table. might need to change later
                     assist_update_query = "UPDATE %s SET kill_assister_id = E'%s', kill_assister_pos = E'%s' WHERE (eventid = (SELECT eventid FROM %s WHERE event_type = 'kill' and log_ident = E'%s' ORDER BY eventid DESC LIMIT 1)) AND log_ident = E'%s'" % (self.EVENT_TABLE, 
-                                                                self.get_cid(a_sid), a_pos, self.EVENT_TABLE, self.UNIQUE_IDENT, self.UNIQUE_IDENT)
+                                                                get_cid(a_sid), a_pos, self.EVENT_TABLE, self.UNIQUE_IDENT, self.UNIQUE_IDENT)
                     self.executeQuery(assist_update_query)
 
                     self.insert_player_team(a_sid, regml(res, 4).lower())
@@ -440,7 +436,7 @@ class parserClass(object):
                     #print "Medic death"
                     #pprint(res.groups())
                     m_sid = regml(res, 7)
-                    m_name = self.escapePlayerString(regml(res, 5))
+                    m_name = escapePlayerString(regml(res, 5))
                     m_healing = regml(res, 9)
                     m_uberlost = regml(res, 10)
 
@@ -448,7 +444,7 @@ class parserClass(object):
             
                     #put medic_death info into event table
                     event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type, medic_steamid, medic_uber_lost, medic_healing) VALUES (E'%s', E'%s', '%s', E'%s', '%s', '%s')" % (self.EVENT_TABLE, 
-                                                           self.UNIQUE_IDENT, event_time, "medic_death", self.get_cid(m_sid), m_uberlost, m_healing)
+                                                           self.UNIQUE_IDENT, event_time, "medic_death", get_cid(m_sid), m_uberlost, m_healing)
                     self.executeQuery(event_insert_query)
 
                     return
@@ -459,12 +455,12 @@ class parserClass(object):
                     #print "Ubercharge used"
                     #pprint(res.groups())
                     m_sid = regml(res, 3)
-                    m_name = self.escapePlayerString(regml(res, 1))
+                    m_name = escapePlayerString(regml(res, 1))
 
                     self.pg_statupsert(self.STAT_TABLE, "ubers_used", m_sid, m_name, 1)
 
                     event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type, medic_steamid, medic_uber_used) VALUES (E'%s', E'%s', '%s', E'%s', '%s')" % (self.EVENT_TABLE, 
-                                                            self.UNIQUE_IDENT, event_time, "uber_used", self.get_cid(m_sid), 1)
+                                                            self.UNIQUE_IDENT, event_time, "uber_used", get_cid(m_sid), 1)
                     self.executeQuery(event_insert_query)
 
                     return
@@ -476,10 +472,10 @@ class parserClass(object):
                     #pprint(res.groups())
 
                     p_sid = regml(res, 3)
-                    p_name = self.escapePlayerString(regml(res, 1))
+                    p_name = escapePlayerString(regml(res, 1))
 
                     v_sid = regml(res, 7)
-                    v_name = self.escapePlayerString(regml(res, 5))
+                    v_name = escapePlayerString(regml(res, 5))
 
                     self.pg_statupsert(self.STAT_TABLE, "dominations", p_sid, p_name, 1)
                     self.pg_statupsert(self.STAT_TABLE, "times_dominated", v_sid, v_name, 1)
@@ -494,7 +490,7 @@ class parserClass(object):
                     #pprint(res.groups())
 
                     p_sid = regml(res, 3)
-                    p_name = self.escapePlayerString(regml(res, 1))
+                    p_name = escapePlayerString(regml(res, 1))
 
                     self.pg_statupsert(self.STAT_TABLE, "revenges", p_sid, p_name, 1)
 
@@ -508,7 +504,7 @@ class parserClass(object):
                     #pprint(res.groups())
 
                     p_sid = regml(res, 3)
-                    p_name = self.escapePlayerString(regml(res, 1))
+                    p_name = escapePlayerString(regml(res, 1))
 
                     self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
                     self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
@@ -524,7 +520,7 @@ class parserClass(object):
                     #pprint(res.groups())
                     
                     p_sid = regml(res, 3)
-                    p_name = self.escapePlayerString(regml(res, 1))
+                    p_name = escapePlayerString(regml(res, 1))
                     
                     self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
                     self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
@@ -541,7 +537,7 @@ class parserClass(object):
                     #pprint(res.groups())
 
                     p_sid = regml(res, 3)
-                    p_name = self.escapePlayerString(regml(res, 1))
+                    p_name = escapePlayerString(regml(res, 1))
 
                     self.pg_statupsert(self.STAT_TABLE, "buildings_destroyed", p_sid, p_name, 1)
                     self.pg_statupsert(self.STAT_TABLE, "points", p_sid, p_name, 1)
@@ -582,12 +578,12 @@ class parserClass(object):
                 if c_sid == "Console":
                     c_sid = "STEAM_0:0:0"
 
-                c_sid = self.get_cid(c_sid) #get community id of steamid
-                c_name = self.escapePlayerString(regml(res, 1))
+                c_sid = get_cid(c_sid) #get community id of steamid
+                c_name = escapePlayerString(regml(res, 1))
                 c_team = regml(res, 4)
 
                 chat_type = regml(res, 5)
-                chat_message = self.escapePlayerString(regml(res, 6))
+                chat_message = escapePlayerString(regml(res, 6))
 
                 event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type) VALUES (E'%s', E'%s', '%s')" % (self.EVENT_TABLE, self.UNIQUE_IDENT, event_time, "chat")
                 self.executeQuery(event_insert_query)
@@ -611,7 +607,7 @@ class parserClass(object):
                 #pprint(res.groups())
                 #this is going to be tricky
                 cap_team = regml(res, 1)
-                cap_name = self.escapePlayerString(regml(res, 3))
+                cap_name = escapePlayerString(regml(res, 3))
                 num_cappers = regml(res, 4)
                 
                 event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type, capture_name, capture_team, capture_num_cappers) VALUES (E'%s', E'%s', '%s', E'%s', '%s', '%s')" % (self.EVENT_TABLE,
@@ -628,7 +624,7 @@ class parserClass(object):
                     #pprint(capper.groups())
 
                     c_sid = regml(capper, 4)
-                    c_name = self.escapePlayerString(regml(capper, 2))
+                    c_name = escapePlayerString(regml(capper, 2))
 
                     self.pg_statupsert(self.STAT_TABLE, "captures", c_sid, c_name, 1)
                     self.pg_statupsert(self.STAT_TABLE, "points", c_sid, c_name, 2)
@@ -643,12 +639,12 @@ class parserClass(object):
                 #pprint(res.groups())
 
                 cb_sid = regml(res, 3)
-                cb_name = self.escapePlayerString(regml(res, 1))
+                cb_name = escapePlayerString(regml(res, 1))
 
                 self.pg_statupsert(self.STAT_TABLE, "captures_blocked", cb_sid, cb_name, 1)
                 self.pg_statupsert(self.STAT_TABLE, "points", cb_sid, cb_name, 1)
 
-                cap_name = self.escapePlayerString(regml(res, 6))
+                cap_name = escapePlayerString(regml(res, 6))
                 cap_block_team = regml(res, 4)
 
                 #re-use the capture event columns, but this time capture_blocked is 1 instead of NULL, so we can distinguish
@@ -793,7 +789,7 @@ class parserClass(object):
                 if pclass not in spawn_swap_classes:
                     self.insert_player_class(sid, pclass)
 
-                    self._players[self.get_cid(sid)].set_class(pclass)
+                    self._players[get_cid(sid)].set_class(pclass)
 
                 return
 
@@ -895,7 +891,7 @@ class parserClass(object):
     def pg_statupsert(self, table, column, steamid, name, value):
         #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
 
-        cid = self.get_cid(steamid) #convert steamid to community id
+        cid = get_cid(steamid) #convert steamid to community id
         if cid == 0:
             self.logger.debug("player %s (%s) has cid of 0?", name, steamid)
             return
@@ -913,29 +909,13 @@ class parserClass(object):
 
         self.add_qtq(insert_query, update_query)
 
-    def escapePlayerString(self, unescaped_string):
-
-        def remove_non_ascii(string):
-            return "".join(i for i in string if ord(i) < 128)
-
-
-        escaped_string = unescaped_string.decode('utf-8', 'ignore') #decode strings into unicode where applicable
-        escaped_string = escaped_string.replace("'", "''").replace("\\", "\\\\") #escape slashes and apostrophes
-        #escaped_string = remove_non_ascii(escaped_string)
-        escaped_string = parser_lib.stripHTMLTags(escaped_string) #strip any html tags
-
-        if len(escaped_string) == 0:
-            return "LL_INVALID_STRING"; #if the string is empty, return invalid string
-
-        return escaped_string
-
     #this method can take up to two players and insert their teams into the database
     def insert_player_team(self, a_sid, a_team, b_sid = None, b_team = None):
         team_insert_list = []
         team_to_insert = False
 
         if a_sid and (a_team is not None) and (a_team != "None"):
-            a_cid = self.get_cid(a_sid)
+            a_cid = get_cid(a_sid)
             if self.add_player(a_cid, team = a_team) or not self._players[a_cid].is_team_same(a_team):
                 self._players[a_cid].set_team(a_team)
 
@@ -944,7 +924,7 @@ class parserClass(object):
                 team_to_insert = True
         
         if b_sid and (b_team is not None) and (b_team != "None"):
-            b_cid = self.get_cid(b_sid)
+            b_cid = get_cid(b_sid)
             if self.add_player(b_cid, team = b_team) or not self._players[b_cid].is_team_same(b_team):
                 self._players[b_cid].set_team(b_team)
 
@@ -960,7 +940,7 @@ class parserClass(object):
                 self.executeQuery(update_query) #we only ever want to update the team, never insert
 
     def insert_player_class(self, sid, pclass):
-        sid = self.get_cid(sid)
+        sid = get_cid(sid)
 
         self._players[sid].set_class(pclass) #set the player's current class to this
 
@@ -1009,7 +989,7 @@ class parserClass(object):
         #take weapon name, and try to match it to a class name
         #print "checking weapon %s" % weapon
 
-        cid = self.get_cid(sid)
+        cid = get_cid(sid)
         for pclass in self._weapon_data:
             if weapon in self._weapon_data[pclass]: #player's weapon matches this classes' weapon data
                 if self._players[cid].current_class() != pclass:
@@ -1091,27 +1071,6 @@ class parserClass(object):
     def add_qtq(self, query_a, query_b=None, priority=queryqueue.NMPRIO):
         self._master_query_queue.add_query(query_a, query_b, priority) #add query to the queue with priority
 
-
-    def get_cid(self, steam_id):
-        #takes a steamid in the format STEAM_x:x:xxxxx and converts it to a 64bit community id
-
-        auth_server = 0;
-        auth_id = 0;
-        
-        steam_id_tok = steam_id.split(':')
-
-        if len(steam_id_tok) == 3:
-            auth_server = int(steam_id_tok[1])
-            auth_id = int(steam_id_tok[2])
-            
-            community_id = auth_id * 2 #multiply auth id by 2
-            community_id += 76561197960265728 #add arbitrary number chosen by valve
-            community_id += auth_server #add the auth server. even ids are on server 0, odds on server 1
-
-        else:
-            community_id = 0
-
-        return community_id
 
     def endLogParsing(self, game_over=False, shutdown=False):
         self.__end_log_lock.acquire() #lock end log parsing, so it cannot be done by multiple threads at once
