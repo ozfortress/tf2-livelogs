@@ -89,6 +89,7 @@ class dbManager(object):
 
         self._log_status_check = False
         self._database_busy = False
+        self.ended = False
         
         self._chat_event_id = 0 #maintain a copy of the last retreived chat event id
 
@@ -404,6 +405,9 @@ class dbManager(object):
             self._stat_query_complete = True
             self.__clear_busy_status()
             return
+
+        if self.ended:
+            return
         
         self.log.debug("Stat update callback")
 
@@ -453,6 +457,9 @@ class dbManager(object):
 
             return
 
+        if self.ended:
+            return
+
         self.log.debug("Team stat update callback")
 
         try:
@@ -495,6 +502,9 @@ class dbManager(object):
             self.log.error("Error querying database for chat data: %s", error)
             self._chat_query_complete = True
             self.__clear_busy_status()
+            return
+
+        if self.ended:
             return
 
         self.log.debug("Chat update callback")
@@ -556,6 +566,9 @@ class dbManager(object):
             self.__clear_busy_status()
             return
 
+        if self.ended:
+            return
+
         self.log.debug("Score update callback")
 
         #if there's data, data is in a tuple in the format: (red_score, blue_score)
@@ -615,6 +628,9 @@ class dbManager(object):
             self.log.error("Error querying database for name data: %s", error)
             return
 
+        if self.ended:
+            return
+
         try:
             name_dict = {}
 
@@ -642,13 +658,18 @@ class dbManager(object):
         
 
     def cleanup(self):
-        #the only cleanup we need to do is releasing the update thread and deleting the stat tables
+        #the only cleanup we need to do is releasing the update thread and deleting data tables
 
+        del self._name_table
+        del self._chat_table
         del self._stat_table
         del self._team_stat_table
+        del self._score_table
         
         if self.update_timer:
             self.update_timer.stop()
+
+        self.ended = True
 
         self.log.info("DB Manager cleaned up, and periodic callback stopped")
 
