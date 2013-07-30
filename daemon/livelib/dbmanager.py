@@ -49,6 +49,12 @@ team_stat_columns = (
             )
 
 
+DB_STAT_TABLE = "livelogs_player_stats"
+DB_CHAT_TABLE = "livelogs_game_chat"
+DB_PLAYER_TABLE = "livelogs_player_details"
+DB_EVENT_TABLE = "livelogs_game_events"
+
+
 """
 The database manager class holds copies of a log's data. It provides functions to calculate the difference between
 currently stored data and new data (delta compression) which will be sent to the clients, along with time and chat data
@@ -65,11 +71,6 @@ class dbManager(object):
         self.database_lock = db_lock
         self.update_rate = update_rate
         self._unique_ident = log_id
-
-        self.DB_STAT_TABLE = "livelogs_player_stats"
-        self.DB_CHAT_TABLE = "livelogs_game_chat"
-        self.DB_PLAYER_TABLE = "livelogs_player_details"
-        self.DB_EVENT_TABLE = "livelogs_game_events"
         
         self._stat_table = {} #a dict containing stat data
         self._stat_difference_table = {} #a dict containing the difference between stored and retrieved stat data
@@ -107,6 +108,18 @@ class dbManager(object):
         #self.updateThread = threading.Thread(target = self._updateThread, args=(self.updateThreadEvent,))
         #self.updateThread.daemon = True
         #self.updateThread.start()
+
+        #construct the queries here, because they will remain constant throughout the log
+
+        self._default_chat_query = "SELECT MAX(id) FROM %s WHERE log_ident = '%s'" % (DB_CHAT_TABLE, self._unique_ident) #need to get the most recent id for first update, to prevent chat duplicates
+
+        self._stat_query = self.construct_stat_query()
+
+        self._score_query = "SELECT COALESCE(round_red_score, 0), COALESCE(round_blue_score, 0) FROM %s WHERE (round_red_score IS NOT NULL AND round_blue_score IS NOT NULL) AND log_ident = '%s' ORDER BY eventid DESC LIMIT 1" % (DB_EVENT_TABLE, self._unique_ident)
+
+        self._team_stat_query = "SELECT team, SUM(kills), SUM(deaths), SUM(healing_done), SUM(damage_dealt), SUM(damage_taken) FROM %s WHERE (log_ident = '%s' AND team IS NOT NULL) GROUP BY team" % (DB_STAT_TABLE, self._unique_ident)
+
+        self._name_query = "SELECT name, steamid FROM %s WHERE log_ident = '%s'" % (DB_PLAYER_TABLE, self._unique_ident)
 
         self.log.info("DB Manager for log ident %s established", log_id)
     
@@ -339,7 +352,7 @@ class dbManager(object):
         #constructs a select query from the STAT_KEYS dict, so we always know the order data is retrieved in
         #this means that new columns can be added to tables on the fly, while retaining a known format
 
-        query = "SELECT %s FROM %s WHERE log_ident = '%s'" % (', '.join(stat_columns), self.DB_STAT_TABLE, self._unique_ident)
+        query = "SELECT %s FROM %s WHERE log_ident = '%s'" % (', '.join(stat_columns), DB_STAT_TABLE, self._unique_ident)
 
         return query
 
@@ -351,25 +364,14 @@ class dbManager(object):
         self._chat_query_complete = False
         self._score_query_complete = False
         
-        stat_query = self.construct_stat_query()
 
         if not self._chat_event_id:
-            chat_query = "SELECT MAX(id) FROM %s WHERE log_ident = '%s'" % (self.DB_CHAT_TABLE, self._unique_ident) #need to get the most recent id for first update, to prevent chat duplicates
+            chat_query = self._default_chat_query
         else:
-            chat_query = "SELECT id, name, team, chat_type, chat_message FROM %s WHERE id > '%d' AND log_ident = '%s'" % (self.DB_CHAT_TABLE, self._chat_event_id, self._unique_ident)
-
-        score_query = "SELECT COALESCE(round_red_score, 0), COALESCE(round_blue_score, 0) FROM %s WHERE (round_red_score IS NOT NULL AND round_blue_score IS NOT NULL) AND log_ident = '%s' ORDER BY eventid DESC LIMIT 1" % (self.DB_EVENT_TABLE, self._unique_ident)
-
-        team_stat_query = "SELECT team, SUM(kills), SUM(deaths), SUM(healing_done), SUM(damage_dealt), SUM(damage_taken) FROM %s WHERE (log_ident = '%s' AND team IS NOT NULL) GROUP BY team" % (self.DB_STAT_TABLE, self._unique_ident)
-
-        name_query = "SELECT DISTINCT(%(det_table)s.name), %(det_table)s.steamid FROM %(stat_table)s JOIN %(det_table)s ON %(stat_table)s.log_ident = %(det_table)s.log_ident WHERE %(stat_table)s.log_ident = '%(log_ident)s'" % {
-                "det_table": self.DB_PLAYER_TABLE,
-                "stat_table": self.DB_STAT_TABLE,
-                "log_ident": self._unique_ident
-            }
+            chat_query = "SELECT id, name, team, chat_type, chat_message FROM %s WHERE id > '%d' AND log_ident = '%s'" % (DB_CHAT_TABLE, self._chat_event_id, self._unique_ident)
 
         try:
-            self.db.execute(stat_query, callback = self._stat_update_callback)
+            self.db.execute(self._stat_query, callback = self._stat_update_callback)
         except:
             self.log.exception("Exception occured during stat query")
 
@@ -379,19 +381,19 @@ class dbManager(object):
             self.log.exception("Exception occured during chat query")
 
         try:
-            self.db.execute(score_query, callback = self._score_update_callback)
+            self.db.execute(self._score_query, callback = self._score_update_callback)
         except:
             self.log.exception("Exception occured during score query")
 
         try:
-            self.db.execute(team_stat_query, callback = self._team_stat_update_callback)
+            self.db.execute(self._team_stat_query, callback = self._team_stat_update_callback)
         except:
             self.log.exception("Exception occured during team stat query")
 
         #we only need to perform a name query when we don't have enough names to match against all the players in the log
-        if len(self._name_table) != len(self._stat_table):
+        if len(self._name_table) < len(self._stat_table):
             try:
-                self.db.execute(name_query, callback = self._name_update_callback)
+                self.db.execute(self._name_query, callback = self._name_update_callback)
             except:
                 self.log.exception("Exception occured during stat query")
         
