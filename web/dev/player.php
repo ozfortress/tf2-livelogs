@@ -301,12 +301,17 @@
                     headshots, backstabs, damage_dealt, damage_taken,
                     dominations, revenges
                     */
+                    $mstat = 0;
+
                     while ($cstat = pg_fetch_array($class_results, NULL, PGSQL_ASSOC))
                     {
                         $p_kpd = round($cstat["kills"] / (($cstat["deaths"]) ? $cstat["deaths"] : 1), 2); // kills/death
                         $p_dpd = round($cstat["damage_dealt"] / (($cstat["deaths"]) ? $cstat["deaths"] : 1), 2); //damage/death
                     
-
+                        if ($cstat["class"] === "medic")
+                        {
+                            $mstat = $cstat;
+                        }
                     ?>
                     
                     <tr>
@@ -334,6 +339,40 @@
             </table>
         </div>
 
+        <?php
+        if ($mstat)
+        {
+        ?>
+
+        <div class="stat_table_container stat_table_container_small">
+            <table class="table table-bordered table-hover ll_table">
+                <thead>
+                    <tr class="stat_summary_title_bar">
+                        <th>
+                            Healing
+                        </th>
+                        <th>
+                            Ubers Used
+                        </th>
+                        <th>
+                            Ubers Lost
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><?=$mstat["healing_done"]?></td>
+                        <td><?=$mstat["ubers_used"]?></td>
+                        <td><?=$mstat["ubers_lost"]?></td>
+                    </tr>
+                </tbody>
+
+                <caption>Medic stats</caption>
+            </table>
+        </div>
+        <?php
+        }
+        ?>
         <div class="log_list_past_container">
             <?php
             //if (sizeof($player_logs) > 0)
