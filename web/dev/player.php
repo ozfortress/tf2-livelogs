@@ -373,6 +373,7 @@
         <?php
         }
         ?>
+        
         <div class="log_list_past_container">
             <?php
             //if (sizeof($player_logs) > 0)
