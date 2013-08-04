@@ -73,6 +73,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
             msg = rcvd.split('!')
         except:
             self.logger.debug("Invalid data received")
+            self.close_invalid_message()
             return
 
         msg_len = len(msg)
@@ -80,7 +81,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
         if (msg_len > 7):
             #invalid message length
             self.logger.info("Invalid message received. Too many tokens")
-            self.request.send("INVALID_MESSAGE")
+            self.close_invalid_message()
             return
 
         if (msg_len >= 6 and msg[0] == "LIVELOG"):
@@ -191,6 +192,14 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                 return None
                 
             return dns_res[0][4][0] #get the first IP returned by getaddrinfo
+
+    def close_invalid_message(self):
+        self.request.send("INVALID_MESSAGE")
+        self.server.close_request(self.request)
+
+    def send_msg(self, msg):
+        #sends a message
+        pass
 
     def finish(self):
         if self.newListen:
