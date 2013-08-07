@@ -310,6 +310,15 @@ class manager_data(object):
     def __init__(self):
         self.__managers = collections.deque()
 
+    def get_idents(self):
+        #returns a list of all idents with managers
+        idents = []
+
+        for manager_ident, manager in self.__managers:
+            idents.append(manager_ident)
+
+        return idents
+
     def add_manager(self, manager_tuple):
         #add the manager tuple in the form (log_ident, manager) to the left of the deque
         self.__managers.appendleft(manager_tuple)

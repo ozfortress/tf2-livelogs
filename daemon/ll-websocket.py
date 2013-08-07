@@ -210,7 +210,6 @@ class llWSApplication(tornado.web.Application):
             #self.__db_managers[log_ident].update_timer = tornado.ioloop.PeriodicCallback(self.__db_managers[log_ident]._update_timer, self.__db_managers[log_ident].update_rate * 1000)
             #self.__db_managers[log_ident].update_timer.start()
 
-
     def __new_dbmanager(self, log_ident, tstamp):
         #creates a new db manager object and returns it
         return dbmanager.dbManager(self.db, log_ident, self.database_lock, self.update_rate, tstamp)
@@ -304,6 +303,7 @@ class llWSApplication(tornado.web.Application):
 
             self._invalid_idents = self.clients.get_invalid_idents() #a list of log idents in the invalid dict
             self._valid_idents = self.clients.get_valid_idents()
+            self._valid_idents += self.__db_managers.get_idents()
             
             log_idents = self._invalid_idents + self._valid_idents
             self.logger.debug("Current log idents: %s", log_idents)
