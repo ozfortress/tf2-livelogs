@@ -158,6 +158,8 @@ class parserClass(object):
             
         self._players = {} #a dict of player data objects wrt steamid
         
+        self.__start_time = time.time()
+
         self.logger.info("Parser initialised")
 
     def ip2long(self, ip):
@@ -1070,10 +1072,15 @@ class parserClass(object):
             self.LOG_PARSING_ENDED = True
 
             if not self.HAD_ERROR:
-                if not self._players: #if player dict is empty, log must be empty
-                    #if no players were added to the log, this log is invalid. therefore, we should delete it
-                    end_query = "DELETE FROM %(log_index)s WHERE log_ident = E'%(logid)s'; DELETE FROM %(log_index)s WHERE log_ident = '%(logid)s'" % {
-                            "log_index": self.INDEX_TABLE,
+                if (len(self._players) < 2) or (self.__time_elapsed() < 60):
+                    """
+                    If the player dict length is < 2 (i.e, less than 2 players in the server) or there has been less than 60 seconds elapsed,
+                    this log is considered invalid and is to be deleted
+                    """
+                    end_query = "DELETE FROM %(index)s WHERE log_ident = '%(logid)s'; DELETE FROM %(stable)s WHERE log_ident = '%(logid)s'; DELETE FROM %(ptable)s WHERE log_ident = '%(logid)s'" % {
+                            "index": self.INDEX_TABLE,
+                            "stable": self.STAT_TABLE,
+                            "ptable": self.PLAYER_TABLE,
                             "logid": self.UNIQUE_IDENT
                         }
                         
@@ -1169,5 +1176,6 @@ class parserClass(object):
     def __release_file_lock(self):
         self.__log_file_lock.release()
 
-
+    def __time_elapsed(self):
+        return time.time() - self.__start_time
 
