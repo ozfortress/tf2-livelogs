@@ -98,15 +98,7 @@ class dbManager(object):
         self._new_chat_update = False
         self._new_score_update = False
 
-        self.update_timer = None
-
-        #self.updateThreadEvent = threading.Event()
-        
-        #self.updateThread = threading.Thread(target = self._updateThread, args=(self.updateThreadEvent,))
-        #self.updateThread.daemon = True
-        #self.updateThread.start()
-
-        #construct the queries here, because they will remain constant throughout the log
+        #construct some of the queries here, because they will remain constant throughout the log
 
         self._default_chat_query = "SELECT MAX(id) FROM %s WHERE log_ident = '%s'" % (DB_CHAT_TABLE, self._unique_ident) #need to get the most recent id for first update, to prevent chat duplicates
 
@@ -613,16 +605,6 @@ class dbManager(object):
 
         except:
             self.log.exception("Exception during _name_update_callback")
-
-
-    def _update_timer(self):
-        #called by the main tornado IOLoop in a periodic callback
-        
-        self.database_lock.acquire() #acquire the lock, so only this manager can run queries right now
-
-        self.get_database_updates()
-
-        self.database_lock.release()
         
 
     def cleanup(self):
@@ -633,23 +615,10 @@ class dbManager(object):
         del self._stat_table
         del self._team_stat_table
         del self._score_table
-        
-        if self.update_timer:
-            self.update_timer.stop()
 
         self.ended = True
 
         self.log.info("DB Manager cleaned up, and periodic callback stopped")
-
-        #NOTE: WE DO ____NOT____ CLOSE THE DATABASE. IT IS THE MOMOKO POOL, AND IS RETAINED THROUGHOUT THE APPLICATION
-        #if self.updateThread.isAlive():
-        #    self.updateThreadEvent.set() #trigger the threading event, terminating the update thread
-        #    
-        #    #the join loop is so that we wait for the last update to run before closing the thread. we don't want the thread to remain running while the dbManager object is closed, so we need to wait
-        #    while self.updateThread.isAlive(): 
-        #        self.updateThread.join(5)
-        #        
-        #    self.log.info("Database update thread successfully closed")
 
 
 
