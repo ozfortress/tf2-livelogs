@@ -73,10 +73,18 @@ mini_round_length = re_compiler(r'World triggered "Mini_Round_Length" \x28second
 #L 03/07/2013 - 18:00:27: -------- Mapchange to cp_granary --------
 map_change = re_compiler(r'Started map "(.*)" \x28CRC "(.*)"\x29')
 
+
+class ParserException(Exception):
+    """
+    Raised for known exceptions like an invalid steamid
+    """
+    pass
+
+
 """
 The player data object
 """
-class player_data(object):
+class PlayerData(object):
     #class to hold all player information that is set throughout parsing the log
     def __init__(self, pclass, name, team):
         self.details_inserted = False
@@ -92,6 +100,7 @@ class player_data(object):
             "engineer": False,
             "spy": False
         } #all classes default to false
+
         self._current_player_class = None
 
         self._player_name = None
@@ -208,6 +217,8 @@ def get_cid(steam_id):
     
     steam_id_tok = steam_id.split(':')
 
+    community_id = 0
+
     if len(steam_id_tok) == 3:
         auth_server = int(steam_id_tok[1])
         auth_id = int(steam_id_tok[2])
@@ -216,8 +227,9 @@ def get_cid(steam_id):
         community_id += 76561197960265728 #add arbitrary number chosen by valve
         community_id += auth_server #add the auth server. even ids are on server 0, odds on server 1
 
-    else:
-        community_id = 0
+
+    if community_id == 0:
+        raise ParserException("Invalid SteamID: '%s' gives CID '%d'" % (steam_id, community_id,))
 
     return community_id
 
