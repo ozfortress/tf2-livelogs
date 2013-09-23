@@ -610,15 +610,15 @@ class dbManager(object):
     def cleanup(self):
         #the only cleanup we need to do is releasing the update thread and deleting data tables
 
-        del self._name_table
-        del self._chat_table
-        del self._stat_table
-        del self._team_stat_table
-        del self._score_table
+        #del self._name_table
+        #del self._chat_table
+        #del self._stat_table
+        #del self._team_stat_table
+        #del self._score_table
 
         self.ended = True
 
-        self.log.info("DB Manager cleaned up, and periodic callback stopped")
+        self.log.info("DB Manager ended")
 
 
 
