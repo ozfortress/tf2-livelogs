@@ -532,7 +532,7 @@
         <div class="sourcetv_container collapse in">
             <div class="sourcetv_controls">
                 <p class="text-info">STV 2D</p>
-                <button class="btn btn-success" onclick="SourceTV2D.connect('<?=long2ip($log_details["server_ip"])?>', <?=$log_details["webtv_port"]?>)">Connect</button>
+                <button class="btn btn-success" onclick="SourceTV2D.connect('<?=$log_details["server_ip"]?>', <?=$log_details["webtv_port"]?>)">Connect</button>
                 <button class="btn btn-danger" onclick="SourceTV2D.disconnect()">Disconnect</button>
                 <div class="btn-group" data-toggle="buttons-checkbox">
                     <button class="btn btn-info" data-toggle="collapse" data-target="#sourcetv2d">Toggle STV</button>
