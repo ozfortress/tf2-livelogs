@@ -262,8 +262,6 @@ public OnPluginStart()
         }
         
         //called by OnConfigsExecuted now getConVarValues(); //we need to get the value of convars that are already set if the plugin is loading late
-
-        late_loaded = false;
     }
 
     AutoExecConfig(true, "livelogs", "");
@@ -277,9 +275,10 @@ public OnConfigsExecuted()
 public OnAllPluginsLoaded()
 {
     //check convar settings & update
-    if (!late_loaded)
+    if (late_loaded)
     {
         getConVarValues();
+        late_loaded = false;
     }
 
     if (livelogs_ipgn_booking_name == INVALID_HANDLE)
@@ -899,7 +898,7 @@ public sendSocketData(String:msg[])
 
     SocketSetSendqueueEmptyCallback(socket, onSocketSendQueueEmpty); //define the callback function for empty send queue
 
-    decl String:ll_ip[64];
+    new String:ll_ip[64];
 
     GetConVarString(livelogs_daemon_address, ll_ip, sizeof(ll_ip));
     new ll_port = GetConVarInt(livelogs_daemon_port);
@@ -939,7 +938,7 @@ clearVars()
 
 requestListenerAddress()
 {
-    //SEND STRUCTURE: LIVELOG!123test!192.168.35.1!27015!cp_granary!John
+    //SEND STRUCTURE: LIVELOG!APIKEY!LOGSECRET!SPORT!MAP!LOGNAME!WEBTVPORT
     decl String:ll_request[256], String:ll_api_key[64], String:map[64], String:log_name[64], String:log_secret[128];
     
     GetCurrentMap(map, sizeof(map));
