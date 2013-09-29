@@ -60,11 +60,11 @@ class llWSApplication(tornado.web.Application):
 
         self.update_rate = update_rate
         
-        self.__db_managers = ws_data.manager_data() #a manager_data object that will manage db manager data!
+        self.__db_managers = ws_data.ManagerData() #a manager_data object that will manage db manager data!
 
         self.log_cache = [] #holds a set of tuples containing log idents, the last time they were updated, and the status (live/not live) | [(cache_time, log_ident, status<t/f>), (cache_time, log_ident, status<t/f>)]
 
-        self.clients = ws_data.client_data() #a client_data object, which contains all valid/invalid clients
+        self.clients = ws_data.ClientData() #a client_data object, which contains all valid/invalid clients
 
         self._sending_timer = tornado.ioloop.PeriodicCallback(self.__send_log_updates, self.update_rate * 1000)
         self._sending_timer.start()
@@ -207,9 +207,6 @@ class llWSApplication(tornado.web.Application):
             #add the db manager to the left of the queue, so that it gets updates next turn
             self.__db_managers.add_manager((log_ident, self.__new_dbmanager(log_ident, tstamp)))
 
-            #self.__db_managers[log_ident].update_timer = tornado.ioloop.PeriodicCallback(self.__db_managers[log_ident]._update_timer, self.__db_managers[log_ident].update_rate * 1000)
-            #self.__db_managers[log_ident].update_timer.start()
-
     def __new_dbmanager(self, log_ident, tstamp):
         #creates a new db manager object and returns it
         return dbmanager.dbManager(self.db, log_ident, self.database_lock, self.update_rate, tstamp)
@@ -297,7 +294,7 @@ class llWSApplication(tornado.web.Application):
         self.__end_log(log_ident)
 
     def __process_log_status(self):
-        self.logger.debug("Getting log status")
+        self.logger.info("Getting log status")
         try:
             self.clean_cache()
 
@@ -342,12 +339,12 @@ class llWSApplication(tornado.web.Application):
 
         #if live is NOT NULL, then the log exists
         #live == t means the log is live, and live == f means it's not live
-        self.logger.debug("queue log status callback")
+        self.logger.info("Processing log status results")
 
         results = cursor.fetchall() #fetchall returns a list of tuples of all results
         
         if results and len(results) > 0:
-            for log_status in results: #log_status is a tuple in form (log_ident, live)
+            for log_status in results: #log_status is a tuple in form (log_ident, live, tstamp)
                 #self.logger.debug("log_status tuple: %s", log_status)
                 log_ident, live, tstamp = log_status
 

@@ -9,7 +9,7 @@ This includes clients that aren't added to valid log idents yet, and clients tha
 
 """
 
-class client_data(object):
+class ClientData(object):
     def __init__(self):
         self.__valid_clients = {}
         self.__invalid_clients = {}
@@ -306,7 +306,7 @@ Manager data object, to hold db managers and provide ez access functions
 """
 
 
-class manager_data(object):
+class ManagerData(object):
     def __init__(self):
         self.__managers = collections.deque()
 
@@ -342,16 +342,16 @@ class manager_data(object):
 
     def __manager_exists(self, log_ident):
         #loop over the deque to see if this db manager exists or not
-        for manager_data in self.__managers:
-            if manager_data[0] == log_ident:
+        for manager_info in self.__managers:
+            if manager_info[0] == log_ident:
                 return True
 
         return False
 
     def delete_manager(self, log_ident):
-        for manager_data in self.__managers:
-            if manager_data[0] == log_ident:
-                self.__managers.remove(manager_data)
+        for manager_info in self.__managers:
+            if manager_info[0] == log_ident:
+                self.__managers.remove(ManagerData)
                 break
 
     def cycle(self):
