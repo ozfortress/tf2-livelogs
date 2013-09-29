@@ -1,0 +1,7 @@
+{
+	"xoffset": 6396,
+	"yoffset": 5103,
+	"flipx": 1,
+	"flipy": 0,
+	"scale": 10
+}
