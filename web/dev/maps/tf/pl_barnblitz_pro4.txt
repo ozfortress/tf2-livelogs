@@ -2,6 +2,6 @@
 	"xoffset": 2112,
 	"yoffset": 1925,
 	"flipx": 1,
-	"flipy": 0,
+	"flipy": 1,
 	"scale": 8
 }

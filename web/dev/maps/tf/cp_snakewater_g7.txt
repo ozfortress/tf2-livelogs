@@ -1,6 +1,6 @@
 {
-	"xoffset": 8213,
-	"yoffset": 5088,
+	"xoffset": 5859,
+	"yoffset": 5309,
 	"flipx": 0,
 	"flipy": 1,
 	"scale": 10
