@@ -55,7 +55,7 @@ class llWSApplication(tornado.web.Application):
         }
 
         self.logger = logging.getLogger("WS APP")
-        self.logger.setLevel(logging.INFO)
+        self.logger.setLevel(logging.DEBUG)
         self.logger.addHandler(log_file_handler)
 
         self.update_rate = update_rate
