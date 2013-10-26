@@ -564,11 +564,10 @@ public itemPickupEvent(Handle:event, const String:name[], bool:dontBroadcast)
         strcopy(auth_id, sizeof(auth_id), client_index_cache[clientidx]); //get the player ID from the cache if it's in there
 
         if (!GetClientName(clientidx, player_name, sizeof(player_name)))
-        {
             return;
-        }
 
         GetTeamName(GetClientTeam(clientidx), team, sizeof(team));
+
         GetEventString(event, "item", item, sizeof(item));
 
         LogToGame("\"%s<%d><%s><%s>\" picked up item \"%s\"",
@@ -603,8 +602,11 @@ public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
                 strcopy(auth_id, sizeof(auth_id), client_index_cache[attackeridx]); //get the player ID from the cache if it's in there
                 strcopy(victim_auth_id, sizeof(victim_auth_id), client_index_cache[victimidx]);
 
-                GetClientName(attackeridx, player_name, sizeof(player_name));
-                GetClientName(victimidx, victim_name, sizeof(victim_name));
+                if (!GetClientName(attackeridx, player_name, sizeof(player_name)))
+                    return;
+
+                if (!GetClientName(victimidx, victim_name, sizeof(victim_name)))
+                    return;
 
                 GetTeamName(GetClientTeam(attackeridx), team, sizeof(team));
                 GetTeamName(GetClientTeam(victimidx), victim_team, sizeof(victim_team));
@@ -636,7 +638,9 @@ public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
 
                 strcopy(auth_id, sizeof(auth_id), client_index_cache[victimidx]); //get the player ID from the cache if it's in there
             
-                GetClientName(victimidx, player_name, sizeof(player_name));
+                if (!GetClientName(victimidx, player_name, sizeof(player_name)))
+                    return;
+
                 GetTeamName(GetClientTeam(victimidx), team, sizeof(team));
 
                 LogToGame("\"%s<%d><%s><%s>\" triggered \"damage_taken\" (damage \"%d\")",
@@ -661,7 +665,9 @@ public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
                 new damage = GetEventInt(event, "damageamount");
 
                 strcopy(auth_id, sizeof(auth_id), client_index_cache[attackeridx]);
-                GetClientName(attackeridx, player_name, sizeof(player_name));
+                if (!GetClientName(attackeridx, player_name, sizeof(player_name)))
+                    return;
+
                 GetTeamName(GetClientTeam(attackeridx), team, sizeof(team));
 
                 LogToGame("\"%s<%d><%s><%s>\" triggered \"damage\" (damage \"%d\")",
@@ -691,8 +697,11 @@ public playerHealEvent(Handle:event, const String:name[], bool:dontBroadcast)
         strcopy(healer_auth, sizeof(healer_auth), client_index_cache[healer_idx]);
         strcopy(patient_auth, sizeof(patient_auth), client_index_cache[patient_idx]);
         
-        GetClientName(healer_idx, healer_name, sizeof(healer_name));
-        GetClientName(patient_idx, patient_name, sizeof(patient_name));
+        if (!GetClientName(healer_idx, healer_name, sizeof(healer_name)))
+            return;
+
+        if (!GetClientName(patient_idx, patient_name, sizeof(patient_name)))
+            return;
 
         GetTeamName(GetClientTeam(healer_idx), healer_team, sizeof(healer_team));
         GetTeamName(GetClientTeam(patient_idx), patient_team, sizeof(patient_team));
