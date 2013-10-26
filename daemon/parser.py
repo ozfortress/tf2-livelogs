@@ -284,14 +284,16 @@ class parserClass(object):
 
                     healt_name = parser_lib.escapePlayerString(regml(res, 5))
                     healt_sid = regml(res, 7)
-                    
+
                     self.pg_statupsert(self.STAT_TABLE, "healing_done", medic_sid, medic_name, medic_healing)
                     self.pg_statupsert(self.STAT_TABLE, "points", medic_sid, medic_name, medic_points)
                     self.pg_statupsert(self.STAT_TABLE, "healing_received", healt_sid, healt_name, medic_healing)
-
+                    
                     self.insert_player_team(medic_sid, regml(res, 4).lower(), b_sid = healt_sid, b_team = regml(res, 8).lower())
 
-                    self.insert_player_class(medic_sid, "medic")
+                    m_cid = player_lib.get_cid(medic_sid)
+                    if m_cid in self._players and self._players[m_cid].current_class() != "engineer":
+                        self.insert_player_class(medic_sid, "medic")
 
                     return
 
