@@ -236,7 +236,7 @@ class llWSApplication(tornado.web.Application):
     def __get_dbmanager_updates(self):
         #cyclicly update db managers, 1 per periodic callback (i.e round robin queue)
         
-        self.logger.debug("Getting DB Manager updates")
+        #self.logger.debug("Getting DB Manager updates")
         if len(self.__db_managers) > 0:
             cycle_manager = self.__db_managers.cycle()
 
@@ -267,7 +267,7 @@ class llWSApplication(tornado.web.Application):
                 delta_update_dict = log_manager.compressed_update()
                 full_update_dict = {}
 
-                self.logger.debug("Got update dict for %s: %s", log_id, delta_update_dict)
+                #self.logger.debug("Got update dict for %s: %s", log_id, delta_update_dict)
 
                 for client in self.clients.get_vclients(log_id):
                     #client is a websocket client object, which data can be sent to using client.write_message, etc
@@ -300,7 +300,7 @@ class llWSApplication(tornado.web.Application):
 
             self._invalid_idents = self.clients.get_invalid_idents() #a list of log idents in the invalid dict
             self._valid_idents = self.clients.get_valid_idents()
-            self._valid_idents += self.__db_managers.get_idents()
+            #self._valid_idents += self.__db_managers.get_idents()
             
             log_idents = self._invalid_idents + self._valid_idents
             self.logger.debug("Current log idents: %s", log_idents)
