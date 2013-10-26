@@ -542,7 +542,6 @@ class parserClass(object):
                     #user is obv an engineer if he's building shit!
                     sid = regml(res, 3)
 
-
                     self.insert_player_team(sid, regml(res, 4).lower())
                     self.insert_player_class(sid, "engineer")
                     
@@ -904,7 +903,7 @@ class parserClass(object):
         team_insert_list = []
         team_to_insert = False
 
-        if a_sid and (a_team is not None) and (a_team != "None"):
+        if a_sid and (a_team is not None) and (a_team.lower() != "none"):
             a_cid = parser_lib.get_cid(a_sid)
             if self.add_player(a_cid, team = a_team) or not self._players[a_cid].is_team_same(a_team):
                 self._players[a_cid].set_team(a_team)
@@ -913,7 +912,7 @@ class parserClass(object):
 
                 team_to_insert = True
         
-        if b_sid and (b_team is not None) and (b_team != "None"):
+        if b_sid and (b_team is not None) and (b_team.lower() != "none"):
             b_cid = parser_lib.get_cid(b_sid)
             if self.add_player(b_cid, team = b_team) or not self._players[b_cid].is_team_same(b_team):
                 self._players[b_cid].set_team(b_team)
@@ -929,25 +928,30 @@ class parserClass(object):
 
                 self.executeQuery(update_query) #we only ever want to update the team, never insert
 
+    # insert_player_class(steamid, class)
+    # Takes a steamid in the format STEAM_x:x:xxxx* and a class
+    # Inserts the class into the datatabase for that ID if the player
+    # is not already marked as having played that class.
     def insert_player_class(self, sid, pclass):
-        sid = parser_lib.get_cid(sid)
+        cid = parser_lib.get_cid(sid)
+        
+        # If the player hasn't played the class, or is only just being added
+        # we need to add them to the database with high priority
+        if cid in self._players and not self._players[cid].class_played(pclass):
+            self._players[cid].add_class(pclass)
 
-        self._players[sid].set_class(pclass) #set the player's current class to this
-
-        if not self._players[sid].class_played(pclass):
-            #has not played the class provided, we need to add it to the database
-            self._players[sid].add_class(pclass)
-
-            insert_query = "INSERT INTO %s (log_ident, steamid, class, team) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, sid, pclass, self._players[sid].current_team())
+            insert_query = "INSERT INTO %s (log_ident, steamid, class, team) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, cid, pclass, self._players[cid].current_team())
 
             #if the class was inserted as unknown, it is likely that the 'unknown' class is now this class. this is what we'll assume, anyway
-            update_query = "UPDATE %s SET class = '%s' WHERE (log_ident = '%s' AND steamid = E'%s' AND class = 'UNKNOWN')" % (self.STAT_TABLE, pclass, self.UNIQUE_IDENT, sid)
-            
-            #print "update query for %s: %s" % (self._players[sid].current_name(), update_query)
+            update_query = "UPDATE %s SET class = '%s' WHERE (log_ident = '%s' AND steamid = E'%s' AND class = 'UNKNOWN')" % (self.STAT_TABLE, pclass, self.UNIQUE_IDENT, cid)
 
             #self.executeQuery(update_query, queue_priority = queryqueue.HIPRIO) #update the class ASAP
             self.execute_upsert(insert_query, update_query, queryqueue.HIPRIO) #need to add this class shit ASAP
 
+    # insert_player_details(communityid, name)
+    # Inserts a player into the database with the given name, and the
+    # current log ident. If the name is different from the previous
+    # known name, it will be updated.
     def insert_player_details(self, cid, name):
         if name:
             details_query = None
