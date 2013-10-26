@@ -19,9 +19,11 @@
 
 
 
-    Credit to Carbon for basic structure of initiating actions on mp_tournament starts and ends
-    To Jannik 'Peace-Maker' Hartung @ http://www.wcfan.de/ for basis of SourceTV2D
-    To Cinq, Annuit Coeptis and Jean-Denis Caron for additional statistic logging such as damage done, heals, items and pausing/unpausing
+    Credit to:
+    * Carbon for basic structure of initiating actions on mp_tournament starts and ends
+    * Jannik 'Peace-Maker' Hartung @ http://www.wcfan.de/ for basis of SourceTV2D
+    * Cinq, Annuit Coeptis and Jean-Denis Caron for additional statistic logging
+      such as damage done, heals, items and pausing/unpausing
 */
 
 #define DEBUG true
@@ -57,7 +59,7 @@ public Plugin:myinfo =
 #endif
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
-	version = "0.6.6.1",
+	version = "0.6.6.2",
 	url = "http://livelogs.ozfortress.com"
 };
 
@@ -75,6 +77,7 @@ new bool:livelogs_bitmask_cache[65];
 new bool:create_new_log_file = false;
 new bool:force_log_secret = true;
 new bool:debug_enabled = true;
+new bool:show_motd_panel = false;
 
 new String:server_ip[64];
 new String:listener_address[128];
@@ -96,6 +99,7 @@ new Handle:livelogs_tournament_ready_only =  INVALID_HANDLE; //support the optio
 new Handle:livelogs_force_logsecret = INVALID_HANDLE; //whether or not to set sv_logsecret
 new Handle:livelogs_enable_debugging = INVALID_HANDLE; //toggle debug messages
 new Handle:livelogs_enabled = INVALID_HANDLE; //enable/disable livelogs
+new Handle:livelogs_panel_display = INVALID_HANDLE; //whether to show !livelogs as a url or a panel
 
 new Handle:livelogs_tournament_mode_cache = INVALID_HANDLE; //for caching the mp_tournament cvar handle
 new Handle:livelogs_mp_restartgame_cache = INVALID_HANDLE;
@@ -195,6 +199,8 @@ public OnPluginStart()
 
     livelogs_enabled = CreateConVar("livelogs_enabled", "1", "Enable or disable Livelogs", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
+    livelogs_panel_display = CreateConVar("livelogs_panel", "0", "Whether to show logs in a panel or give a URL", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+
     livelogs_tournament_mode_cache = FindConVar("mp_tournament"); //cache mp_tournament convar
 
 
@@ -206,6 +212,7 @@ public OnPluginStart()
     HookConVarChange(livelogs_logging_level, conVarChangeHook); //hook convar so we can change logging options on the fly
     HookConVarChange(livelogs_enable_debugging, conVarChangeHook);
     HookConVarChange(livelogs_force_logsecret, conVarChangeHook);
+    HookConVarChange(livelogs_panel_display, conVarChangeHook);
 
 
     //variables for later sending. we should get the IP via hostip, because people may not set "ip"
@@ -374,6 +381,7 @@ public OnClientDisconnect(client)
 public Action:urlCommandCallback(client, args)
 {
     //WE CAN IGNORE THE ARGS
+
     if (client == 0) 
     {
         PrintToServer("Log URL: http://livelogs.ozfortress.com/view/%s", log_unique_ident);
@@ -383,8 +391,15 @@ public Action:urlCommandCallback(client, args)
     if (strlen(log_unique_ident) > 1)
     {
         //we have a log ident to print to the client
+        new String:ll_url[128];
+        Format(ll_url, sizeof(ll_url), "http://livelogs.ozfortress.com/view/%s", log_unique_ident);
 
-        PrintToChat(client, "Log URL: http://livelogs.ozfortress.com/view/%s", log_unique_ident);
+        if (show_motd_panel)
+        {
+            ShowMOTDPanel(client, "Livelogs", ll_url, MOTDPANEL_TYPE_URL);
+        }
+            
+        PrintToChat(client, "Log URL: %s", ll_url);
     }
     else
     {
@@ -402,6 +417,7 @@ public conVarChangeHook(Handle:cvar, const String:oldval[], const String:newval[
     HookConVarChange(livelogs_logging_level, conVarChangeHook); //hook convar so we can change logging options on the fly
     HookConVarChange(livelogs_enable_debugging, conVarChangeHook);
     HookConVarChange(livelogs_mp_restartgame_cache, conVarChangeHook);
+    HookConVarChange(livelogs_panel_display, conVarChangeHook);
     */
 
     if (cvar == livelogs_new_log_file)
@@ -462,15 +478,26 @@ public conVarChangeHook(Handle:cvar, const String:oldval[], const String:newval[
     }
     else if (cvar == livelogs_force_logsecret)
     {
+        force_log_secret = GetConVarBool(cvar);
         if (force_log_secret)
         {
-            PrintToServer("Livelogs will not force sv_logsecret");
-            force_log_secret = false;
+            PrintToServer("Livelogs will force sv_logsecret");
         }
         else
         {
-            PrintToServer("Livelogs will force sv_logsecret");
-            force_log_secret = true;
+            PrintToServer("Livelogs will not force sv_logsecret");
+        }
+    }
+    else if (cvar == livelogs_panel_display)
+    {
+        show_motd_panel = GetConVarBool(cvar);
+        if (show_motd_panel)
+        {
+            PrintToServer("Livelogs will now display !livelogs in a panel");
+        }
+        else
+        {
+            PrintToServer("Livelogs will no longer display !livelogs in a panel");
         }
     }
 }
@@ -1010,8 +1037,8 @@ endLogging(bool:map_end = false)
     {
         is_logging = false;
 
+        LogToGame("\"LIVELOG_GAME_END"); //send a game end message, in-case game over isn't triggered or w/e
         ServerCommand("logaddress_del %s", listener_address);
-        LogToGame("\"LIVELOG_GAME_END");
     }
     
     #if defined _websocket_included
@@ -1109,12 +1136,13 @@ bool:logOptionEnabled(option_value)
 getConVarValues()
 {
     //updates convars with values that are already set
-    //i.e if logging is set to 0 on reload, the plugin will still think that it's set to 15 because of the reload
+    //i.e if logging is set to 0, on reload the plugin will think that it's set to 15 because of the reload
 
     log_additional_stats = GetConVarInt(livelogs_logging_level);
     create_new_log_file = GetConVarBool(livelogs_new_log_file);
     debug_enabled = GetConVarBool(livelogs_enable_debugging);
     force_log_secret = GetConVarBool(livelogs_force_logsecret);
+    show_motd_panel = GetConVarBool(livelogs_panel_display);
 
 #if defined _websocket_included
     webtv_enabled = GetConVarBool(livelogs_webtv_enabled);
