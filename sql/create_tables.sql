@@ -39,5 +39,4 @@ CREATE TABLE livelogs_game_events (eventid serial PRIMARY KEY, log_ident varchar
                             game_over_reason varchar(128));
 
 CREATE INDEX events_ident_index ON livelogs_game_events(log_ident);
-CREATE INDEX events_eventid_index ON livelogs_game_events(eventid);
-CREATE INDEX events_ident_eventid_index ON livelogs_game_events(eventid, log_ident);
+CREATE INDEX events_eventid_ident_index ON livelogs_game_events(eventid, log_ident);
