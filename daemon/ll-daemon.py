@@ -529,7 +529,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
                     dynamic_quota = self.queue_min_quota
 
                 #self.logger.debug("queue lengths: %s, dynamic quota: %s", self.query_queue.queue_length_all(), dynamic_quota)
-                self.logger.info("Processing query queue")
+                #self.logger.info("Processing query queue")
 
                 self.__process_database_queue(dynamic_quota)
 
