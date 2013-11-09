@@ -300,7 +300,7 @@ class llWSApplication(tornado.web.Application):
 
             self._invalid_idents = self.clients.get_invalid_idents() #a list of log idents in the invalid dict
             #self._valid_idents = self.clients.get_valid_idents()
-            self._valid_idents += self.__db_managers.get_idents()
+            self._valid_idents = self.__db_managers.get_idents()
             
             log_idents = self._invalid_idents + self._valid_idents
             self.logger.debug("Current log idents: %s", log_idents)
