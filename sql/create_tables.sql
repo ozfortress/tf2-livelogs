@@ -24,7 +24,6 @@ CREATE INDEX chat_ident_index ON livelogs_game_chat(log_ident);
 
 CREATE TABLE livelogs_log_index (numeric_id serial, server_ip cidr NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean, webtv_port integer, tstamp text); --holds server log information
 CREATE INDEX log_ident_index ON livelogs_log_index(log_ident);
-CREATE INDEX log_ip_text_index ON livelogs_log_index(TEXT(server_ip));
 
 CREATE TABLE livelogs_player_details (id serial, steamid bigint, log_ident varchar(64), name text);
 CREATE INDEX details_ident_index ON livelogs_player_details(log_ident);
@@ -40,3 +39,5 @@ CREATE TABLE livelogs_game_events (eventid serial PRIMARY KEY, log_ident varchar
                             game_over_reason varchar(128));
 
 CREATE INDEX events_ident_index ON livelogs_game_events(log_ident);
+CREATE INDEX events_eventid_index ON livelogs_game_events(eventid);
+CREATE INDEX events_ident_eventid_index ON livelogs_game_events(eventid, log_ident);
