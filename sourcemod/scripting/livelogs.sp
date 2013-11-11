@@ -194,7 +194,7 @@ public OnPluginStart()
 
     livelogs_server_name = CreateConVar("livelogs_name", "default", "The name by which logs are identified on the website", FCVAR_PROTECTED);
 
-    livelogs_logging_level = CreateConVar("livelogs_additional_logging", "23", "Set logging level. See FAQ/readme.txt for logging bitmask values",
+    livelogs_logging_level = CreateConVar("livelogs_additional_logging", "31", "Set logging level. See FAQ/readme.txt for logging bitmask values",
                                             FCVAR_NOTIFY, true, 0.0, true, 64.0); //allows levels of logging via a bitmask
 
     livelogs_new_log_file = CreateConVar("livelogs_new_log_file", "0", "Whether to initiate console logging using 'log on'. Disable if you have another method of enabling logging", 

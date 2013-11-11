@@ -25,7 +25,7 @@ livelogs_additional_logging - This is a bitmask of logging options that the plug
     8: item pickups
    16: medic overhealing
 
-    So, to enable ALL outputs, the convar should be set to "23" (1 + 2 + 4 + 8 + 16). To enable just damage taken, the convar should be set to "1". To disable, set it to "0".
+    So, to enable ALL outputs, the convar should be set to "31" (1 + 2 + 4 + 8 + 16). To enable just damage taken, the convar should be set to "1". To disable, set it to "0".
 
     This is provided so that users may run other plugins that cause additional data to be logged (such as supstats, which outputs damage dealt, item pick ups and healing).
 
