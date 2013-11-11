@@ -23,8 +23,9 @@ livelogs_additional_logging - This is a bitmask of logging options that the plug
     2: damage dealt
     4: healing done
     8: item pickups
+   16: medic overhealing
 
-    So, to enable ALL outputs, the convar should be set to "15" (1 + 2 + 4 + 8). To enable just damage taken, the convar should be set to "1". To disable, set it to "0".
+    So, to enable ALL outputs, the convar should be set to "23" (1 + 2 + 4 + 8 + 16). To enable just damage taken, the convar should be set to "1". To disable, set it to "0".
 
     This is provided so that users may run other plugins that cause additional data to be logged (such as supstats, which outputs damage dealt, item pick ups and healing).
 
@@ -37,9 +38,11 @@ livelogs_enable_webtv - Enable/disable SourceTV2D. Setting this to 0 is the equi
 livelogs_webtv_port - What port the SourceTV2D server should listen on. Default is server port + 2. This ConVar is irrelevant if SourceTV2D is disabled.
 
 
-livelogs_new_log_file - Enable/disable the initialisation of logging on match start using 'log on'. 'log on' is required so that logs are output to the server's console, and hence sent to livelogs.
-    If you are running another plugin that enables logging using 'log on' at some point, this can be disabled if you wish. However, you can still leave it on so that fresh log files are created
-    in your server's log directory for new matches, if you choose to.
+livelogs_new_log_file - Enable/disable the initialisation of logging on match start using 'log on'. 'log on' is required so that logs are output to the server's console, and hence 
+    sent to livelogs.
+    
+    If you are running another plugin that enables logging using 'log on' at some point, this can be disabled if you wish. However, you can still leave it on so that fresh log 
+    files are created in your server's log directory for new matches, if you choose to.
 
     Setting this convar to "1" will use 'log on'. Setting it to "0" will not use 'log on' on match start.
 
@@ -51,19 +54,35 @@ livelogs_tournament_ready_only - Whether to start logging on tournament readies 
     Originally, using mp_restartgame used to set the teams' tournament state to ready (and hence would trigger the plugin). However, this was changed at some point in the past.
     This convar gives you the option of whether to start a log when mp_restartgame is used or not.
 
-    Setting this convar to "1" will make it so that logs are ONLY started when teams READY UP using F4. Setting it to "0" will cause new logs to be started on mp_restartgame, provided mp_tournament 
-    is enabled, as well as ready up.
+    Setting this convar to "1" will make it so that logs are ONLY started when teams READY UP using F4. Setting it to "0" will cause new logs to be started on mp_restartgame, 
+    provided mp_tournament is enabled, as well as ready up.
 
 
 livelogs_force_logsecret - Whether to force the plugin's log secret or not.
-    If your server uses its own sv_logsecret for another service, you should set this to "0", so that the plugin will not change it. If not, this should be left at "1", so that your logs will use
-    the plugin's secret and cannot be spoofed.
+    If your server uses its own sv_logsecret for another service, you should set this to "0", so that the plugin will not change it. If not, this should be left at "1", so that
+    your logs will use the plugin's secret and cannot be spoofed.
+
+
+livelogs_panel - Whether to show a panel when users use !livelogs or not.
+    If you want an in-game panel with the log page in it to be displayed alongside a URL, set this to "1". If not, set it to "0" to just display the URL.
+
+
+livelogs_real_damage - Whether or not to record real damage values.
+    By default the Team Fortress 2 damage event outputs the total possible damage of an attacker. However, sometimes a player may have less health remaining than this amount. 
+    In this case, we may want to only record the amount of damage that the attacker actually dealt to the player. This cvar provides the option to choose between these two.
+
+    e.g If a victim has 10 hp and an attacker's rocket would deal 40 damage, enabling this cvar means that only 10 damage is recorded. If the cvar is disabled, 40 damage
+    will be recorded.
+
+    Enabling this cvar will lead to significantly more accurate damage numbers.
 
 
 livelogs_enable_debugging - Enable/disable debug messages.
 
 
 livelogs_enabled - Enable/disable Livelogs.
+
+
 
 If you have any queries, please do not hesitate to contact me on IRC (_bladez@bladezz.admin.ipgn), or on the ozfortress forums (bladez).
 
