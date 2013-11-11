@@ -24,26 +24,25 @@
     * Jannik 'Peace-Maker' Hartung @ http://www.wcfan.de/ for basis of SourceTV2D
     * Cinq, Annuit Coeptis and Jean-Denis Caron for additional statistic logging
       such as damage done, heals, items and pausing/unpausing
+    * F2 for medic buff recording (http://etf2l.org/forum/customise/topic-27485/page-1/#post-476085)
 */
 
 #define DEBUG true
+
+#define BUFF_TIMER_INTERVAL 0.5 //every half a second
 
 #pragma semicolon 1 //must use semicolon to end lines
 
 #include <sourcemod>
 #include <socket>
 #include <sdktools>
+#include <tf2_stocks>
 
 #include <livelogs>
 
 #undef REQUIRE_PLUGIN
 
-#tryinclude <websocket>
-
-#if defined _websocket_included
-#include <tf2_stocks>
-#endif                           
-
+#tryinclude <websocket>                       
 #tryinclude <updater>
 
 #if defined _updater_included
@@ -59,7 +58,7 @@ public Plugin:myinfo =
 #endif
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
-	version = "0.6.6.2",
+	version = "0.6.7",
 	url = "http://livelogs.ozfortress.com"
 };
 
@@ -78,6 +77,7 @@ new bool:create_new_log_file = false;
 new bool:force_log_secret = true;
 new bool:debug_enabled = true;
 new bool:show_motd_panel = false;
+new bool:record_real_damage = true;
 
 new String:server_ip[64];
 new String:listener_address[128];
@@ -86,6 +86,11 @@ new String:client_index_cache[MAXPLAYERS+1][64];
 
 new log_additional_stats;
 new server_port;
+
+// required for recording medic buffing
+new client_lasthealth[MAXPLAYERS+1];
+new client_maxhealth[MAXPLAYERS+1];
+new client_healtarget[MAXPLAYERS+1]; //each value is the medic id who is targetting this client
 
 //Handles for convars
 new Handle:livelogs_daemon_address = INVALID_HANDLE; //ip/dns of livelogs daemon
@@ -100,12 +105,15 @@ new Handle:livelogs_force_logsecret = INVALID_HANDLE; //whether or not to set sv
 new Handle:livelogs_enable_debugging = INVALID_HANDLE; //toggle debug messages
 new Handle:livelogs_enabled = INVALID_HANDLE; //enable/disable livelogs
 new Handle:livelogs_panel_display = INVALID_HANDLE; //whether to show !livelogs as a url or a panel
+new Handle:livelogs_real_damage = INVALID_HANDLE; //whether to record real damage or default damage
+
+new Handle:livelogs_buff_timer = INVALID_HANDLE; //a timer for checking medic buff amounts
 
 new Handle:livelogs_tournament_mode_cache = INVALID_HANDLE; //for caching the mp_tournament cvar handle
 new Handle:livelogs_mp_restartgame_cache = INVALID_HANDLE;
 new Handle:livelogs_sv_logsecret_cache = INVALID_HANDLE; //cache sv_logsecret cvar
 
-//if websocket is included, let's define the websocket stuff!
+//if websocket is included, let's declare the websocket stuff!
 #if defined _websocket_included
 new webtv_round_time;
 new livelogs_webtv_buffer_length = 0;
@@ -162,6 +170,9 @@ public OnPluginStart()
     HookEvent("player_hurt", playerHurtEvent); //player is hurt
     HookEvent("player_healed", playerHealEvent); //player receives healing, from dispenser or medic
 
+    //Hook player spawn for buffs
+    HookEvent("player_spawn", playerSpawnEvent_buff);
+
     // Hook into mp_tournament_restart
     AddCommandListener(tournamentRestartHook, "mp_tournament_restart");
 
@@ -183,7 +194,7 @@ public OnPluginStart()
 
     livelogs_server_name = CreateConVar("livelogs_name", "default", "The name by which logs are identified on the website", FCVAR_PROTECTED);
 
-    livelogs_logging_level = CreateConVar("livelogs_additional_logging", "15", "Set logging level. See FAQ/readme.txt for logging bitmask values",
+    livelogs_logging_level = CreateConVar("livelogs_additional_logging", "23", "Set logging level. See FAQ/readme.txt for logging bitmask values",
                                             FCVAR_NOTIFY, true, 0.0, true, 64.0); //allows levels of logging via a bitmask
 
     livelogs_new_log_file = CreateConVar("livelogs_new_log_file", "0", "Whether to initiate console logging using 'log on'. Disable if you have another method of enabling logging", 
@@ -197,9 +208,14 @@ public OnPluginStart()
 
     livelogs_enable_debugging = CreateConVar("livelogs_enable_debugging", "1", "Enable or disable debug messages", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
-    livelogs_enabled = CreateConVar("livelogs_enabled", "1", "Enable or disable Livelogs", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    livelogs_enabled = CreateConVar("livelogs_enabled", "1", "Enable or disable Livelogs", 
+                            FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
-    livelogs_panel_display = CreateConVar("livelogs_panel", "0", "Whether to show logs in a panel or give a URL", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    livelogs_panel_display = CreateConVar("livelogs_panel", "0", "Whether to show logs in a panel or give a URL", 
+                                    FCVAR_NOTIFY, true, 0.0, true, 1.0);
+
+    livelogs_real_damage = CreateConVar("livelogs_real_damage", "1", "Whether to record real damage or not", 
+                                FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
     livelogs_tournament_mode_cache = FindConVar("mp_tournament"); //cache mp_tournament convar
 
@@ -213,6 +229,7 @@ public OnPluginStart()
     HookConVarChange(livelogs_enable_debugging, conVarChangeHook);
     HookConVarChange(livelogs_force_logsecret, conVarChangeHook);
     HookConVarChange(livelogs_panel_display, conVarChangeHook);
+    HookConVarChange(livelogs_real_damage, conVarChangeHook);
 
 
     //variables for later sending. we should get the IP via hostip, because people may not set "ip"
@@ -268,7 +285,7 @@ public OnPluginStart()
             }
         }
         
-        //called by OnConfigsExecuted now getConVarValues(); //we need to get the value of convars that are already set if the plugin is loading late
+        activateBuffTimer();
     }
 
     AutoExecConfig(true, "livelogs", "");
@@ -290,7 +307,7 @@ public OnAllPluginsLoaded()
 
     if (livelogs_ipgn_booking_name == INVALID_HANDLE)
     {
-        livelogs_ipgn_booking_name = ConVarExists("mr_ipgnbooker");
+        livelogs_ipgn_booking_name = FindConVar("mr_ipgnbooker");
     }
 
 #if defined _websocket_included
@@ -451,6 +468,8 @@ public conVarChangeHook(Handle:cvar, const String:oldval[], const String:newval[
         {
             logOptionEnabled(i);
         }
+
+        activateBuffTimer();
     }
     else if (cvar == livelogs_enable_debugging)
     {
@@ -498,6 +517,18 @@ public conVarChangeHook(Handle:cvar, const String:oldval[], const String:newval[
         else
         {
             PrintToServer("Livelogs will no longer display !livelogs in a panel");
+        }
+    }
+    else if (cvar == livelogs_real_damage)
+    {
+        record_real_damage = GetConVarBool(cvar);
+        if (record_real_damage)
+        {
+            PrintToServer("Livelogs will now log real damage statistics");
+        }
+        else
+        {
+            PrintToServer("Livelogs will no longer record real damage statistics");
         }
     }
 }
@@ -597,7 +628,7 @@ public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
                 new attackeridx = GetClientOfUserId(attackerid);
                 new victimidx = GetClientOfUserId(victimid);
 
-                new damage = GetEventInt(event, "damageamount");
+                new damage = getDamage(event, victimidx);
 
                 strcopy(auth_id, sizeof(auth_id), client_index_cache[attackeridx]); //get the player ID from the cache if it's in there
                 strcopy(victim_auth_id, sizeof(victim_auth_id), client_index_cache[victimidx]);
@@ -634,7 +665,7 @@ public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
                 decl String:player_name[MAX_NAME_LENGTH], String:auth_id[64], String:team[16];
 
                 new victimidx = GetClientOfUserId(victimid);
-                new damage = GetEventInt(event, "damageamount");
+                new damage = getDamage(event, victimidx);
 
                 strcopy(auth_id, sizeof(auth_id), client_index_cache[victimidx]); //get the player ID from the cache if it's in there
             
@@ -642,6 +673,11 @@ public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
                     return;
 
                 GetTeamName(GetClientTeam(victimidx), team, sizeof(team));
+
+                // once again, make sure we're recording the real damage
+                new victimhealth = GetClientHealth(victimidx);
+                if (victimhealth < 0)
+                    damage += victimhealth;
 
                 LogToGame("\"%s<%d><%s><%s>\" triggered \"damage_taken\" (damage \"%d\")",
                         player_name,
@@ -661,8 +697,9 @@ public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
             {
                 decl String:player_name[MAX_NAME_LENGTH], String:auth_id[64], String:team[16];
                 new attackeridx = GetClientOfUserId(attackerid);
+                new victimidx = GetClientOfUserId(victimid);
 
-                new damage = GetEventInt(event, "damageamount");
+                new damage = getDamage(event, victimidx);
 
                 strcopy(auth_id, sizeof(auth_id), client_index_cache[attackeridx]);
                 if (!GetClientName(attackeridx, player_name, sizeof(player_name)))
@@ -737,6 +774,91 @@ public Action:restartCommandHook(client, const String:command[], arg)
     newLogOnRestartCheck();
 }
 
+public playerSpawnEvent_buff(Handle:event, const String:name[], bool:dontBroadcast)
+{
+    if (!logOptionEnabled(BITMASK_MEDIC_BUFF)) return;
+
+    new userid = GetEventInt(event, "userid");
+    new client = GetClientOfUserId(userid);
+
+    client_maxhealth[client] = GetClientHealth(client);
+    client_lasthealth[client] = client_maxhealth[client];
+}
+
+public Action:getMedicBuffs(Handle:timer, any:data)
+{
+    //If medic buffing recording isn't enabled, just kill the timer
+    if (!logOptionEnabled(BITMASK_MEDIC_BUFF))
+    {
+        livelogs_buff_timer = INVALID_HANDLE;
+        return Plugin_Stop;
+    }
+
+    // get medic targets
+    for (new i = 1; i <= MaxClients; i++)
+    {
+        if (IsClientConnected(i) && IsClientInGame(i) && (!IsFakeClient(i)))
+        {
+            if (TF2_GetPlayerClass(i) == TFClass_Medic)
+            {
+                new target = TF2_GetHealingTarget(i);
+
+                // add this target to the array if it is a valid target
+                // the array stores the index of the medic corresponding
+                // to the target index
+                // i.e client_healtarget[player] = medic means that the last
+                // (known) healer for player was medic. 
+                // 
+                // if multiple medics heal the same target, only the
+                // last checked medic will be recorded
+                if (target > 0)
+                    client_healtarget[target] = i;
+            }
+        }
+    }
+
+
+    // check every clients buffs
+    for (new i = 1; i <= MaxClients; i++)
+    {
+        // client was last considered dead or is not a valid player
+        if (client_lasthealth[i] <= 0)
+            continue;
+        
+        // if this matches, client is not a valid player
+        if (!IsClientConnected(i) || !IsClientInGame(i) || IsFakeClient(i))
+        {
+            client_lasthealth[i] = 0;
+            continue;
+        }
+
+        // player is not alive, cannot be buffed
+        if (!IsPlayerAlive(i))
+            continue;
+
+        // check current health against player's last health
+        new currhealth = GetClientHealth(i);
+        new prevhealth = client_lasthealth[i];
+        new maxhealth = client_maxhealth[i];
+
+        new buffamount = 0;
+
+        // if the player has more health now than previously and
+        // currhealth > maxhealth, then the player has some more overheal
+        if (currhealth > prevhealth && currhealth > maxhealth)
+            buffamount = currhealth - ( prevhealth > maxhealth ? prevhealth : maxhealth );
+
+        // update the last health to the current health for the next check
+        client_lasthealth[i] = currhealth;
+
+        // if the player has been buffed this check, log it!
+        if (buffamount > 0)
+            LogOverHeal(i, buffamount);   
+    }
+
+    return Plugin_Continue;
+}
+
 //---------------------------
 //Include all the sourcetv2d event hooks, timers and functions
 //---------------------------
@@ -750,8 +872,14 @@ public Action:restartCommandHook(client, const String:command[], arg)
 
 public OnMapEnd()
 {
-	endLogging(true);
-    
+    endLogging(true);
+
+    if (livelogs_buff_timer != INVALID_HANDLE)
+    {
+        KillTimer(livelogs_buff_timer);
+        livelogs_buff_timer = INVALID_HANDLE;
+    }
+
 #if defined _websocket_included
     //notify connected clients of map end
     sendToAllWebChildren("MAP_END");
@@ -848,29 +976,12 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
 
             ServerCommand("sv_logsecret %s; logaddress_add %s", log_secret, listener_address);
             if (debug_enabled) { LogMessage("Added address %s to logaddress list", listener_address); }
+
+            //start the buff timer check
+            activateBuffTimer();
             
         #if defined _websocket_included
-            
-            //if the previous websocket is yet to be cleaned up, clean it up now
-            cleanUpWebSocket();
-            
-            //now open new websocket
-            if ((webtv_library_present) && (webtv_enabled) && (livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE))
-            {
-                if (livelogs_webtv_cleanup_timer != INVALID_HANDLE)
-                {
-                    KillTimer(livelogs_webtv_cleanup_timer);
-                    livelogs_webtv_cleanup_timer = INVALID_HANDLE;
-                }
-
-                webtv_delay = GetConVarFloat(livelogs_server_tv_delay_cache);
-                new webtv_lport = GetConVarInt(livelogs_webtv_listen_port);
-                if (debug_enabled) { LogMessage("websocket is present. initialising socket. Address: %s:%d", server_ip, webtv_lport); }
-            
-                livelogs_webtv_listen_socket = Websocket_Open(server_ip, webtv_lport, onWebSocketConnection, onWebSocketListenError, onWebSocketListenClose);
-                
-                livelogs_webtv_positions_timer = CreateTimer(WEBTV_POSITION_UPDATE_RATE, updatePlayerPositionTimer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
-            }
+            startNewWebTVSession();
         #endif
         }
         else
@@ -921,7 +1032,6 @@ public sendSocketData(String:msg[])
         {
             socket_bound = true;
         }
-        
     }
 
     //if the socket still isn't bound after the loop, we need to return
@@ -962,6 +1072,26 @@ public Action:Test_SockSend(client, args)
 //------------------------------------------------------------------------------
 // Private functions
 //------------------------------------------------------------------------------
+
+getDamage(Handle:event, victimidx)
+{
+    new damage = GetEventInt(event, "damageamount");
+    
+    if (record_real_damage)
+    {
+        // Make sure we're recording the _real_ damage, i.e if a 100 dmg shot
+        // only deals 1 damage, we should count that as just 1 damage.
+        // we do this by adding the negative health to the positive damage
+        // abs(health) will never be > damage
+
+        new victimhealth = GetClientHealth(victimidx);
+
+        if (victimhealth < 0)
+            damage += victimhealth;
+    }
+
+    return damage;
+}
 
 clearVars()
 {
@@ -1017,9 +1147,9 @@ requestListenerAddress()
     decl String:tmp[129];
     if (force_log_secret && !IsCharNumeric(log_secret[0]))
     {
-        /* if the first char of the log secret is not numeric, append a number to it so that logsecret works */
+        /* if the first char of the log secret is not numeric, prepend a number to it so that logsecret works */
         strcopy(tmp, sizeof(tmp), "1");
-        StrCat(tmp, sizeof(tmp), log_secret); /* append a 1 to the string */
+        StrCat(tmp, sizeof(tmp), log_secret); /* prepend a 1 to the string */
         strcopy(log_secret, sizeof(log_secret), tmp);
     }
             
@@ -1049,19 +1179,15 @@ endLogging(bool:map_end = false)
         LogToGame("\"LIVELOG_GAME_END"); //send a game end message, in-case game over isn't triggered or w/e
         ServerCommand("logaddress_del %s", listener_address);
     }
+
+    if (livelogs_buff_timer != INVALID_HANDLE)
+    {
+        KillTimer(livelogs_buff_timer);
+        livelogs_buff_timer = INVALID_HANDLE;
+    }
     
     #if defined _websocket_included
-    if (map_end)
-    {
-        cleanUpWebSocket();
-    }
-    else
-    {
-        if ((webtv_library_present) && (livelogs_webtv_listen_socket != INVALID_WEBSOCKET_HANDLE))
-        {
-            livelogs_webtv_cleanup_timer = CreateTimer(GetConVarFloat(livelogs_server_tv_delay_cache) + 10.0, cleanUpWebSocketTimer, TIMER_FLAG_NO_MAPCHANGE);
-        }
-    }
+    endWebTVSession(map_end);
     #endif
 }
 
@@ -1152,16 +1278,54 @@ getConVarValues()
     debug_enabled = GetConVarBool(livelogs_enable_debugging);
     force_log_secret = GetConVarBool(livelogs_force_logsecret);
     show_motd_panel = GetConVarBool(livelogs_panel_display);
+    record_real_damage = GetConVarBool(livelogs_real_damage);
 
 #if defined _websocket_included
     webtv_enabled = GetConVarBool(livelogs_webtv_enabled);
 #endif
 }
 
-
-stock _:ConVarExists(const String:cvar_name[])
+activateBuffTimer()
 {
-    return FindConVar(cvar_name);
+    if (!logOptionEnabled(BITMASK_MEDIC_BUFF)) return;
+
+    if (livelogs_buff_timer == INVALID_HANDLE)
+        livelogs_buff_timer = CreateTimer(BUFF_TIMER_INTERVAL, getMedicBuffs, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+}
+
+LogOverHeal(patient_idx, amount)
+{
+    decl String:healer_name[MAX_NAME_LENGTH], String:healer_auth[64], String:healer_team[16];
+    decl String:patient_name[MAX_NAME_LENGTH], String:patient_auth[64], String:patient_team[16];
+
+    new healer_idx = client_healtarget[patient_idx];
+    
+    // if this player's healer is unknown, skip it
+    if (healer_idx <= 0) return;
+
+    new healerid = GetClientUserId(healer_idx);
+    new patientid = GetClientUserId(patient_idx);
+
+    if (!GetClientName(healer_idx, healer_name, sizeof(healer_name))) return;
+    if (!GetClientName(patient_idx, patient_name, sizeof(patient_name))) return;
+
+    strcopy(healer_auth, sizeof(healer_auth), client_index_cache[healer_idx]);
+    strcopy(patient_auth, sizeof(patient_auth), client_index_cache[patient_idx]);
+
+    GetTeamName(GetClientTeam(healer_idx), healer_team, sizeof(healer_team));
+    GetTeamName(GetClientTeam(patient_idx), patient_team, sizeof(patient_team));
+
+    LogToGame("\"%s<%d><%s><%s>\" triggered \"overhealed\" against \"%s<%d><%s><%s>\" (overhealing \"%d\")",
+            healer_name,
+            healerid,
+            healer_auth,
+            healer_team,
+            patient_name,
+            patientid,
+            patient_auth,
+            patient_team,
+            amount
+        );
 }
 
 stock String:GetTFTeamName(index)
@@ -1180,3 +1344,20 @@ stock String:GetTFTeamName(index)
 
     return team;
 }
+
+// Credit to F2 for this stock
+stock TF2_GetHealingTarget(client) {
+    new String:classname[64];
+    new index = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
+    if (index > 0) {
+        GetEntityNetClass(index, classname, sizeof(classname));
+    
+        if(StrEqual(classname, "CWeaponMedigun")) {
+            if(GetEntProp(index, Prop_Send, "m_bHealing") == 1)
+                return GetEntPropEnt(index, Prop_Send, "m_hHealingTarget");
+        }
+    }
+    
+    return -1;
+}
+

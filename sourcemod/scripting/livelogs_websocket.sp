@@ -288,7 +288,7 @@ public onWebSocketReadyStateChange(WebsocketHandle:sock, WebsocketReadyState:rea
     }
     
     if (livelogs_webtv_positions_timer == INVALID_HANDLE)
-        livelogs_webtv_positions_timer = CreateTimer(WEBTV_POSITION_UPDATE_RATE, updatePlayerPositionTimer, _, TIMER_REPEAT||TIMER_FLAG_NO_MAPCHANGE);
+        livelogs_webtv_positions_timer = CreateTimer(WEBTV_POSITION_UPDATE_RATE, updatePlayerPositionTimer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
         
     return;
 }
@@ -437,6 +437,45 @@ public onWebSocketChildError(WebsocketHandle:sock, const errorType, const errorN
 ////
 //---------------------- FUNCTIONS ----------------------
 ////
+
+startNewWebTVSession()
+{
+    //if the previous websocket is yet to be cleaned up, clean it up now
+    cleanUpWebSocket();
+    
+    //now open new websocket
+    if ((webtv_library_present) && (webtv_enabled) && (livelogs_webtv_listen_socket == INVALID_WEBSOCKET_HANDLE))
+    {
+        if (livelogs_webtv_cleanup_timer != INVALID_HANDLE)
+        {
+            KillTimer(livelogs_webtv_cleanup_timer);
+            livelogs_webtv_cleanup_timer = INVALID_HANDLE;
+        }
+
+        webtv_delay = GetConVarFloat(livelogs_server_tv_delay_cache);
+        new webtv_lport = GetConVarInt(livelogs_webtv_listen_port);
+        if (debug_enabled) { LogMessage("websocket is present. initialising socket. Address: %s:%d", server_ip, webtv_lport); }
+    
+        livelogs_webtv_listen_socket = Websocket_Open(server_ip, webtv_lport, onWebSocketConnection, onWebSocketListenError, onWebSocketListenClose);
+        
+        livelogs_webtv_positions_timer = CreateTimer(WEBTV_POSITION_UPDATE_RATE, updatePlayerPositionTimer, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+    }
+}
+
+endWebTVSession(bool:map_end)
+{
+    if (map_end)
+    {
+        cleanUpWebSocket();
+    }
+    else
+    {
+        if ((webtv_library_present) && (livelogs_webtv_listen_socket != INVALID_WEBSOCKET_HANDLE))
+        {
+            livelogs_webtv_cleanup_timer = CreateTimer(GetConVarFloat(livelogs_server_tv_delay_cache) + 10.0, cleanUpWebSocketTimer, TIMER_FLAG_NO_MAPCHANGE);
+        }
+    }
+}
 
 addToWebBuffer(const String:msg[])
 {
