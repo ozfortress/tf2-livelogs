@@ -4,10 +4,15 @@
     {
         "Version"
         {
-            "Latest"        "0.6.6.2"
+            "Latest"        "0.6.7"
         }
 
-        "Notes"     "Added optional MOTD panel display for logs"
+        "Notes"     "Added medic overheal recording and optional real damage output."
+        "Notes"     "Real damage is the actual damage dealt by a shot, rather than"
+        "Notes"     "the potential damage"
+        "Notes"     "Moved some code from livelogs.sp so livelogs_websocket.sp"
+        "Notes"     "For a list of all changes to Livelogs, please visit ozfortress:"
+        "Notes"     "http://ozfortress.com/showthread.php?t=57568"
     }
 
     "Files"
