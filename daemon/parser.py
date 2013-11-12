@@ -284,7 +284,7 @@ class parserClass(object):
 
                     self.insert_player_team(medic_sid, regml(res, 4), b_sid = healt_sid, b_team = regml(res, 8))
 
-                    m_cid = player_lib.get_cid(medic_sid)
+                    m_cid = parser_lib.get_cid(medic_sid)
                     if m_cid in self._players and self._players[m_cid].current_class() != "engineer":
                         self.insert_player_class(medic_sid, "medic")
 
@@ -311,7 +311,7 @@ class parserClass(object):
                     
                     self.insert_player_team(medic_sid, regml(res, 4).lower(), b_sid = healt_sid, b_team = regml(res, 8).lower())
 
-                    m_cid = player_lib.get_cid(medic_sid)
+                    m_cid = parser_lib.get_cid(medic_sid)
                     if m_cid in self._players and self._players[m_cid].current_class() != "engineer":
                         self.insert_player_class(medic_sid, "medic")
 
