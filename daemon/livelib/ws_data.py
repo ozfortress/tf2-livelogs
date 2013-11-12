@@ -351,7 +351,7 @@ class ManagerData(object):
     def delete_manager(self, log_ident):
         for manager_info in self.__managers:
             if manager_info[0] == log_ident:
-                self.__managers.remove(ManagerData)
+                self.__managers.remove(manager_info)
                 break
 
     def cycle(self):
