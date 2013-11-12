@@ -60,16 +60,16 @@
             if (!$log_live)
             {
                 $time_query =  "SELECT event_time 
-                                FROM {$ll_config["tables"]["log_events"]} 
+                                FROM {$ll_config["tables"]["game_events"]} 
                                 WHERE eventid = (SELECT MIN(eventid) 
-                                                FROM {$ll_config["tables"]["log_events"]}
+                                                FROM {$ll_config["tables"]["game_events"]}
                                                 WHERE log_ident = '{$_unique_ident}')
                                         AND log_ident = '{$_unique_ident}'
                                 UNION 
                                 SELECT event_time 
-                                FROM {$ll_config["tables"]["log_events"]} 
+                                FROM {$ll_config["tables"]["game_events"]} 
                                 WHERE eventid = (SELECT MAX(eventid) 
-                                                FROM {$ll_config["tables"]["log_events"]}
+                                                FROM {$ll_config["tables"]["game_events"]}
                                                 WHERE log_ident = '{$_unique_ident}')
                                         AND log_ident = '{$_unique_ident}'";
             
@@ -83,7 +83,7 @@
             }
             
             $score_query = "SELECT COALESCE(round_red_score, 0) as red_score, COALESCE(round_blue_score, 0) as blue_score 
-                            FROM {$ll_config["tables"]["log_events"]} 
+                            FROM {$ll_config["tables"]["game_events"]} 
                             WHERE (round_red_score IS NOT NULL AND round_blue_score IS NOT NULL) AND log_ident = '{$_unique_ident}'
                             ORDER BY eventid DESC LIMIT 1";
                             

@@ -175,12 +175,12 @@
                         {$limit}";
 
             $count_query = "SELECT COUNT(DISTINCT numeric_id) as total
-                        FROM {$ll_config["tables"]["log_index"]} 
-                        WHERE (
-                                TEXT(server_ip) = '{$escaped_address}' 
-                                AND server_port = CAST('{$escaped_port}' AS INT)
-                            ) 
-                            AND live='false'";
+                            FROM {$ll_config["tables"]["log_index"]} 
+                            WHERE (
+                                    TEXT(server_ip) = '{$escaped_address}' 
+                                    AND server_port = CAST('{$escaped_port}' AS INT)
+                                ) 
+                                AND live='false'";
         }
         else if (preg_match("/^STEAM_(\d):(\d):(\d+)/", $filter))
         {
