@@ -228,11 +228,11 @@ class parserClass(object):
                     dmg = regml(res, 9)
 
                     if a_sid == v_sid: #players can deal self damage. if so, don't record damage_dealt for this
-                        self.insert_player_team(a_sid, regml(res, 4).lower())
+                        self.insert_player_team(a_sid, regml(res, 4))
 
                     else:
                         self.pg_statupsert(self.STAT_TABLE, "damage_dealt", a_sid, a_name, dmg)
-                        self.insert_player_team(a_sid, regml(res, 4).lower(), b_sid = v_sid, b_team = regml(res, 8).lower())
+                        self.insert_player_team(a_sid, regml(res, 4), b_sid = v_sid, b_team = regml(res, 8))
 
                     self.pg_statupsert(self.STAT_TABLE, "damage_taken", v_sid, v_name, dmg)
 
@@ -251,7 +251,7 @@ class parserClass(object):
                     #pg_statupsert(self, table, column, steamid, name, value)
                     self.pg_statupsert(self.STAT_TABLE, "damage_dealt", sid, name, dmg)        
                     
-                    self.insert_player_team(sid, regml(res, 4).lower())
+                    self.insert_player_team(sid, regml(res, 4))
                     
                     return
 
@@ -264,7 +264,7 @@ class parserClass(object):
 
                     self.pg_statupsert(self.STAT_TABLE, "damage_taken", sid, name, dmg)
 
-                    self.insert_player_team(sid, regml(res, 4).lower())
+                    self.insert_player_team(sid, regml(res, 4))
 
                     return
 
@@ -309,7 +309,7 @@ class parserClass(object):
                     self.pg_statupsert(self.STAT_TABLE, "points", medic_sid, medic_name, medic_points)
                     self.pg_statupsert(self.STAT_TABLE, "healing_received", healt_sid, healt_name, medic_healing)
                     
-                    self.insert_player_team(medic_sid, regml(res, 4).lower(), b_sid = healt_sid, b_team = regml(res, 8).lower())
+                    self.insert_player_team(medic_sid, regml(res, 4), b_sid = healt_sid, b_team = regml(res, 8))
 
                     m_cid = parser_lib.get_cid(medic_sid)
                     if m_cid in self._players and self._players[m_cid].current_class() != "engineer":
@@ -365,7 +365,7 @@ class parserClass(object):
                                                     self.KILL_EVENT_TABLE, self.UNIQUE_IDENT, event_time, "kill", parser_lib.get_cid(k_sid), k_pos, parser_lib.get_cid(v_sid), v_pos) #creates a new, unique eventid with details of the event
                     self.executeQuery(event_insert_query)
 
-                    self.insert_player_team(k_sid, regml(res, 4).lower(), b_sid = v_sid, b_team = regml(res, 8).lower())
+                    self.insert_player_team(k_sid, regml(res, 4), b_sid = v_sid, b_team = regml(res, 8))
 
                     return
 
@@ -415,7 +415,7 @@ class parserClass(object):
                                                     self.KILL_EVENT_TABLE, self.UNIQUE_IDENT, event_time, event_type, parser_lib.get_cid(k_sid), k_pos, parser_lib.get_cid(v_sid), v_pos)
                     self.executeQuery(event_insert_query)
 
-                    self.insert_player_team(k_sid, regml(res, 4).lower(), b_sid = v_sid, b_team = regml(res, 8).lower())
+                    self.insert_player_team(k_sid, regml(res, 4), b_sid = v_sid, b_team = regml(res, 8))
                     
                     return
                 
@@ -438,7 +438,7 @@ class parserClass(object):
                                                 self.KILL_EVENT_TABLE, parser_lib.get_cid(a_sid), a_pos, self.KILL_EVENT_TABLE, self.UNIQUE_IDENT, self.UNIQUE_IDENT)
                     self.executeQuery(assist_update_query)
 
-                    self.insert_player_team(a_sid, regml(res, 4).lower())
+                    self.insert_player_team(a_sid, regml(res, 4))
 
                     return
 
@@ -522,7 +522,7 @@ class parserClass(object):
                     self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
                     self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
 
-                    self.insert_player_team(p_sid, regml(res, 4).lower())
+                    self.insert_player_team(p_sid, regml(res, 4))
 
                     return
 
@@ -538,7 +538,7 @@ class parserClass(object):
                     self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
                     self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
 
-                    self.insert_player_team(p_sid, regml(res, 4).lower())
+                    self.insert_player_team(p_sid, regml(res, 4))
                     
                     return
                     
@@ -564,7 +564,7 @@ class parserClass(object):
                     #user is obv an engineer if he's building shit!
                     sid = regml(res, 3)
 
-                    self.insert_player_team(sid, regml(res, 4).lower())
+                    self.insert_player_team(sid, regml(res, 4))
                     self.insert_player_class(sid, "engineer")
                     
                     return
@@ -795,7 +795,7 @@ class parserClass(object):
                 #NOW WE ADD CLASSES O GOD
                 pclass = regml(res, 5)
                 sid = regml(res, 3)
-                team = regml(res, 4).lower()
+                team = regml(res, 4)
 
                 self.insert_player_team(sid, team)
 
@@ -923,8 +923,11 @@ class parserClass(object):
         team_insert_list = []
         team_to_insert = False
 
-        if a_sid and (a_team is not None) and (a_team.lower() != "none"):
+        a_team = a_team.lower() #make sure the team is lowercase
+
+        if a_sid and (a_team is not None) and (a_team != "none"):
             a_cid = parser_lib.get_cid(a_sid)
+            
             if self.add_player(a_cid, team = a_team) or not self._players[a_cid].is_team_same(a_team):
                 self._players[a_cid].set_team(a_team)
 
@@ -934,6 +937,8 @@ class parserClass(object):
         
         if b_sid and (b_team is not None) and (b_team.lower() != "none"):
             b_cid = parser_lib.get_cid(b_sid)
+            b_team = b_team.lower() #make sure the team is lowercase
+
             if self.add_player(b_cid, team = b_team) or not self._players[b_cid].is_team_same(b_team):
                 self._players[b_cid].set_team(b_team)
 
