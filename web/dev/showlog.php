@@ -37,11 +37,11 @@
                 $log_live = true;
             
             $stat_query =  "SELECT steamid, team, class,
-                                    kills, deaths, assists, points, 
+                                    kills, deaths, assists, points,
                                     healing_done, healing_received, ubers_used, ubers_lost, 
+                                    overhealing_done, overhealing_received,
                                     headshots, damage_dealt, damage_taken,
-                                    captures, captures_blocked, 
-                                    dominations
+                                    captures
                             FROM {$ll_config["tables"]["player_stats"]}
                             WHERE log_ident = '{$_unique_ident}'";
 
@@ -101,8 +101,8 @@
             }
 
             $team_stats_query = "SELECT team, SUM(kills) as team_kills, SUM(deaths) AS team_deaths, 
-                                SUM(healing_done) as team_healing_done, 
-                                SUM(damage_dealt) as team_damage_dealt, SUM(damage_taken) as team_damage_taken
+                                SUM(healing_done) as team_healing_done, SUM(overhealing_done) as team_overhealing_done,
+                                SUM(damage_dealt) as team_damage_dealt
                                 FROM {$ll_config["tables"]["player_stats"]}
                                 WHERE log_ident = '{$_unique_ident}' and team IS NOT NULL
                                 GROUP BY team";
@@ -306,9 +306,6 @@
                             <abbr title="Points Captured">PC</abbr>
                         </th>
                         <th class="stat_summary_col_title">
-                            <abbr title="Point Captures Blocked">PB</abbr>
-                        </th>
-                        <th class="stat_summary_col_title">
                             <abbr title="Headshots">HS</abbr>
                         </th>
                         <th class="stat_summary_col_title">
@@ -324,7 +321,7 @@
                             <abbr title="Healing Received">HR</abbr>
                         </th>
                         <th class="stat_summary_col_title">
-                            <abbr title="Dominations">DOM</abbr>
+                            <abbr title="Overhealing (buff) received">OHR</abbr>
                         </th>
                         <th class="stat_summary_col_title_secondary">
                             <abbr title="Kills per Death">KPD</abbr>
@@ -406,13 +403,12 @@
                         <td id="<?=$community_id . ".deaths"?>"><?=$pstat["deaths"]?></td>
                         <td id="<?=$community_id . ".assists"?>"><?=$pstat["assists"]?></td>
                         <td id="<?=$community_id . ".captures"?>"><?=$pstat["captures"]?></td>
-                        <td id="<?=$community_id . ".captures_blocked"?>"><?=$pstat["captures_blocked"]?></td>
                         <td id="<?=$community_id . ".headshots"?>"><?=$pstat["headshots"]?></td>
                         <td id="<?=$community_id . ".points"?>"><?=$pstat["points"]?></td>
                         <td id="<?=$community_id . ".damage_dealt"?>"><?=$pstat["damage_dealt"]?></td>
                         <td id="<?=$community_id . ".damage_taken"?>"><?=empty($pstat["damage_taken"]) ? 0 : $pstat["damage_taken"]?></td>
                         <td id="<?=$community_id . ".healing_received"?>"><?=$pstat["healing_received"]?></td>
-                        <td id="<?=$community_id . ".dominations"?>"><?=$pstat["dominations"]?></td>
+                        <td id="<?=$community_id . ".overhealing_received"?>"><?=$pstat["overhealing_received"]?></td>
                         <td id="<?=$community_id . ".kpd"?>"><?=$p_kpd?></td>
                         <td id="<?=$community_id . ".dpd"?>"><?=$p_dpd?></td>
                         <td id="<?=$community_id . ".dpr"?>"><?=$p_dpr?></td>
@@ -484,13 +480,13 @@
                             <abbr title="Total team deaths">D</abbr>
                         </th>
                         <th class="stat_summary_col_title">
-                            <abbr title="Total team healing done">HD</abbr>
+                            <abbr title="Total team healing done">H</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Total team over healing done">OH</abbr>
                         </th>
                         <th class="stat_summary_col_title">
                             <abbr title="Total team damage dealt">DMG</abbr>
-                        </th>
-                        <th class="stat_summary_col_title">
-                            <abbr title="Total team damage taken">DT</abbr>
                         </th>
                         <th class="stat_summary_col_title">
                             <abbr title="Total team damage per minute">DPM</abbr>
@@ -511,8 +507,8 @@
                         <td id="<?=$tstat["team"] . ".team_kills"?>"><?=$tstat["team_kills"]?></td>
                         <td id="<?=$tstat["team"] . ".team_deaths"?>"><?=$tstat["team_deaths"]?></td>
                         <td id="<?=$tstat["team"] . ".team_healing_done"?>"><?=$tstat["team_healing_done"]?></td>
+                        <td id="<?=$tstat["team"] . ".team_overhealing_done"?>"><?=$tstat["team_overhealing_done"]?></td>
                         <td id="<?=$tstat["team"] . ".team_damage_dealt"?>"><?=$tstat["team_damage_dealt"]?></td>
-                        <td id="<?=$tstat["team"] . ".team_damage_taken"?>"><?=$tstat["team_damage_taken"]?></td>
                         <td id="<?=$tstat["team"] . ".team_dpm"?>"><?=$team_dpm?></td>
                     </tr>
                 <?php
