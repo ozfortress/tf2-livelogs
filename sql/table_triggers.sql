@@ -32,6 +32,12 @@ BEGIN
         IF NEW.healing_received IS NULL THEN
                 NEW.healing_received := 0;
         END IF;
+        IF NEW.overhealing_done is NULL THEN
+                NEW.overhealing_done := 0;
+        END IF;
+        IF NEW.overhealing_received IS NULL THEN
+                NEW.overhealing_received := 0;
+        END IF;
         IF NEW.ubers_used IS NULL THEN
                 NEW.ubers_used := 0;
         END IF;
