@@ -321,7 +321,7 @@
                             <abbr title="Healing Received">HR</abbr>
                         </th>
                         <th class="stat_summary_col_title">
-                            <abbr title="Overhealing (buff) received">OHR</abbr>
+                            <abbr title="Overhealing (buff) Received">OHR</abbr>
                         </th>
                         <th class="stat_summary_col_title_secondary">
                             <abbr title="Kills per Death">KPD</abbr>
@@ -433,7 +433,7 @@
                             <abbr title="Healing Done">H</abbr>
                         </th>
                         <th class="stat_summary_col_title">
-                            <abbr title="Healing Done">OH</abbr>
+                            <abbr title="Overhealing (buffs) Done">OH</abbr>
                         </th>
                         <th class="stat_summary_col_title">
                             <abbr title="Ubers Used">U</abbr>
