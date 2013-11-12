@@ -305,13 +305,13 @@ var llWSClient = llWSClient || (function() {
                                         }*/
 
                                     } else if (HAD_FIRST_UPDATE) {
-                                        if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost") {
+                                        if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost" || stat === "overhealing_done") {
                                             llWSClient.updateTableCell("#medic_stats", element, Number(element.innerHTML) + Number(value));
                                         } else {
                                             llWSClient.updateTableCell("#general_stats", element, Number(element.innerHTML) + Number(value));
                                         }
                                     } else {
-                                        if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost") {
+                                        if (stat === "healing_done" || stat === "ubers_used" || stat === "ubers_lost" || stat === "overhealing_done") {
                                             llWSClient.updateTableCell("#medic_stats", element, Number(value));
                                         } else {
                                             llWSClient.updateTableCell("#general_stats", element, Number(value));
@@ -370,7 +370,7 @@ var llWSClient = llWSClient || (function() {
 
                         llWSClient.add_new_stat_row(sid, stats);
 
-                        if ("healing_done" in stats || "ubers_used" in stats || "ubers_lost" in stats) {
+                        if ("healing_done" in stats || "ubers_used" in stats || "ubers_lost" in stats || "overhealing_done" in stats) {
                             //player is a medic, need to add medic stat row
                             llWSClient.add_new_medic_row(sid, stats);
                         }
@@ -524,8 +524,8 @@ var llWSClient = llWSClient || (function() {
         },
 
         add_new_stat_row : function(sid, stats) {
-            var column_ids = ["name", "kills", "deaths", "assists", "captures", "captures_blocked", "headshots", "points", "damage_dealt", "damage_taken",
-                    "healing_received", "dominations", "kpd", "dpd", "dpr", "dpm"];
+            var column_ids = ["name", "kills", "deaths", "assists", "captures", "headshots", "points", "damage_dealt", "damage_taken",
+                    "healing_received", "overhealing_received", "kpd", "dpd", "dpr", "dpm"];
 
             var row, i, column, tmp, tmp_result, name_class, class_span, name_link;
 
@@ -576,11 +576,11 @@ var llWSClient = llWSClient || (function() {
 
             console.log(row);
 
-           this.addTableRow("#general_stats", row);
+            this.addTableRow("#general_stats", row);
         },
 
         add_new_medic_row : function(sid, stats) {
-            var column_ids = ["name", "healing_done", "ubers_used", "ubers_lost"];
+            var column_ids = ["name", "healing_done", "overhealing_done", "ubers_used", "ubers_lost"];
 
             var row, i, column, tmp, tmp_result, name_class, class_span, name_link;
 
@@ -633,7 +633,7 @@ var llWSClient = llWSClient || (function() {
         },
 
         add_new_team_row : function(team, team_stats) {
-            var column_ids = ["team_name", "team_kills", "team_deaths", "team_healing_done", "team_damage_dealt", "team_damage_taken", "team_dpm"];
+            var column_ids = ["team_name", "team_kills", "team_deaths", "team_healing_done", "team_overhealing_done", "team_damage_dealt", "team_dpm"];
             
             var row, i, column, tmp, tmp_result;
 
@@ -692,7 +692,7 @@ var llWSClient = llWSClient || (function() {
                     pclass = "noclass";
                 }
 
-                rtn_string += '<img src="/images/classes/' + pclass + '.png" style="max-width: 18px; max-height: 18px; height: auto; width: auto" alt="' + pclass + '"> ';
+                rtn_string += '<img src="/images/classes/' + pclass + '.png" style="max-width: 18px; max-height: 18px; height: auto; width: auto" alt="' + pclass + '" title="' + pclass + '"> ';
             }
 
             return rtn_string;
