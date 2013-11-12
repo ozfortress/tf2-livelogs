@@ -367,7 +367,6 @@
                     if ($name_result)
                         $name_array = fetch_name_array($name_result);  
 
-                    //while ($pstat = pg_fetch_array($stat_result, NULL, PGSQL_ASSOC))
                     foreach ($player_stats as $community_id => $pstat)
                     {
                         if (empty($name_array[$community_id]["name"]))
@@ -387,7 +386,7 @@
 
                         $team_class = get_player_team_class(strtolower($pstat["team"]));
                         
-                        if (($pstat["healing_done"] > 0) || ($pstat["ubers_used"]) || ($pstat["ubers_lost"]))
+                        if (($pstat["healing_done"] > 0) || ($pstat["overhealing_done"] > 0) || ($pstat["ubers_used"]) || ($pstat["ubers_lost"]))
                         {
                             $mstats[$community_id] = $pstat;
                             $mstats[$community_id]["name"] = $p_name;
@@ -431,7 +430,10 @@
                             <abbr title="Player Name">Name</abbr>
                         </th>
                         <th class="stat_summary_col_title">
-                            <abbr title="Healing Done">Healing</abbr>
+                            <abbr title="Healing Done">H</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Healing Done">OH</abbr>
                         </th>
                         <th class="stat_summary_col_title">
                             <abbr title="Ubers Used">U</abbr>
@@ -454,6 +456,7 @@
                             <a id="<?=$community_id . ".med_name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=htmlentities($mstat["name"], ENT_QUOTES, "UTF-8")?></a>
                         </td>
                         <td id="<?=$community_id . ".healing_done"?>"><?=$mstat["healing_done"]?></td>
+                        <td id="<?=$community_id . ".overhealing_done"?>"><?=$mstat["overhealing_done"]?></td>
                         <td id="<?=$community_id . ".ubers_used"?>"><?=$mstat["ubers_used"]?></td>
                         <td id="<?=$community_id . ".ubers_lost"?>"><?=$mstat["ubers_lost"]?></td>
                     </tr>
