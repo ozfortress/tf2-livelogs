@@ -45,8 +45,8 @@ team_stat_columns = (
                 "team_kills",
                 "team_deaths",
                 "team_healing_done",
+                "team_overhealing_done",
                 "team_damage_dealt",
-                "team_damage_taken"
             )
 
 
@@ -107,7 +107,7 @@ class dbManager(object):
 
         self._score_query = "SELECT COALESCE(round_red_score, 0), COALESCE(round_blue_score, 0) FROM %s WHERE (round_red_score IS NOT NULL AND round_blue_score IS NOT NULL) AND log_ident = '%s' ORDER BY eventid DESC LIMIT 1" % (DB_EVENT_TABLE, self._unique_ident)
 
-        self._team_stat_query = "SELECT team, SUM(kills), SUM(deaths), SUM(healing_done), SUM(damage_dealt), SUM(damage_taken) FROM %s WHERE (log_ident = '%s' AND team IS NOT NULL) GROUP BY team" % (DB_STAT_TABLE, self._unique_ident)
+        self._team_stat_query = "SELECT team, SUM(kills), SUM(deaths), SUM(healing_done), SUM(overhealing_done), SUM(damage_dealt) FROM %s WHERE (log_ident = '%s' AND team IS NOT NULL) GROUP BY team" % (DB_STAT_TABLE, self._unique_ident)
 
         self._name_query = "SELECT name, steamid FROM %s WHERE log_ident = '%s'" % (DB_PLAYER_TABLE, self._unique_ident)
 
