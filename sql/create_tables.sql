@@ -1,6 +1,6 @@
 
 -- AUTH TABLE
-CREATE TABLE livelogs_auth_keys (user_name text, user_email text, user_key text, user_ip text); --holds user authentication keys and contact details
+CREATE TABLE livelogs_auth_keys (user_name text, user_email text, user_key text UNIQUE, user_ip text); --holds user authentication keys and contact details
 
 --holds per-game player statistics. i.e. the stat table for all matches
 CREATE TABLE livelogs_player_stats (num_id serial, log_ident varchar(64), steamid bigint, team text, class text,
@@ -35,6 +35,7 @@ CREATE TABLE livelogs_player_details (id serial, steamid bigint, log_ident varch
 CREATE INDEX details_ident_index ON livelogs_player_details(log_ident);
 
 ------ EVENTS TABLES
+-- Game events contains generic events
 CREATE TABLE livelogs_game_events (eventid serial PRIMARY KEY, log_ident varchar(64), event_time text, event_type text,
                             capture_name varchar(64), capture_team varchar(16), capture_num_cappers integer, capture_blocked integer,
                             round_winner varchar(16), round_red_score integer, round_blue_score integer, round_length decimal,
@@ -43,6 +44,7 @@ CREATE TABLE livelogs_game_events (eventid serial PRIMARY KEY, log_ident varchar
 CREATE INDEX game_events_ident_index ON livelogs_game_events(log_ident);
 CREATE INDEX game_events_eventid_ident_index ON livelogs_game_events(eventid, log_ident);
 
+-- Kill/assist events
 CREATE TABLE livelogs_kill_events (eventid serial PRIMARY KEY, log_ident text, event_time text, event_type text,
                                 kill_attacker_id bigint, kill_attacker_pos varchar(32),
                                 kill_assister_id bigint, kill_assister_pos varchar(32),
@@ -51,6 +53,7 @@ CREATE TABLE livelogs_kill_events (eventid serial PRIMARY KEY, log_ident text, e
 CREATE INDEX kill_events_ident_index ON livelogs_kill_events(log_ident);
 CREATE INDEX kill_events_eventid_ident_index ON livelogs_kill_events(eventid, log_ident);
 
+-- Medic events
 CREATE TABLE livelogs_medic_events (eventid serial PRIMARY KEY, log_ident text, event_time text, event_type text,
                                     medic_steamid bigint, medic_uber_used integer, medic_uber_lost integer, medic_healing integer);
 
