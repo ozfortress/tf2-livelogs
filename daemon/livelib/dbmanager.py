@@ -29,14 +29,15 @@ stat_columns = (
             "points",
             "healing_done",
             "healing_received",
+            "overhealing_done",
+            "overhealing_received",
             "ubers_used",
             "ubers_lost",
             "headshots",
             "damage_dealt",
             "damage_taken",
-            "captures",
-            "captures_blocked",
-            "dominations"
+            "captures"
+            #"dominations"
         )
 
 
