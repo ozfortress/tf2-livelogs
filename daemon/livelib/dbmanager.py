@@ -448,6 +448,7 @@ class dbManager(object):
                 team = row[0]
 
                 if team != "None":
+                    team = team.lower() # make sure the team name is lowercase
                     team_stats[team] = self.team_stat_tuple_to_dict(row[1:]) #splice the row so we just have the stats, and convert them to a dict
 
             if not self._team_stat_table:
