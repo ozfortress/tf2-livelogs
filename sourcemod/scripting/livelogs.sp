@@ -25,6 +25,7 @@
     * Cinq, Annuit Coeptis and Jean-Denis Caron for additional statistic logging
       such as damage done, heals, items and pausing/unpausing
     * F2 for medic buff recording (http://etf2l.org/forum/customise/topic-27485/page-1/#post-476085)
+      and real damage
 */
 
 #define DEBUG true

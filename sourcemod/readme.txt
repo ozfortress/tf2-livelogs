@@ -72,7 +72,7 @@ livelogs_real_damage - Whether or not to record real damage values.
     In this case, we may want to only record the amount of damage that the attacker actually dealt to the player. This cvar provides the option to choose between these two.
 
     e.g If a victim has 10 hp and an attacker's rocket would deal 40 damage, enabling this cvar means that only 10 damage is recorded. If the cvar is disabled, 40 damage
-    will be recorded.
+    would be recorded.
 
     Enabling this cvar will lead to significantly more accurate damage numbers.
 
