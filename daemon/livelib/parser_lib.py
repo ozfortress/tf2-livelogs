@@ -15,6 +15,9 @@ damage_dealt = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage" 
 damage_taken = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage_taken" \x28damage "(\d+)"\x29')
 
 healing_done = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "healed" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28healing "(\d+)"\x29')
+#"D5+ :happymeat:<24><STEAM_0:1:44157999><Blue>" triggered "overhealed" against "GBH | Mongo<20><STEAM_0:0:14610972><Blue>" (overhealing "28")
+overhealing_done = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "overhealed" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28overhealing "(\d+)"\x29')
+
 item_pickup = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" picked up item "(.*)"')
 
 medic_death = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "medic_death" against "(.*)<(\d+)><(.*)><(Red|Blue)>" \x28healing "(.*)"\x29 \x28ubercharge "(.*)"\x29')
