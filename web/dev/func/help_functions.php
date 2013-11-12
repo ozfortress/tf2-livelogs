@@ -35,7 +35,7 @@
                 $class = "noclass";
             }
 
-            $imgstring .= '<img src="/images/classes/' . $class . '.png" style="max-width: 18px; max-height: 18px; height: auto; width: auto" alt="' . $class . '"> ';
+            $imgstring .= '<img src="/images/classes/' . $class . '.png" style="max-width: 18px; max-height: 18px; height: auto; width: auto" alt="' . $class . '" title="' . strtoupper($class) . '"> ';
         }
 
         return $imgstring;
