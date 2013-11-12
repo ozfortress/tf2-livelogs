@@ -51,6 +51,10 @@ class llData(object):
         self.log_timeout = timeout
         self.log_webtv_port = webtv_port
 
+        self.api_key = None
+        self.weapon_data = None
+        self.query_queue = None
+
 class llDaemonHandler(SocketServer.BaseRequestHandler):
     def __init__(self, request, client_address, server):
         self.logger = server.handler_logger
@@ -137,6 +141,7 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
 
                 data_obj.weapon_data = self.server.weapon_data
                 data_obj.query_queue = self.server.query_queue
+                data_obj.api_key = client_api_key
 
                 self.newListen = listener.llListenerObject(data_obj)
                 
