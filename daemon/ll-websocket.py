@@ -343,6 +343,8 @@ class llWSApplication(tornado.web.Application):
 
         results = cursor.fetchall() #fetchall returns a list of tuples of all results
         
+        self.logger.debug("results: %s", results)
+
         if results and len(results) > 0:
             for log_status in results: #log_status is a tuple in form (log_ident, live, tstamp)
                 #self.logger.debug("log_status tuple: %s", log_status)
@@ -351,14 +353,14 @@ class llWSApplication(tornado.web.Application):
                 self.add_to_cache(log_ident, live)
 
                 if live == True:
-                    self.logger.debug("log is live")
+                    self.logger.debug("log %s is live", log_ident)
 
                     if log_ident in self._invalid_idents:
                         #move the queue to the dict of valid log idents
                         self.add_live_ident(log_ident, tstamp)
                     
                 else:
-                    self.logger.debug("log is not live, disconnecting clients")
+                    self.logger.debug("log %s is not live, disconnecting clients", log_ident)
                     if log_ident in self._valid_idents:
                         #valid ident is no longer live, close it
                         self._log_finished_callback(log_ident) #run the ending callback
