@@ -259,5 +259,15 @@
 
         return $name_array;
     }
+
+    function get_community_url($cid)
+    {
+        return '//steamcommunity.com/profiles/' . $cid;
+    }
+
+    function strip_string($str)
+    {
+        return htmlentities($str, ENT_QUOTES, "UTF-8");
+    }
 ?>
 

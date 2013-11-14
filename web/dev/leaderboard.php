@@ -4,15 +4,8 @@
 	<?php
         include 'static/header.html';
 
-        require "../conf/ll_database.php";
         require "../conf/ll_config.php";
         require 'func/help_functions.php';
-
-        /*
-        THE BIG QUERY:
-        SELECT class, steamid, SUM(kills) as kills, SUM(deaths) as deaths, SUM(assists) as assists, SUM(points) as points FROM livelogs_player_stats WHERE class != 'UNKNOWN' GROUP BY class, steamid ORDER BY class DESC;
-        */
-
 
         if (!$ll_db)
             die();
@@ -61,20 +54,53 @@
         </div>
     </div>
     <div class="livelogs_wrapper">
-        <div class="text_blurb">
-            <p align="center">Placeholder</p>
-        </div>
     	<div class="stat_table_container stat_table_container_small">
-	    	<table class="table table-bordered table-striped table-hover ll_table">
+	    	<table id="leaderboard" class="table table-bordered table-striped table-hover ll_table">
+                <thead>
+                     <tr class="stat_summary_title_bar">
+                        <th class="stat_summary_col_title">
+                            <abbr title="Player Class">Class</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Player Name">Name</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Kills">K</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Deaths">D</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Assists">A</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Damage Dealt">DMG</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Livelogs player rating">LLR</abbr>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
 
+                </tbody>
+                <caption>Livelogs leaderboard</caption>
 	    	</table>
 	    </div>
-
 
     	<?php include('static/logo.html'); ?>
 
     </div>
     <?php include('static/footer.html'); ?>
+
+    <script src="/js/leaderboard.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        /*
+        pass the steamid, number of logs shown and the total number of logs to the datatables init
+        so that we can make this shit work
+        */
+        ll_paging.init(<?=$ll_config["display"]["leaderboard_per_page"]?>);
+    </script>
 
 </body>
 </html>
