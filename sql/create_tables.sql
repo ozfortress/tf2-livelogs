@@ -16,6 +16,25 @@ CREATE TABLE livelogs_player_stats (num_id serial, log_ident varchar(64), steami
 
 CREATE INDEX stat_ident_index ON livelogs_player_stats(log_ident);
 CREATE INDEX stat_cid_index ON livelogs_player_stats(steamid);
+CREATE INDEX stat_class_cid_index ON livelogs_player_stats(class, steamid);
+
+-- PER CLASS STAT VIEW
+CREATE VIEW view_player_class_stats AS SELECT class, steamid,
+                                              SUM(kills) as kills, SUM(deaths) as deaths, SUM(assists) as assists, SUM(points) as points, 
+                                              SUM(healing_done) as healing_done, SUM(healing_received) as healing_received,
+                                              SUM(ubers_used) as ubers_used, SUM(ubers_lost) as ubers_lost,
+                                              SUM(overhealing_done) as overhealing_done, SUM(overhealing_received) as overhealing_received,
+                                              SUM(headshots) as headshots, SUM(damage_dealt) as damage_dealt, SUM(damage_taken) as damage_taken,
+                                              SUM(captures) as captures, SUM(captures_blocked) as captures_blocked,
+                                              SUM(dominations) as dominations, SUM(revenges) as revenges, SUM(times_dominated) as times_dominated
+                                       FROM livelogs_player_stats
+                                       WHERE class != 'UNKNOWN'
+                                       GROUP BY class, steamid;
+
+
+--SUM(ap_small) as ap_small, SUM(ap_medium) as ap_medium, SUM(ap_large) as ap_large,
+--SUM(mk_small) as mk_small, SUM(mk_medium) as mk_medium, SUM(mk_large) as mk_large,
+
 
 -- TRIGGER FOR STAT TABLE - replaces NULL entires with 0
 CREATE TRIGGER zero_null_stat
@@ -27,8 +46,32 @@ CREATE TABLE livelogs_game_chat (id serial, log_ident varchar(64), steamid bigin
 CREATE INDEX chat_ident_index ON livelogs_game_chat(log_ident);
 
 -- LOG INDEX
-CREATE TABLE livelogs_log_index (numeric_id serial, server_ip cidr NOT NULL, server_port integer NOT NULL, api_key text references livelogs_auth_keys(user_key), log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean, webtv_port integer, tstamp text); --holds server log information
+CREATE TABLE livelogs_log_index (numeric_id serial, server_ip cidr NOT NULL, server_port integer NOT NULL, api_key text references livelogs_auth_keys(user_key) ON UPDATE CASCADE, 
+                                log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean, webtv_port integer, tstamp text); --holds server log information
+
 CREATE INDEX log_ident_index ON livelogs_log_index(log_ident);
+
+-- VIEWS FOR STATS WITHIN LAST MONTH
+CREATE VIEW view_past_month_idents AS SELECT log_ident 
+                                          FROM livelogs_log_index 
+                                          WHERE to_timestamp(tstamp, 'YYYY-MM-DD HH24:MI:SS') >= now() -  interval '1 month';
+
+CREATE VIEW view_past_month_stats AS SELECT livelogs_player_stats.* 
+                                         FROM livelogs_player_stats JOIN view_past_month_idents 
+                                         ON livelogs_player_stats.log_ident = view_past_month_idents.log_ident;
+
+CREATE VIEW view_past_month_class_stats AS SELECT class, steamid,
+                                              SUM(kills) as kills, SUM(deaths) as deaths, SUM(assists) as assists, SUM(points) as points, 
+                                              SUM(healing_done) as healing_done, SUM(healing_received) as healing_received,
+                                              SUM(ubers_used) as ubers_used, SUM(ubers_lost) as ubers_lost,
+                                              SUM(overhealing_done) as overhealing_done, SUM(overhealing_received) as overhealing_received,
+                                              SUM(headshots) as headshots, SUM(damage_dealt) as damage_dealt, SUM(damage_taken) as damage_taken,
+                                              SUM(captures) as captures, SUM(captures_blocked) as captures_blocked,
+                                              SUM(dominations) as dominations, SUM(revenges) as revenges, SUM(times_dominated) as times_dominated
+                                           FROM livelogs_player_stats JOIN view_past_month_idents
+                                           ON livelogs_player_stats.log_ident = view_past_month_idents.log_ident
+                                           WHERE class != 'UNKNOWN'
+                                           GROUP BY class, steamid;
 
 -- PLAYER DETAILS CONTAINS STEAMIDS AND THE LOGS THEY ARE IN
 CREATE TABLE livelogs_player_details (id serial, steamid bigint, log_ident varchar(64), name text);
