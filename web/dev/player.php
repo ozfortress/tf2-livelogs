@@ -105,7 +105,7 @@
         }
     ?>
 
-    <title>Livelogs - <?=htmlentities($player_name, ENT_QUOTES, "UTF-8")?>'s stats</title>
+    <title>Livelogs - <?=strip_string($player_name)?>'s stats</title>
 
 </head>
 <body class="ll_body">
@@ -156,7 +156,7 @@
         ?>
 
         <div class="details_container">
-            <span class="log_detail_id">Name:</span> <span><a href="//steamcommunity.com/profiles/<?=$community_id?>"><?=htmlentities($player_name, ENT_QUOTES, "UTF-8")?></a></span> <br>
+            <span class="log_detail_id">Name:</span> <span><a href="<?=get_community_url($community_id)?>"><?=strip_string($player_name)?></a></span> <br>
             <span class="log_detail_id">Steam ID:</span> <span><?=big_int_to_steamid($community_id)?></span> <br>
         </div>
 
