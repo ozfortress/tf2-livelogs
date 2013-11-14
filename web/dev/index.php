@@ -78,10 +78,15 @@
         </div>
     </div>
     <div class="livelogs_wrapper">
-        <div class="text_blurb">
-            <p align="center">Welcome to Livelogs beta version 2! You will notice a number of improvements and differences from the previous version. As always, report any bugs you encounter.</p>
-            <p align="center">Below you will find live logs (if any are running) that you may view, or a list of past logs. Clicking 'See more' will allow you to view the log archive, which contains all logs recorded</p>
+        <div class="page-header">
+            <h3 align="center">Welcome to Livelogs!</h3>
         </div>
+        <div class="text_blurb">
+            <p align="center">Below you can find live logs (if any are running) that you may view, or a list of past recent past logs. 
+                <br>Clicking 'See more' will allow you to view the log archive, which contains all logs recorded
+            </p>
+        </div>
+
         <div align="center">
             <?php
             if (!$live_res)
