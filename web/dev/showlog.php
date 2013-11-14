@@ -17,6 +17,8 @@
                             WHERE numeric_id = '{$escaped_serial}'";
 
         $log_detail_res = pg_query($ll_db, $log_detail_query);
+        if (!$log_detail_res)
+            die();
 
         ////server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
         $log_details = pg_fetch_array($log_detail_res, 0, PGSQL_ASSOC);

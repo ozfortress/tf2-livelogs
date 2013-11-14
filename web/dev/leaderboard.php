@@ -6,9 +6,6 @@
 
         require "../conf/ll_config.php";
         require 'func/help_functions.php';
-
-        if (!$ll_db)
-            die();
     ?>
 
     <title>Livelogs - Leaderboard</title>
@@ -54,7 +51,10 @@
         </div>
     </div>
     <div class="livelogs_wrapper">
-    	<div class="stat_table_container stat_table_container_small">
+        <div class="text_blurb">
+            <p>This is the Livelogs leaderboard. It shows the players with the highest Livelogs Rating (LLR) within the last month.</p>
+        </div>
+    	<div class="stat_table_container">
 	    	<table id="leaderboard" class="table table-bordered table-striped table-hover ll_table">
                 <thead>
                      <tr class="stat_summary_title_bar">
@@ -75,6 +75,9 @@
                         </th>
                         <th class="stat_summary_col_title">
                             <abbr title="Damage Dealt">DMG</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Number of games played">#G</abbr>
                         </th>
                         <th class="stat_summary_col_title">
                             <abbr title="Livelogs player rating">LLR</abbr>

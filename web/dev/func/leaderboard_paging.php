@@ -12,7 +12,7 @@
         die("");
 
     // the column order displayed in the table
-    $table_cols = array("class", "name", "kills", "deaths", "assists", "damage_dealt", "score");
+    $table_cols = array("class", "name", "kills", "deaths", "assists", "damage_dealt", "numplayed", "score");
 
     //Paging
     $limit = "";
@@ -55,10 +55,11 @@
 
     //THE QUERIES----------------
     $query = "SELECT class, steamid, SUM(kills+assists+captures)/COUNT(log_ident) as score, SUM(kills) as kills, 
-                     SUM(deaths) as deaths, SUM(assists) as assists, SUM(damage_dealt) as damage_dealt 
+                     SUM(deaths) as deaths, SUM(assists) as assists, SUM(damage_dealt) as damage_dealt,
+                     COUNT(log_ident) as numplayed
               FROM {$ll_config["views"]["month_stats"]}
-              GROUP BY class, steamid 
               {$filter}
+              GROUP BY class, steamid
               {$order}
               {$limit}";
 
@@ -67,7 +68,7 @@
                     JOIN {$ll_config["views"]["month_idents"]} 
                     ON {$ll_config["tables"]["player_details"]}.log_ident = {$ll_config["views"]["month_idents"]}.log_ident";
 
-    $result = pg_query($ll_db, $log_query);
+    $result = pg_query($ll_db, $query);
 
     $nameresult = pg_query($ll_db, $namequery);
     $name_array = fetch_name_array($nameresult);
@@ -77,11 +78,11 @@
     {
         //total length of data set
         $total_rows_query = "SELECT class, steamid 
-                             FROM view_past_month_stats 
+                             FROM {$ll_config["views"]["month_stats"]} 
                              {$filter}
                              GROUP BY class, steamid;";
 
-        $total_rows_result = pg_query($ll_db, $total_logs_query);
+        $total_rows_result = pg_query($ll_db, $total_rows_query);
         if ($total_rows_result)
         {
             $total_rows = pg_num_rows($total_rows_result);
@@ -123,6 +124,10 @@
             {
                 // get the name from the name array based on the steamid (cid), but make it a link to the cid
                 $data = '<a href="' . get_community_url($cid) . '">' . strip_string($name_array[$cid]["name"]) . '</a>';
+            }
+            else if ($key === "score")
+            {
+                $data = round($row["score"] ^ 1.5, 2);
             }
             else
             {
