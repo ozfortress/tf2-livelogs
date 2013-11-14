@@ -5,6 +5,7 @@
     $ll_config["display"]["index_num_past"] = 15; //number of past logs to display on index page
     $ll_config["display"]["archive_num"] = 25; //max number of logs to display per 'page' in archive paged table
     $ll_config["display"]["player_num_past"] = 20; //number of logs to display per 'page' in a paged table
+    $ll_config["display"]["leaderboard_per_page"] = 25; //number of players to display per 'page' in leaderboard table
 
     $ll_config["steam_api"]["key"] = "7CD8EC56801BD2F23A1A4184A1348ADD";
 
@@ -20,5 +21,8 @@
     $ll_config["tables"]["game_events"] = "livelogs_game_events";
     $ll_config["tables"]["kill_events"] = "livelogs_kill_events";
     $ll_config["tables"]["medic_events"] = "livelogs_medic_events";
+
+    $ll_config["views"]["month_stats"] = "view_past_month_stats";
+    $ll_config["views"]["month_idents"] = "view_past_month_idents";
 ?>
 
