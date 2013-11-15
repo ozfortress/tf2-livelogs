@@ -18,7 +18,7 @@ var lb_paging = lb_paging || (function() {
             if (initialised) return;
 
             table = $('#leaderboard').dataTable( {
-                "aaSorting": [[4, 'desc']],
+                "aaSorting": [[0, 'desc']],
                 "aoColumnDefs": [
                     { "sType": "html", "aTargets": [ 1 ] },
                     { "sType": "numeric", "aTargets": [ "_all" ] },
@@ -145,3 +145,8 @@ var lb_paging = lb_paging || (function() {
     }
 }());
 
+$(document).ready(function() {
+    $("#scout").onclick(function() {
+        lb_paging.filter("scout");
+    });
+});
