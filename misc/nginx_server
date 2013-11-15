@@ -1,25 +1,37 @@
 server {
-        listen 192.168.106.128:80 default;
-        server_name 192.165.106.128;
+    listen localhost:4002 default;
+    server_name localhost;
 
-        root /var/www/livelogs/dev/;
+    root /var/www/livelogs/live/;
 
-        index index.php;
+    index index.php;
 
-        rewrite ^/view/([0-9\_]+)$ /showlog.php?ident=$1;
+    rewrite ^/view/([0-9\_]+)$ /showlog.php?lognum=$1;
+    rewrite ^/past/(.*)$ /pastlogs.php?filter=$1;
+    rewrite ^/past$ /pastlogs.php;
+    rewrite ^/player/([0-9]+)$ /player.php?id=$1;
+    rewrite ^/leaders$ /leaderboard.php;
+    rewrite ^/leaders/(.*) /leaderboard.php;
 
-        rewrite ^/view/scripts/(.*)$ /scripts/$1;
+    location /plugindata/ {
+        autoindex on;
+    }
 
+    location ~ ^/download/(.*)$ {
+        default_type text/plain;
+        add_header Content-Disposition "attachment; filename=$1.log";
+        alias /var/www/livelogs/logs/$1.log;
+    }
 
-        location ~ \.php$ {
-                try_files $uri =404;
-                fastcgi_split_path_info ^(.+\.php)(/.+)$;
-                fastcgi_pass 127.0.0.1:9000;
-#               fastcgi_index index.php;
-                include fastcgi_params;
-        }
+    location ~ \.php$ {
+        try_files $uri =404;
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass 127.0.0.1:9000;
+#       fastcgi_index index.php;
+        include fastcgi_params;
+    }
 
-        location /conf {
-                deny all;
-        }
+    location /conf {
+        deny all;
+    }
 }
