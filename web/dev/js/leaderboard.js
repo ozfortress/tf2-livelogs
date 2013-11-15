@@ -1,5 +1,5 @@
 /* init data tables */
-var ll_paging = ll_paging || (function() {
+var lb_paging = lb_paging || (function() {
     "use strict";
 
     var pipe_cache = {
@@ -10,14 +10,17 @@ var ll_paging = ll_paging || (function() {
 
     var initialised = false;
 
+    var table;
+
     return {
         init : function(display_length) {
             console.log("display_length: %s", display_length);
             if (initialised) return;
 
-            var past_table = $('#leaderboard').dataTable( {
+            table = $('#leaderboard').dataTable( {
                 "aaSorting": [[4, 'desc']],
                 "aoColumnDefs": [
+                    { "sType": "html", "aTargets": [ 1 ] },
                     { "sType": "numeric", "aTargets": [ "_all" ] },
                     { "asSorting": [ "desc", "asc" ], "aTargets": [ "_all" ] } //default desc -> asc sorting
                 ],
@@ -35,7 +38,7 @@ var ll_paging = ll_paging || (function() {
                 "bProcessing": true,
                 "bServerSide": true,
                 "sAjaxSource": "/func/leaderboard_paging.php",
-                "fnServerData": ll_paging.datatables_pipeline,
+                "fnServerData": lb_paging.datatables_pipeline,
             });
 
             initialised = true;
@@ -62,9 +65,9 @@ var ll_paging = ll_paging || (function() {
         datatables_pipeline : function(data_source, request_data, datatables_callback) {
             var pipe_len = 8, /* how many pages to preload */
             need_server = false, 
-            challenge_echo = ll_paging.datatables_getkey(request_data, "sEcho"),
-            request_start = ll_paging.datatables_getkey(request_data, "iDisplayStart"),
-            display_length = ll_paging.datatables_getkey(request_data, "iDisplayLength"),
+            challenge_echo = lb_paging.datatables_getkey(request_data, "sEcho"),
+            request_start = lb_paging.datatables_getkey(request_data, "iDisplayStart"),
+            display_length = lb_paging.datatables_getkey(request_data, "iDisplayLength"),
             request_end = request_start + display_length;
 
             pipe_cache.display_start = request_start;
@@ -107,8 +110,8 @@ var ll_paging = ll_paging || (function() {
                 pipe_cache.display_length = display_length;
 
                 //set the request_data's lengths to the lengths of the pipeline
-                ll_paging.datatables_setkey(request_data, "iDisplayStart", request_start);
-                ll_paging.datatables_setkey(request_data, "iDisplayLength", display_length * pipe_len);
+                lb_paging.datatables_setkey(request_data, "iDisplayStart", request_start);
+                lb_paging.datatables_setkey(request_data, "iDisplayLength", display_length * pipe_len);
 
                 $.getJSON(data_source, request_data, function(json) {
                     pipe_cache.last_json = jQuery.extend(true, {}, json);
@@ -133,6 +136,11 @@ var ll_paging = ll_paging || (function() {
 
                 datatables_callback(json);
             }
+        },
+
+        filter : function(fclass) {
+            //filter the table by class (col 0)
+            table.fnFilter(fclass, 0);
         }
     }
 }());

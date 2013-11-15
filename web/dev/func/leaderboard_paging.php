@@ -2,6 +2,8 @@
     /*
     This script gets database data and returns it in a format that DataTables can understand,
     which is required for paging that does not involve loading thousands of rows at the same time
+
+    NOTE: intval() takes care of invalid strings passed as params (i.e sql injections)
     */
 
     require "../../conf/ll_database.php";
@@ -39,18 +41,11 @@
     //filter out unknown classes
     $filter = "WHERE class != 'UNKNOWN' AND steamid != 0";
     
-    /*if (isset($_GET['sSearch']) && $_GET['sSearch'] != "")
+    // if we have a search filter, it's by class
+    if (isset($_GET['sSearch']) && $_GET['sSearch'] != "")
     {
-        $filter .= " AND (";
-        for ($i = 0; $i < count($table_cols); $i++)
-        {
-            if (isset($_GET['bSearchable_'.$i]) && $_GET['bSearchable_'.$i] === "true")
-            {
-                $filter .= " " . $table_cols[$i] . "~* " . pg_escape_string($_GET['sSearch']) . " OR ";
-            }
-        }
-
-    }*/
+        $filter = "WHERE class = '" . pg_escape_string($_GET['sSearch']) . "' AND steamid != 0";
+    }
 
 
     //THE QUERIES----------------
