@@ -190,3 +190,8 @@
     font-size: 10px;
     text-align: center;
 }
+
+.leaderboard_filter_buttons {
+    margin-left: 10px;
+    margin-bottom: 5px;
+}

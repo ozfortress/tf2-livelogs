@@ -54,7 +54,7 @@
         <div class="text_blurb">
             <p>This is the Livelogs leaderboard. It shows the players with the highest Livelogs Rating (LLR) per class within the last 30 days.</p>
         </div>
-        <div class="leaderboard_class_filter">
+        <div class="leaderboard_filter_buttons">
             <button class="btn" type="button">Scout</button>
             <button class="btn" type="button">Soldier</button>
             <button class="btn" type="button">Pyro</button>
@@ -110,7 +110,7 @@
     <script src="/js/leaderboard.js" type="text/javascript"></script>
     <script type="text/javascript">
         // pass the display length (i.e how many rows per 'page')
-        ll_paging.init(<?=$ll_config["display"]["leaderboard_per_page"]?>);
+        lb_paging.init(<?=$ll_config["display"]["leaderboard_per_page"]?>);
     </script>
 
 </body>
