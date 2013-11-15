@@ -52,7 +52,18 @@
     </div>
     <div class="livelogs_wrapper">
         <div class="text_blurb">
-            <p>This is the Livelogs leaderboard. It shows the players with the highest Livelogs Rating (LLR) within the last month.</p>
+            <p>This is the Livelogs leaderboard. It shows the players with the highest Livelogs Rating (LLR) per class within the last 30 days.</p>
+        </div>
+        <div class="leaderboard_class_filter">
+            <button class="btn" type="button">Scout</button>
+            <button class="btn" type="button">Soldier</button>
+            <button class="btn" type="button">Pyro</button>
+            <button class="btn" type="button">Demo</button>
+            <button class="btn" type="button">Heavy</button>
+            <button class="btn" type="button">Medic</button>
+            <button class="btn" type="button">Sniper</button>
+            <button class="btn" type="button">Engi</button>
+            <button class="btn" type="button">Spy</button>
         </div>
     	<div class="stat_table_container">
 	    	<table id="leaderboard" class="table table-bordered table-striped table-hover ll_table">
@@ -98,10 +109,7 @@
 
     <script src="/js/leaderboard.js" type="text/javascript"></script>
     <script type="text/javascript">
-        /*
-        pass the steamid, number of logs shown and the total number of logs to the datatables init
-        so that we can make this shit work
-        */
+        // pass the display length (i.e how many rows per 'page')
         ll_paging.init(<?=$ll_config["display"]["leaderboard_per_page"]?>);
     </script>
 
