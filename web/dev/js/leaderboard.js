@@ -24,13 +24,14 @@ var lb_paging = lb_paging || (function() {
                     { "sType": "numeric", "aTargets": [ "_all" ] },
                     { "asSorting": [ "desc", "asc" ], "aTargets": [ "_all" ] } //default desc -> asc sorting
                 ],
+                "sDom": 'lrtip', // support all sDom options except filter input (f)
                 "bAutoWidth": false,
                 "bSortClasses": false,
                 "bSearchable": false,
                 "bInfo": false,
                 "bJQueryUI": false,
                 "bUseRendered": true,
-                "bFilter": false,
+                "bFilter": true,
                 "bPaginate": true,
                 "sPaginationType": "bootstrap",
                 "bLengthChange": false,
@@ -140,13 +141,20 @@ var lb_paging = lb_paging || (function() {
 
         filter : function(fclass) {
             //filter the table by class (col 0)
-            table.fnFilter(fclass, 0);
+            console.log(table);
+            console.log("FILTER: " + fclass);
+            table.fnFilter(fclass);
+            table.fnDraw(true);
         }
     }
 }());
 
 $(document).ready(function() {
-    $("#scout").onclick(function() {
+    $("#scout").click(function() {
         lb_paging.filter("scout");
+    });
+
+    $("#soldier").click(function() {
+        lb_paging.filter("soldier");
     });
 });
