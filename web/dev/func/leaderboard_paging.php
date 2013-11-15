@@ -118,7 +118,7 @@
             else if ($key === "name")
             {
                 // get the name from the name array based on the steamid (cid), but make it a link to the cid
-                $data = '<a href="' . get_community_url($cid) . '">' . strip_string($name_array[$cid]["name"]) . '</a>';
+                $data = '<a href="/player/' . $cid . '">' . strip_string($name_array[$cid]["name"]) . '</a>';
             }
             else if ($key === "score")
             {

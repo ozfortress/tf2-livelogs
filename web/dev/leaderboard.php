@@ -54,16 +54,17 @@
         <div class="text_blurb">
             <p>This is the Livelogs leaderboard. It shows the players with the highest Livelogs Rating (LLR) per class within the last 30 days.</p>
         </div>
-        <div class="leaderboard_filter_buttons">
-            <button id="scout" class="btn" type="button">Scout</button>
-            <button id="soldier" class="btn" type="button">Soldier</button>
-            <button id="pyro" class="btn" type="button">Pyro</button>
-            <button id="soldier" class="btn" type="button">Demo</button>
-            <button id="soldier" class="btn" type="button">Heavy</button>
-            <button id="soldier" class="btn" type="button">Medic</button>
-            <button id="soldier" class="btn" type="button">Sniper</button>
-            <button id="soldier" class="btn" type="button">Engi</button>
-            <button id="soldier" class="btn" type="button">Spy</button>
+        <div class="btn-group leaderboard_filter_buttons" data-toggle="buttons-radio">
+            <button id="filter_scout" class="btn" type="button">Scout</button>
+            <button id="filter_soldier" class="btn" type="button">Soldier</button>
+            <button id="filter_pyro" class="btn" type="button">Pyro</button>
+            <button id="filter_demo" class="btn" type="button">Demo</button>
+            <button id="filter_heavy" class="btn" type="button">Heavy</button>
+            <button id="filter_medic" class="btn" type="button">Medic</button>
+            <button id="filter_sniper" class="btn" type="button">Sniper</button>
+            <button id="filter_engineer" class="btn" type="button">Engi</button>
+            <button id="filter_spy" class="btn" type="button">Spy</button>
+            <button id="filter_all" class="btn btn-info" type="button">ALL</button>
         </div>
     	<div class="stat_table_container">
 	    	<table id="leaderboard" class="table table-bordered table-striped table-hover ll_table">

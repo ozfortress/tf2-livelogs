@@ -20,9 +20,9 @@ var lb_paging = lb_paging || (function() {
             table = $('#leaderboard').dataTable( {
                 "aaSorting": [[0, 'desc']],
                 "aoColumnDefs": [
-                    { "sType": "html", "aTargets": [ 1 ] },
                     { "sType": "numeric", "aTargets": [ "_all" ] },
-                    { "asSorting": [ "desc", "asc" ], "aTargets": [ "_all" ] } //default desc -> asc sorting
+                    { "asSorting": [ "desc", "asc" ], "aTargets": [ "_all" ] }, //default desc -> asc sorting
+                    { "bSortable": false, "aTargets": [ 1 ] }
                 ],
                 "sDom": 'lrtip', // support all sDom options except filter input (f)
                 "bAutoWidth": false,
@@ -140,21 +140,51 @@ var lb_paging = lb_paging || (function() {
         },
 
         filter : function(fclass) {
-            //filter the table by class (col 0)
-            console.log(table);
-            console.log("FILTER: " + fclass);
+            //filter the table by class
             table.fnFilter(fclass);
-            table.fnDraw(true);
         }
     }
 }());
 
 $(document).ready(function() {
-    $("#scout").click(function() {
+    /* bind a filter function to all buttons */
+    $("#filter_scout").click(function() {
         lb_paging.filter("scout");
     });
 
-    $("#soldier").click(function() {
+    $("#filter_soldier").click(function() {
         lb_paging.filter("soldier");
+    });
+
+    $("#filter_pyro").click(function() {
+        lb_paging.filter("pyro");
+    });
+
+    $("#filter_demo").click(function() {
+        lb_paging.filter("demoman");
+    });
+
+    $("#filter_heavy").click(function() {
+        lb_paging.filter("heavyweapons");
+    });
+
+    $("#filter_medic").click(function() {
+        lb_paging.filter("medic");
+    });
+
+    $("#filter_sniper").click(function() {
+        lb_paging.filter("sniper");
+    });
+
+    $("#filter_engineer").click(function() {
+        lb_paging.filter("engineer");
+    });
+
+    $("#filter_spy").click(function() {
+        lb_paging.filter("spy");
+    });
+
+    $("#filter_all").click(function() {
+        lb_paging.filter("");
     });
 });
