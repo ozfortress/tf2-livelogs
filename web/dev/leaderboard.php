@@ -52,9 +52,9 @@
     </div>
     <div class="livelogs_wrapper">
         <div class="text_blurb">
-            <p>This is the Livelogs leaderboard. It shows the players with the highest Livelogs Rating (LLR) per class within the last 30 days.</p>
+            <p>This is the Livelogs leaderboard. It shows all players and their stats within the last 30 days.</p>
         </div>
-        <div class="btn-group leaderboard_filter_buttons" data-toggle="buttons-radio">
+        <div class="leaderboard_filter_buttons btn-group" data-toggle="buttons-radio">
             <button id="filter_scout" class="btn" type="button">Scout</button>
             <button id="filter_soldier" class="btn" type="button">Soldier</button>
             <button id="filter_pyro" class="btn" type="button">Pyro</button>
@@ -90,9 +90,6 @@
                         </th>
                         <th class="stat_summary_col_title">
                             <abbr title="Number of games played">#G</abbr>
-                        </th>
-                        <th class="stat_summary_col_title">
-                            <abbr title="Livelogs player rating">LLR</abbr>
                         </th>
                     </tr>
                 </thead>
