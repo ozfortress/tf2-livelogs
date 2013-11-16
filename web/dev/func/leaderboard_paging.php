@@ -14,7 +14,7 @@
         die("");
 
     // the column order displayed in the table
-    $table_cols = array("class", "name", "kills", "deaths", "assists", "captures", "headshots", "damage", "kpd", "dpd", "dpk", "numplayed");
+    $table_cols = array("class", "name", "kills", "deaths", "assists", "captures", "headshots", "damage_dealt", "kpd", "dpd", "dpk", "numplayed");
 
     //Paging
     $limit = "";
