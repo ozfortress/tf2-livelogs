@@ -170,7 +170,10 @@ class PlayerData(object):
         return team == self._player_team
 
     def current_team(self):
-        return self._player_team
+        if self._player_team is None:
+            return "None"
+        else
+            return self._player_team
 
 
 from HTMLParser import HTMLParser

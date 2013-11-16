@@ -397,11 +397,14 @@ class parserClass(object):
                     self.pg_statupsert(self.STAT_TABLE, "kills", k_sid, k_name, 1)
 
                     if (ck_type == "backstab"):
+                        self.insert_player_class(k_sid, "spy")
                         self.pg_statupsert(self.STAT_TABLE, "backstabs", k_sid, k_name, 1)
                         self.pg_statupsert(self.STAT_TABLE, "points", k_sid, k_name, 2)
 
                         event_type = "kill_custom_backstab"
                     elif (ck_type == "headshot"):
+                        self.insert_player_class(k_sid, "sniper")
+
                         self.pg_statupsert(self.STAT_TABLE, "headshots", k_sid, k_name, 1)
                         self.pg_statupsert(self.STAT_TABLE, "points", k_sid, k_name, 1.5)
 
@@ -802,7 +805,7 @@ class parserClass(object):
                 if pclass not in spawn_swap_classes:
                     self.insert_player_class(sid, pclass)
 
-                    self._players[parser_lib.get_cid(sid)].set_class(pclass)
+                    #self._players[parser_lib.get_cid(sid)].set_class(pclass)
 
                 return
 
@@ -927,7 +930,7 @@ class parserClass(object):
 
         if a_sid and (a_team is not None) and (a_team != "none"):
             a_cid = parser_lib.get_cid(a_sid)
-            
+
             if self.add_player(a_cid, team = a_team) or not self._players[a_cid].is_team_same(a_team):
                 self._players[a_cid].set_team(a_team)
 
@@ -956,22 +959,34 @@ class parserClass(object):
     # insert_player_class(steamid, class)
     # Takes a steamid in the format STEAM_x:x:xxxx* and a class
     # Inserts the class into the datatabase for that ID if the player
-    # is not already marked as having played that class.
+    # is not already marked as having played that class. Also sets
+    # current class
     def insert_player_class(self, sid, pclass):
         cid = parser_lib.get_cid(sid)
         
         # If the player hasn't played the class, or is only just being added
         # we need to add them to the database with high priority
-        if cid in self._players and not self._players[cid].class_played(pclass):
-            self._players[cid].add_class(pclass)
+        if cid in self._players:
 
-            insert_query = "INSERT INTO %s (log_ident, steamid, class, team) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, cid, pclass, self._players[cid].current_team())
+            if self._players[cid].class_played(pclass):
+                # class has been played before, just set the current class to this class
+                self._players[cid].set_class(pclass)
 
-            #if the class was inserted as unknown, it is likely that the 'unknown' class is now this class. this is what we'll assume, anyway
-            update_query = "UPDATE %s SET class = '%s' WHERE (log_ident = '%s' AND steamid = E'%s' AND class = 'UNKNOWN')" % (self.STAT_TABLE, pclass, self.UNIQUE_IDENT, cid)
+            else:
+                # class has not been played. we need to add it
+                self._players[cid].add_class(pclass)
 
-            #self.executeQuery(update_query, queue_priority = queryqueue.HIPRIO) #update the class ASAP
-            self.execute_upsert(insert_query, update_query, queryqueue.HIPRIO) #need to add this class shit ASAP
+                insert_query = "INSERT INTO %s (log_ident, steamid, class, team) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, cid, pclass, self._players[cid].current_team())
+
+                #if the class was inserted as unknown, it is likely that the 'unknown' class is now this class. this is what we'll assume, anyway
+                update_query = "UPDATE %s SET class = '%s' WHERE (log_ident = '%s' AND steamid = E'%s' AND class = 'UNKNOWN')" % (self.STAT_TABLE, pclass, self.UNIQUE_IDENT, cid)
+
+                # first update the current class (if possible)
+                self.executeQuery(update_query, queue_priority = queryqueue.HIPRIO) #update the class ASAP
+
+                # then just blindly insert. may violate constraint, may not
+                self.executeQuery(insert_query, queue_priority = queryqueue.HIPRIO) #need to add this class shit ASAP
+                
 
     # insert_player_details(communityid, name)
     # Inserts a player into the database with the given name, and the
