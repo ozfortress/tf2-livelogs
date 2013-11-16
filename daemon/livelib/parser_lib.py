@@ -215,6 +215,10 @@ def selectItemName(item_name):
 def get_cid(steam_id):
     #takes a steamid in the format STEAM_x:x:xxxxx and converts it to a 64bit community id
 
+    # if the ID is a bot, return "BOT" in binary
+    if (steamid == "BOT")
+        return 010000100100111101010100
+
     auth_server = 0;
     auth_id = 0;
     
