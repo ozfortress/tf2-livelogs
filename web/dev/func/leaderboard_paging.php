@@ -14,7 +14,7 @@
         die("");
 
     // the column order displayed in the table
-    $table_cols = array("class", "name", "kills", "deaths", "assists", "damage_dealt", "numplayed");
+    $table_cols = array("class", "name", "kills", "deaths", "assists", "captures", "headshots", "damage", "kpd", "dpd", "dpk", "numplayed");
 
     //Paging
     $limit = "";
@@ -55,7 +55,7 @@
     */
     $query = "SELECT class, steamid,
                      SUM(kills) as kills, SUM(deaths) as deaths, SUM(assists) as assists, 
-                     SUM(damage_dealt) as damage_dealt,
+                     SUM(captures) as captures, SUM(headshots) as headshots, SUM(damage_dealt) as damage_dealt,
                      COUNT(log_ident) as numplayed
               FROM {$ll_config["views"]["month_stats"]}
               {$filter}
@@ -124,6 +124,18 @@
             {
                 // get the name from the name array based on the steamid (cid), but make it a link to the cid
                 $data = '<a href="/player/' . $cid . '">' . strip_string($name_array[$cid]["name"]) . '</a>';
+            }
+            else if ($key === "kpd")
+            {
+                $data = round($row["kills"] / ($row["deaths"] ? $row["deaths"] : 1), 2);
+            }
+            else if ($key === "dpd")
+            {
+                $data = round($row["damage"] / ($row["deaths"] ? $row["deaths"] : 1), 2);
+            }
+            else if ($key === "dpk")
+            {
+                $data = round($row["damage"] / ($row["kills"] ? $row["kills"] : 1), 2);
             }
             else
             {

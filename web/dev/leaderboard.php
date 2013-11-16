@@ -86,7 +86,22 @@
                             <abbr title="Assists">A</abbr>
                         </th>
                         <th class="stat_summary_col_title">
+                            <abbr title="Points Captured">PC</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Headshots">HS</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
                             <abbr title="Damage Dealt">DMG</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Kills Per Death">KPD</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Damage Per Death">DPD</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Damage Per Kill">DPK</abbr>
                         </th>
                         <th class="stat_summary_col_title">
                             <abbr title="Number of games played">#G</abbr>
