@@ -298,11 +298,10 @@ class llWSApplication(tornado.web.Application):
         try:
             self.clean_cache()
 
-            self._invalid_idents = self.clients.get_invalid_idents() #a list of log idents in the invalid dict
-            #self._valid_idents = self.clients.get_valid_idents()
-            self._valid_idents = self.__db_managers.get_idents()
+            self._status_invalid_idents = self.clients.get_invalid_idents() #a list of log idents in the invalid dict
+            self._status_valid_idents = self.__db_managers.get_idents()
             
-            log_idents = self._invalid_idents + self._valid_idents
+            log_idents = self._status_invalid_idents + self._status_valid_idents
             self.logger.debug("Current log idents: %s", log_idents)
 
             if len(log_idents) == 0:
@@ -351,32 +350,67 @@ class llWSApplication(tornado.web.Application):
                 log_ident, live, tstamp = log_status
 
                 self.add_to_cache(log_ident, live)
+                """
+                 if the log is live, we check if its in the invalid/valid dicts
+                   if in the invalid dict, the ident and associated clients get updated to
+                   live idents
+                
+                   if in the valid dict, the ident is simply removed from the temporary dict
+
+                 if the log is not live, we check if it's in the valid dict
+                   if in the valid dict, the log is no longer live, so we can send a final
+                   update and close all client connections and the dbmanager
+
+                   else, the ident is unknown (definitely invalid) and we close it and
+                   associated clients
+
+                 after these checks, we close whatever idents are remaining because
+                 the idents no longer exist, or never existed
+                    i.e if a log was empty and deleted after the timeout, it would
+                    still be considered valid by this daemon and never invalid via
+                    the normal check. therefore, we must close all left over idents
+                    after a status check
+                """
 
                 if live == True:
                     self.logger.debug("log %s is live", log_ident)
 
-                    if log_ident in self._invalid_idents:
+                    if log_ident in self._status_invalid_idents:
                         #move the queue to the dict of valid log idents
                         self.add_live_ident(log_ident, tstamp)
+
+                    elif log_ident in self._status_valid_idents:
+                        # log ident is valid and live, so we can remove it from the temp dict
+                        self._status_valid_idents.remove(log_ident)
                     
                 else:
                     self.logger.debug("log %s is not live, disconnecting clients", log_ident)
-                    if log_ident in self._valid_idents:
+
+                    if log_ident in self._status_valid_idents:
                         #valid ident is no longer live, close it
                         self._log_finished_callback(log_ident) #run the ending callback
+                        self._status_valid_idents.remove(log_ident)
 
                     else:
                         #unknown ident is not live
                         self.close_invalid(log_ident, not_live = True)
 
                 #remove the log ident, because it's clearly not invalid
-                if log_ident in self._invalid_idents:
-                    self._invalid_idents.remove(log_ident)
+                if log_ident in self._status_invalid_idents:
+                    self._status_invalid_idents.remove(log_ident)
 
 
-        #if idents are still in the invalid dict... delete them because they are actually invalid and do not exist
-        for log_ident in self._invalid_idents:
+        # if idents are still in the invalid dict... delete 
+        # them because they are actually invalid and do not exist
+        for log_ident in self._status_invalid_idents:
+            self.logger.info("Log %s is definitely invalid (no query result). Deleting", log_ident)
             self.close_invalid(log_ident)
+
+        # left over valid idents because the ident was deleted due
+        # to an empty log. end these logs
+        for log_ident in self._status_valid_idents:
+            self.logger.info("Log %s is a zombie log (valid, but no status result). Deleting", log_ident)
+            self.__end_log(log_ident)
 
 
 class webtvRelayHandler(tornado.websocket.WebSocketHandler):
