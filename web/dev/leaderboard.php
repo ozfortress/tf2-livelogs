@@ -52,7 +52,7 @@
     </div>
     <div class="livelogs_wrapper">
         <div class="text_blurb">
-            <p>This is the Livelogs leaderboard. It shows all players and their stats within the last 30 days.</p>
+            <p>This is the Livelogs leaderboard. It shows all players and their statistics, per class, within the last 30 days.</p>
         </div>
         <div class="leaderboard_filter_buttons btn-group" data-toggle="buttons-radio">
             <button id="filter_scout" class="btn" type="button">Scout</button>

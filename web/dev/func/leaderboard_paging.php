@@ -131,11 +131,11 @@
             }
             else if ($key === "dpd")
             {
-                $data = round($row["damage"] / ($row["deaths"] ? $row["deaths"] : 1), 2);
+                $data = round($row["damage_dealt"] / ($row["deaths"] ? $row["deaths"] : 1), 2);
             }
             else if ($key === "dpk")
             {
-                $data = round($row["damage"] / ($row["kills"] ? $row["kills"] : 1), 2);
+                $data = round($row["damage_dealt"] / ($row["kills"] ? $row["kills"] : 1), 2);
             }
             else
             {
