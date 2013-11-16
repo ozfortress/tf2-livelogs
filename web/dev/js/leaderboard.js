@@ -18,7 +18,7 @@ var lb_paging = lb_paging || (function() {
             if (initialised) return;
 
             table = $('#leaderboard').dataTable( {
-                "aaSorting": [[0, 'desc']],
+                "aaSorting": [[2, 'desc']],
                 "aoColumnDefs": [
                     { "sType": "numeric", "aTargets": [ "_all" ] },
                     { "asSorting": [ "desc", "asc" ], "aTargets": [ "_all" ] }, //default desc -> asc sorting
