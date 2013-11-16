@@ -4,18 +4,8 @@
 	<?php
         include 'static/header.html';
 
-        require "../conf/ll_database.php";
         require "../conf/ll_config.php";
         require 'func/help_functions.php';
-
-        /*
-        THE BIG QUERY:
-        SELECT class, steamid, SUM(kills) as kills, SUM(deaths) as deaths, SUM(assists) as assists, SUM(points) as points FROM livelogs_player_stats WHERE class != 'UNKNOWN' GROUP BY class, steamid ORDER BY class DESC;
-        */
-
-
-        if (!$ll_db)
-            die();
     ?>
 
     <title>Livelogs - Leaderboard</title>
@@ -62,19 +52,79 @@
     </div>
     <div class="livelogs_wrapper">
         <div class="text_blurb">
-            <p align="center">Placeholder</p>
+            <p>This is the Livelogs leaderboard. It shows all players and their statistics, per class, within the last 30 days.</p>
         </div>
-    	<div class="stat_table_container stat_table_container_small">
-	    	<table class="table table-bordered table-striped table-hover ll_table">
+        <div class="leaderboard_filter_buttons btn-group" data-toggle="buttons-radio">
+            <button id="filter_scout" class="btn" type="button">Scout</button>
+            <button id="filter_soldier" class="btn" type="button">Soldier</button>
+            <button id="filter_pyro" class="btn" type="button">Pyro</button>
+            <button id="filter_demo" class="btn" type="button">Demo</button>
+            <button id="filter_heavy" class="btn" type="button">Heavy</button>
+            <button id="filter_medic" class="btn" type="button">Medic</button>
+            <button id="filter_sniper" class="btn" type="button">Sniper</button>
+            <button id="filter_engineer" class="btn" type="button">Engi</button>
+            <button id="filter_spy" class="btn" type="button">Spy</button>
+            <button id="filter_all" class="btn btn-info" type="button">ALL</button>
+        </div>
+    	<div class="stat_table_container">
+	    	<table id="leaderboard" class="table table-bordered table-striped table-hover ll_table">
+                <thead>
+                     <tr class="stat_summary_title_bar">
+                        <th class="stat_summary_col_title">
+                            <abbr title="Player Class">Class</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Player Name">Name</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Kills">K</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Deaths">D</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Assists">A</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Points Captured">PC</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Headshots">HS</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Damage Dealt">DMG</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Kills Per Death">KPD</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Damage Per Death">DPD</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Damage Per Kill">DPK</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Number of games played">#G</abbr>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
 
+                </tbody>
+                <caption>Livelogs leaderboard</caption>
 	    	</table>
 	    </div>
-
 
     	<?php include('static/logo.html'); ?>
 
     </div>
     <?php include('static/footer.html'); ?>
+
+    <script src="/js/leaderboard.js" type="text/javascript"></script>
+    <script type="text/javascript">
+        // pass the display length (i.e how many rows per 'page')
+        lb_paging.init(<?=$ll_config["display"]["leaderboard_per_page"]?>);
+    </script>
 
 </body>
 </html>

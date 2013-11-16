@@ -17,6 +17,8 @@
                             WHERE numeric_id = '{$escaped_serial}'";
 
         $log_detail_res = pg_query($ll_db, $log_detail_query);
+        if (!$log_detail_res)
+            die();
 
         ////server_ip varchar(32) NOT NULL, server_port integer NOT NULL, log_ident varchar(64) PRIMARY KEY, map varchar(64) NOT NULL, log_name text, live boolean
         $log_details = pg_fetch_array($log_detail_res, 0, PGSQL_ASSOC);
@@ -396,7 +398,7 @@
                     <tr>
                         <td>
                             <span id="<?=$community_id . ".class"?>"><?=player_classes($pstat["class"])?></span>
-                            <a id="<?=$community_id . ".name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=htmlentities($p_name, ENT_QUOTES, "UTF-8")?></a>
+                            <a id="<?=$community_id . ".name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=strip_string($p_name)?></a>
                         </td>
                         <td id="<?=$community_id . ".kills"?>"><?=$pstat["kills"]?></td>
                         <td id="<?=$community_id . ".deaths"?>"><?=$pstat["deaths"]?></td>
@@ -453,7 +455,7 @@
                     
                     <tr>
                         <td>
-                            <a id="<?=$community_id . ".med_name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=htmlentities($mstat["name"], ENT_QUOTES, "UTF-8")?></a>
+                            <a id="<?=$community_id . ".med_name"?>" class="player_community_id_link <?=$team_class?>" href="/player/<?=$community_id?>"><?=strip_string($mstat["name"])?></a>
                         </td>
                         <td id="<?=$community_id . ".healing_done"?>"><?=$mstat["healing_done"]?></td>
                         <td id="<?=$community_id . ".overhealing_done"?>"><?=$mstat["overhealing_done"]?></td>
@@ -585,8 +587,8 @@
                         ?>
 
                             <tr>
-                                <td class="player_chat"><span class="<?=$team_class?>"><?=htmlentities($pchat["name"], ENT_QUOTES, "UTF-8")?></span></td>
-                                <td><span class="player_chat">(<?=$chat_type?>)</span> <span class="player_chat_message"><?=htmlentities($pchat["chat_message"], ENT_QUOTES, "UTF-8")?></span></td>
+                                <td class="player_chat"><span class="<?=$team_class?>"><?=strip_string($pchat["name"])?></span></td>
+                                <td><span class="player_chat">(<?=$chat_type?>)</span> <span class="player_chat_message"><?=strip_string($pchat["chat_message"])?></span></td>
                             </tr>
                         <?php
                         }
