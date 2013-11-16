@@ -968,25 +968,28 @@ class parserClass(object):
         # If the player hasn't played the class, or is only just being added
         # we need to add them to the database with high priority
         if cid in self._players:
+            pdata = self._players[cid]
+            current_class = pdata.current_class()
 
-            if self._players[cid].class_played(pclass) and self._players[cid].current_class() != pclass:
-                # class has been played before, just set the current class to this class
-                self._players[cid].set_class(pclass)
-
-            else:
-                # class has not been played. we need to add it
-                self._players[cid].add_class(pclass)
-
-                insert_query = "INSERT INTO %s (log_ident, steamid, class, team) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, cid, pclass, self._players[cid].current_team())
-
+            if current_class == "UNKNOWN":
                 #if the class was inserted as unknown, it is likely that the 'unknown' class is now this class. this is what we'll assume, anyway
                 update_query = "UPDATE %s SET class = '%s' WHERE (log_ident = '%s' AND steamid = E'%s' AND class = 'UNKNOWN')" % (self.STAT_TABLE, pclass, self.UNIQUE_IDENT, cid)
 
-                # first update the current class (if possible)
+                # update the class
                 self.executeQuery(update_query, queue_priority = queryqueue.HIPRIO) #update the class ASAP
 
-                # then just blindly insert. may violate constraint, may not
+            elif not pdata.class_played(pclass):
+                # class has not been played. we need to add it
+                self._players[cid].add_class(pclass)
+
+                insert_query = "INSERT INTO %s (log_ident, steamid, class, team) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, cid, pclass, pdata.current_team())
+
+                # insert into db
                 self.executeQuery(insert_query, queue_priority = queryqueue.HIPRIO) #need to add this class shit ASAP
+
+            elif current_class != pclass:
+                # class has been played before and it is not unknown, so set current class to the new class
+                self._players[cid].set_class(pclass)
                 
 
     # insert_player_details(communityid, name)
