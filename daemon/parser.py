@@ -972,6 +972,8 @@ class parserClass(object):
             current_class = pdata.current_class()
 
             if current_class == "UNKNOWN":
+                pdata.add_class(pclass)
+
                 #if the class was inserted as unknown, it is likely that the 'unknown' class is now this class. this is what we'll assume, anyway
                 update_query = "UPDATE %s SET class = '%s' WHERE (log_ident = '%s' AND steamid = E'%s' AND class = 'UNKNOWN')" % (self.STAT_TABLE, pclass, self.UNIQUE_IDENT, cid)
 
@@ -980,7 +982,7 @@ class parserClass(object):
 
             elif not pdata.class_played(pclass):
                 # class has not been played. we need to add it
-                self._players[cid].add_class(pclass)
+                pdata.add_class(pclass)
 
                 insert_query = "INSERT INTO %s (log_ident, steamid, class, team) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, cid, pclass, pdata.current_team())
 
@@ -989,7 +991,7 @@ class parserClass(object):
 
             elif current_class != pclass:
                 # class has been played before and it is not unknown, so set current class to the new class
-                self._players[cid].set_class(pclass)
+                pdata.set_class(pclass)
                 
 
     # insert_player_details(communityid, name)
