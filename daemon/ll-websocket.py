@@ -243,7 +243,7 @@ class llWSApplication(tornado.web.Application):
             cycle_manager.get_database_updates()
 
     def __send_log_updates(self):
-        valid_idents = self.clients.get_valid_idents()
+        valid_idents = self.__db_managers.get_idents()
         num_idents = len(valid_idents)
 
         self.logger.info("Sending updates. Number of active logs: %d", num_idents)
@@ -253,9 +253,6 @@ class llWSApplication(tornado.web.Application):
 
         try:
             for log_id in valid_idents:
-                if self.clients.get_num_vclients(log_id) == 0:
-                    continue
-
                 if log_id in self.__db_managers:
                     log_manager = self.__db_managers.get_manager(log_id)
 
@@ -264,6 +261,12 @@ class llWSApplication(tornado.web.Application):
                     self.logger.error("log %s has clients and is considered valid, but has no db manager?")
                     continue
 
+                # Getting the delta update dict _____MUST_____ be done __EVERY__ update call
+                # or updates will continuously build up causing gigantic discrepencies. 
+                # This is because unless an update is marked as sent, the dbmanager just
+                # adds updates together. When this happens, new clients receive a full update
+                # on connection and then a bloated delta update dict next update, which
+                # is bad.
                 delta_update_dict = log_manager.compressed_update()
                 full_update_dict = {}
 
