@@ -147,12 +147,9 @@ class ClientData(object):
 
     def get_invalid_idents(self):
         #returns a list of log idents that are considered invalid (ie, in the invalid_clients dict)
-        il = []
-
         self.__get_invalid_lock()
         
-        for log_ident in self.__invalid_clients:
-            il.append(log_ident)
+        il = [ x for x in self.__invalid_clients ]
 
         self.__release_invalid_lock()
 
@@ -164,10 +161,7 @@ class ClientData(object):
     def get_valid_idents(self):
         self.__get_valid_lock()
 
-        vl = []
-
-        for log_ident in self.__valid_clients:
-            vl.append(log_ident)
+        vl = [ x for x in self.__valid_clients ]
 
         self.__release_valid_lock()
 
@@ -179,20 +173,13 @@ class ClientData(object):
         #gets all idents, invalid and valid
         self.__get_valid_lock()
         self.__get_invalid_lock()
-        ident_list = []
-
-        for log_ident in self.__valid_clients:
-            ident_list.append(log_ident)
-
-
-        for log_ident in self.__invalid_clients:
-            ident_list.append(log_ident)
+        
+        ident_list = [ x for x in self.__valid_clients] + [ x for x in self.__invalid_clients ]
 
         self.__release_valid_lock()
         self.__release_invalid_lock()
 
         return ident_list
-
 
     def log_ident_valid(self, log_ident):
         self.__get_valid_lock()
@@ -312,15 +299,11 @@ class ManagerData(object):
 
     def get_idents(self):
         #returns a list of all idents with managers
-        idents = []
-
-        for manager_ident, manager in self.__managers:
-            idents.append(manager_ident)
-
-        return idents
+        return [ ident for ident, manager in self.__managers ]
 
     def add_manager(self, manager_tuple):
         #add the manager tuple in the form (log_ident, manager) to the left of the deque
+        # so that it updates at the next cycle
         self.__managers.appendleft(manager_tuple)
 
     def get_manager(self, log_ident):
