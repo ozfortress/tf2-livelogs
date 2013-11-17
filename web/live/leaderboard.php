@@ -92,6 +92,12 @@
                             <abbr title="Headshots">HS</abbr>
                         </th>
                         <th class="stat_summary_col_title">
+                            <abbr title="Healing Done">H</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
+                            <abbr title="Overhealing Done">OH</abbr>
+                        </th>
+                        <th class="stat_summary_col_title">
                             <abbr title="Damage Dealt">DMG</abbr>
                         </th>
                         <th class="stat_summary_col_title">

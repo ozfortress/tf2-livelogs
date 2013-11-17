@@ -52,9 +52,6 @@
 
     //THE QUERIES----------------
 
-    /* 
-    Scoring algorithm: 
-    */
     $query = "SELECT class, steamid,
                      SUM(kills) as kills, SUM(deaths) as deaths, SUM(assists) as assists, 
                      SUM(captures) as captures, SUM(headshots) as headshots, 

@@ -14,7 +14,9 @@
         die("");
 
     // the column order displayed in the table
-    $table_cols = array("class", "name", "kills", "deaths", "assists", "captures", "headshots", "damage_dealt", "kpd", "dpd", "dpk", "numplayed");
+    $table_cols = array("class", "name", "kills", "deaths", "assists", "captures", "headshots", 
+                        "healing_done", "overhealing_done", "damage_dealt", "kpd", "dpd", "dpk", 
+                        "numplayed");
 
     //Paging
     $limit = "";
@@ -50,12 +52,11 @@
 
     //THE QUERIES----------------
 
-    /* 
-    Scoring algorithm: 
-    */
     $query = "SELECT class, steamid,
                      SUM(kills) as kills, SUM(deaths) as deaths, SUM(assists) as assists, 
-                     SUM(captures) as captures, SUM(headshots) as headshots, SUM(damage_dealt) as damage_dealt,
+                     SUM(captures) as captures, SUM(headshots) as headshots, 
+                     SUM(healing_done) as healing_done, SUM(overhealing_done) as overhealing_done,
+                     SUM(damage_dealt) as damage_dealt,
                      COUNT(log_ident) as numplayed
               FROM {$ll_config["views"]["month_stats"]}
               {$filter}
