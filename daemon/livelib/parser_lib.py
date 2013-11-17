@@ -120,27 +120,33 @@ class PlayerData(object):
             self._player_team = team
 
     def add_class(self, pclass):
+        # Mark a class as being played and set the current class to the
+        # new class
         if pclass in self._player_class:
             self._player_class[pclass] = True
 
             self._current_player_class = pclass
 
     def class_played(self, pclass):
+        # If the class is valid, return whether it has been played. If invalid,
+        # return false
         if pclass in self._player_class:
             return self._player_class[pclass]
         else:
             return False
 
     def class_string(self):
-        class_list = []
-
-        for pclass in self._player_class:
-            if self._player_class[pclass]:
-                class_list.append(pclass)
-
-        return ','.join(class_list)
+        # Join played classes together in a string. No longer used
+        return ','.join([ x for x in self._player_class if self._player_class[x] ])
 
     def current_class(self):
+        """
+        Return the current class. If the class has not been set (i.e is None),
+        we return "UNKNOWN". This constant is used in the websocket dbmanager
+        and by the log page JavaScript. Therefore, if it is changed, those will
+        also need to be updated.
+        """
+
         if self._current_player_class is not None:
             return self._current_player_class
         else:
@@ -150,9 +156,9 @@ class PlayerData(object):
         self._current_player_class = pclass
 
         if not self.class_played(pclass):
-            self.set_team(None) #reset the team, so the next team insert will update this player's teams for all classes
-
-        #print "%s: current class set to %s" % (self._player_name, pclass)
+            # reset the team, so the next team insert will update this player's
+            # teams for all classes
+            self.set_team(None) 
 
     def set_name(self, name):
         self._player_name = name
@@ -167,9 +173,17 @@ class PlayerData(object):
         self._player_team = team
 
     def is_team_same(self, team):
+        # Check if the given team is equal to the current team
         return team == self._player_team
 
     def current_team(self):
+        """
+        Return the current team. If the team has not been set (i.e is None),
+        we return "None". This constant is used in the websocket dbmanager
+        and by the log page JavaScript. Therefore, if it is changed, those will
+        also need to be updated.
+        """
+
         if self._player_team is None:
             return "None"
         else:
