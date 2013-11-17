@@ -141,7 +141,7 @@ class PlayerData(object):
         return ','.join(class_list)
 
     def current_class(self):
-        if self._current_player_class:
+        if self._current_player_class is not None:
             return self._current_player_class
         else:
             return "UNKNOWN"

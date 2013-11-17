@@ -111,7 +111,6 @@ class parserClass(object):
 
         try:
             dbCursor = conn.cursor()
-            #dbCursor.execute("SELECT setup_log_tables(%s)", (self.UNIQUE_IDENT,))
 
             if (data.client_address != None):
                 if not data.log_name:
@@ -232,7 +231,8 @@ class parserClass(object):
 
                     else:
                         self.pg_statupsert(self.STAT_TABLE, "damage_dealt", a_sid, a_name, dmg)
-                        self.insert_player_team(a_sid, regml(res, 4), b_sid = v_sid, b_team = regml(res, 8))
+                        self.insert_player_team(a_sid, regml(res, 4))
+                        self.insert_player_team(v_sid, regml(res, 8))
 
                     self.pg_statupsert(self.STAT_TABLE, "damage_taken", v_sid, v_name, dmg)
 
@@ -279,7 +279,8 @@ class parserClass(object):
                     healt_name = parser_lib.escapePlayerString(regml(res, 5))
                     healt_sid = regml(res, 7)
 
-                    self.insert_player_team(medic_sid, regml(res, 4), b_sid = healt_sid, b_team = regml(res, 8))
+                    self.insert_player_team(medic_sid, regml(res, 4))
+                    self.insert_player_team(healt_sid, regml(res, 8))
 
                     m_cid = parser_lib.get_cid(medic_sid)
                     if m_cid in self._players and self._players[m_cid].current_class() != "engineer":
@@ -305,7 +306,8 @@ class parserClass(object):
                     healt_name = parser_lib.escapePlayerString(regml(res, 5))
                     healt_sid = regml(res, 7)
 
-                    self.insert_player_team(medic_sid, regml(res, 4), b_sid = healt_sid, b_team = regml(res, 8))
+                    self.insert_player_team(medic_sid, regml(res, 4))
+                    self.insert_player_team(healt_sid, regml(res, 8))
 
                     m_cid = parser_lib.get_cid(medic_sid)
                     if m_cid in self._players and self._players[m_cid].current_class() != "engineer":
@@ -350,7 +352,8 @@ class parserClass(object):
                     v_name = parser_lib.escapePlayerString(regml(res, 5))
                     v_pos = regml(res, 11)
 
-                    self.insert_player_team(k_sid, regml(res, 4), b_sid = v_sid, b_team = regml(res, 8))
+                    self.insert_player_team(k_sid, regml(res, 4))
+                    self.insert_player_team(v_sid, regml(res, 8))
                     self.detect_player_class(k_sid, k_weapon) #update class before inserting anything, so we can be sure that the data is going to the right class
 
                     #killer stats
@@ -390,7 +393,8 @@ class parserClass(object):
                     v_name = parser_lib.escapePlayerString(regml(res, 5))
                     v_pos = regml(res, 12)
 
-                    self.insert_player_team(k_sid, regml(res, 4), b_sid = v_sid, b_team = regml(res, 8))
+                    self.insert_player_team(k_sid, regml(res, 4))
+                    self.insert_player_team(v_sid, regml(res, 8))
                     self.detect_player_class(k_sid, k_weapon)
 
                     self.pg_statupsert(self.STAT_TABLE, "kills", k_sid, k_name, 1)
@@ -920,42 +924,33 @@ class parserClass(object):
         update_query = "UPDATE %s SET %s = COALESCE(%s, 0) + %s WHERE (log_ident = '%s' AND steamid = E'%s' AND class = '%s')" % (self.STAT_TABLE, column, 
                                                 column, value, self.UNIQUE_IDENT, cid, self._players[cid].current_class())
 
-        self.add_qtq(insert_query, update_query)
+        self.execute_upsert(insert_query, update_query)
 
-    #this method can take up to two players and insert their teams into the database
-    def insert_player_team(self, a_sid, a_team, b_sid = None, b_team = None):
-        team_insert_list = []
-        team_to_insert = False
-
+    # insert_player_team(steamid, team)
+    # Takes a steamid in the format STEAM_x:x:xxxx* and a team.
+    # Updates records matching the SteamID with the given team
+    def insert_player_team(self, a_sid, a_team):
         a_team = a_team.lower() #make sure the team is lowercase
+        a_cid = parser_lib.get_cid(a_sid)
 
-        if a_sid and (a_team is not None) and (a_team != "none"):
-            a_cid = parser_lib.get_cid(a_sid)
+        if self.add_player(a_cid, team = a_team):
+            # new player. we should insert him into the database
+            insert_query = "INSERT INTO %s (log_ident, steamid, class, team) VALUES (E'%s', E'%s', E'%s', E'%s')" % (
+                                self.STAT_TABLE, self.UNIQUE_IDENT, a_cid, self._players[a_cid].current_class(), a_team)
 
-            if self.add_player(a_cid, team = a_team) or not self._players[a_cid].is_team_same(a_team):
-                self._players[a_cid].set_team(a_team)
+            # insert new entry asap. should be done before pg_statupsert
+            self.executeQuery(insert_query, queue_priority = queryqueue.HIPRIO)
 
-                team_insert_list.append((a_cid, a_team))
+            team_to_insert = True
 
-                team_to_insert = True
-        
-        if b_sid and (b_team is not None) and (b_team.lower() != "none"):
-            b_cid = parser_lib.get_cid(b_sid)
-            b_team = b_team.lower() #make sure the team is lowercase
+        elif not self._players[a_cid].is_team_same(a_team):
+            # the team differs from the known team, so we should update it to this new value
+            self._players[a_cid].set_team(a_team)
 
-            if self.add_player(b_cid, team = b_team) or not self._players[b_cid].is_team_same(b_team):
-                self._players[b_cid].set_team(b_team)
+            update_query = "UPDATE %s SET team = E'%s' WHERE log_ident = '%s' AND steamid = E'%s'" % (self.STAT_TABLE, a_team, self.UNIQUE_IDENT, a_cid)
 
-                team_insert_list.append((b_cid, b_team))
-
-                team_to_insert = True
-        
-        if team_to_insert:
-            for team_tuple in team_insert_list:
-                #insert_query = "INSERT INTO %s (log_ident, steamid, team) VALUES (E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, team_tuple[0], team_tuple[1])
-                update_query = "UPDATE %s SET team = E'%s' WHERE log_ident = '%s' AND steamid = E'%s'" % (self.STAT_TABLE, team_tuple[1], self.UNIQUE_IDENT, team_tuple[0])
-
-                self.executeQuery(update_query) #we only ever want to update the team, never insert
+            # team update can be done at a leisurely pace
+            self.executeQuery(update_query)
 
     # insert_player_class(steamid, class)
     # Takes a steamid in the format STEAM_x:x:xxxx* and a class
