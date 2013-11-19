@@ -107,7 +107,7 @@ class dbManager(object):
 
         self._score_query = "SELECT COALESCE(round_red_score, 0), COALESCE(round_blue_score, 0) FROM %s WHERE (round_red_score IS NOT NULL AND round_blue_score IS NOT NULL) AND log_ident = '%s' ORDER BY eventid DESC LIMIT 1" % (DB_EVENT_TABLE, self._unique_ident)
 
-        self._team_stat_query = "SELECT team, SUM(kills), SUM(deaths), SUM(healing_done), SUM(overhealing_done), SUM(damage_dealt) FROM %s WHERE (log_ident = '%s' AND team IS NOT NULL) GROUP BY team" % (DB_STAT_TABLE, self._unique_ident)
+        self._team_stat_query = self.construct_team_stat_query()
 
         self._name_query = "SELECT name, steamid FROM %s WHERE log_ident = '%s'" % (DB_PLAYER_TABLE, self._unique_ident)
 
@@ -144,12 +144,13 @@ class dbManager(object):
         merged_dict = {}
 
         for player_data in player_list:
-            cid = player_data["steamid"]
+            cid = player_data["steamid"] # get the steamid out
 
+            # create a new entry in the merged dict for this cid if not present
             if cid not in merged_dict:
                 merged_dict[cid] = {}
         
-            merged_stat = merged_dict[cid] #stats for this player
+            merged_stat = merged_dict[cid] #combined stats for this player
 
             for statcol in player_data: #each cid in the stat_dict has a dict of stats, with table columns and values
                 if statcol == "steamid":
@@ -346,6 +347,19 @@ class dbManager(object):
 
         return query
 
+    def construct_team_stat_query(self):
+        # construct the team stat select query using team stat keys
+        #"SELECT team, SUM(kills), SUM(deaths), SUM(healing_done), SUM(overhealing_done), SUM(damage_dealt) FROM %s WHERE (log_ident = '%s' AND team IS NOT NULL) GROUP BY team" % (DB_STAT_TABLE, self._unique_ident)
+
+        # get the col names from the team stat columns, which are prepended by team_
+        # and put them in a list of SUM(col name)
+        # we then join this list in the select query
+        select_cols = [ "SUM(%s)" % x.replace("team_", "") for x in team_stat_columns ]
+
+        query = "SELECT team, %s FROM %s WHERE (log_ident = '%s' AND team IS NOT NULL) GROUP BY team" % (', '.join(select_cols), DB_STAT_TABLE, self._unique_ident)
+
+        return query
+
     def get_database_updates(self):
         #executes the queries to obtain updates. called periodically
         self.log.info("Getting database update for log %s", self._unique_ident)        
@@ -414,6 +428,7 @@ class dbManager(object):
                 #we need to get the table difference between the previous complete set and the new dict before we update to the latest data
                 temp_table = self.calc_table_delta(self._stat_table, new_stat)
 
+                # if the new delta table is different to the previous table, update
                 if temp_table != self._stat_difference_table:
                     if self._new_stat_update:
                         self.log.debug("There is a stat update waiting to be sent. Combining tables")
@@ -422,7 +437,9 @@ class dbManager(object):
 
                     else:
                         self._stat_difference_table = temp_table
-                        self._stat_table = new_stat
+                    
+                    # update the full table to the new stats
+                    self._stat_table = new_stat
 
                     self._new_stat_update = True
 
@@ -457,6 +474,8 @@ class dbManager(object):
             else:
                 #get table diff
                 temp_table = self.calc_table_delta(old_table = self._team_stat_table, new_table = team_stats)
+
+                #print("new delta update dict:")
                 #pprint(temp_table)
 
                 if temp_table != self._team_stat_difference_table:
@@ -467,7 +486,9 @@ class dbManager(object):
 
                     else:
                         self._team_stat_difference_table = temp_table
-                        self._team_stat_table = team_stats
+                    
+                    # update the full table to the new stats
+                    self._team_stat_table = team_stats
 
                     #pprint(self._team_stat_difference_table)
 
@@ -599,8 +620,6 @@ class dbManager(object):
             return
 
         try:
-            name_dict = {}
-
             for row in cursor:
                 #row in the form (name, steamid)
                 self._name_table[row[1]] = row[0]
