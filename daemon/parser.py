@@ -978,7 +978,7 @@ class parserClass(object):
                                     self.STAT_TABLE, pclass, self.UNIQUE_IDENT, cid)
 
                 # update the class
-                self.executeQuery(update_query, queue_priority = queryqueue.HIPRIO) #update the class ASAP
+                self.executeQuery(update_query)
 
             elif not pdata.class_played(pclass):
                 # class has not been played. we need to add it
@@ -988,7 +988,7 @@ class parserClass(object):
                                     self.STAT_TABLE, self.UNIQUE_IDENT, cid, pclass, pdata.current_team())
 
                 # insert into db
-                self.executeQuery(insert_query, queue_priority = queryqueue.HIPRIO) #need to add this class shit ASAP
+                self.executeQuery(insert_query)
 
             elif current_class != pclass:
                 # class has been played before and it is not unknown, so set current class to the new class
