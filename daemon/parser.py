@@ -210,6 +210,16 @@ class parserClass(object):
 
                 return
 
+            res = regex(parser_lib.game_end, logdata)
+            if res:
+                # game is over, end the log
+                self.logger.info("Game end message received. Closing this log file")
+
+                self.GAME_OVER = True
+                self.endLogParsing(True)
+
+                return
+
             #don't want to record stats that happen after round_win (bonustime kills and shit)
             if not self.ROUND_PAUSE:
             #begin round_pause blocking
@@ -1137,7 +1147,7 @@ class parserClass(object):
                         }
                         
                     if shutdown:
-                        self.executeQuery(end_query, use_queue=False) #skip the queue for the end query
+                        self.executeQuery(end_query, use_queue=False) #skip the queue for the end query, because we are shutting down
                     else:
                         self.executeQuery(end_query, queue_priority = queryqueue.HIPRIO) #want this log deleted ASAP!
 

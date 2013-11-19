@@ -10,6 +10,7 @@ log_file_started = re_compiler(r'L (\S+) - (\S+) Log file started \x28file "(.*)
 log_timestamp = re_compiler(r'L (\S+) - (\S+):')
 
 game_restart = re_compiler(r'"LIVELOG_GAME_RESTART"')
+game_end = re_compiler(r'"LIVELOG_GAME_END"')
 
 damage_dealt = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage" \x28damage "(\d+)"\x29')
 damage_taken = re_compiler(r'"(.*)<(\d+)><(.*)><(Red|Blue)>" triggered "damage_taken" \x28damage "(\d+)"\x29')
