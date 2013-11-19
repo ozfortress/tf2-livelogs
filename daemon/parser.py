@@ -975,8 +975,8 @@ class parserClass(object):
             pdata = self._players[cid]
             current_class = pdata.current_class()
 
-            self.logger.debug("Player '%s' is in players dict. Current team: %s, current class: %s, all classes: %s",
-                                        cid, pdata.current_team(), current_class, pdata.class_list())
+            #self.logger.debug("Player '%s' is in players dict. Current team: %s, current class: %s, all classes: %s",
+            #                            cid, pdata.current_team(), current_class, pdata.class_list())
 
             if (current_class == "UNKNOWN") or (len(pdata.class_list()) == 0):
                 # this is the first class insertion for this player, so we add
