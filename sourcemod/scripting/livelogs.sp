@@ -59,7 +59,7 @@ public Plugin:myinfo =
 #endif
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
-	version = "0.6.7",
+	version = "0.6.7.1",
 	url = "http://livelogs.ozfortress.com"
 };
 
@@ -1177,7 +1177,7 @@ endLogging(bool:map_end = false)
     {
         is_logging = false;
 
-        LogToGame("\"LIVELOG_GAME_END"); //send a game end message, in-case game over isn't triggered or w/e
+        LogToGame("\"LIVELOG_GAME_END\""); //send a game end message, in-case game over isn't triggered or w/e
         ServerCommand("logaddress_del %s", listener_address);
     }
 
@@ -1294,6 +1294,8 @@ activateBuffTimer()
         livelogs_buff_timer = CreateTimer(BUFF_TIMER_INTERVAL, getMedicBuffs, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 }
 
+// log this event, and only this event, outside of the hook because the hook is
+// already fucking gigantic
 LogOverHeal(patient_idx, amount)
 {
     decl String:healer_name[MAX_NAME_LENGTH], String:healer_auth[64], String:healer_team[16];
