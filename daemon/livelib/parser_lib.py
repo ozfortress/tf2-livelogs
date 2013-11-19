@@ -137,7 +137,10 @@ class PlayerData(object):
 
     def class_string(self):
         # Join played classes together in a string. No longer used
-        return ','.join([ x for x in self._player_class if self._player_class[x] ])
+        return ','.join(self.class_list())
+
+    def class_list(self):
+        return [ x for x in self._player_class if self._player_class[x] ]
 
     def current_class(self):
         """

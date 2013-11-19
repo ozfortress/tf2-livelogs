@@ -810,8 +810,6 @@ class parserClass(object):
                 if pclass not in spawn_swap_classes:
                     self.insert_player_class(sid, pclass)
 
-                    #self._players[parser_lib.get_cid(sid)].set_class(pclass)
-
                 return
 
             #round win
@@ -947,7 +945,8 @@ class parserClass(object):
             # the team differs from the known team, so we should update it to this new value
             self._players[a_cid].set_team(a_team)
 
-            update_query = "UPDATE %s SET team = E'%s' WHERE log_ident = '%s' AND steamid = E'%s'" % (self.STAT_TABLE, a_team, self.UNIQUE_IDENT, a_cid)
+            update_query = "UPDATE %s SET team = E'%s' WHERE log_ident = '%s' AND steamid = E'%s'" % (
+                            self.STAT_TABLE, a_team, self.UNIQUE_IDENT, a_cid)
 
             # team update can be done at a leisurely pace
             self.executeQuery(update_query)
@@ -966,11 +965,17 @@ class parserClass(object):
             pdata = self._players[cid]
             current_class = pdata.current_class()
 
-            if current_class == "UNKNOWN":
+            self.logger.debug("Player '%s' is in players dict. Current team: %s, current class: %s, all classes: %s",
+                                        cid, pdata.current_team(), current_class, pdata.class_list())
+
+            if (current_class == "UNKNOWN") or (len(pdata.class_list()) == 0):
+                # this is the first class insertion for this player, so we add
+                # the class and update any previous UNKNOWN records
                 pdata.add_class(pclass)
 
                 #if the class was inserted as unknown, it is likely that the 'unknown' class is now this class. this is what we'll assume, anyway
-                update_query = "UPDATE %s SET class = '%s' WHERE (log_ident = '%s' AND steamid = E'%s' AND class = 'UNKNOWN')" % (self.STAT_TABLE, pclass, self.UNIQUE_IDENT, cid)
+                update_query = "UPDATE %s SET class = '%s' WHERE (log_ident = '%s' AND steamid = E'%s' AND class = 'UNKNOWN')" % (
+                                    self.STAT_TABLE, pclass, self.UNIQUE_IDENT, cid)
 
                 # update the class
                 self.executeQuery(update_query, queue_priority = queryqueue.HIPRIO) #update the class ASAP
@@ -979,7 +984,8 @@ class parserClass(object):
                 # class has not been played. we need to add it
                 pdata.add_class(pclass)
 
-                insert_query = "INSERT INTO %s (log_ident, steamid, class, team) VALUES (E'%s', E'%s', E'%s', E'%s')" % (self.STAT_TABLE, self.UNIQUE_IDENT, cid, pclass, pdata.current_team())
+                insert_query = "INSERT INTO %s (log_ident, steamid, class, team) VALUES (E'%s', E'%s', E'%s', E'%s')" % (
+                                    self.STAT_TABLE, self.UNIQUE_IDENT, cid, pclass, pdata.current_team())
 
                 # insert into db
                 self.executeQuery(insert_query, queue_priority = queryqueue.HIPRIO) #need to add this class shit ASAP
