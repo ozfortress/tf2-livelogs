@@ -242,10 +242,11 @@
 
         if ($ll_config["ozfortress"]["active"])
         {
+            $url = get_demo_url($ll_config["ozfortress"]["basepath"], $ll_config["ozfortress"]["hashtype"], $ll_config["ozfortress"]["hashkey"], $log_details["log_name"]);
         ?>
 
             <span class="log_detail_id">Name: </span><span class="log_detail">
-                <a href="<?=$ll_config["ozfortress"]["basepath"] . hash_hmac($ll_config["ozfortress"]["hashtype"], strtolower($log_details["log_name"]), $ll_config["ozfortress"]["hashkey"])?>"><?=$log_details["log_name"]?></a>
+                <a href="<?=$url?>"><?=$log_details["log_name"]?></a>
             </span><br>
         <?php
         }
@@ -526,7 +527,7 @@
         </div>
         <?php
 
-        if (($log_live) && ($log_details["webtv_port"]))
+        if (($log_live) && (!empty($log_details["webtv_port"])))
         {
         ?>
         
@@ -607,6 +608,7 @@
     </div>
     <?php include('static/footer.html'); ?>
 
+    <!-- Include scripts local to this page -->
     <script src="/js/sprintf-0.7-beta1.js" type="text/javascript"></script>
     <script src="/js/viewlog.js" type="text/javascript"></script>
     <?php
