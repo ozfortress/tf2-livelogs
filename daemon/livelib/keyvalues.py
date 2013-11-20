@@ -31,6 +31,8 @@ class KeyValues(object):
             self._skip_whitespace() #skip all whitespace until we get to the next valid chunk
 
             if self._curr_bit() == self._block_begin:
+                # if this is a block begin, curr_key should be the name of the
+                # block. if it's none, theres a problem
                 if curr_key is None:
                     self.__raise_exception("Expected token, but instead found '{'")
                 else:
@@ -49,6 +51,8 @@ class KeyValues(object):
                     else:
                         #assign the new dict to the current key
                         curr_dict[curr_key] = new_dict
+
+                    # reset the key
                     curr_key = None
 
             elif self._curr_bit() == self._block_end:
@@ -59,6 +63,8 @@ class KeyValues(object):
             else:
                 #this is a string
                 curr_key = self._read_string()
+                
+                # if prev_string is not None, it's a key without a block
                 if prev_string:
                     #prev_string is the key of a data string, and curr_key is the value
                     curr_dict[prev_string] = curr_key
@@ -84,16 +90,24 @@ class KeyValues(object):
 
             #self._goto_next_bit() #skip to the next bit, which will be the beginning of the token's data
 
+        # while we can go to the next bit
         while self._goto_next_bit():
             curr_bit = self._curr_bit()
 
+            # if the bit is None, we've reached the end of the buffer, which is
+            # impossible in a properly formatted file
             if curr_bit == None:
                 self.__raise_exception("Reached end of buffer inside token")
 
+            # if the current bit is a block end/begin and the string is not
+            # quoted, this bit is impossible
             if curr_bit == self._block_begin or curr_bit == self._block_end and not string_quoted:
                 self.__raise_exception("Block symbol in non-quoted token")
 
+            # if the bit is a quote
             if curr_bit == '"':
+                # if the previous bit is a \ and the string was quoted at the
+                # start, this bit is an escaped quote, so we add it to the string
                 if string_quoted and self._prev_bit() == "\\":
                     #escaped ", so add it to the string
                     rtn_string += curr_bit
@@ -105,10 +119,7 @@ class KeyValues(object):
 
             elif curr_bit == "\\" and self._prev_bit() == "\\":
                 #this is an escaped backslash, so add it to the string
-                rtn_string += curr_bit
-                
-                #else:
-                    #perhaps this character escapes the next character
+                rtn_string += curr_bit                
 
             elif curr_bit in self.__whitespace_chars and not string_quoted:
                 #this token is not quoted, and this is a whitespace char. therefore, the token ends here.
