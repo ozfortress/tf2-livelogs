@@ -18,15 +18,19 @@ import logging
 from pprint import pprint
 from livelib import parser_lib, queryqueue
 
-spawn_swap_classes = ["spy", "sniper", "pyro", "engineer"] #classes typically joined as to swap between forward/back spawns, don't add these classes unless player gets a kill
+# classes typically joined as to swap between forward/back spawns, don't add 
+# these classes unless player gets a kill
+spawn_swap_classes = ["spy", "sniper", "pyro", "engineer"] 
 
-def regex(compiled_regex, string): #helper function for performing regular expression checks. avoids having to compile and match in-function 1000 times
+# helper for performing regex checks
+def regex(compiled_regex, string):
     #preg = re.compile(expression, re.IGNORECASE | re.MULTILINE)
     
     match = compiled_regex.search(string)
 
     return match
 
+# helper for getting regex elements
 def regml(retuple, index): #get index of re group tuple
     return retuple.group(index)
 
@@ -96,7 +100,8 @@ class parserClass(object):
 
         if (data.log_webtv_port == None):
             data.log_webtv_port = 0
-        
+
+        # insert the log into the index table        
         self.INDEX_TABLE = "livelogs_log_index"
 
         try:
@@ -113,9 +118,11 @@ class parserClass(object):
             dbCursor = conn.cursor()
 
             if (data.client_address != None):
+                # make up a name if the log name is empty
                 if not data.log_name:
                     data.log_name = "log-%s" % time.strftime("%Y-%m-%d-%H-%M") #log-year-month-day-hour-minute
                 
+                # if the log is uploaded, 0 details
                 if log_uploaded:
                     address = "0.0.0.0"
                     port = "000000"
@@ -124,10 +131,14 @@ class parserClass(object):
                     address = data.client_address[0]
                     port = str(data.client_address[1])
 
+                # perform an insert query with a return, so that the numeric
+                # id of the log is returned. we need this id to send to the
+                # game server so clients can get the log url
                 dbCursor.execute("INSERT INTO livelogs_log_index (server_ip, server_port, api_key, log_ident, map, log_name, live, webtv_port, tstamp) VALUES (%s, %s, %s, %s, %s, %s, 'true', %s, %s) RETURNING numeric_id", 
                                         (address, port, data.api_key, self.UNIQUE_IDENT, self.current_map, data.log_name, data.log_webtv_port, time.strftime("%Y-%m-%d %H:%M:%S"),))
 
                 return_data = dbCursor.fetchone()
+
                 if return_data:
                     self._numeric_id = return_data[0]
                 else:
@@ -155,6 +166,8 @@ class parserClass(object):
             
         self._players = {} #a dict of player data objects wrt steamid
         
+        # store current epoch time as the start time, which is used to determine
+        # the duration of the log when ending
         self.__start_time = time.time()
 
         self.logger.info("Parser initialised")
@@ -165,7 +178,7 @@ class parserClass(object):
     def long2ip(self, longip):
         return socket.inet_ntoa(struct.pack('L', longip))
 
-
+    # the parsing method. kinda big, but not really feasible to separate it i think
     def parse(self, logdata):
         if (not logdata) or (not self.db) or self.GAME_OVER or self.HAD_ERROR or self.LOG_PARSING_ENDED:
             return
@@ -1123,7 +1136,10 @@ class parserClass(object):
                     self.__close_db_components(conn = conn, cursor = curs)
 
     def add_qtq(self, query_a, query_b=None, priority=queryqueue.NMPRIO):
-        self._master_query_queue.add_query(query_a, query_b, priority) #add query to the queue with priority
+        # add query to the queue with priority
+        # the queue processor will automatically handle double queries as an
+        # upsert
+        self._master_query_queue.add_query(query_a, query_b, priority) 
 
 
     def endLogParsing(self, game_over=False, shutdown=False):
