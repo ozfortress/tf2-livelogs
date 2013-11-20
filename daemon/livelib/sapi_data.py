@@ -12,6 +12,8 @@ class Steam_API(object):
 
         self._items_game_data = None
 
+    # get the location of the TF2 items_game file in the API using
+    # the GetSchema API call for appid 440 (tf2)
     def get_item_data_loc(self):
         logging.info("Getting SAPI items_game.txt location")
 
@@ -60,6 +62,7 @@ class Steam_API(object):
 
         return weapon_dict
 
+    # get item data from the retrieved items_game location
     def get_item_data(self):
         #get the latest item schema from the steam API
 
@@ -77,9 +80,11 @@ class Steam_API(object):
             logging.exception("Unable to load items_game.txt")
             return
 
+        # parse the items_game.txt keyvalues formatted file into a
+        # python dictionary
         kv_parser = keyvalues.KeyValues()
 
-        items_game_data = kv_parser.parse(items_game_res.read()) #turn the items_game.txt result into a dict
+        items_game_data = kv_parser.parse(items_game_res.read())
 
         items_game_res.close()
         del items_game_res #free memory
