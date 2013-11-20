@@ -364,6 +364,9 @@ class dbManager(object):
         #executes the queries to obtain updates. called periodically
         self.log.info("Getting database update for log %s", self._unique_ident)        
 
+        # if we don't have a recent chat event, perform the default query.
+        # else, we perform a query based on the current id, so that we
+        # do not get chat duplicates
         if not self._chat_event_id:
             chat_query = self._default_chat_query
         else:

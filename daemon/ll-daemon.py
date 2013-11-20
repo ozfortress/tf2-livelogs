@@ -373,6 +373,7 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
 
                 curs = conn.cursor()
 
+                # psycopg automatically adds sanitization to the string, so we just put it in
                 curs.execute("SELECT user_name, user_email FROM livelogs_auth_keys WHERE user_key = %s", (api_key,))
 
                 user_details = curs.fetchone()
@@ -640,7 +641,7 @@ def make_new_config():
     
     cfg_parser.add_section('database')
     cfg_parser.set('database', 'db_user', 'livelogs')
-    cfg_parser.set('database', 'db_password', 'hello')
+    cfg_parser.set('database', 'db_password', '')
     cfg_parser.set('database', 'db_name', 'livelogs')
     cfg_parser.set('database', 'db_host', '127.0.0.1')
     cfg_parser.set('database', 'db_port', '5432')

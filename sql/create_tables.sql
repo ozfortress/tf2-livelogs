@@ -1,6 +1,6 @@
 
 -- AUTH TABLE
-CREATE TABLE livelogs_auth_keys (user_name text, user_email text, user_key text UNIQUE, user_ip text); --holds user authentication keys and contact details
+CREATE TABLE livelogs_auth_keys (user_name text, user_email text, user_key text UNIQUE); --holds user authentication keys and contact details
 
 --holds per-game player statistics. i.e. the stat table for all matches
 CREATE TABLE livelogs_player_stats (num_id serial, log_ident varchar(64), steamid bigint, team text, class text,
