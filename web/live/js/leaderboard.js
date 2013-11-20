@@ -22,7 +22,7 @@ var lb_paging = lb_paging || (function() {
                 "aoColumnDefs": [
                     { "sType": "numeric", "aTargets": [ "_all" ] },
                     { "asSorting": [ "desc", "asc" ], "aTargets": [ "_all" ] }, //default desc -> asc sorting
-                    { "bSortable": false, "aTargets": [ 1 ] }
+                    { "bSortable": false, "aTargets": [ 1, 10, 11, 12 ] }
                 ],
                 "sDom": 'lrtip', // support all sDom options except filter input (f)
                 "bAutoWidth": false,
