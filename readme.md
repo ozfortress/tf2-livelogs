@@ -4,7 +4,7 @@ Livelogs
 Livelogs is a log parsing system developed initially for Team Fortress 2,
 written in Python, PHP and JavaScript.
 
-It receives log output via [SRCDS] (https://developer.valvesoftware.com/wiki/
+It receives log output via [SRCDS](https://developer.valvesoftware.com/wiki/
 Source_Dedicated_Server) UDP logging, and parses the logs realtime. By
 using a queueing system and smart processing, hundreds of logs can be parsed
 simultaeneously. 
@@ -16,7 +16,7 @@ Website
 -------
 
 The website is rather simple, and written in PHP/JavaScript. JavaScript is
-used for [WebSockets] (http://en.wikipedia.org/wiki/WebSocket) and processing 
+used for [WebSockets](http://en.wikipedia.org/wiki/WebSocket) and processing 
 live updates.
 
 Parser
