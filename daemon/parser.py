@@ -249,12 +249,10 @@ class parserClass(object):
 
                     dmg = regml(res, 9)
 
-                    if a_sid == v_sid: #players can deal self damage. if so, don't record damage_dealt for this
-                        self.insert_player_team(a_sid, regml(res, 4))
-
-                    else:
+                    self.insert_player_team(a_sid, regml(res, 4))
+                    
+                    if a_sid != v_sid: #players can deal self damage. if so, don't record damage_dealt for this
                         self.pg_statupsert(self.STAT_TABLE, "damage_dealt", a_sid, a_name, dmg)
-                        self.insert_player_team(a_sid, regml(res, 4))
                         self.insert_player_team(v_sid, regml(res, 8))
 
                     self.pg_statupsert(self.STAT_TABLE, "damage_taken", v_sid, v_name, dmg)
