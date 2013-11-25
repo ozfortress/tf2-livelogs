@@ -6,12 +6,12 @@ server {
 
     index index.php;
 
-    rewrite ^/view/([0-9\_]+)$ /showlog.php?lognum=$1;
+    rewrite ^/view/([0-9]+)$ /showlog.php?lognum=$1;
     rewrite ^/past/(.*)$ /pastlogs.php?filter=$1;
     rewrite ^/past$ /pastlogs.php;
     rewrite ^/player/([0-9]+)$ /player.php?id=$1;
     rewrite ^/leaders$ /leaderboard.php;
-    rewrite ^/leaders/(.*) /leaderboard.php;
+    rewrite ^/leaders/(.*)$ /leaderboard.php;
 
     location /plugindata/ {
         autoindex on;
@@ -23,7 +23,7 @@ server {
         alias /var/www/livelogs/logs/$1.log;
     }
 
-    location ~ \.php$ {
+    location ~ ^/(index|showlog|pastlogs|player|leaderboard|func/logsearch|func/leaderboard_paging|func/paging_data)\.php$ {
         try_files $uri =404;
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
         fastcgi_pass 127.0.0.1:9000;
