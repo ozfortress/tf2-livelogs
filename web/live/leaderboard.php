@@ -135,6 +135,3 @@
 </body>
 </html>
 
-<?php
-    pg_close($ll_db);
-?>
