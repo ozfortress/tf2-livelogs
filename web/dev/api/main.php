@@ -66,7 +66,7 @@
                          SUM(captures) as captures, SUM(headshots) as headshots,
                          SUM(healing_done) as healing_done, SUM(overhealing_done) as overhealing_done,
                          SUM(damage_dealt) as damage_dealt,
-                         COUNT(log_ident) as numplayed
+                         COUNT(DISTINCT log_ident) as numplayed
                       FROM livelogs_player_stats
                       {$filter}
                       GROUP BY steamid";
