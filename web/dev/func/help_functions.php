@@ -273,7 +273,7 @@
     function get_demo_url($basepath, $hash, $hashkey, $name)
     {
         //$ll_config["ozfortress"]["basepath"] . hash_hmac($ll_config["ozfortress"]["hashtype"], strtolower($log_details["log_name"]), $ll_config["ozfortress"]["hashkey"])
-        return $basepath . hash_hmac($hash, strtolower($name), $hashkey)
+        return $basepath . hash_hmac($hash, strtolower($name), $hashkey);
     }
 ?>
 
