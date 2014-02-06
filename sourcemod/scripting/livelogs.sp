@@ -99,7 +99,6 @@ new Handle:livelogs_daemon_port = INVALID_HANDLE; //port of livelogs daemon
 new Handle:livelogs_daemon_api_key = INVALID_HANDLE; //the key that must be specified when communicating with the ll daemon
 new Handle:livelogs_server_name = INVALID_HANDLE; //the name used for the server (as shown on the website)
 new Handle:livelogs_logging_level = INVALID_HANDLE; //bitmask for logging levels
-new Handle:livelogs_ipgn_booking_name = INVALID_HANDLE; //support ipgn's match recorder which uses names from a server booking bot
 new Handle:livelogs_new_log_file = INVALID_HANDLE; //determine if this plugin should enable the server's logging functionality, or leave it to a config/other plugin
 new Handle:livelogs_tournament_ready_only =  INVALID_HANDLE; //support the option of only logging when teams ready up, and not on mp_restartgame or equivalent command
 new Handle:livelogs_force_logsecret = INVALID_HANDLE; //whether or not to set sv_logsecret
@@ -304,11 +303,6 @@ public OnAllPluginsLoaded()
     {
         getConVarValues();
         late_loaded = false;
-    }
-
-    if (livelogs_ipgn_booking_name == INVALID_HANDLE)
-    {
-        livelogs_ipgn_booking_name = FindConVar("mr_ipgnbooker");
     }
 
 #if defined _websocket_included
@@ -1110,14 +1104,8 @@ requestListenerAddress()
     
     GetCurrentMap(map, sizeof(map));
     
-    if (livelogs_ipgn_booking_name != INVALID_HANDLE)
-    {
-        GetConVarString(livelogs_ipgn_booking_name, log_name, sizeof(log_name));
-    }
-    else
-    {
-        GetConVarString(livelogs_server_name, log_name, sizeof(log_name));
-    }
+
+    GetConVarString(livelogs_server_name, log_name, sizeof(log_name));
     
     GetConVarString(livelogs_daemon_api_key, ll_api_key, sizeof(ll_api_key));
 
