@@ -6,7 +6,7 @@ import keyvalues
 
 class Steam_API(object):
     def __init__(self):
-        self.__api_key = "7CD8EC56801BD2F23A1A4184A1348ADD"
+        self.__api_key = "SET_A_KEY_HERE"
 
         self.__item_data_url = None
 

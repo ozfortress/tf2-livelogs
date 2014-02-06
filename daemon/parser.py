@@ -134,8 +134,14 @@ class parserClass(object):
                 # perform an insert query with a return, so that the numeric
                 # id of the log is returned. we need this id to send to the
                 # game server so clients can get the log url
-                dbCursor.execute("INSERT INTO livelogs_log_index (server_ip, server_port, api_key, log_ident, map, log_name, live, webtv_port, tstamp) VALUES (%s, %s, %s, %s, %s, %s, 'true', %s, %s) RETURNING numeric_id", 
-                                        (address, port, data.api_key, self.UNIQUE_IDENT, self.current_map, data.log_name, data.log_webtv_port, time.strftime("%Y-%m-%d %H:%M:%S"),))
+                dbCursor.execute("""INSERT INTO livelogs_log_index (server_ip, server_port, api_key, log_ident, 
+                                                                    map, log_name, live, webtv_port, tstamp)
+                                    VALUES (%s, %s, %s, %s, %s, %s, 'true', %s, %s) 
+                                    RETURNING numeric_id""", (
+                                        address, port, data.api_key, self.UNIQUE_IDENT, self.current_map, 
+                                        data.log_name, data.log_webtv_port, time.strftime("%Y-%m-%d %H:%M:%S"),
+                                    )
+                            )
 
                 return_data = dbCursor.fetchone()
 

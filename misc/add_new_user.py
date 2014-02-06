@@ -66,7 +66,7 @@ if __name__ == "__main__":
 
         db.close()
 
-        print "livelogs_address \"medic.ozfortress.com\""
+        print "livelogs_address \"livelogs.ozfortress.com\""
         print "livelogs_port \"61222\""
         print "livelogs_api_key \"%s\"" % client_key
 
