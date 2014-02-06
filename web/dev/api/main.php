@@ -8,7 +8,7 @@
         exit;
     }
 
-    $escaped_key = pg_escape_string($_GET["key"])
+    $escaped_key = pg_escape_string($_GET["key"]);
     $key_query = "SELECT EXISTS (SELECT 1 FROM livelogs_auth_keys WHERE user_key = '{$escaped_key}')";
     $key_res = pg_query($ll_db, $key_query);
 
@@ -27,13 +27,14 @@
 
         if ($action === "get_live")
         {
+            $output["result"] = 1;
+            $output["idents"] = array();
+
             $live_query = "SELECT log_ident FROM livelogs_log_index WHERE live='true'";
             $live_res = pg_query($ll_db, $live_query);
 
             if ($live_res)
             {
-                $output["idents"] = array();
-
                 while ($row = pg_fetch_array($live_res, NULL, PGSQL_ASSOC))
                 {
                     $output["idents"][] = $row["log_ident"];
@@ -42,6 +43,9 @@
         }
         else if ($action === "get_stats")
         {
+            $output["result"] = 1;
+            $output["stats"] = array();
+
             $steamids = isset($_GET["steamids"]) ? $_GET["steamids"] : "";
 
             $sidarray = explode(",", $steamids);
@@ -69,13 +73,16 @@
 
             if ($result)
             {
-                $output["stats"] = array();
                 while ($row = pg_fetch_array($result, NULL, PGSQL_ASSOC))
                 {
                     $output["stats"][$row["steamid"]] = $row;
                 }
 
             }
+        }
+        else
+        {
+            $output["result"] = 0
         }
 
         echo json_encode($output);
