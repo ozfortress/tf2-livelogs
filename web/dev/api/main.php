@@ -58,7 +58,7 @@
             // support the selection of only stats from this API key
             if (isset($_GET["key_only"]))
             {
-                $filter .= " AND log_ident IN (SELECT log_ident FROM livelogs_log_index WHERE api_key = '{$escaped_key}'')";
+                $filter .= " AND log_ident IN (SELECT log_ident FROM livelogs_log_index WHERE api_key = '{$escaped_key}')";
             }
 
             $query = "SELECT steamid,
@@ -77,7 +77,10 @@
             {
                 while ($row = pg_fetch_array($result, NULL, PGSQL_ASSOC))
                 {
-                    $output["stats"][$row["steamid"]] = $row;
+                    $steamid = $row["steamid"];
+                    unset($row["steamid"]);
+
+                    $output["stats"][$steamid] = $row;
                 }
 
             }
