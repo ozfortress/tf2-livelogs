@@ -105,7 +105,7 @@
         {
             $entry = str_replace('"', '\\"', $entry); // Escape double-quotes.
             $entry = pg_escape_string($entry); // Escape everything else.
-            $result[] = '"' . $entry . '"';
+            $result[] = '\'' . $entry . '\'';
             
         }
 
