@@ -51,7 +51,7 @@
             $steamids = isset($_GET["steamids"]) ? $_GET["steamids"] : "";
 
             $sidarray = explode(",", $steamids);
-            $escaped_ids = to_pg_array($sidarray);
+            $escaped_ids = to_pg_list($sidarray);
 
             $filter = "WHERE steamid IN {$escaped_ids}";
 
@@ -96,27 +96,20 @@
 
     pg_close($ll_db);
 
-    function to_pg_array($array, $data_type = 'character varying') {
+    function to_pg_list($array) {
         $array = (array) $array; // Type cast to array.
         $result = array();
         
         // Iterate through array.
-        foreach($array as $entry) 
+        foreach ($array as $entry) 
         {
-            // Supports nested arrays.
-            if(is_array($entry))
-            { 
-                $result[] = to_pg_array($entry);
-            } 
-            else 
-            {
-                $entry = str_replace('"', '\\"', $entry); // Escape double-quotes.
-                $entry = pg_escape_string($entry); // Escape everything else.
-                $result[] = '"' . $entry . '"';
-            }
+            $entry = str_replace('"', '\\"', $entry); // Escape double-quotes.
+            $entry = pg_escape_string($entry); // Escape everything else.
+            $result[] = '"' . $entry . '"';
+            
         }
 
-        return '\'{' . implode(',', $result) . '}\'::' . $data_type . '[]'; // format
+        return '(' . implode(',', $result) . ')'; // format
     }
 
 ?>
