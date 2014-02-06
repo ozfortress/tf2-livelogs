@@ -3,7 +3,8 @@
 
     if (!isset($_GET["key"]))
     {
-        header("HTTP/1.0 403 Forbidden");
+        header("HTTP/1.1 403 Forbidden");
+        echo("Forbidden");
         pg_close($ll_db);
         exit;
     }
@@ -15,6 +16,7 @@
     if (pg_num_rows($key_res) == 0)
     {
         header("HTTP/1.1 401 Unauthorized");
+        echo("Unauthorized");
         pg_close($ll_db);
         exit;
     }
@@ -82,14 +84,14 @@
         }
         else
         {
-            $output["result"] = 0
+            $output["result"] = 0;
         }
 
         echo json_encode($output);
     }
     else
     {
-        header("HTTP/1.0 400 Bad Request");
+        header("HTTP/1.1 400 Bad Request");
     }
 
     pg_close($ll_db);
