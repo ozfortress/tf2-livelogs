@@ -26,7 +26,7 @@ spawn_swap_classes = ["spy", "sniper", "pyro", "engineer"]
 def regex(compiled_regex, string):
     #preg = re.compile(expression, re.IGNORECASE | re.MULTILINE)
     
-    match = compiled_regex.search(string)
+    match = compiled_regex.match(string)
 
     return match
 
@@ -191,7 +191,6 @@ class parserClass(object):
 
         try:
             event_time = None
-            #self.logger.debug("PARSING LOG: %s", logdata)
 
             self.write_to_log(logdata + "\n")
 
@@ -215,7 +214,6 @@ class parserClass(object):
             
             if not event_time:
                 return
-
 
             #log restart, sent when a mp_restartgame is issued (need a new log file, so we end this one)
             res = regex(parser_lib.game_restart, logdata)
@@ -485,7 +483,7 @@ class parserClass(object):
                     m_uberlost = int(regml(res, 10))
 
                     # only go into the queue if uber is lost. fuck yea optimisation!
-                    if uberlost > 0:
+                    if m_uberlost > 0:
                         self.stat_upsert(self.STAT_TABLE, "ubers_lost", m_sid, m_name, m_uberlost) #may increment, or may do nothing (uberlost = 0 or 1)
             
                     #put medic_death info into event table
