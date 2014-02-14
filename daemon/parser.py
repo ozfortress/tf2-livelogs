@@ -253,15 +253,15 @@ class parserClass(object):
                     v_sid = regml(res, 7)
                     v_name = parser_lib.escapePlayerString(regml(res, 5))
 
-                    dmg = regml(res, 9)
+                    dmg = int(regml(res, 9))
 
                     self.insert_player_team(a_sid, regml(res, 4))
                     
                     if a_sid != v_sid: #players can deal self damage. if so, don't record damage_dealt for this
-                        self.pg_statupsert(self.STAT_TABLE, "damage_dealt", a_sid, a_name, dmg)
+                        self.stat_upsert(self.STAT_TABLE, "damage_dealt", a_sid, a_name, dmg)
                         self.insert_player_team(v_sid, regml(res, 8))
 
-                    self.pg_statupsert(self.STAT_TABLE, "damage_taken", v_sid, v_name, dmg)
+                    self.stat_upsert(self.STAT_TABLE, "damage_taken", v_sid, v_name, dmg)
 
                     return
 
@@ -273,10 +273,10 @@ class parserClass(object):
                     #('[v3] Kaki', '51', 'STEAM_0:1:35387674', 'Red', '40')
                     sid = regml(res, 3)
                     name = parser_lib.escapePlayerString(regml(res, 1))
-                    dmg = regml(res, 5)
+                    dmg = int(regml(res, 5))
 
-                    #pg_statupsert(self, table, column, steamid, name, value)
-                    self.pg_statupsert(self.STAT_TABLE, "damage_dealt", sid, name, dmg)        
+                    #stat_upsert(self, table, column, steamid, name, value)
+                    self.stat_upsert(self.STAT_TABLE, "damage_dealt", sid, name, dmg)        
                     
                     self.insert_player_team(sid, regml(res, 4))
                     
@@ -287,11 +287,11 @@ class parserClass(object):
                 if res:
                     sid = regml(res, 3)
                     name = parser_lib.escapePlayerString(regml(res, 1))
-                    dmg = regml(res, 5)
+                    dmg = int(regml(res, 5))
 
                     self.insert_player_team(sid, regml(res, 4))
 
-                    self.pg_statupsert(self.STAT_TABLE, "damage_taken", sid, name, dmg)
+                    self.stat_upsert(self.STAT_TABLE, "damage_taken", sid, name, dmg)
 
                     return
 
@@ -301,7 +301,7 @@ class parserClass(object):
                 if res:
                     medic_sid = regml(res, 3)
                     medic_name = parser_lib.escapePlayerString(regml(res, 1))
-                    medic_overhealing = regml(res, 9)
+                    medic_overhealing = int(regml(res, 9))
 
                     healt_name = parser_lib.escapePlayerString(regml(res, 5))
                     healt_sid = regml(res, 7)
@@ -313,8 +313,8 @@ class parserClass(object):
                     if m_cid in self._players and self._players[m_cid].current_class() != "engineer":
                         self.insert_player_class(medic_sid, "medic")
 
-                    self.pg_statupsert(self.STAT_TABLE, "overhealing_done", medic_sid, medic_name, medic_overhealing)
-                    self.pg_statupsert(self.STAT_TABLE, "overhealing_received", healt_sid, healt_name, medic_overhealing)
+                    self.stat_upsert(self.STAT_TABLE, "overhealing_done", medic_sid, medic_name, medic_overhealing)
+                    self.stat_upsert(self.STAT_TABLE, "overhealing_received", healt_sid, healt_name, medic_overhealing)
 
                     return
 
@@ -327,8 +327,8 @@ class parserClass(object):
 
                     medic_sid = regml(res, 3)
                     medic_name = parser_lib.escapePlayerString(regml(res, 1))
-                    medic_healing = regml(res, 9)
-                    medic_points = round(int(medic_healing) / 600, 2)
+                    medic_healing = int(regml(res, 9))
+                    medic_points = round(medic_healing / 600, 2)
 
                     healt_name = parser_lib.escapePlayerString(regml(res, 5))
                     healt_sid = regml(res, 7)
@@ -340,9 +340,9 @@ class parserClass(object):
                     if m_cid in self._players and self._players[m_cid].current_class() != "engineer":
                         self.insert_player_class(medic_sid, "medic")
 
-                    self.pg_statupsert(self.STAT_TABLE, "healing_done", medic_sid, medic_name, medic_healing)
-                    self.pg_statupsert(self.STAT_TABLE, "points", medic_sid, medic_name, medic_points)
-                    self.pg_statupsert(self.STAT_TABLE, "healing_received", healt_sid, healt_name, medic_healing)
+                    self.stat_upsert(self.STAT_TABLE, "healing_done", medic_sid, medic_name, medic_healing)
+                    self.stat_upsert(self.STAT_TABLE, "points", medic_sid, medic_name, medic_points)
+                    self.stat_upsert(self.STAT_TABLE, "healing_received", healt_sid, healt_name, medic_healing)
 
                     return
 
@@ -361,7 +361,7 @@ class parserClass(object):
                     if not colname:
                         return
 
-                    self.pg_statupsert(self.STAT_TABLE, colname, sid, name, 1) #add 1 to whatever item was picked up
+                    self.stat_upsert(self.STAT_TABLE, colname, sid, name, 1) #add 1 to whatever item was picked up
 
                     return
 
@@ -384,16 +384,16 @@ class parserClass(object):
                     self.detect_player_class(k_sid, k_weapon) #update class before inserting anything, so we can be sure that the data is going to the right class
 
                     #killer stats
-                    self.pg_statupsert(self.STAT_TABLE, "kills", k_sid, k_name, 1) #add kill to killer stat
-                    self.pg_statupsert(self.STAT_TABLE, "points", k_sid, k_name, 1) #add point to killer
+                    self.stat_upsert(self.STAT_TABLE, "kills", k_sid, k_name, 1) #add kill to killer stat
+                    self.stat_upsert(self.STAT_TABLE, "points", k_sid, k_name, 1) #add point to killer
          
                     #victim stats
-                    self.pg_statupsert(self.STAT_TABLE, "deaths", v_sid, v_name, 1) #add death to victim stat
+                    self.stat_upsert(self.STAT_TABLE, "deaths", v_sid, v_name, 1) #add death to victim stat
 
                     # insert kill event into kill event table, NOT the generic event table
                     event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type, kill_attacker_id, kill_attacker_pos, kill_victim_id, kill_victim_pos) VALUES (E'%s', E'%s', E'%s', E'%s', E'%s', E'%s', E'%s')" % (
                                                     self.KILL_EVENT_TABLE, self.UNIQUE_IDENT, event_time, "kill", parser_lib.get_cid(k_sid), k_pos, parser_lib.get_cid(v_sid), v_pos) #creates a new, unique eventid with details of the event
-                    self.executeQuery(event_insert_query)
+                    self.execute_query(event_insert_query)
 
                     return
 
@@ -424,19 +424,19 @@ class parserClass(object):
                     self.insert_player_team(v_sid, regml(res, 8))
                     self.detect_player_class(k_sid, k_weapon)
 
-                    self.pg_statupsert(self.STAT_TABLE, "kills", k_sid, k_name, 1)
+                    self.stat_upsert(self.STAT_TABLE, "kills", k_sid, k_name, 1)
 
                     if (ck_type == "backstab"):
                         self.insert_player_class(k_sid, "spy")
-                        self.pg_statupsert(self.STAT_TABLE, "backstabs", k_sid, k_name, 1)
-                        self.pg_statupsert(self.STAT_TABLE, "points", k_sid, k_name, 2)
+                        self.stat_upsert(self.STAT_TABLE, "backstabs", k_sid, k_name, 1)
+                        self.stat_upsert(self.STAT_TABLE, "points", k_sid, k_name, 2)
 
                         event_type = "kill_custom_backstab"
                     elif (ck_type == "headshot"):
                         self.insert_player_class(k_sid, "sniper")
 
-                        self.pg_statupsert(self.STAT_TABLE, "headshots", k_sid, k_name, 1)
-                        self.pg_statupsert(self.STAT_TABLE, "points", k_sid, k_name, 1.5)
+                        self.stat_upsert(self.STAT_TABLE, "headshots", k_sid, k_name, 1)
+                        self.stat_upsert(self.STAT_TABLE, "points", k_sid, k_name, 1.5)
 
                         event_type = "kill_custom_headshot"
                     else:
@@ -446,7 +446,7 @@ class parserClass(object):
 
                     event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type, kill_attacker_id, kill_attacker_pos, kill_victim_id, kill_victim_pos) VALUES (E'%s', E'%s', '%s', E'%s', E'%s', E'%s', E'%s')" % (
                                                     self.KILL_EVENT_TABLE, self.UNIQUE_IDENT, event_time, event_type, parser_lib.get_cid(k_sid), k_pos, parser_lib.get_cid(v_sid), v_pos)
-                    self.executeQuery(event_insert_query)
+                    self.execute_query(event_insert_query)
                     
                     return
                 
@@ -461,13 +461,13 @@ class parserClass(object):
                     a_pos = regml(res, 9)
 
                     #increment stats!
-                    self.pg_statupsert(self.STAT_TABLE, "assists", a_sid, a_name, 1)
-                    self.pg_statupsert(self.STAT_TABLE, "points", a_sid, a_name, 0.5)
+                    self.stat_upsert(self.STAT_TABLE, "assists", a_sid, a_name, 1)
+                    self.stat_upsert(self.STAT_TABLE, "points", a_sid, a_name, 0.5)
 
                     #kill assist ALWAYS (99.9999999999999%) comes after a kill, so we use the previous event id from inserting the kill into the event table. might need to change later
                     assist_update_query = "UPDATE %s SET kill_assister_id = E'%s', kill_assister_pos = E'%s' WHERE (eventid = (SELECT eventid FROM %s WHERE event_type = 'kill' and log_ident = E'%s' ORDER BY eventid DESC LIMIT 1)) AND log_ident = E'%s'" % (
                                                 self.KILL_EVENT_TABLE, parser_lib.get_cid(a_sid), a_pos, self.KILL_EVENT_TABLE, self.UNIQUE_IDENT, self.UNIQUE_IDENT)
-                    self.executeQuery(assist_update_query)
+                    self.execute_query(assist_update_query)
 
                     self.insert_player_team(a_sid, regml(res, 4))
 
@@ -481,15 +481,17 @@ class parserClass(object):
                     #pprint(res.groups())
                     m_sid = regml(res, 7)
                     m_name = parser_lib.escapePlayerString(regml(res, 5))
-                    m_healing = regml(res, 9)
-                    m_uberlost = regml(res, 10)
+                    m_healing = int(regml(res, 9))
+                    m_uberlost = int(regml(res, 10))
 
-                    self.pg_statupsert(self.STAT_TABLE, "ubers_lost", m_sid, m_name, m_uberlost) #may increment, or may do nothing (uberlost = 0 or 1)
+                    # only go into the queue if uber is lost. fuck yea optimisation!
+                    if uberlost > 0:
+                        self.stat_upsert(self.STAT_TABLE, "ubers_lost", m_sid, m_name, m_uberlost) #may increment, or may do nothing (uberlost = 0 or 1)
             
                     #put medic_death info into event table
                     event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type, medic_steamid, medic_uber_lost, medic_healing) VALUES (E'%s', E'%s', '%s', E'%s', '%s', '%s')" % (self.MEDIC_EVENT_TABLE, 
                                                            self.UNIQUE_IDENT, event_time, "medic_death", parser_lib.get_cid(m_sid), m_uberlost, m_healing)
-                    self.executeQuery(event_insert_query)
+                    self.execute_query(event_insert_query)
 
                     return
 
@@ -501,11 +503,11 @@ class parserClass(object):
                     m_sid = regml(res, 3)
                     m_name = parser_lib.escapePlayerString(regml(res, 1))
 
-                    self.pg_statupsert(self.STAT_TABLE, "ubers_used", m_sid, m_name, 1)
+                    self.stat_upsert(self.STAT_TABLE, "ubers_used", m_sid, m_name, 1)
 
                     event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type, medic_steamid, medic_uber_used) VALUES (E'%s', E'%s', '%s', E'%s', '%s')" % (self.MEDIC_EVENT_TABLE, 
                                                             self.UNIQUE_IDENT, event_time, "uber_used", parser_lib.get_cid(m_sid), 1)
-                    self.executeQuery(event_insert_query)
+                    self.execute_query(event_insert_query)
 
                     return
 
@@ -521,8 +523,8 @@ class parserClass(object):
                     v_sid = regml(res, 7)
                     v_name = parser_lib.escapePlayerString(regml(res, 5))
 
-                    self.pg_statupsert(self.STAT_TABLE, "dominations", p_sid, p_name, 1)
-                    self.pg_statupsert(self.STAT_TABLE, "times_dominated", v_sid, v_name, 1)
+                    self.stat_upsert(self.STAT_TABLE, "dominations", p_sid, p_name, 1)
+                    self.stat_upsert(self.STAT_TABLE, "times_dominated", v_sid, v_name, 1)
 
 
                     return
@@ -536,7 +538,7 @@ class parserClass(object):
                     p_sid = regml(res, 3)
                     p_name = parser_lib.escapePlayerString(regml(res, 1))
 
-                    self.pg_statupsert(self.STAT_TABLE, "revenges", p_sid, p_name, 1)
+                    self.stat_upsert(self.STAT_TABLE, "revenges", p_sid, p_name, 1)
 
                     return
                 
@@ -550,8 +552,8 @@ class parserClass(object):
                     p_sid = regml(res, 3)
                     p_name = parser_lib.escapePlayerString(regml(res, 1))
 
-                    self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
-                    self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
+                    self.stat_upsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
+                    self.stat_upsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
 
                     self.insert_player_team(p_sid, regml(res, 4))
 
@@ -569,8 +571,8 @@ class parserClass(object):
                     self.insert_player_team(p_sid, regml(res, 4))
                     self.detect_player_class(p_sid, regml(res, 5))
                     
-                    self.pg_statupsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
-                    self.pg_statupsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
+                    self.stat_upsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
+                    self.stat_upsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
                     
                     return
                     
@@ -587,8 +589,8 @@ class parserClass(object):
                     self.insert_player_team(p_sid, regml(res, 4))
                     self.detect_player_class(p_sid, regml(res, 7))
 
-                    self.pg_statupsert(self.STAT_TABLE, "buildings_destroyed", p_sid, p_name, 1)
-                    self.pg_statupsert(self.STAT_TABLE, "points", p_sid, p_name, 1)
+                    self.stat_upsert(self.STAT_TABLE, "buildings_destroyed", p_sid, p_name, 1)
+                    self.stat_upsert(self.STAT_TABLE, "points", p_sid, p_name, 1)
 
                     return
 
@@ -635,12 +637,12 @@ class parserClass(object):
                 chat_message = parser_lib.escapePlayerString(regml(res, 6))
 
                 event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type) VALUES (E'%s', E'%s', '%s')" % (self.EVENT_TABLE, self.UNIQUE_IDENT, event_time, "chat")
-                self.executeQuery(event_insert_query)
+                self.execute_query(event_insert_query)
 
                 chat_insert_query = "INSERT INTO %s (log_ident, steamid, name, team, chat_type, chat_message) VALUES ('%s', E'%s', E'%s', '%s', '%s', E'%s')" % (self.CHAT_TABLE, 
                                                         self.UNIQUE_IDENT, c_sid, c_name, c_team, chat_type, chat_message)
 
-                self.executeQuery(chat_insert_query, queue_priority = queryqueue.HIPRIO)
+                self.execute_query(chat_insert_query, queue_priority = queryqueue.HIPRIO)
 
                 return        
             
@@ -662,7 +664,7 @@ class parserClass(object):
                 event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type, capture_name, capture_team, capture_num_cappers) VALUES (E'%s', E'%s', '%s', E'%s', '%s', '%s')" % (self.EVENT_TABLE,
                                                     self.UNIQUE_IDENT, event_time, "point_capture", cap_name, cap_team, num_cappers)
 
-                #self.executeQuery(event_insert_query)
+                #self.execute_query(event_insert_query)
 
                 #INPUT: (player2 "[v3] Chrome<48><STEAM_0:1:41365809><Red>")
                 capper_re = re.compile(r'\x28player(\d) "(.*?)<(\d+)><(.*?)><(Red|Blue)>"')
@@ -675,8 +677,8 @@ class parserClass(object):
                     c_sid = regml(capper, 4)
                     c_name = parser_lib.escapePlayerString(regml(capper, 2))
 
-                    self.pg_statupsert(self.STAT_TABLE, "captures", c_sid, c_name, 1)
-                    self.pg_statupsert(self.STAT_TABLE, "points", c_sid, c_name, 2)
+                    self.stat_upsert(self.STAT_TABLE, "captures", c_sid, c_name, 1)
+                    self.stat_upsert(self.STAT_TABLE, "points", c_sid, c_name, 2)
 
                 return
 
@@ -690,8 +692,8 @@ class parserClass(object):
                 cb_sid = regml(res, 3)
                 cb_name = parser_lib.escapePlayerString(regml(res, 1))
 
-                self.pg_statupsert(self.STAT_TABLE, "captures_blocked", cb_sid, cb_name, 1)
-                self.pg_statupsert(self.STAT_TABLE, "points", cb_sid, cb_name, 1)
+                self.stat_upsert(self.STAT_TABLE, "captures_blocked", cb_sid, cb_name, 1)
+                self.stat_upsert(self.STAT_TABLE, "points", cb_sid, cb_name, 1)
 
                 cap_name = parser_lib.escapePlayerString(regml(res, 6))
                 cap_block_team = regml(res, 4)
@@ -699,7 +701,7 @@ class parserClass(object):
                 #re-use the capture event columns, but this time capture_blocked is 1 instead of NULL, so we can distinguish
                 event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type, capture_name, capture_team, capture_blocked) VALUES (E'%s', E'%s', '%s', E'%s', '%s', '%s')" % (self.EVENT_TABLE,
                                                         self.UNIQUE_IDENT, event_time, "point_capture_block", cap_name, cap_block_team, 1)
-                self.executeQuery(event_insert_query)
+                self.execute_query(event_insert_query)
 
                 return
 
@@ -737,7 +739,7 @@ class parserClass(object):
                 event_update_query = "UPDATE %s SET round_%s_score = '%s' WHERE (eventid = (SELECT eventid FROM %s WHERE event_type = 'round_end' AND log_ident = '%s' ORDER BY eventid DESC LIMIT 1)) AND log_ident = '%s'" % (self.EVENT_TABLE, 
                                                         team.lower(), t_score, self.EVENT_TABLE, self.UNIQUE_IDENT, self.UNIQUE_IDENT)
 
-                self.executeQuery(event_update_query)
+                self.execute_query(event_update_query)
                 
                 self.ROUND_PAUSE = True
 
@@ -752,7 +754,7 @@ class parserClass(object):
                 go_reason = regml(res, 1)
 
                 event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type, game_over_reason) VALUES (E'%s', E'%s', '%s', E'%s')" % (self.EVENT_TABLE, self.UNIQUE_IDENT, event_time, "game_over", go_reason)
-                self.executeQuery(event_insert_query)
+                self.execute_query(event_insert_query)
                 
                 return
 
@@ -766,7 +768,7 @@ class parserClass(object):
                 fs_score = regml(res, 2)
                 
                 final_score_query = "UPDATE %s SET round_%s_score = '%s' WHERE event_type = 'game_over' and log_ident = '%s'" % (self.EVENT_TABLE, fs_team.lower(), fs_score, self.UNIQUE_IDENT)
-                self.executeQuery(final_score_query)
+                self.execute_query(final_score_query)
 
                 if (fs_team == "Blue"): #red's final score is shown before blue's
                     self.GAME_OVER = True
@@ -818,7 +820,6 @@ class parserClass(object):
 
             res = regex(parser_lib.player_entered_game, logdata)
             if res:
-
                 return
             
             #class change    
@@ -847,7 +848,7 @@ class parserClass(object):
 
                 event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type) VALUES (E'%s', E'%s', '%s')" % (self.EVENT_TABLE, self.UNIQUE_IDENT, event_time, "round_end")
 
-                self.executeQuery(event_insert_query)
+                self.execute_query(event_insert_query)
 
                 return
 
@@ -859,7 +860,7 @@ class parserClass(object):
 
                 #event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type) VALUES (E'%s', E'%s', '%s')" % (self.EVENT_TABLE, self.UNIQUE_IDENT, event_time, "round_overtime")
 
-                #self.executeQuery(event_insert_query)
+                #self.execute_query(event_insert_query)
 
                 return
 
@@ -877,7 +878,7 @@ class parserClass(object):
                 event_update_query = "UPDATE %s SET round_length = '%s' WHERE (eventid = (SELECT eventid FROM %s WHERE event_type = 'round_end' and log_ident = '%s' ORDER BY eventid DESC LIMIT 1)) AND log_ident = '%s'" % (self.EVENT_TABLE, 
                                                                     r_length, self.EVENT_TABLE, self.UNIQUE_IDENT, self.UNIQUE_IDENT)
 
-                self.executeQuery(event_update_query)
+                self.execute_query(event_update_query)
 
                 return
                 
@@ -888,7 +889,7 @@ class parserClass(object):
                 #pprint(res.groups())
 
                 #event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type) VALUES (E'%s', E'%s', '%s')" % (self.EVENT_TABLE, self.UNIQUE_IDENT, event_time, "round_start")
-                #self.executeQuery(event_insert_query)
+                #self.execute_query(event_insert_query)
 
                 self.ROUND_PAUSE = False
                 
@@ -933,8 +934,12 @@ class parserClass(object):
         except Exception, e:
             self.logger.exception("Exception parsing log data: %s", logdata)
 
-    def pg_statupsert(self, table, column, steamid, name, value):
+    def stat_upsert(self, table, column, steamid, name, value):
         #takes all the data that would usually go into an upsert, allows for cleaner code in the regex parsing
+
+        # ignore zero values. it's more efficient if we handle them here
+        if (value <= 0) or (isinstance(value, str) and int(value) == 0):
+            return
 
         cid = parser_lib.get_cid(steamid) #convert steamid to community id
 
@@ -963,8 +968,8 @@ class parserClass(object):
             insert_query = "INSERT INTO %s (log_ident, steamid, class, team) VALUES (E'%s', E'%s', E'%s', E'%s')" % (
                                 self.STAT_TABLE, self.UNIQUE_IDENT, a_cid, self._players[a_cid].current_class(), a_team)
 
-            # insert new entry asap. should be done before pg_statupsert
-            self.executeQuery(insert_query, queue_priority = queryqueue.HIPRIO)
+            # insert new entry asap. should be done before stat_upsert
+            self.execute_query(insert_query, queue_priority = queryqueue.HIPRIO)
 
             team_to_insert = True
 
@@ -976,7 +981,7 @@ class parserClass(object):
                             self.STAT_TABLE, a_team, self.UNIQUE_IDENT, a_cid)
 
             # team update can be done at a leisurely pace
-            self.executeQuery(update_query)
+            self.execute_query(update_query)
 
     # insert_player_class(steamid, class)
     # Takes a steamid in the format STEAM_x:x:xxxx* and a class
@@ -986,8 +991,6 @@ class parserClass(object):
     def insert_player_class(self, sid, pclass):
         cid = parser_lib.get_cid(sid)
         
-        # If the player hasn't played the class, or is only just being added
-        # we need to add them to the database with high priority
         if cid in self._players:
             pdata = self._players[cid]
             current_class = pdata.current_class()
@@ -1005,7 +1008,7 @@ class parserClass(object):
                                     self.STAT_TABLE, pclass, self.UNIQUE_IDENT, cid)
 
                 # update the class
-                self.executeQuery(update_query)
+                self.execute_query(update_query)
 
             elif not pdata.class_played(pclass):
                 # class has not been played. we need to add it
@@ -1015,7 +1018,7 @@ class parserClass(object):
                                     self.STAT_TABLE, self.UNIQUE_IDENT, cid, pclass, pdata.current_team())
 
                 # insert into db
-                self.executeQuery(insert_query)
+                self.execute_query(insert_query)
 
             elif current_class != pclass:
                 # class has been played before and it is not unknown, so set current class to the new class
@@ -1044,7 +1047,7 @@ class parserClass(object):
 
             if details_query:
                 self._players[cid].details_inserted = True
-                self.executeQuery(details_query, queue_priority = queryqueue.HIPRIO)
+                self.execute_query(details_query, queue_priority = queryqueue.HIPRIO)
 
     def add_player(self, cid, pclass=None, name=None, team=None):
         if cid not in self._players:
@@ -1090,14 +1093,14 @@ class parserClass(object):
                     conn.commit()
 
                 except:
-                    self.logger.exception("Error during team insertion")
+                    self.logger.exception("Error executing upsert. INSERT: %s, UPDATE: %s", insert_query, update_query)
                     conn.rollback()
 
                 finally:
                     if close:
                         self.__close_db_components(conn = conn, cursor = curs)
 
-    def executeQuery(self, query, curs=None, conn=None, close=True, use_queue=True, queue_priority = queryqueue.NMPRIO):
+    def execute_query(self, query, curs=None, conn=None, close=True, use_queue=True, queue_priority = queryqueue.NMPRIO):
         if use_queue:
             self.add_qtq(query, priority = queue_priority)
         
@@ -1167,9 +1170,9 @@ class parserClass(object):
                         }
                         
                     if shutdown:
-                        self.executeQuery(end_query, use_queue=False) #skip the queue for the end query, because we are shutting down
+                        self.execute_query(end_query, use_queue=False) #skip the queue for the end query, because we are shutting down
                     else:
-                        self.executeQuery(end_query, queue_priority = queryqueue.HIPRIO) #want this log deleted ASAP!
+                        self.execute_query(end_query, queue_priority = queryqueue.HIPRIO) #want this log deleted ASAP!
 
                     self.logger.info("No data in this log. Tables have been deleted")
 
@@ -1178,9 +1181,9 @@ class parserClass(object):
                     live_end_query = "UPDATE %s SET live = false WHERE log_ident = E'%s'" % (self.INDEX_TABLE, self.UNIQUE_IDENT)
 
                     if shutdown:
-                        self.executeQuery(live_end_query, use_queue=False) #skip the queue
+                        self.execute_query(live_end_query, use_queue=False) #skip the queue
                     else:
-                        self.executeQuery(live_end_query, queue_priority = queryqueue.NMPRIO)
+                        self.execute_query(live_end_query, queue_priority = queryqueue.NMPRIO)
                 
                 self.write_to_log("\n") #add a new line before EOF
                 self._close_log_file()
