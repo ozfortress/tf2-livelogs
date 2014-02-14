@@ -11,10 +11,12 @@ log_timestamp = re_compiler(r'^L ([0-9\/]+) - ([0-9\:]+):.*$')
 game_restart = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "LIVELOG_GAME_RESTART"$')
 game_end = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "LIVELOG_GAME_END"$')
 
+# L 10/01/2012 - 21:43:10: "[v3] Roight<53><STEAM_0:0:8283620><Red>" triggered "damage" (damage "208")
 damage_dealt = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "damage" \x28damage "(\d+)"\x29$')
 damage_taken = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "damage_taken" \x28damage "(\d+)"\x29$')
 
 healing_done = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "healed" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" \x28healing "(\d+)"\x29$')
+
 #"D5+ :happymeat:<24><STEAM_0:1:44157999><Blue>" triggered "overhealed" against "GBH | Mongo<20><STEAM_0:0:14610972><Blue>" (overhealing "28")
 overhealing_done = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "overhealed" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" \x28overhealing "(\d+)"\x29$')
 
@@ -35,30 +37,49 @@ game_over = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Game_Over" re
 rcon_command = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: rcon from "(.*?)": command "(.*?)"$')
 
 building_destroyed = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "killedobject" \x28object "(.*?)"\x29 \x28weapon "(.*?)"\x29 \x28objectowner "(.*?)<(\d+)><(.*?)><(Blue|Red)>"\x29 \x28attacker_position "(.*?)"\x29$')
+
 #"Gucci_Cooki^<75><STEAM_0:0:43662794><Blue>" triggered "killedobject" (object "OBJ_SENTRYGUN") (objectowner "faith<63><STEAM_0:0:52150090><Red>") (assist "1") (assister_position "596 275 505") (attacker_position "881 473 544")
 building_destroyed_assist = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "killedobject" \x28object "(.*?)"\x29 \x28objectowner "(.*?)<(\d+)><(.*?)><(Blue|Red)>"\x29 \x28assist "\d"\x29 \x28assister_position "(.*?)"\x29 \x28attacker_position "(.*?)"\x29$')
+
 #"|S| ynth<13><STEAM_0:1:2869609><Red>" triggered "builtobject" (object "OBJ_TELEPORTER") (position "-4165 1727 -511")
 building_created = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "builtobject" \x28object "(.*?)"\x29 \x28position "(.*?)"\x29$')
 
 #"Cinderella:wu<5><STEAM_0:1:18947653><Blue>" triggered "damage" against "jmh<19><STEAM_0:1:101867><Red>" (damage "56")
 player_damage = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "damage" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" \x28damage "(\d+)"\x29$')
-player_dominated = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "domination" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>"$')
-player_revenge = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "revenge" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>"$')
-player_death_custom = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" committed suicide with "(.*?)" \x28customkill "(.*?)"\x29$')
-player_death = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" committed suicide with "(.*?)"$')
+
+# L 10/01/2012 - 21:43:10: "[v3] Roight<53><STEAM_0:0:8283620><Red>" triggered "domination" against "Liquid'zato<46><STEAM_0:0:42607036><Blue>"
+# L 10/01/2012 - 22:04:57: "Liquid'Iyvn<40><STEAM_0:1:41931908><Blue>" triggered "domination" against "[v3] Kaki<51><STEAM_0:1:35387674><Red>" (assist "1")
+player_dominated = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "domination" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>".*$')
+
+# L 10/01/2012 - 21:51:37: "Liquid'zato<46><STEAM_0:0:42607036><Blue>" triggered "revenge" against "[v3] Roight<53><STEAM_0:0:8283620><Red>"
+# L 10/01/2012 - 22:08:58: "Liquid'Time<41><STEAM_0:1:19238234><Blue>" triggered "revenge" against "[v3] Chrome<48><STEAM_0:1:41365809><Red>" (assist "1")
+player_revenge = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "revenge" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>".*$')
+
+# "Hypnos<20><STEAM_0:0:24915059><Red>" committed suicide with "world" (customkill "train") (attacker_position "568 397 -511")
+player_suicide_custom = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" committed suicide with "(.*?)" \x28customkill "(.*?)"\x29 \x28attacker_position "(.*?)"\x29$')
+
+# 11/13/2012 - 23:03:29: "crixus of gaul<3><STEAM_0:1:10325827><Blue>" committed suicide with "tf_projectile_rocket" (attacker_position "-1233 5907 -385")
+player_suicide = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" committed suicide with "(.*?)" \x28attacker_position "(.*?)"\x29$')
+
 player_kill = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" killed "(.*?)<(\d+)><(.*?)><(Red|Blue)>" with "(.*?)" \x28attacker_position "(.*?)"\x29 \x28victim_position "(.*?)"\x29$')
 player_kill_special = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" killed "(.*?)<(\d+)><(.*?)><(Red|Blue)>" with "(.*?)" \x28customkill "(.*?)"\x29 \x28attacker_position "(.*?)"\x29 \x28victim_position "(.*?)"\x29$')
 player_assist = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "kill assist" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" \x28assister_position "(.*?)"\x29 \x28attacker_position "(.*?)"\x29 \x28victim_position "(.*?)"\x29$')
+
 #"ph.tw|n<19><STEAM_0:0:39342123><Red>" triggered "player_extinguished" against "Mad<11><STEAM_0:0:41824190><Red>" with "tf_weapon_flamethrower" (attacker_position "-1504 -2949 -408") (victim_position "-1542 -2970 -408")
 player_extinguish = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "player_extinguished" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" with "(.*?)" \x28attacker_position "(.*?)"\x29 \x28victim_position "(.*?)"\x29$')
+
 player_disconnect = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue|Spectator)>" disconnected \x28reason "(.*?)"\x29$')
 player_connect = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><>" connected, address "(.*?):(.*?)"$')
 player_validated = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><>" STEAM USERID validated$')
+
 #"zeej<51><STEAM_0:0:41289089><>" entered the game
 player_entered_game = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><>" entered the game$')
+
 player_class_change = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" changed role to "(.*?)"$')
+
 #"b1z<19><STEAM_0:0:18186373><Red>" joined team "Blue"
 player_team_join = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue|Spectator|Unassigned)>" joined team "(Red|Blue|Spectator)"$')
+
 #"hobbes<64><STEAM_0:0:19415161><Red>" changed name to "Smauglet"
 player_name_change = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue|Spectator|Unassigned)>" changed name to "(.*?)"$')
 

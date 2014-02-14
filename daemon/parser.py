@@ -539,26 +539,9 @@ class parserClass(object):
                     self.stat_upsert(self.STAT_TABLE, "revenges", p_sid, p_name, 1)
 
                     return
-                
-                #suicide
-                #"Hypnos<20><STEAM_0:0:24915059><Red>" committed suicide with "world" (customkill "train") (attacker_position "568 397 -511")
-                res = regex(parser_lib.player_death_custom, logdata)
-                if res:
-                    #print "Player committed suicide"
-                    #pprint(res.groups())
 
-                    p_sid = regml(res, 3)
-                    p_name = parser_lib.escapePlayerString(regml(res, 1))
-
-                    self.stat_upsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
-                    self.stat_upsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
-
-                    self.insert_player_team(p_sid, regml(res, 4))
-
-                    return
-
-                # 11/13/2012 - 23:03:29: "crixus of gaul<3><STEAM_0:1:10325827><Blue>" committed suicide with "tf_projectile_rocket" (attacker_position "-1233 5907 -385")
-                res = regex(parser_lib.player_death, logdata)
+                # self-kill suicide
+                res = regex(parser_lib.player_suicide, logdata)
                 if res:
                     #print "Player committed suicide"
                     #pprint(res.groups())
@@ -572,6 +555,22 @@ class parserClass(object):
                     self.stat_upsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
                     self.stat_upsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
                     
+                    return
+
+                # environment-kill suicide
+                res = regex(parser_lib.player_suicide_custom, logdata)
+                if res:
+                    #print "Player committed suicide"
+                    #pprint(res.groups())
+
+                    p_sid = regml(res, 3)
+                    p_name = parser_lib.escapePlayerString(regml(res, 1))
+
+                    self.insert_player_team(p_sid, regml(res, 4))
+
+                    self.stat_upsert(self.STAT_TABLE, "suicides", p_sid, p_name, 1)
+                    self.stat_upsert(self.STAT_TABLE, "deaths", p_sid, p_name, 1)
+
                     return
                     
                 #engi building destruction
