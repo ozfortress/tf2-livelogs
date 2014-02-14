@@ -238,7 +238,7 @@ def get_cid(steam_id):
 
     # if the ID is a bot, return "BOT" in binary
     if steam_id == "BOT":
-        return 010000100100111101010100
+        return 10000100100111101010100
 
     auth_server = 0;
     auth_id = 0;
