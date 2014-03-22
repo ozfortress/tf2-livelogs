@@ -53,38 +53,6 @@ class parserClass(object):
         self.__log_file_lock = threading.Lock()
         self.__end_log_lock = threading.Lock()
 
-        import ConfigParser
-        cfg_parser = ConfigParser.SafeConfigParser()
-        if cfg_parser.read(r'll-config.ini'):
-            try:
-                log_dir = cfg_parser.get('log-listener', 'log_directory')
-                
-            except:
-                self.logger.error("Unable to read options from config file")
-                self.HAD_ERROR = True
-                return
-        else:
-            self.logger.error("Error reading config file")
-            
-            self.HAD_ERROR = True
-            return
-            
-        try:
-            if not os.path.exists(log_dir):
-                #need to make the directory
-                os.makedirs(log_dir, 0755)
-                
-            log_file_name = "%s.log" % unique_ident
-            log_file = os.path.normpath(os.path.join(log_dir, log_file_name))
-            
-            self.LOG_FILE_HANDLE = open(log_file, 'w')
-            
-        except OSError:
-            self.logger.exception("Error opening new log file for writing, or creating log directory")
-            
-            self.HAD_ERROR = True
-            return
-
         self.closeListenerCallback = endfunc
         
         self.UNIQUE_IDENT = unique_ident
@@ -176,13 +144,38 @@ class parserClass(object):
         # the duration of the log when ending
         self.__start_time = time.time()
 
+        self.create_log_file(unique_ident)
+
         self.logger.info("Parser initialised")
 
-    def ip2long(self, ip):
-        return struct.unpack('!L', socket.inet_aton(ip))[0]
+    def create_log_file(self, unique_ident):
+        import ConfigParser
+        cfg_parser = ConfigParser.SafeConfigParser()
 
-    def long2ip(self, longip):
-        return socket.inet_ntoa(struct.pack('L', longip))
+        have_log_dir = False
+        if cfg_parser.read(r'll-config.ini'):
+            try:
+                log_dir = cfg_parser.get('log-listener', 'log_directory')
+                have_log_dir = True
+                
+            except:
+                self.logger.exception("Unable to read log directory from config file")
+        else:
+            self.logger.error("Error reading config file")
+        
+        if have_log_dir:
+            try:
+                if not os.path.exists(log_dir):
+                    #need to make the directory
+                    os.makedirs(log_dir, 0755)
+                    
+                log_file_name = "%s.log" % unique_ident
+                log_file = os.path.normpath(os.path.join(log_dir, log_file_name))
+                
+                self.LOG_FILE_HANDLE = open(log_file, 'w')
+                
+            except OSError:
+                self.logger.exception("Error opening new log file for writing, or creating log directory")
 
     # the parsing method. kinda big, but not really feasible to separate it i think
     def parse(self, logdata):
@@ -1197,7 +1190,7 @@ class parserClass(object):
 
             self._log_file_writes += 1
 
-            if not (self._log_file_writes % 200):
+            if (self._log_file_writes % 200) == 0:
                 #force a flush to disk every 200 writes, to reduce buffer usage
                 self.LOG_FILE_HANDLE.flush()
                 os.fsync(self.LOG_FILE_HANDLE.fileno())
