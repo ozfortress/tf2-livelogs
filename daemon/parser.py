@@ -1225,7 +1225,7 @@ class parserClass(object):
         if self.LOG_FILE_HANDLE and not self.LOG_FILE_HANDLE.closed:
             # write a log file closed message, so we keep the same log file structure as the server does
             # this will help when users want to use other 3rd party log parsers with this log file
-            self.LOG_FILE_HANDLE.write("L %s: Log file closed", self._last_event_time)
+            self.LOG_FILE_HANDLE.write("L %s: Log file closed" % (self._last_event_time,))
 
             self.LOG_FILE_HANDLE.write("\n") #add a new line before EOF
 
