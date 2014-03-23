@@ -225,8 +225,10 @@ class parserClass(object):
                 res = regex(parser_lib.logging_start, logdata)
                 if res:
                     # the game has just started, we have NOT gotten a Round_start message,
-                    # so we will add one to the log file
-                    self.write_to_log("L %s - %s: World triggered \"Round_Start\"" % (regml(res, 1), regml(res, 2),))
+                    # so we will add one to the log file. this message is necessary because
+                    # otherwise the first Round_Start is cut off, and 3rd party parsers will
+                    # not be able to parse the first round properly using this log file
+                    self.write_to_log("L %s - %s: World triggered \"Round_Start\"\n" % (regml(res, 1), regml(res, 2),))
 
                     return
 
@@ -834,6 +836,7 @@ class parserClass(object):
             res = regex(parser_lib.player_entered_game, logdata)
             if res:
                 return
+
             # player spawn
             #"snips<3><STEAM_0:1:43598512><Red>" spawned as "Sniper"
             res = regex(parser_lib.player_spawn, logdata)
@@ -847,6 +850,8 @@ class parserClass(object):
 
                 if pclass not in spawn_swap_classes:
                     self.insert_player_class(sid, pclass)
+
+                return
 
             #class change
             res = regex(parser_lib.player_class_change, logdata)
@@ -1246,7 +1251,7 @@ class parserClass(object):
         if self.LOG_FILE_HANDLE and not self.LOG_FILE_HANDLE.closed:
             # write a log file closed message, so we keep the same log file structure as the server does
             # this will help when users want to use other 3rd party log parsers with this log file
-            self.LOG_FILE_HANDLE.write("L %s - %s: Log file closed" % self._last_event_times)
+            self.LOG_FILE_HANDLE.write("L %s - %s: Log file closed\n" % self._last_event_times)
 
             self.LOG_FILE_HANDLE.write("\n") #add a new line before EOF
 

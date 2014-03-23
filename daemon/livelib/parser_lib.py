@@ -78,7 +78,8 @@ player_validated = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><>"
 player_entered_game = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><>" entered the game$')
 
 player_class_change = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" changed role to "(.*?)"$')
-player_spawn = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" spawned as "([A-Za-z]+)"$')
+#"[v3] Kaki<51><STEAM_0:1:35387674><Red>" spawned as "soldier"
+player_spawn = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" spawned as "(.*?)"$')
 
 #"b1z<19><STEAM_0:0:18186373><Red>" joined team "Blue"
 player_team_join = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue|Spectator|Unassigned)>" joined team "(Red|Blue|Spectator)"$')
