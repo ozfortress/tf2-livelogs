@@ -144,6 +144,11 @@ class parserClass(object):
         # the duration of the log when ending
         self.__start_time = time.time()
 
+        self._have_final_scores = {
+            "blue": False,
+            "red": False
+        }
+
         self.create_log_file(unique_ident)
 
         self.logger.info("Parser initialised")
@@ -204,6 +209,8 @@ class parserClass(object):
                 #pprint(res.groups())
                 
                 event_time = "%s %s" % (regml(res, 1), regml(res, 2))
+
+                self._last_event_time = "%s - %s" % (regml(res, 1), regml(res, 2))
             
             if not event_time:
                 return
@@ -634,7 +641,7 @@ class parserClass(object):
 
                 self.execute_query(chat_insert_query, queue_priority = queryqueue.HIPRIO)
 
-                return        
+                return
             
             #point capture
             #/Team "(Blue|Red)" triggered "pointcaptured" \x28cp "(\d+)"\x29 \x28cpname "(.+)"\x29 \x28numcappers "(\d+)".+/
@@ -715,7 +722,6 @@ class parserClass(object):
             #L 10/21/2012 - 01:23:48: World triggered "Round_Length" (seconds "88.26")
             #L 10/21/2012 - 01:23:48: Team "Red" current score "0" with "6" players
             #L 10/21/2012 - 01:23:48: Team "Blue" current score "4" with "6" players
-            #Team "Blue" current score "3" with "4" players
             res = regex(parser_lib.team_score, logdata)
             if res:
                 #print "Current scores"
@@ -725,7 +731,7 @@ class parserClass(object):
                 t_score = regml(res, 2)
                 #t_players = regml(res, 3)
 
-                #use previous round_win event id. Round_Win WILL ****ALWAYS**** trigger before this event (presuming we don't get gayed and lose packets along the way)
+                #use previous round_win event id
                 event_update_query = "UPDATE %s SET round_%s_score = '%s' WHERE (eventid = (SELECT eventid FROM %s WHERE event_type = 'round_end' AND log_ident = '%s' ORDER BY eventid DESC LIMIT 1)) AND log_ident = '%s'" % (self.EVENT_TABLE, 
                                                         team.lower(), t_score, self.EVENT_TABLE, self.UNIQUE_IDENT, self.UNIQUE_IDENT)
 
@@ -754,13 +760,15 @@ class parserClass(object):
                 #print "Final scores"
                 #pprint(res.groups())
 
-                fs_team = regml(res, 1)
+                fs_team = regml(res, 1).lower()
                 fs_score = regml(res, 2)
                 
-                final_score_query = "UPDATE %s SET round_%s_score = '%s' WHERE event_type = 'game_over' and log_ident = '%s'" % (self.EVENT_TABLE, fs_team.lower(), fs_score, self.UNIQUE_IDENT)
+                final_score_query = "UPDATE %s SET round_%s_score = '%s' WHERE event_type = 'game_over' and log_ident = '%s'" % (self.EVENT_TABLE, fs_team, fs_score, self.UNIQUE_IDENT)
                 self.execute_query(final_score_query)
 
-                if (fs_team == "Blue"): #red's final score is shown before blue's
+                self._have_final_scores[fs_team] = True
+
+                if self._have_final_scores["red"] and self._have_final_scores["blue"]:
                     self.GAME_OVER = True
                     self.endLogParsing(True)
                 
@@ -811,8 +819,21 @@ class parserClass(object):
             res = regex(parser_lib.player_entered_game, logdata)
             if res:
                 return
-            
-            #class change    
+            # player spawn
+            #"snips<3><STEAM_0:1:43598512><Red>" spawned as "Sniper"
+            res = regex(parser_lib.player_spawn, logdata)
+            if res:
+                # we now know exactly what class this player is
+                sid = regml(res, 3)
+                team = regml(res, 4)
+                pclass = regml(res, 5).lower()
+
+                self.insert_player_team(sid, team)
+
+                if pclass not in spawn_swap_classes:
+                    self.insert_player_class(sid, pclass)
+
+            #class change
             res = regex(parser_lib.player_class_change, logdata)
             if res:
                 #print "Player changed class"
@@ -840,6 +861,8 @@ class parserClass(object):
 
                 self.execute_query(event_insert_query)
 
+                self.ROUND_PAUSE = True
+
                 return
 
             #overtime
@@ -855,8 +878,6 @@ class parserClass(object):
                 return
 
             #round length
-            #World triggered "Round_Length" (seconds "402.58")
-            #World triggered "Round_Length" \x28seconds "(\d+\.\d+)\x29
             #World triggered "Round_length" \x28seconds "(\d+)\.(\d+)"\x29
             res = regex(parser_lib.round_length, logdata)
             if res:
@@ -869,6 +890,8 @@ class parserClass(object):
                                                                     r_length, self.EVENT_TABLE, self.UNIQUE_IDENT, self.UNIQUE_IDENT)
 
                 self.execute_query(event_update_query)
+
+                self.ROUND_PAUSE = True
 
                 return
                 
@@ -1175,7 +1198,6 @@ class parserClass(object):
                     else:
                         self.execute_query(live_end_query, queue_priority = queryqueue.NMPRIO)
                 
-                self.write_to_log("\n") #add a new line before EOF
                 self._close_log_file()
 
                 if self.closeListenerCallback is not None and game_over:
@@ -1201,6 +1223,12 @@ class parserClass(object):
         self.__get_file_lock()
 
         if self.LOG_FILE_HANDLE and not self.LOG_FILE_HANDLE.closed:
+            # write a log file closed message, so we keep the same log file structure as the server does
+            # this will help when users want to use other 3rd party log parsers with this log file
+            self.LOG_FILE_HANDLE.write("L %s: Log file closed", self._last_event_time)
+
+            self.LOG_FILE_HANDLE.write("\n") #add a new line before EOF
+
             self.LOG_FILE_HANDLE.close()
 
         self.__release_file_lock()
