@@ -7,8 +7,8 @@ server_cvar_value = re_compiler(r'"([A-Za-z\_]+)" = "(.*?)"$')
 
 log_file_started = re_compiler(r'^L ([0-9\/]+) - ([0-9\:]+) Log file started \x28file "(.*?)"\x29.*$')
 log_timestamp = re_compiler(r'^L ([0-9\/]+) - ([0-9\:]+):.*$')
+logging_start = re_compiler(r'^L ([0-9\/]+) - ([0-9\:]+): "LIVELOG_LOGGING_START"$')
 
-game_start = re_compiler(r'^L ([0-9\/]+) - ([0-9\:]+): "LIVELOG_GAME_START"$')
 game_restart = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "LIVELOG_GAME_RESTART"$')
 game_end = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "LIVELOG_GAME_END"$')
 

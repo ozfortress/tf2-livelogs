@@ -220,8 +220,9 @@ class parserClass(object):
 
             # log start
             # if we've already gotten a round_start message before this, ignore this message
+            # otherwise we will have an extra round_start
             if not self._first_round_started:
-                res = regex(parser_lib.game_start, logdata)
+                res = regex(parser_lib.logging_start, logdata)
                 if res:
                     # the game has just started, we have NOT gotten a Round_start message,
                     # so we will add one to the log file
@@ -916,9 +917,9 @@ class parserClass(object):
                 #event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type) VALUES (E'%s', E'%s', '%s')" % (self.EVENT_TABLE, self.UNIQUE_IDENT, event_time, "round_start")
                 #self.execute_query(event_insert_query)
 
-                # we use this variable so we know if we've received a round_start before a LIVELOG_GAME_START
-                # it only needs to be set to True before LIVELOG_GAME_START and we'll know that we don't 
-                # need to add a Round_start message to the log file if we receive a LIVELOG_GAME_START
+                # we use this variable so we know if we've received a round_start before a LIVELOG_LOGGING_START
+                # it only needs to be set to True before LIVELOG_LOGGING_START and we'll know that we don't 
+                # need to add a Round_start message to the log file if we receive a LIVELOG_LOGGING_START
                 self._first_round_started = True
 
                 # end round pause, because new round

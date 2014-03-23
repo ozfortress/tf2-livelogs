@@ -59,7 +59,7 @@ public Plugin:myinfo =
 #endif
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
-	version = "0.6.7.2",
+	version = "0.6.8.1",
 	url = "http://livelogs.ozfortress.com"
 };
 
@@ -1013,6 +1013,9 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
 
             //start the buff timer check
             activateBuffTimer();
+
+            // log a message to indicate the game has started?
+            LogToGame("\"LIVELOG_LOGGING_START\"");
             
         #if defined _websocket_included
             startNewWebTVSession();
