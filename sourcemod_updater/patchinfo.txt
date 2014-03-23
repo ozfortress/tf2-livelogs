@@ -4,10 +4,11 @@
     {
         "Version"
         {
-            "Latest"        "0.6.7.2"
+            "Latest"        "0.6.8.1"
         }
 
-        "Notes"     "Removed iPGN match recorder usage"
+        "Notes"     "Added player_spawn event log output for better class tracking"
+        "Notes"     "Added LIVELOG_LOGGING_START event to increase compatibility with other parsers"
     }
 
     "Files"
