@@ -34,3 +34,70 @@
 #define BITMASK_HEALING 4
 #define BITMASK_ITEM_PICKUP 8
 #define BITMASK_MEDIC_BUFF 16
+
+/*
+    Take a TFClassType enum and convert it to a class name string
+*/
+stock bool:TF2_GetClassName(TFClassType:class, String:name[], maxlen)
+{
+    switch (class)
+    {
+        case TFClass_Unknown:
+            return false;
+        
+        case TFClass_Scout:
+        {
+            strcopy(name, maxlen, "scout");
+            return true;
+        }
+        
+        case TFClass_Soldier:
+        {
+            strcopy(name, maxlen, "soldier");
+            return true;
+        }
+        
+        case TFClass_Pyro:
+        {    
+            strcopy(name, maxlen, "pyro");
+            return true;
+        }
+
+        case TFClass_DemoMan:
+        {    
+            strcopy(name, maxlen, "demoman");
+            return true;
+        }
+
+        case TFClass_Heavy:
+        {    
+            strcopy(name, maxlen, "heavyweapons");
+            return true;
+        }
+
+        case TFClass_Medic:
+        {    
+            strcopy(name, maxlen, "medic");
+            return true;
+        }
+
+        case TFClass_Sniper:
+        {    
+            strcopy(name, maxlen, "sniper");
+            return true;
+        }
+
+        case TFClass_Engineer:
+        {    
+            strcopy(name, maxlen, "engineer");
+            return true;
+        }
+        case TFClass_Spy:
+        {
+            strcopy(name, maxlen, "spy");
+            return true;
+        }
+    }
+
+    return false;
+}

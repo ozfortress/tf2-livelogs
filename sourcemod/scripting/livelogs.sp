@@ -83,7 +83,7 @@ new bool:record_real_damage = true;
 new String:server_ip[64];
 new String:listener_address[128];
 new String:log_unique_ident[128];
-new String:client_index_cache[MAXPLAYERS+1][64];
+new String:client_auth_cache[MAXPLAYERS+1][64];
 
 new log_additional_stats;
 new server_port;
@@ -160,6 +160,11 @@ public OnPluginStart()
 
     // Game restarted (mp_restartgame, or when tournament countdown ends)
     HookEvent("teamplay_restart_round", gameRestartEvent);
+    HookEvent("teamplay_ready_restart", gameRestartEvent);
+
+    // round start
+    HookEvent("teamplay_round_start", roundStartEvent_Log);
+
 
     //game over events
     HookEvent("tf_game_over", gameOverEvent); //mp_windifference_limit
@@ -170,8 +175,8 @@ public OnPluginStart()
     HookEvent("player_hurt", playerHurtEvent); //player is hurt
     HookEvent("player_healed", playerHealEvent); //player receives healing, from dispenser or medic
 
-    //Hook player spawn for buffs
-    HookEvent("player_spawn", playerSpawnEvent_buff);
+    //Hook player spawn for buffs and class spawn
+    HookEvent("player_spawn", playerSpawnEvent_Log);
 
     // Hook into mp_tournament_restart
     AddCommandListener(tournamentRestartHook, "mp_tournament_restart");
@@ -372,12 +377,12 @@ public OnLibraryRemoved(const String:name[])
 public OnClientAuthorized(client, const String:auth[])
 {
     //cache the client's steam id, for performance in event hooks
-    strcopy(client_index_cache[client], sizeof(client_index_cache[]), auth);
+    strcopy(client_auth_cache[client], sizeof(client_auth_cache[]), auth);
 }
 
 public OnClientDisconnect(client)
 {
-    strcopy(client_index_cache[client], sizeof(client_index_cache[]), "\0"); //clear client's steamid
+    strcopy(client_auth_cache[client], sizeof(client_auth_cache[]), "\0"); //clear client's steamid
     
 #if defined _websocket_included
     if (IsClientInGame(client))
@@ -553,10 +558,11 @@ public tournamentStateChangeEvent(Handle:event, const String:name[], bool:dontBr
 public gameRestartEvent(Handle:event, const String:name[], bool:dontBroadcast)
 {
     //if teams are ready, get log listener address
-    if (live_on_restart)
+    if (live_on_restart && !is_logging)
     {
-        if (GetConVarInt(livelogs_enabled))
+        if (GetConVarBool(livelogs_enabled))
         {
+
             if (create_new_log_file)
             {
                 ServerCommand("log on"); //create new log file, enable console log output
@@ -573,6 +579,13 @@ public gameRestartEvent(Handle:event, const String:name[], bool:dontBroadcast)
     }
 }
 
+public roundStartEvent_Log(Handle:event, const String:name[], bool:dontBroadcast)
+{
+    new bool:full_reset = GetEventBool(event, "full_reset");
+
+    if (debug_enabled) { LogMessage("teamplay_round_start event. full_reset: %d", full_reset); }
+}
+
 public gameOverEvent(Handle:event, const String:name[], bool:dontBroadcast)
 {
 	endLogging(); //stop the logging -- does this really need to be done? hmmm
@@ -587,7 +600,7 @@ public itemPickupEvent(Handle:event, const String:name[], bool:dontBroadcast)
         new userid = GetEventInt(event, "userid");
         new clientidx = GetClientOfUserId(userid);
 
-        strcopy(auth_id, sizeof(auth_id), client_index_cache[clientidx]); //get the player ID from the cache if it's in there
+        strcopy(auth_id, sizeof(auth_id), client_auth_cache[clientidx]); //get the player ID from the cache if it's in there
 
         if (!GetClientName(clientidx, player_name, sizeof(player_name)))
             return;
@@ -625,8 +638,8 @@ public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
 
                 new damage = getDamage(event, victimidx);
 
-                strcopy(auth_id, sizeof(auth_id), client_index_cache[attackeridx]); //get the player ID from the cache if it's in there
-                strcopy(victim_auth_id, sizeof(victim_auth_id), client_index_cache[victimidx]);
+                strcopy(auth_id, sizeof(auth_id), client_auth_cache[attackeridx]); //get the player ID from the cache if it's in there
+                strcopy(victim_auth_id, sizeof(victim_auth_id), client_auth_cache[victimidx]);
 
                 if (!GetClientName(attackeridx, player_name, sizeof(player_name)))
                     return;
@@ -662,7 +675,7 @@ public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
                 new victimidx = GetClientOfUserId(victimid);
                 new damage = getDamage(event, victimidx);
 
-                strcopy(auth_id, sizeof(auth_id), client_index_cache[victimidx]); //get the player ID from the cache if it's in there
+                strcopy(auth_id, sizeof(auth_id), client_auth_cache[victimidx]); //get the player ID from the cache if it's in there
             
                 if (!GetClientName(victimidx, player_name, sizeof(player_name)))
                     return;
@@ -696,7 +709,7 @@ public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
 
                 new damage = getDamage(event, victimidx);
 
-                strcopy(auth_id, sizeof(auth_id), client_index_cache[attackeridx]);
+                strcopy(auth_id, sizeof(auth_id), client_auth_cache[attackeridx]);
                 if (!GetClientName(attackeridx, player_name, sizeof(player_name)))
                     return;
 
@@ -726,8 +739,8 @@ public playerHealEvent(Handle:event, const String:name[], bool:dontBroadcast)
         new patientid = GetEventInt(event, "patient");
         new patient_idx = GetClientOfUserId(patientid);
 
-        strcopy(healer_auth, sizeof(healer_auth), client_index_cache[healer_idx]);
-        strcopy(patient_auth, sizeof(patient_auth), client_index_cache[patient_idx]);
+        strcopy(healer_auth, sizeof(healer_auth), client_auth_cache[healer_idx]);
+        strcopy(patient_auth, sizeof(patient_auth), client_auth_cache[patient_idx]);
         
         if (!GetClientName(healer_idx, healer_name, sizeof(healer_name)))
             return;
@@ -769,15 +782,39 @@ public Action:restartCommandHook(client, const String:command[], arg)
     newLogOnRestartCheck();
 }
 
-public playerSpawnEvent_buff(Handle:event, const String:name[], bool:dontBroadcast)
+public playerSpawnEvent_Log(Handle:event, const String:name[], bool:dontBroadcast)
 {
-    if (!logOptionEnabled(BITMASK_MEDIC_BUFF)) return;
-
     new userid = GetEventInt(event, "userid");
     new client = GetClientOfUserId(userid);
 
-    client_maxhealth[client] = GetClientHealth(client);
-    client_lasthealth[client] = client_maxhealth[client];
+    if (logOptionEnabled(BITMASK_MEDIC_BUFF))
+    {
+        client_maxhealth[client] = GetClientHealth(client);
+        client_lasthealth[client] = client_maxhealth[client];
+    }
+
+    if (IsFakeClient(client))
+        return;
+
+    decl String:player_name[MAX_NAME_LENGTH], String:auth[64], String:team[16], String:class[32];
+
+    if (!GetClientName(client, player_name, sizeof(player_name)))
+        return;
+
+    strcopy(auth, sizeof(auth), client_auth_cache[client]);
+
+    if (!TF2_GetClassName(TF2_GetPlayerClass(client), class, sizeof(class)))
+        return;
+
+    GetTeamName(GetEventInt(event, "team"), team, sizeof(team));
+
+    LogToGame("\"%s<%d><%s><%s>\" spawned as \"%s\"",
+            player_name,
+            userid,
+            auth,
+            team,
+            class
+        );
 }
 
 public Action:getMedicBuffs(Handle:timer, any:data)
@@ -969,7 +1006,9 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
                 strcopy(log_secret, sizeof(log_secret), tmp);
             }
 
-            ServerCommand("sv_logsecret %s; logaddress_add %s", log_secret, listener_address);
+            SetConVarString(livelogs_sv_logsecret_cache, log_secret);
+
+            ServerCommand("logaddress_add %s", listener_address);
             if (debug_enabled) { LogMessage("Added address %s to logaddress list", listener_address); }
 
             //start the buff timer check
@@ -1300,8 +1339,8 @@ LogOverHeal(patient_idx, amount)
     if (!GetClientName(healer_idx, healer_name, sizeof(healer_name))) return;
     if (!GetClientName(patient_idx, patient_name, sizeof(patient_name))) return;
 
-    strcopy(healer_auth, sizeof(healer_auth), client_index_cache[healer_idx]);
-    strcopy(patient_auth, sizeof(patient_auth), client_index_cache[patient_idx]);
+    strcopy(healer_auth, sizeof(healer_auth), client_auth_cache[healer_idx]);
+    strcopy(patient_auth, sizeof(patient_auth), client_auth_cache[patient_idx]);
 
     GetTeamName(GetClientTeam(healer_idx), healer_team, sizeof(healer_team));
     GetTeamName(GetClientTeam(patient_idx), patient_team, sizeof(patient_team));
@@ -1319,25 +1358,9 @@ LogOverHeal(patient_idx, amount)
         );
 }
 
-stock String:GetTFTeamName(index)
-{
-    //takes a GetClientTeam index, and returns a named team
-    decl String:team[16];
-    switch (index)
-    {
-        case 2:
-            strcopy(team, sizeof(team), "Red");
-        case 3:
-            strcopy(team, sizeof(team), "Blue");
-        default:
-            strcopy(team, sizeof(team), "unknown");
-    }
-
-    return team;
-}
-
 // Credit to F2 for this stock
-stock TF2_GetHealingTarget(client) {
+stock TF2_GetHealingTarget(client) 
+{
     new String:classname[64];
     new index = GetEntPropEnt(client, Prop_Send, "m_hActiveWeapon");
     if (index > 0) {
