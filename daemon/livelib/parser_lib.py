@@ -5,7 +5,7 @@ def re_compiler(preg):
 
 server_cvar_value = re_compiler(r'"([A-Za-z\_]+)" = "(.*?)"$')
 
-log_file_started = re_compiler(r'^L ([0-9\/]+) - ([0-9\:]+) Log file started \x28file "(.*?)"\x29$')
+log_file_started = re_compiler(r'^L ([0-9\/]+) - ([0-9\:]+) Log file started \x28file "(.*?)"\x29.*$')
 log_timestamp = re_compiler(r'^L ([0-9\/]+) - ([0-9\:]+):.*$')
 
 game_restart = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "LIVELOG_GAME_RESTART"$')
@@ -76,6 +76,7 @@ player_validated = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><>"
 player_entered_game = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><>" entered the game$')
 
 player_class_change = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" changed role to "(.*?)"$')
+player_spawn = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" spawned as "([A-Za-z]+)"$')
 
 #"b1z<19><STEAM_0:0:18186373><Red>" joined team "Blue"
 player_team_join = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue|Spectator|Unassigned)>" joined team "(Red|Blue|Spectator)"$')
