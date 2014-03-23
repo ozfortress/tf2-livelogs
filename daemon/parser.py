@@ -149,6 +149,8 @@ class parserClass(object):
             "red": False
         }
 
+        self._first_round_started = False
+
         self.create_log_file(unique_ident)
 
         self.logger.info("Parser initialised")
@@ -210,10 +212,20 @@ class parserClass(object):
                 
                 event_time = "%s %s" % (regml(res, 1), regml(res, 2))
 
-                self._last_event_time = "%s - %s" % (regml(res, 1), regml(res, 2))
+                # a tuple of the date, time event combination
+                self._last_event_times = (regml(res, 1), regml(res, 2))
             
             if not event_time:
                 return
+
+            # log start
+            # if we've already gotten a round_start message before this, ignore this message
+            if not self._first_round_started:
+                res = regex(parser_lib.game_start, logdata)
+                if res:
+                    # the game has just started, we have NOT gotten a Round_start message,
+                    # so we will add one to the log file
+                    self.write_to_log("L %s - %s: World triggered \"Round_Start\"" % self._last_event_times)
 
             #log restart, sent when a mp_restartgame is issued (need a new log file, so we end this one)
             res = regex(parser_lib.game_restart, logdata)
@@ -904,6 +916,12 @@ class parserClass(object):
                 #event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type) VALUES (E'%s', E'%s', '%s')" % (self.EVENT_TABLE, self.UNIQUE_IDENT, event_time, "round_start")
                 #self.execute_query(event_insert_query)
 
+                # we use this variable so we know if we've received a round_start before a LIVELOG_GAME_START
+                # it only needs to be set to True before LIVELOG_GAME_START and we'll know that we don't 
+                # need to add a Round_start message to the log file if we receive a LIVELOG_GAME_START
+                self._first_round_started = True
+
+                # end round pause, because new round
                 self.ROUND_PAUSE = False
                 
                 return
@@ -1225,7 +1243,7 @@ class parserClass(object):
         if self.LOG_FILE_HANDLE and not self.LOG_FILE_HANDLE.closed:
             # write a log file closed message, so we keep the same log file structure as the server does
             # this will help when users want to use other 3rd party log parsers with this log file
-            self.LOG_FILE_HANDLE.write("L %s: Log file closed" % (self._last_event_time,))
+            self.LOG_FILE_HANDLE.write("L %s - %s: Log file closed" % self._last_event_times)
 
             self.LOG_FILE_HANDLE.write("\n") #add a new line before EOF
 
