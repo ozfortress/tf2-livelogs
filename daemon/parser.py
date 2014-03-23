@@ -226,7 +226,9 @@ class parserClass(object):
                 if res:
                     # the game has just started, we have NOT gotten a Round_start message,
                     # so we will add one to the log file
-                    self.write_to_log("L %s - %s: World triggered \"Round_Start\"" % self._last_event_times)
+                    self.write_to_log("L %s - %s: World triggered \"Round_Start\"" % (regml(res, 1), regml(res, 2),))
+
+                    return
 
             #log restart, sent when a mp_restartgame is issued (need a new log file, so we end this one)
             res = regex(parser_lib.game_restart, logdata)
