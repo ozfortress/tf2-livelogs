@@ -269,10 +269,10 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
             return False
 
     def server_busy(self):
-        if len(self.listen_set) <= self.client_limit:
-            return False #server is capable of serving more clients
+        if len(self.listen_set) > self.client_limit:
+            return True #server is at the limit
         else:
-            return True #we're already serving the maximum, so we need to reject further connections
+            return False #we still have capacity
 
     def prepare_server(self):
         self.__open_dbpool()
@@ -310,7 +310,8 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         dict_key = "c" + ip + port
         if dict_key in self.clientDict:
             del self.clientDict[dict_key]
-            #self.logger.debug('Removed client %s:%s from client dict', ip, port)
+
+            self.logger.info("Client %s:%s has been removed", ip, port)
 
         return
 
@@ -327,12 +328,13 @@ class llDaemon(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
         #removes the object from the set
         if listener_object in self.listen_set:
             self.__daemon_lock.acquire() #lock so another thread doesn't add/remove at the same time
-            #self.logger.info("Listener object is in set. Removing")
             client_ip, client_server_port = listener_object.client_address
         
             self.remove_client(client_ip, client_server_port)
             
             self.listen_set.discard(listener_object)
+
+            self.logger.info("Listener object has been discarded")
 
             self.__daemon_lock.release()
         else:
