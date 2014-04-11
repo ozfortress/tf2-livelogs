@@ -623,22 +623,26 @@ class parserClass(object):
 
                 res = regex(parser_lib.building_destroyed_assist, logdata)
                 if res:
-
                     return
 
                 res = regex(parser_lib.player_extinguish, logdata)
                 if res:
-
                     return
 
                 res = regex(parser_lib.player_damage_weapon, logdata)
                 if res:
-
                     return
 
                 res = regex(parser_lib.player_jar_attack, logdata)
                 if res:
+                    return
 
+                res = regex(parser_lib.player_shot_fired, logdata)
+                if res:
+                    return
+
+                res = regex(parser_lib.item_healing, logdata)
+                if res:
                     return
 
             #end round_pause blocking
@@ -856,6 +860,9 @@ class parserClass(object):
                 sid = regml(res, 3)
                 team = regml(res, 4)
                 pclass = regml(res, 5).lower()
+
+                if pclass != "undefined" or team == "unknown":
+                    return
 
                 self.insert_player_team(sid, team)
 

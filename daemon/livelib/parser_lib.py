@@ -23,6 +23,8 @@ healing_done = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|B
 overhealing_done = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "overhealed" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" \x28overhealing "(\d+)"\x29$')
 
 item_pickup = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" picked up item "(.*?)"$')
+#L 04/12/2014 - 04:12:16: "playboater<3><STEAM_0:1:27952643><Blue>" picked up item "medkit_medium" (healing "88")
+item_healing = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" picked up item "(.*?)" \x28healing "(\d+)"\x29$')
 
 medic_death = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "medic_death" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" \x28healing "(.*?)"\x29 \x28ubercharge "(.*?)"\x29$')
 uber_used = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "chargedeployed"$')
@@ -73,6 +75,9 @@ player_extinguish = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(
 
 #"Colonel Turtle<41><STEAM_0:0:50524471><Blue>" triggered "milk_attack" against "BioxideÂ².nK,nC<37><STEAM_0:0:52924883><Red>" with "tf_weapon_jar" (attacker_position "456 -1028 299") (victim_position "733 -314 431")
 player_jar_attack = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "(.*?)" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" with "tf_weapon_jar" \x28attacker_position "(.*?)"\x29 \x28victim_position "(.*?)"\x29$')
+
+# L 04/12/2014 - 04:12:26: "playboater<3><STEAM_0:1:27952643><Blue>" triggered "shot_fired" (weapon "tf_projectile_pipe")
+player_shot_fired = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "shot_fired" \x28weapon "(.*?)"\x29$')
 
 player_disconnect = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(.*?)>" disconnected \x28reason "(.*?)"\x29$')
 player_connect = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><>" connected, address "(.*?):(.*?)"$')
