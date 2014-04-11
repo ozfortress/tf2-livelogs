@@ -73,7 +73,7 @@ player_assist = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|
 #"ph.tw|n<19><STEAM_0:0:39342123><Red>" triggered "player_extinguished" against "Mad<11><STEAM_0:0:41824190><Red>" with "tf_weapon_flamethrower" (attacker_position "-1504 -2949 -408") (victim_position "-1542 -2970 -408")
 player_extinguish = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "player_extinguished" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" with "(.*?)" \x28attacker_position "(.*?)"\x29 \x28victim_position "(.*?)"\x29$')
 
-#"Colonel Turtle<41><STEAM_0:0:50524471><Blue>" triggered "milk_attack" against "BioxideÂ².nK,nC<37><STEAM_0:0:52924883><Red>" with "tf_weapon_jar" (attacker_position "456 -1028 299") (victim_position "733 -314 431")
+#"Colonel Turtle<41><STEAM_0:0:50524471><Blue>" triggered "milk_attack" against "Bioxide.nK,nC<37><STEAM_0:0:52924883><Red>" with "tf_weapon_jar" (attacker_position "456 -1028 299") (victim_position "733 -314 431")
 player_jar_attack = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "(.*?)" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" with "tf_weapon_jar" \x28attacker_position "(.*?)"\x29 \x28victim_position "(.*?)"\x29$')
 
 # L 04/12/2014 - 04:12:26: "playboater<3><STEAM_0:1:27952643><Blue>" triggered "shot_fired" (weapon "tf_projectile_pipe")
