@@ -48,6 +48,7 @@ building_created = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(R
 
 #"Cinderella:wu<5><STEAM_0:1:18947653><Blue>" triggered "damage" against "jmh<19><STEAM_0:1:101867><Red>" (damage "56")
 player_damage = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "damage" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" \x28damage "(\d+)"\x29$')
+player_damage_weapon = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "damage" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" \x28damage "(\d+)"\x29 \x28weapon "(\d+)"\x29$')
 
 # L 10/01/2012 - 21:43:10: "[v3] Roight<53><STEAM_0:0:8283620><Red>" triggered "domination" against "Liquid'zato<46><STEAM_0:0:42607036><Blue>"
 # L 10/01/2012 - 22:04:57: "Liquid'Iyvn<40><STEAM_0:1:41931908><Blue>" triggered "domination" against "[v3] Kaki<51><STEAM_0:1:35387674><Red>" (assist "1")
@@ -70,7 +71,10 @@ player_assist = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|
 #"ph.tw|n<19><STEAM_0:0:39342123><Red>" triggered "player_extinguished" against "Mad<11><STEAM_0:0:41824190><Red>" with "tf_weapon_flamethrower" (attacker_position "-1504 -2949 -408") (victim_position "-1542 -2970 -408")
 player_extinguish = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "player_extinguished" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" with "(.*?)" \x28attacker_position "(.*?)"\x29 \x28victim_position "(.*?)"\x29$')
 
-player_disconnect = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue|Spectator)>" disconnected \x28reason "(.*?)"\x29$')
+#"Colonel Turtle<41><STEAM_0:0:50524471><Blue>" triggered "milk_attack" against "BioxideÂ².nK,nC<37><STEAM_0:0:52924883><Red>" with "tf_weapon_jar" (attacker_position "456 -1028 299") (victim_position "733 -314 431")
+player_jar_attack = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "(.*?)" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" with "tf_weapon_jar" \x28attacker_position "(.*?)"\x29 \x28victim_position "(.*?)"\x29$')
+
+player_disconnect = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(.*?)>" disconnected \x28reason "(.*?)"\x29$')
 player_connect = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><>" connected, address "(.*?):(.*?)"$')
 player_validated = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><>" STEAM USERID validated$')
 
@@ -91,10 +95,14 @@ round_win = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Round_Win" \x
 round_overtime = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Round_Overtime"$')
 round_length = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Round_length" \x28seconds "(\d+)\.(\d+)"\x29$')
 round_start = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Round_Start"$')
+round_setup_start = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Round_Setup_Begin$"')
 round_setup_end = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Round_Setup_End"$')
 
-mini_round_win = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Mini_Round_Win" \x28winner "(Blue|Red)"\x29 \x28round "round_(\d+)"\x29$')
+#L 04/11/2014 - 18:45:48: World triggered "Mini_Round_Win" (winner "Blue") (round "round_a")
+mini_round_win = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Mini_Round_Win" \x28winner "(Blue|Red)"\x29 \x28round "(.*?)"\x29$')
 mini_round_length = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Mini_Round_Length" \x28seconds "(\d+.\d+)"\x29$')
+mini_round_selected = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Mini_Round_Selected" \x28round "(.*?)"\x29$')
+mini_round_start = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Mini_Round_Start"$')
 
 #L 03/07/2013 - 18:00:26: Loading map "cp_granary"
 #L 03/07/2013 - 18:00:27: Started map "cp_granary" (CRC "4f34345d09eff7fc96af9a421e81a4b8")

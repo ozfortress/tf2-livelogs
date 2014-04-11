@@ -630,6 +630,16 @@ class parserClass(object):
 
                     return
 
+                res = regex(parser_lib.player_damage_weapon, logdata)
+                if res:
+
+                    return
+
+                res = regex(parser_lib.player_jar_attack, logdata)
+                if res:
+
+                    return
+
             #end round_pause blocking
             
             #chat
@@ -957,6 +967,15 @@ class parserClass(object):
                 #pprint(res.groups())
 
                 return
+
+            res = regex(parser_lib.mini_round_start, logdata)
+            if res:
+                return
+
+            res = regex(parser_lib.mini_round_selected, logdata)
+            if res:
+                return
+
 
             res = regex(parser_lib.map_change, logdata)
             if res:
