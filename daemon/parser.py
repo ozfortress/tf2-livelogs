@@ -150,6 +150,7 @@ class parserClass(object):
         }
 
         self._first_round_started = False
+        self._last_event_times = None
 
         self.create_log_file(unique_ident)
 
@@ -1270,7 +1271,8 @@ class parserClass(object):
         if self.LOG_FILE_HANDLE and not self.LOG_FILE_HANDLE.closed:
             # write a log file closed message, so we keep the same log file structure as the server does
             # this will help when users want to use other 3rd party log parsers with this log file
-            self.LOG_FILE_HANDLE.write("L %s - %s: Log file closed\n" % self._last_event_times)
+            if self._last_event_times:
+                self.LOG_FILE_HANDLE.write("L %s - %s: Log file closed\n" % self._last_event_times)
 
             self.LOG_FILE_HANDLE.write("\n") #add a new line before EOF
 
