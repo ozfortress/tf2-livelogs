@@ -86,7 +86,7 @@ class llListener(SocketServer.UDPServer):
     
     def handle_server_timeout(self, game_over=False):
         if game_over:
-            self.logger.info("Game over. Closing listening socket")
+            self.logger.info("Game over")
             
             self._ended = True #flag log as ended for the cleanup method
             

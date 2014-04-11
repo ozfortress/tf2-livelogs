@@ -599,7 +599,7 @@ def cleanup_daemon(server_obj):
     for listenobj in server_obj.listen_set.copy():
         logging.info("Ending log with ident %s", listenobj.unique_parser_ident)
 
-        if not listenobj.listener.parser.LOG_PARSING_ENDED:
+        if not listenobj.listener._ended:
             listenobj.listener.parser.endLogParsing(shutdown=True)
             listenobj.listener.shutdown_listener()
             
