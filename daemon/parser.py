@@ -1241,44 +1241,48 @@ class parserClass(object):
 
     def endLogParsing(self, game_over=False, shutdown=False):
         self.__end_log_lock.acquire() #lock end log parsing, so it cannot be done by multiple threads at once
+        
+        try:
+            if not self.LOG_PARSING_ENDED:
+                self.logger.info("Ending log parsing")
+                self.LOG_PARSING_ENDED = True
 
-        if not self.LOG_PARSING_ENDED:
-            self.logger.info("Ending log parsing")
-            self.LOG_PARSING_ENDED = True
+                if not self.HAD_ERROR:
+                    if (len(self._players) < 2) or (self.__time_elapsed() < 60):
+                        """
+                        If the player dict length is < 2 (i.e, less than 2 players in the server) or there has been less than 60 seconds elapsed,
+                        this log is considered invalid and is to be deleted
+                        """
+                        end_query = "DELETE FROM %(index)s WHERE log_ident = '%(logid)s'; DELETE FROM %(stable)s WHERE log_ident = '%(logid)s'; DELETE FROM %(ptable)s WHERE log_ident = '%(logid)s'" % {
+                                "index": self.INDEX_TABLE,
+                                "stable": self.STAT_TABLE,
+                                "ptable": self.PLAYER_TABLE,
+                                "logid": self.UNIQUE_IDENT
+                            }
+                            
+                        if shutdown:
+                            self.execute_query(end_query, use_queue=False) #skip the queue for the end query, because we are shutting down
+                        else:
+                            self.execute_query(end_query, queue_priority = queryqueue.HIPRIO) #want this log deleted ASAP!
 
-            if not self.HAD_ERROR:
-                if (len(self._players) < 2) or (self.__time_elapsed() < 60):
-                    """
-                    If the player dict length is < 2 (i.e, less than 2 players in the server) or there has been less than 60 seconds elapsed,
-                    this log is considered invalid and is to be deleted
-                    """
-                    end_query = "DELETE FROM %(index)s WHERE log_ident = '%(logid)s'; DELETE FROM %(stable)s WHERE log_ident = '%(logid)s'; DELETE FROM %(ptable)s WHERE log_ident = '%(logid)s'" % {
-                            "index": self.INDEX_TABLE,
-                            "stable": self.STAT_TABLE,
-                            "ptable": self.PLAYER_TABLE,
-                            "logid": self.UNIQUE_IDENT
-                        }
-                        
-                    if shutdown:
-                        self.execute_query(end_query, use_queue=False) #skip the queue for the end query, because we are shutting down
+                        self.logger.info("No data in this log. Tables have been deleted")
+
                     else:
-                        self.execute_query(end_query, queue_priority = queryqueue.HIPRIO) #want this log deleted ASAP!
+                        #sets live to false
+                        live_end_query = "UPDATE %s SET live = false WHERE log_ident = E'%s'" % (self.INDEX_TABLE, self.UNIQUE_IDENT)
 
-                    self.logger.info("No data in this log. Tables have been deleted")
+                        if shutdown:
+                            self.execute_query(live_end_query, use_queue=False) #skip the queue
+                        else:
+                            self.execute_query(live_end_query, queue_priority = queryqueue.NMPRIO)
+                    
+                    self._close_log_file()
 
-                else:
-                    #sets live to false
-                    live_end_query = "UPDATE %s SET live = false WHERE log_ident = E'%s'" % (self.INDEX_TABLE, self.UNIQUE_IDENT)
+                    if self.closeListenerCallback is not None and game_over:
+                        self.closeListenerCallback(game_over)
 
-                    if shutdown:
-                        self.execute_query(live_end_query, use_queue=False) #skip the queue
-                    else:
-                        self.execute_query(live_end_query, queue_priority = queryqueue.NMPRIO)
-                
-                self._close_log_file()
-
-                if self.closeListenerCallback is not None and game_over:
-                    self.closeListenerCallback(game_over)
+        except:
+            self.logger.exception("Exception ending log")
 
         self.__end_log_lock.release()
 
