@@ -1146,7 +1146,7 @@ class parserClass(object):
         cid = parser_lib.get_cid(sid)
         if cid == "BOT":
             return
-            
+
         for pclass in self._weapon_data:
             if weapon in self._weapon_data[pclass]: #player's weapon matches this classes' weapon data
                 if self._players[cid].current_class() != pclass:

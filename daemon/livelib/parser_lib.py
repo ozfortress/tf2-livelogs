@@ -27,7 +27,9 @@ item_pickup = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Bl
 item_healing = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" picked up item "(.*?)" \x28healing "(\d+)"\x29$')
 
 medic_death = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "medic_death" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" \x28healing "(.*?)"\x29 \x28ubercharge "(.*?)"\x29$')
-uber_used = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "chargedeployed"$')
+uber_used = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "chargedeployed"(\s?\x28medigun "(.*?)"\x29)?$')
+#"Slamm<13><STEAM_0:0:5390368><Blue>" triggered "chargedeployed" (medigun "medigun")
+#uber_used_ex = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "chargedeployed" \x28medigun "(.*?)"\x29$')
 
 chat_message = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue|Spectator|Console)>" (say|say_team) "(.+)"$')
 
