@@ -1008,6 +1008,8 @@ class parserClass(object):
             return
 
         cid = parser_lib.get_cid(steamid) #convert steamid to community id
+        if cid == "BOT":
+            return
 
         name = name[:30] #max length of 30 characters for names        
         self.add_player(cid, name = name) #get this guy a player_data object!
@@ -1028,6 +1030,9 @@ class parserClass(object):
     def insert_player_team(self, a_sid, a_team):
         a_team = a_team.lower() #make sure the team is lowercase
         a_cid = parser_lib.get_cid(a_sid)
+
+        if a_cid == "BOT":
+            return
 
         if self.add_player(a_cid, team = a_team):
             # new player. we should insert him into the database
@@ -1056,6 +1061,9 @@ class parserClass(object):
     # current class
     def insert_player_class(self, sid, pclass):
         cid = parser_lib.get_cid(sid)
+
+        if cid == "BOT":
+            return
         
         if cid in self._players:
             pdata = self._players[cid]
@@ -1096,6 +1104,9 @@ class parserClass(object):
     # current log ident. If the name is different from the previous
     # known name, it will be updated.
     def insert_player_details(self, cid, name):
+        if cid == "BOT":
+            return
+
         if name:
             details_query = None
 
@@ -1116,6 +1127,9 @@ class parserClass(object):
                 self.execute_query(details_query, queue_priority = queryqueue.HIPRIO)
 
     def add_player(self, cid, pclass=None, name=None, team=None):
+        if cid == "BOT":
+            return
+
         if cid not in self._players:
             self._players[cid] = parser_lib.PlayerData(pclass, name, team)
             
@@ -1130,6 +1144,9 @@ class parserClass(object):
         #print "checking weapon %s" % weapon
 
         cid = parser_lib.get_cid(sid)
+        if cid == "BOT":
+            return
+            
         for pclass in self._weapon_data:
             if weapon in self._weapon_data[pclass]: #player's weapon matches this classes' weapon data
                 if self._players[cid].current_class() != pclass:
