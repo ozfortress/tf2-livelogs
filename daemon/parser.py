@@ -502,7 +502,7 @@ class parserClass(object):
 
                     # only go into the queue if uber is lost. fuck yea optimisation!
                     if m_uberlost > 0:
-                        self.stat_upsert(self.STAT_TABLE, "ubers_lost", m_sid, m_name, m_uberlost) #may increment, or may do nothing (uberlost = 0 or 1)
+                        self.stat_upsert(self.STAT_TABLE, "ubers_lost", m_sid, m_name, m_uberlost)
             
                     #put medic_death info into event table
                     event_insert_query = "INSERT INTO %s (log_ident, event_time, event_type, medic_steamid, medic_uber_lost, medic_healing) VALUES (E'%s', E'%s', '%s', E'%s', '%s', '%s')" % (self.MEDIC_EVENT_TABLE, 
@@ -1215,6 +1215,13 @@ class parserClass(object):
         self._master_query_queue.add_query(query_a, query_b, priority) 
 
 
+    def all_users_are_bots(self):
+        if self.__time_elapsed() > 300 and len(self._players) == 0:
+            return True
+
+        else:
+            return False
+
     def endLogParsing(self, game_over=False, shutdown=False):
         self.__end_log_lock.acquire() #lock end log parsing, so it cannot be done by multiple threads at once
 
@@ -1259,33 +1266,41 @@ class parserClass(object):
         self.__end_log_lock.release()
 
     def write_to_log(self, data):
-        self.__get_file_lock()
-        if self.LOG_FILE_HANDLE and not self.LOG_FILE_HANDLE.closed:
-            self.LOG_FILE_HANDLE.write(data)
+        try:
+            self.__get_file_lock()
+            if self.LOG_FILE_HANDLE and not self.LOG_FILE_HANDLE.closed:
+                self.LOG_FILE_HANDLE.write(data)
 
-            self._log_file_writes += 1
+                self._log_file_writes += 1
 
-            if (self._log_file_writes % 200) == 0:
-                #force a flush to disk every 200 writes, to reduce buffer usage
-                self.LOG_FILE_HANDLE.flush()
-                os.fsync(self.LOG_FILE_HANDLE.fileno())
-
-        self.__release_file_lock()
+                if (self._log_file_writes % 200) == 0:
+                    #force a flush to disk every 200 writes, to reduce buffer usage
+                    self.LOG_FILE_HANDLE.flush()
+                    os.fsync(self.LOG_FILE_HANDLE.fileno())
+        except:
+            self.logger.exception("Exception writing to log file")
+        finally:
+            self.__release_file_lock()
 
     def _close_log_file(self):
-        self.__get_file_lock()
+        try:
+            self.__get_file_lock()
 
-        if self.LOG_FILE_HANDLE and not self.LOG_FILE_HANDLE.closed:
-            # write a log file closed message, so we keep the same log file structure as the server does
-            # this will help when users want to use other 3rd party log parsers with this log file
-            if self._last_event_times:
-                self.LOG_FILE_HANDLE.write("L %s - %s: Log file closed\n" % self._last_event_times)
+            if self.LOG_FILE_HANDLE and not self.LOG_FILE_HANDLE.closed:
+                # write a log file closed message, so we keep the same log file structure as the server does
+                # this will help when users want to use other 3rd party log parsers with this log file
+                if self._last_event_times:
+                    self.LOG_FILE_HANDLE.write("L %s - %s: Log file closed\n" % self._last_event_times)
 
-            self.LOG_FILE_HANDLE.write("\n") #add a new line before EOF
+                self.LOG_FILE_HANDLE.write("\n") #add a new line before EOF
 
             self.LOG_FILE_HANDLE.close()
+                
+        except:
+            self.logger.exception("Exception closing the log file")
 
-        self.__release_file_lock()
+        finally:
+            self.__release_file_lock()
 
     def __cleanup(self, conn=None, cursor=None):
         #for cleaning up after init error

@@ -108,6 +108,10 @@ class llListener(SocketServer.UDPServer):
     def timed_out(self, current_time):
         if (current_time - self._last_message_time) > float(self._timeout): #difference between current time and last message is > the time out. therefore, the listener has timed out
             return True
+
+        elif self.parser.all_users_are_bots(): # this log is filled with only bots. end it
+            return True
+
         else:
             return False
 
