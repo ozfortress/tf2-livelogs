@@ -1,5 +1,11 @@
 <?php
+
+    /** The entry method for the API
+     * At some point, convert this to be a dispatcher. For now, it's small enough
+     * that I don't care.
+     */
     require "../../conf/ll_database.php";
+    require "../../conf/ll_config.php";
 
     if (!isset($_GET["key"]))
     {
@@ -32,7 +38,7 @@
             $output["result"] = 1;
             $output["idents"] = array();
 
-            $live_query = "SELECT log_ident FROM livelogs_log_index WHERE live='true'";
+            $live_query = "SELECT log_ident FROM {$ll_config["tables"]["log_index"]} WHERE live='true'";
             $live_res = pg_query($ll_db, $live_query);
 
             if ($live_res)
@@ -58,7 +64,7 @@
             // support the selection of only stats from this API key
             if (isset($_GET["key_only"]))
             {
-                $filter .= " AND log_ident IN (SELECT log_ident FROM livelogs_log_index WHERE api_key = '{$escaped_key}')";
+                $filter .= " AND log_ident IN (SELECT log_ident FROM {$ll_config["tables"]["log_index"]} WHERE api_key = '{$escaped_key}')";
             }
 
             $query = "SELECT steamid,
@@ -67,7 +73,7 @@
                          SUM(healing_done) as healing_done, SUM(overhealing_done) as overhealing_done,
                          SUM(damage_dealt) as damage_dealt,
                          COUNT(DISTINCT log_ident) as numplayed
-                      FROM livelogs_player_stats
+                      FROM {$ll_config["tables"]["player_stats"]}
                       {$filter}
                       GROUP BY steamid";
 
@@ -84,6 +90,49 @@
                 }
 
             }
+        }
+        else if ($action === "get_player_logs")
+        {
+            $output["result"] = 1;
+            $output["logs"] = array();
+
+            $steamids = isset($_GET["steamids"]) ? $_GET["steamids"] : "";
+
+            $sidarray = explode(",", $steamids);
+            $escaped_ids = to_pg_list($sidarray);
+
+            $filter = "steamid IN {$escaped_ids}";
+
+            // support the selection of only stats from this API key
+            if (isset($_GET["key_only"]))
+            {
+                $filter .= " AND log_ident IN (SELECT log_ident FROM {$ll_config["tables"]["log_index"]} WHERE api_key = '{$escaped_key}')";
+            }
+
+            $query = "SELECT {$ll_config["tables"]["log_index"]}.log_ident, {$ll_config["tables"]["player_details"]}.steamid,
+                        numeric_id, log_name, map, live, tstamp
+                      FROM {$ll_config["tables"]["log_index"]} JOIN {$ll_config["tables"]["player_details"]} 
+                        ON {$ll_config["tables"]["log_index"]}.log_ident = {$ll_config["tables"]["player_details"]}.log_ident
+                      {$filter}";
+
+            $result = pg_query($ll_db, $query);
+
+            if ($result)
+            {
+                while ($row = pg_fetch_array($result, NULL, PGSQL_ASSOC))
+                {
+                    $steamid = $row["steamid"];
+                    if (empty($output["logs"][$steamid]))
+                    {
+                        $output["logs"][$steamid] = array();
+                    }
+
+                    unset($row["steamid"]);
+
+                    $output["logs"][$steamid][] = $row;
+                }
+            }
+
         }
         else
         {
