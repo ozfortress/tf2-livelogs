@@ -101,7 +101,7 @@
             $sidarray = explode(",", $steamids);
             $escaped_ids = to_pg_list($sidarray);
 
-            $filter = "steamid IN {$escaped_ids}";
+            $filter = "WHERE steamid IN {$escaped_ids}";
 
             // support the selection of only stats from this API key
             if (isset($_GET["key_only"]))
