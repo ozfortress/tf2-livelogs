@@ -8,7 +8,6 @@ except ImportError:
 
 import time
 import struct
-import socket
 import re
 import os
 import threading
