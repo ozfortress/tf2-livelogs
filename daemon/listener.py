@@ -20,6 +20,7 @@ class llListenerHandler(SocketServer.BaseRequestHandler):
         #strip leading log information, so logs are written just like a server log
         #we do this by tokenising, getting all tokens after first token and rejoining
 
+        # could also use data.split(" ", 1)[1] here
         data = "L" + data[data.find(" "):]
 
         if self.server.parser and not self.server.parser.HAD_ERROR:
@@ -60,7 +61,7 @@ class llListener(SocketServer.UDPServer):
             #S23BOB1234L 06/13/2013 - 18:45:22:
             #first token is S<KEY>L
 
-            secret = data.split(" ")[0][1:-1] #get the first token, but only the data between S and L
+            secret = data[1:data.find(" ")-1] #get the first token, but only the data between S and L
 
             if secret == self.client_secret: #secret key matches the client's desired secret
                 self._using_secret = True
