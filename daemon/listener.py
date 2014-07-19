@@ -20,7 +20,7 @@ class llListenerHandler(SocketServer.BaseRequestHandler):
         #strip leading log information, so logs are written just like a server log
         #we do this by tokenising, getting all tokens after first token and rejoining
 
-        data = "L " + " ".join(data.split(" ")[1:])
+        data = "L" + data[data.find(" "):]
 
         if self.server.parser and not self.server.parser.HAD_ERROR:
             self.server.parser.parse(data)
