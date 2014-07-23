@@ -543,9 +543,8 @@ if __name__ == "__main__":
         
     llWebSocketServer.db = momoko.Pool(
             dsn = db_details,
-            minconn = 2, #minimum number of connections for the momoko pool to maintain
-            maxconn = 6, #max number of conns that will be opened
-            cleanup_timeout = 5, #how often (in seconds) connections are closed (cleaned up) when number of connections > minconn
+            size = 2, #minimum number of connections for the momoko pool to maintain
+            max_size = 6, #max number of conns that will be opened
         )
     
     llWebSocketServer.listen(tornado.options.options.port, tornado.options.options.ip)
