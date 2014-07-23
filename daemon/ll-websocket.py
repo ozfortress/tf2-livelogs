@@ -49,10 +49,6 @@ class llWSApplication(tornado.web.Application):
             (r"/logupdate", logUpdateHandler),
             (r"/webrelay", webtvRelayHandler),
         ]
-        
-        settings = {
-            "cookie_secret": "12345"
-        }
 
         self.logger = logging.getLogger("WS APP")
         self.logger.setLevel(logging.DEBUG)
