@@ -9,13 +9,17 @@ try:
     import tornado.web
     import tornado.ioloop
     import tornado.escape
-    from tornado import gen
 except ImportError:
     print """You are missing tornado. 
     Install tornado using `pip install tornado`, or visit http://www.tornadoweb.org/
     """
     quit()
     
+try:
+    from urllib.parse import urlparse # py2
+except ImportError:
+    from urlparse import urlparse # py3
+
 import logging
 import logging.handlers
 import time
@@ -428,6 +432,18 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         
         tornado.websocket.WebSocketHandler.__init__(self, application, request, **kwargs)
     
+    def check_origin(self, origin):
+        # check the origin of the request. it should either be from the same
+        # host as this server, or livelogs.ozfortress.com
+        parsed_origin = urlparse(origin)
+        origin = parsed_origin.netloc
+
+        origin = origin.lower()
+
+        host = self.request.headers.get("Host")
+
+        return host == origin or origin == "livelogs.ozfortress.com"
+
     def open(self):
         #client connects
         #inherits object "request" (which is a HTTPRequest object defined in tornado.httpserver) from tornado.web.RequestHandler
