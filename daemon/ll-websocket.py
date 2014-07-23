@@ -50,6 +50,8 @@ class llWSApplication(tornado.web.Application):
             (r"/webrelay", webtvRelayHandler),
         ]
 
+        settings = {}
+
         self.logger = logging.getLogger("WS APP")
         self.logger.setLevel(logging.DEBUG)
         self.logger.addHandler(log_file_handler)
