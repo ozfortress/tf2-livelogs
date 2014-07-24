@@ -12,18 +12,18 @@ server {
     rewrite ^/player/([0-9]+)$ /player.php?id=$1;
     rewrite ^/leaders$ /leaderboard.php;
     rewrite ^/leaders/(.*)$ /leaderboard.php;
+    rewrite ^/api/(.*)$ /api/main.php$1;
 
     location /plugindata/ {
         autoindex on;
     }
 
     location ~ ^/download/(.*)$ {
-        default_type text/plain;
-        add_header Content-Disposition "attachment; filename=$1.log";
-        alias /var/www/livelogs/logs/$1.log;
+        add_header Content-Disposition "attachment; filename=$1.log.gz";
+        alias /data/livelogs/logs/$1.log.gz;
     }
 
-    location ~ ^/(index|showlog|pastlogs|player|leaderboard|func/logsearch|func/leaderboard_paging|func/paging_data)\.php$ {
+    location ~ ^/(index|showlog|pastlogs|player|leaderboard|func/logsearch|func/leaderboard_paging|func/paging_data|api/main)\.php$ {
         try_files $uri =404;
         fastcgi_split_path_info ^(.+\.php)(/.+)$;
         fastcgi_pass 127.0.0.1:9000;
@@ -34,4 +34,7 @@ server {
     location /conf {
         deny all;
     }
+
+    error_log /var/log/nginx/livelogs_error.log;
+    access_log /var/log/nginx/livelogs_access.log;
 }
