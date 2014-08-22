@@ -273,30 +273,41 @@ def selectItemName(item_name):
         return None
 
 def get_cid(steam_id):
-    #takes a steamid in the format STEAM_x:x:xxxxx and converts it to a 64bit community id
+    # takes a steamid in the format STEAM_x:x:xxxxx or [U:1:xxxx] and converts
+    # it to a 64bit community id
 
-    # if the ID is a bot, return "BOT" in binary
     if steam_id == "BOT":
         return steam_id
 
-    auth_server = 0
-    auth_id = 0
-    
-    steam_id_tok = steam_id.split(':')
+    cm_modifier = 76561197960265728
+    account_id = 0
 
-    community_id = 0
-
-    if len(steam_id_tok) == 3:
-        auth_server = int(steam_id_tok[1])
-        auth_id = int(steam_id_tok[2])
+    # support oldage STEAM_0:A:B user SteamIDs (TF2 now uses [U:1:2*B+A])
+    if "STEAM_" in steam_id:
+        auth_server = 0
+        auth_id = 0
         
-        community_id = auth_id * 2 #multiply auth id by 2
-        community_id += 76561197960265728 #add arbitrary number chosen by valve
-        community_id += auth_server #add the auth server. even ids are on server 0, odds on server 1
+        steam_id_tok = steam_id.split(':')
 
+        if len(steam_id_tok) == 3:
+            auth_server = int(steam_id_tok[1])
+            auth_id = int(steam_id_tok[2])
+            
+            account_id = auth_id * 2 #multiply auth id by 2
+            account_id += auth_server #add the auth server. even ids are on server 0, odds on server 1
 
-    if community_id == 0:
-        raise ParserException("Invalid SteamID: '%s' gives CID '%d'" % (steam_id, community_id,))
+    else:
+        # steamid is [U:1:####]. All we need to do is get the #### out and add
+        # the 64bit 76561197960265728
+        account_id = re.sub(r'(\[U:1:)|(\])', "", steam_id))
+        if bool(account_id):
+            account_id = int(account_id)
+        
+    if not bool(account_id):
+        raise ParserException("Invalid SteamID: '%s' gives AccountID '%d'" % (steam_id, account_id))
+
+    # Have non-zero account id. Add the community ID modifier
+    community_id = account_id + cm_modifier #add arbitrary number chosen by valve
 
     return community_id
 
