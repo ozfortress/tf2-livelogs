@@ -37,7 +37,7 @@ var log_search = log_search || (function() {
                 "sPaginationType": "bootstrap",
                 "bLengthChange": false,
                 "iDisplayLength": display_length,
-                "bProcessing": false,
+                "bProcessing": true,
                 "bServerSide": true,
                 "sAjaxSource": "/func/logsearch.php",
                 "fnServerData": log_search.datatables_pipeline

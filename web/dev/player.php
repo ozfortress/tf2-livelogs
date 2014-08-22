@@ -157,7 +157,7 @@
 
         <div class="details_container">
             <span class="log_detail_id">Name:</span> <span><a href="<?=get_community_url($community_id)?>"><?=strip_string($player_name)?></a></span> <br>
-            <span class="log_detail_id">Steam ID:</span> <span><?=big_int_to_steamid($community_id)?></span> <br>
+            <span class="log_detail_id">Steam ID:</span> <span><?=big_int_to_steamid($community_id)?>/<?=big_int_to_accountid($community_id)?></span> <br>
         </div>
 
         <div class="stat_table_container">

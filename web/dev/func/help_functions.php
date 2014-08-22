@@ -19,6 +19,13 @@
         return $steamid;
     }
 
+    function big_int_to_accountid($cid) {
+        $aid = (int)$cid - 76561197960265728;
+        $accountid = sprintf("[U:1:%d]", $aid);
+
+        return $accountid;
+    }
+
     function player_classes($class_string)
     {
         //Gets passed a string of player classes. Must return a string of imgs wrt to the classes
