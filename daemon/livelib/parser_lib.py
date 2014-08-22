@@ -299,7 +299,7 @@ def get_cid(steam_id):
     else:
         # steamid is [U:1:####]. All we need to do is get the #### out and add
         # the 64bit 76561197960265728
-        account_id = re.sub(r'(\[U:1:)|(\])', "", steam_id))
+        account_id = re.sub(r'(\[U:1:)|(\])', "", steam_id)
         if bool(account_id):
             account_id = int(account_id)
         
