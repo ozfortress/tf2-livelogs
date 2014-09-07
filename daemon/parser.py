@@ -192,7 +192,8 @@ class parserClass(object):
         try:
             event_time = None
 
-            self.write_to_log(logdata + "\n")
+            if not "rcon" in logdata:
+                self.write_to_log(logdata + "\n")
 
             #log file start
             #RL 10/07/2012 - 01:13:34: Log file started (file "logs_pug/L1007104.log") (game "/games/tf2_pug/orangebox/tf") (version "5072")
