@@ -655,7 +655,7 @@ class parserClass(object):
                 #pprint(res.groups())
 
                 c_sid = regml(res, 3)
-                if c_sid == "Console":
+                if c_sid == "Console" or c_sid == "0":
                     c_sid = "STEAM_0:0:0"
 
                 c_sid = parser_lib.get_cid(c_sid) #get community id of steamid

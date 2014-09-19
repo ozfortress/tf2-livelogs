@@ -276,7 +276,7 @@ def get_cid(steam_id):
     # takes a steamid in the format STEAM_x:x:xxxxx or [U:1:xxxx] and converts
     # it to a 64bit community id
 
-    if steam_id == "BOT":
+    if steam_id == "BOT" or steam_id == "0":
         return steam_id
 
     cm_modifier = 76561197960265728
@@ -296,13 +296,15 @@ def get_cid(steam_id):
             account_id = auth_id * 2 #multiply auth id by 2
             account_id += auth_server #add the auth server. even ids are on server 0, odds on server 1
 
-    else:
+    elif "[U:1:" in steam_id:
         # steamid is [U:1:####]. All we need to do is get the #### out and add
         # the 64bit 76561197960265728
         account_id = re.sub(r'(\[U:1:)|(\])', "", steam_id)
         if bool(account_id):
             account_id = int(account_id)
-        
+    else:
+        raise ParserException("Invalid SteamID: '%s'" % steam_id)    
+
     if not bool(account_id):
         raise ParserException("Invalid SteamID: '%s' gives AccountID '%d'" % (steam_id, account_id))
 
