@@ -1,6 +1,8 @@
 L 10/01/2012 - 21:38:17: Log file started (file "logs/27025/L1001005.log") (game "/home/steam/srcds/orangebox/tf") (version "5072")
 L 10/01/2012 - 21:38:18: "Liquid'zato<46><STEAM_0:0:42607036><Blue>" say "glhf"
 L 10/01/2012 - 21:38:22: "[v3] Jak<49><STEAM_0:0:18518582><Red>" say "glhf"
+L 10/01/2012 - 21:38:22: "Cinderella:wu<5><STEAM_0:1:18947653><Blue>" triggered "damage" against "jmh<19><STEAM_0:1:101867><Red>" (damage "56") (realdamage "2") (weapon "test") (healing "2") (crit "mini") (airshot "1") (headshot "1")
+L 10/01/2012 - 21:38:22: "Cinderella:wu<5><STEAM_0:1:18947653><Blue>" triggered "damage" against "jmh<19><STEAM_0:1:101867><Red>" (damage "56") (realdamage "20") (weapon "test") (airshot "1")
 L 10/01/2012 - 21:38:26: "Liquid'Time<41><STEAM_0:1:19238234><Blue>" say "gl hf"
 L 10/01/2012 - 21:38:27: "[v3] taintedromance<52><STEAM_0:0:41933053><Red>" triggered "healed" against "[v3] Chrome<48><STEAM_0:1:41365809><Red>" (healing "19")
 L 10/01/2012 - 21:38:29: "Liquid'Iyvn<40><STEAM_0:1:41931908><Blue>" triggered "healed" against "Liquid'Shneaky<45><STEAM_0:0:25721066><Blue>" (healing "27")

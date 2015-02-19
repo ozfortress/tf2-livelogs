@@ -17,7 +17,7 @@ class testclient(object):
 
         try:
             #client.connect(('119.15.97.230', 61222))
-            client.connect(('192.168.35.128', 61222))
+            client.connect(('192.168.101.128', 61222))
         except:
             client.close()
             return
@@ -44,7 +44,7 @@ class testclient(object):
 
                 #client.send('L 10/01/2012 - 21:38:34: "Liquid\'zato<46><STEAM_0:0:42607036><Blue>" killed "[v3] Faithless<47><STEAM_0:0:52150090><Red>" with "tf_projectile_rocket" (attacker_position "-1158 -194 295") (victim_position "-1200 197 308")')
 
-                log_file = open(r'E:\Git\livelogs\test\test_log.log')
+                log_file = open(r'test_log.log')
 
                 x = 0
 
@@ -85,7 +85,7 @@ class testclient(object):
 def do_threads():
     clients = set()
 
-    for i in range(0, 100):
+    for i in range(0, 1):
         portno = 20000 + i
 
         client = testclient()
