@@ -80,7 +80,7 @@ new String:listener_address[128];
 new String:log_unique_ident[128];
 new String:client_auth_cache[MAXPLAYERS+1][64];
 
-new log_additional_stats = 0;
+new log_additional_stats;
 new server_port;
 
 // required for recording medic buffing
@@ -141,12 +141,12 @@ public OnPluginStart()
     HookEvent("teamplay_game_over", gameOverEvent); //mp_maxrounds, mp_timelimit, mp_winlimit
 
     //Hook events for additional statistic display
-    //HookEvent("item_pickup", itemPickupEvent); //item is picked up
-    //HookEvent("player_hurt", playerHurtEvent); //player is hurt
-    //HookEvent("player_healed", playerHealEvent); //player receives healing, from dispenser or medic
+    HookEvent("item_pickup", itemPickupEvent); //item is picked up
+    HookEvent("player_hurt", playerHurtEvent); //player is hurt
+    HookEvent("player_healed", playerHealEvent); //player receives healing, from dispenser or medic
 
     //Hook player spawn for buffs and class spawn
-    //HookEvent("player_spawn", playerSpawnEvent_Log);
+    HookEvent("player_spawn", playerSpawnEvent_Log);
 
     // Hook into mp_tournament_restart
     AddCommandListener(tournamentRestartHook, "mp_tournament_restart");
@@ -348,7 +348,7 @@ public conVarChangeHook(Handle:cvar, const String:oldval[], const String:newval[
     }
     else if (cvar == livelogs_logging_level)
     {
-        //log_additional_stats = GetConVarInt(cvar);
+        log_additional_stats = GetConVarInt(cvar);
 
         if (log_additional_stats > 0)
         {
@@ -1163,7 +1163,7 @@ getConVarValues()
     //updates convars with values that are already set
     //i.e if logging is set to 0, on reload the plugin will think that it's set to 15 because of the reload
 
-    //log_additional_stats = GetConVarInt(livelogs_logging_level);
+    log_additional_stats = GetConVarInt(livelogs_logging_level);
     create_new_log_file = GetConVarBool(livelogs_new_log_file);
     debug_enabled = GetConVarBool(livelogs_enable_debugging);
     force_log_secret = GetConVarBool(livelogs_force_logsecret);
