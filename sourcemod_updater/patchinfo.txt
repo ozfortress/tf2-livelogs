@@ -4,11 +4,14 @@
     {
         "Version"
         {
-            "Latest"        "0.6.8.1"
+            "Latest"        "0.7"
         }
 
-        "Notes"     "Added player_spawn event log output for better class tracking"
-        "Notes"     "Added LIVELOG_LOGGING_START event to increase compatibility with other parsers"
+        "Notes"     "Livelogs no longer includes or utilizes SourceTV 2D"
+        "Notes"     "Additional stats are no longer output by Livelogs (aside from medic overheals)"
+	"Notes"	    "To have damage and healing recorded in your logs from now on, please use F2's SupStats and MedicStats"
+	"Notes"	    "F2's plugins can be found at http://teamfortress.tv/thread/13598/?page=1"
+	"Notes"	    "There is now a single CVar to toggle overheal logging, livelogs_log_overheal"
     }
 
     "Files"
@@ -16,7 +19,6 @@
         "Plugin"    "Path_SM/plugins/livelogs.smx"
 
         "Source"    "Path_SM/scripting/livelogs.sp"
-        "Source"    "Path_SM/scripting/livelogs_websocket.sp"
         "Source"    "Path_SM/scripting/include/livelogs.inc"
     }
 }

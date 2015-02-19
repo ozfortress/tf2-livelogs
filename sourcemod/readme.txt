@@ -1,4 +1,4 @@
-livelogs server plugin README updated 23/6/2013
+livelogs server plugin README updated 20/2/2015
 
 Installation steps:
 
@@ -16,26 +16,6 @@ Installation steps:
 
     - Further information about convar settings is available below.
 
-
-
-livelogs_additional_logging - This is a bitmask of logging options that the plugin should output. It uses the sum of bit values to set a logging level. The bit values are:
-    1: damage taken
-    2: damage dealt
-    4: healing done
-    8: item pickups
-   16: medic overhealing
-
-    So, to enable ALL outputs, the convar should be set to "31" (1 + 2 + 4 + 8 + 16). To enable just damage taken, the convar should be set to "1". To disable, set it to "0".
-
-    This is provided so that users may run other plugins that cause additional data to be logged (such as supstats, which outputs damage dealt, item pick ups and healing).
-
-    This convar simply toggles what data is output by the PLUGIN. The daemon will still record any stats output in the same format by other plugins.
-
-
-livelogs_enable_webtv - Enable/disable SourceTV2D. Setting this to 0 is the equivalent of not having websocket.smx in the plugin directory.
-
-
-livelogs_webtv_port - What port the SourceTV2D server should listen on. Default is server port + 2. This ConVar is irrelevant if SourceTV2D is disabled.
 
 
 livelogs_new_log_file - Enable/disable the initialisation of logging on match start using 'log on'. 'log on' is required so that logs are output to the server's console, and hence 
@@ -66,15 +46,8 @@ livelogs_force_logsecret - Whether to force the plugin's log secret or not.
 livelogs_panel - Whether to show a panel when users use !livelogs or not.
     If you want an in-game panel with the log page in it to be displayed alongside a URL, set this to "1". If not, set it to "0" to just display the URL.
 
-
-livelogs_real_damage - Whether or not to record real damage values.
-    By default the Team Fortress 2 damage event outputs the total possible damage of an attacker. However, sometimes a player may have less health remaining than this amount. 
-    In this case, we may want to only record the amount of damage that the attacker actually dealt to the player. This cvar provides the option to choose between these two.
-
-    e.g If a victim has 10 hp and an attacker's rocket would deal 40 damage, enabling this cvar means that only 10 damage is recorded. If the cvar is disabled, 40 damage
-    would be recorded.
-
-    Enabling this cvar will lead to significantly more accurate damage numbers.
+livelogs_log_overheal - Whether or not to log overheal as a separate statistic. 
+    F2's MedicStats does not treat overhealing as a separate statistic, and instead globs it into standard healing.
 
 
 livelogs_enable_debugging - Enable/disable debug messages.
