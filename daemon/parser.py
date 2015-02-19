@@ -259,9 +259,24 @@ class parserClass(object):
             if not self.ROUND_PAUSE:
             #begin round_pause blocking
 
-                #damage taken and dealt (if appropriate log level is set (damage taken and damage dealt))
-                #"Cinderella:wu<5><STEAM_0:1:18947653><Blue>" triggered "damage" against "jmh<19><STEAM_0:1:101867><Red>" (damage "56")
+                # Shots fired/hit will be the most common. Check them first
+                res = regex(parser_lib.player_shot_fired, logdata)
+                if res:
+                    return
+
+                res = regex(parser_lib.player_shot_hit, logdata)
+                if res:
+                    return
+
+                # Old damage log message
                 res = regex(parser_lib.player_damage, logdata)
+                if res:
+                    return
+
+                # damage taken and dealt. note that realdamage, healing, crit, airshot and headshot are not
+                # always present...
+                #[[attacker]] triggered "damage" against [[victim]] (damage "0") (realdamage "0")? (weapon "shotgun_soldier") (healing "15")? (crit "crit|mini")? (airshot "1")? (headshot "1")?
+                res = regex(parser_lib.player_damage_weapon, logdata)
                 if res:
                     a_sid = regml(res, 3)
                     a_name = parser_lib.escapePlayerString(regml(res, 1))
@@ -271,43 +286,31 @@ class parserClass(object):
 
                     dmg = int(regml(res, 9))
 
+                    realdamage = regml(res, "rd")
+                    healing = regml(res, "heal")
+                    crit = regml(res, "crit")
+                    airshot = regml(res, "as")
+                    headshot = regml(res, "hs")
+
                     self.insert_player_team(a_sid, regml(res, 4))
+
+                    if realdamage is not None:
+                        dmg = int(realdamage)
+
+                    if healing is not None:
+                        pass
+
+                    if airshot is not None:
+                        self.stat_upsert(self.STAT_TABLE, "airshots", a_sid, a_name, int(airshot))
+
+                    if headshot is not None:
+                        self.stat_upsert(self.STAT_TABLE, "headshots", a_sid, a_name, 1)
                     
                     if a_sid != v_sid: #players can deal self damage. if so, don't record damage_dealt for this
                         self.stat_upsert(self.STAT_TABLE, "damage_dealt", a_sid, a_name, dmg)
                         self.insert_player_team(v_sid, regml(res, 8))
 
                     self.stat_upsert(self.STAT_TABLE, "damage_taken", v_sid, v_name, dmg)
-
-                    return
-
-                #damage dealt
-                res = regex(parser_lib.damage_dealt, logdata)
-                if res:
-                    #print "Damage dealt"
-                    #pprint(res.groups())
-                    #('[v3] Kaki', '51', 'STEAM_0:1:35387674', 'Red', '40')
-                    sid = regml(res, 3)
-                    name = parser_lib.escapePlayerString(regml(res, 1))
-                    dmg = int(regml(res, 5))
-
-                    #stat_upsert(self, table, column, steamid, name, value)
-                    self.stat_upsert(self.STAT_TABLE, "damage_dealt", sid, name, dmg)        
-                    
-                    self.insert_player_team(sid, regml(res, 4))
-                    
-                    return
-
-                #damage taken (if log level is 1 in livelogs) shouldn't get double ups
-                res = regex(parser_lib.damage_taken, logdata)
-                if res:
-                    sid = regml(res, 3)
-                    name = parser_lib.escapePlayerString(regml(res, 1))
-                    dmg = int(regml(res, 5))
-
-                    self.insert_player_team(sid, regml(res, 4))
-
-                    self.stat_upsert(self.STAT_TABLE, "damage_taken", sid, name, dmg)
 
                     return
 
@@ -637,10 +640,6 @@ class parserClass(object):
                 if res:
                     return
 
-                res = regex(parser_lib.player_shot_fired, logdata)
-                if res:
-                    return
-
                 res = regex(parser_lib.item_healing, logdata)
                 if res:
                     return
@@ -861,7 +860,7 @@ class parserClass(object):
                 team = regml(res, 4)
                 pclass = regml(res, 5).lower()
 
-                if pclass != "undefined" or team == "unknown":
+                if pclass == "undefined" or team == "unknown":
                     return
 
                 self.insert_player_team(sid, team)

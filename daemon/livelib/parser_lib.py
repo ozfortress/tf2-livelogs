@@ -13,10 +13,6 @@ logging_start = re_compiler(r'^L ([0-9\/]+) - ([0-9\:]+): "LIVELOG_LOGGING_START
 game_restart = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "LIVELOG_GAME_RESTART"$')
 game_end = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "LIVELOG_GAME_END"$')
 
-# L 10/01/2012 - 21:43:10: "[v3] Roight<53><STEAM_0:0:8283620><Red>" triggered "damage" (damage "208")
-damage_dealt = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "damage" \x28damage "(\d+)"\x29$')
-damage_taken = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "damage_taken" \x28damage "(\d+)"\x29$')
-
 healing_done = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "healed" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" \x28healing "(\d+)"\x29$')
 
 #"D5+ :happymeat:<24><STEAM_0:1:44157999><Blue>" triggered "overhealed" against "GBH | Mongo<20><STEAM_0:0:14610972><Blue>" (overhealing "28")
@@ -27,9 +23,9 @@ item_pickup = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Bl
 item_healing = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" picked up item "(.*?)" \x28healing "(\d+)"\x29$')
 
 medic_death = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "medic_death" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" \x28healing "(.*?)"\x29 \x28ubercharge "(.*?)"\x29$')
-uber_used = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "chargedeployed"(\s?\x28medigun "(.*?)"\x29)?$')
 #"Slamm<13><STEAM_0:0:5390368><Blue>" triggered "chargedeployed" (medigun "medigun")
-#uber_used_ex = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "chargedeployed" \x28medigun "(.*?)"\x29$')
+uber_used = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "chargedeployed"(\s?\x28medigun "(.*?)"\x29)?$')
+
 
 chat_message = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue|Spectator|Console)>" (say|say_team) "(.+)"$')
 
@@ -52,7 +48,8 @@ building_created = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(R
 
 #"Cinderella:wu<5><STEAM_0:1:18947653><Blue>" triggered "damage" against "jmh<19><STEAM_0:1:101867><Red>" (damage "56")
 player_damage = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "damage" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" \x28damage "(\d+)"\x29$')
-player_damage_weapon = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "damage" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" \x28damage "(\d+)"\x29 \x28weapon "(\d+)"\x29$')
+#[[attacker]] triggered "damage" against [[victim]] (damage "0") (realdamage "0") (weapon "shotgun_soldier") (healing "15") (crit "crit|mini") (airshot "1") (headshot "1")
+player_damage_weapon = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "damage" against "(.*?)<(\d+)><(.*?)><(Red|Blue)>" \x28damage "(\d+)"\x29(\s?\x28realdamage "(?P<rd>\d+)"\x29)? \x28weapon "(\w+)"\x29(\s?\x28healing "(?P<heal>\d+)"\x29)?(\s?\x28crit "(?P<crit>mini|crit)"\x29)?(\s?\x28airshot "(?P<as>\d)"\x29)?(\s?\x28headshot "(?P<hs>\d)"\x29)?$')
 
 # L 10/01/2012 - 21:43:10: "[v3] Roight<53><STEAM_0:0:8283620><Red>" triggered "domination" against "Liquid'zato<46><STEAM_0:0:42607036><Blue>"
 # L 10/01/2012 - 22:04:57: "Liquid'Iyvn<40><STEAM_0:1:41931908><Blue>" triggered "domination" against "[v3] Kaki<51><STEAM_0:1:35387674><Red>" (assist "1")
@@ -80,6 +77,7 @@ player_jar_attack = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(
 
 # L 04/12/2014 - 04:12:26: "playboater<3><STEAM_0:1:27952643><Blue>" triggered "shot_fired" (weapon "tf_projectile_pipe")
 player_shot_fired = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "shot_fired" \x28weapon "(.*?)"\x29$')
+player_shot_hit = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(Red|Blue)>" triggered "shot_hit" \x28weapon "(.*?)"\x29$')
 
 player_disconnect = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><(.*?)>" disconnected \x28reason "(.*?)"\x29$')
 player_connect = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><>" connected, address "(.*?):(.*?)"$')
