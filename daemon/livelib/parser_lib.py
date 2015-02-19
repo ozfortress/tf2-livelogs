@@ -100,9 +100,9 @@ player_name_change = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: "(.*?)<(\d+)><(.*?)><
 
 round_win = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Round_Win" \x28winner "(Blue|Red)"\x29$')
 round_overtime = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Round_Overtime"$')
-round_length = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Round_length" \x28seconds "(\d+)\.(\d+)"\x29$')
+round_length = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Round_Length" \x28seconds "(\d+)\.(\d+)"\x29$')
 round_start = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Round_Start"$')
-round_setup_start = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Round_Setup_Begin$"')
+round_setup_start = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Round_Setup_Begin"$')
 round_setup_end = re_compiler(r'^L [0-9\/]+ - [0-9\:]+: World triggered "Round_Setup_End"$')
 
 #L 04/11/2014 - 18:45:48: World triggered "Mini_Round_Win" (winner "Blue") (round "round_a")
