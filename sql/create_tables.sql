@@ -7,12 +7,14 @@ CREATE TABLE livelogs_player_stats (num_id serial, log_ident varchar(64), steami
                                     kills integer, deaths integer, assists integer, points decimal, 
                                     healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer,
                                     overhealing_done integer, overhealing_received integer,
-                                    headshots integer, backstabs integer, damage_dealt integer, damage_taken integer,
+                                    headshots integer, airshots integer, backstabs integer, 
+                                    damage_dealt integer, damage_taken integer,
                                     ap_small integer, ap_medium integer, ap_large integer,
                                     mk_small integer, mk_medium integer, mk_large integer,
                                     captures integer, captures_blocked integer, 
                                     dominations integer, times_dominated integer, revenges integer,
-                                    suicides integer, buildings_destroyed integer, extinguishes integer, PRIMARY KEY(log_ident, steamid, class));
+                                    suicides integer, buildings_destroyed integer, extinguishes integer, 
+                                    PRIMARY KEY(log_ident, steamid, class));
 
 CREATE INDEX stat_ident_index ON livelogs_player_stats(log_ident);
 CREATE INDEX stat_cid_index ON livelogs_player_stats(steamid);
@@ -24,7 +26,8 @@ CREATE VIEW view_player_class_stats AS SELECT class, steamid,
                                               SUM(healing_done) as healing_done, SUM(healing_received) as healing_received,
                                               SUM(ubers_used) as ubers_used, SUM(ubers_lost) as ubers_lost,
                                               SUM(overhealing_done) as overhealing_done, SUM(overhealing_received) as overhealing_received,
-                                              SUM(headshots) as headshots, SUM(damage_dealt) as damage_dealt, SUM(damage_taken) as damage_taken,
+                                              SUM(headshots) as headshots, SUM(airshots) as airshots, SUM(backstabs) as backstabs,
+                                              SUM(damage_dealt) as damage_dealt, SUM(damage_taken) as damage_taken,
                                               SUM(captures) as captures, SUM(captures_blocked) as captures_blocked,
                                               SUM(dominations) as dominations, SUM(revenges) as revenges, SUM(times_dominated) as times_dominated
                                        FROM livelogs_player_stats
@@ -65,7 +68,8 @@ CREATE VIEW view_past_month_class_stats AS SELECT class, steamid,
                                               SUM(healing_done) as healing_done, SUM(healing_received) as healing_received,
                                               SUM(ubers_used) as ubers_used, SUM(ubers_lost) as ubers_lost,
                                               SUM(overhealing_done) as overhealing_done, SUM(overhealing_received) as overhealing_received,
-                                              SUM(headshots) as headshots, SUM(damage_dealt) as damage_dealt, SUM(damage_taken) as damage_taken,
+                                              SUM(headshots) as headshots, SUM(airshots) as airshots, SUM(backstabs) as backstabs,
+                                              SUM(damage_dealt) as damage_dealt, SUM(damage_taken) as damage_taken,
                                               SUM(captures) as captures, SUM(captures_blocked) as captures_blocked,
                                               SUM(dominations) as dominations, SUM(revenges) as revenges, SUM(times_dominated) as times_dominated
                                            FROM livelogs_player_stats JOIN view_past_month_idents

@@ -1,18 +1,20 @@
 CREATE OR REPLACE FUNCTION zero_null_stat () RETURNS trigger AS $_$
 BEGIN
-        --Function will replace NULL inserts with a 0, to make UPDATING using the merge function possible
+        -- Function will replace NULL inserts with a 0, to make UPDATING using the merge function possible
         --
         --
-
-        --steamid varchar(64) PRIMARY KEY, name text, kills integer, deaths integer, assists integer, points decimal,
-        --                                   healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer,
-        --                                   headshots integer, backstabs integer, damage_taken integer, damage_dealt integer,
-        --                                   ap_small integer, ap_medium integer, ap_large integer,
-        --                                   mk_small integer, mk_medium integer, mk_large integer,
-        --                                   captures integer, captures_blocked integer,
-        --                                   dominations integer, times_dominated integer, revenges integer,
-        --                                   suicides integer, buildings_destroyed integer, extinguishes integer, kill_streak integer,
-        --                                   wins integer, losses integer, draws integer);
+        --
+        --                          log_ident varchar(64), steamid bigint, team text, class text,
+        --                          kills integer, deaths integer, assists integer, points decimal, 
+        --                          healing_done integer, healing_received integer, ubers_used integer, ubers_lost integer,
+        --                          overhealing_done integer, overhealing_received integer,
+        --                          headshots integer, airshots integer, backstabs integer, 
+        --                          damage_dealt integer, damage_taken integer,
+        --                          ap_small integer, ap_medium integer, ap_large integer,
+        --                          mk_small integer, mk_medium integer, mk_large integer,
+        --                          captures integer, captures_blocked integer, 
+        --                          dominations integer, times_dominated integer, revenges integer,
+        --                          suicides integer, buildings_destroyed integer, extinguishes integer
 
         IF NEW.kills IS NULL THEN
                 NEW.kills := 0;
@@ -46,6 +48,9 @@ BEGIN
         END IF;
         IF NEW.headshots IS NULL THEN
                 NEW.headshots := 0;
+        END IF;
+        IF NEW.airshots is NULL THEN
+                NEW.airshots := 0;
         END IF;
         IF NEW.backstabs IS NULL THEN
                 NEW.backstabs := 0;
