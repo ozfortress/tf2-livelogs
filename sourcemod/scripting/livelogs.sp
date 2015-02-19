@@ -68,19 +68,17 @@ new bool:tournament_state[2] = { false, false }; //Holds ready state for both te
 new bool:live_on_restart = false;
 new bool:is_logging = false;
 new bool:late_loaded;
-new bool:livelogs_bitmask_cache[65];
+new bool:log_overheal = true;
 new bool:create_new_log_file = false;
 new bool:force_log_secret = true;
 new bool:debug_enabled = true;
 new bool:show_motd_panel = false;
-new bool:record_real_damage = true;
 
 new String:server_ip[64];
 new String:listener_address[128];
 new String:log_unique_ident[128];
 new String:client_auth_cache[MAXPLAYERS+1][64];
 
-new log_additional_stats = 0;
 new server_port;
 
 // required for recording medic buffing
@@ -93,14 +91,13 @@ new Handle:livelogs_daemon_address = INVALID_HANDLE; //ip/dns of livelogs daemon
 new Handle:livelogs_daemon_port = INVALID_HANDLE; //port of livelogs daemon
 new Handle:livelogs_daemon_api_key = INVALID_HANDLE; //the key that must be specified when communicating with the ll daemon
 new Handle:livelogs_server_name = INVALID_HANDLE; //the name used for the server (as shown on the website)
-new Handle:livelogs_logging_level = INVALID_HANDLE; //bitmask for logging levels
 new Handle:livelogs_new_log_file = INVALID_HANDLE; //determine if this plugin should enable the server's logging functionality, or leave it to a config/other plugin
 new Handle:livelogs_tournament_ready_only =  INVALID_HANDLE; //support the option of only logging when teams ready up, and not on mp_restartgame or equivalent command
 new Handle:livelogs_force_logsecret = INVALID_HANDLE; //whether or not to set sv_logsecret
 new Handle:livelogs_enable_debugging = INVALID_HANDLE; //toggle debug messages
 new Handle:livelogs_enabled = INVALID_HANDLE; //enable/disable livelogs
 new Handle:livelogs_panel_display = INVALID_HANDLE; //whether to show !livelogs as a url or a panel
-new Handle:livelogs_real_damage = INVALID_HANDLE; //whether to record real damage or default damage
+new Handle:livelogs_log_overheal = INVALID_HANDLE; //whether to record real damage or default damage
 
 new Handle:livelogs_buff_timer = INVALID_HANDLE; //a timer for checking medic buff amounts
 
@@ -161,27 +158,31 @@ public OnPluginStart()
 
 
     // Convars
-    livelogs_daemon_address = CreateConVar("livelogs_address", "192.168.35.128", "IP or hostname of the livelogs daemon", FCVAR_PROTECTED|FCVAR_DONTRECORD|FCVAR_UNLOGGED);
+    livelogs_daemon_address = CreateConVar("livelogs_address", "192.168.35.128", "IP or hostname of the livelogs daemon", 
+                                        FCVAR_PROTECTED|FCVAR_DONTRECORD|FCVAR_UNLOGGED);
     
-    livelogs_daemon_port = CreateConVar("livelogs_port", "61222", "Port of the livelogs daemon", FCVAR_PROTECTED|FCVAR_DONTRECORD|FCVAR_UNLOGGED);
+    livelogs_daemon_port = CreateConVar("livelogs_port", "61222", "Port of the livelogs daemon", 
+                                    FCVAR_PROTECTED|FCVAR_DONTRECORD|FCVAR_UNLOGGED);
     
-    livelogs_daemon_api_key = CreateConVar("livelogs_api_key", "123test", "API key for livelogs daemon", FCVAR_PROTECTED|FCVAR_DONTRECORD|FCVAR_UNLOGGED);
+    livelogs_daemon_api_key = CreateConVar("livelogs_api_key", "123test", "API key for livelogs daemon", 
+                                    FCVAR_PROTECTED|FCVAR_DONTRECORD|FCVAR_UNLOGGED);
 
-    livelogs_server_name = CreateConVar("livelogs_name", "default", "The name by which logs are identified on the website", FCVAR_PROTECTED);
+    livelogs_server_name = CreateConVar("livelogs_name", "default", "The name by which logs are identified on the website", 
+                                    FCVAR_PROTECTED);
 
-    livelogs_logging_level = CreateConVar("livelogs_additional_logging", "31", "Set logging level. See FAQ/readme.txt for logging bitmask values",
-                                            FCVAR_NOTIFY, true, 0.0, true, 64.0); //allows levels of logging via a bitmask
+    livelogs_new_log_file = CreateConVar("livelogs_new_log_file", "0", 
+                                    "Whether to initiate console logging using 'log on'. Disable if you have another method of enabling logging", 
+                                    FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
-    livelogs_new_log_file = CreateConVar("livelogs_new_log_file", "0", "Whether to initiate console logging using 'log on'. Disable if you have another method of enabling logging", 
-                                            FCVAR_NOTIFY, true, 0.0, true, 1.0);
-
-    livelogs_tournament_ready_only = CreateConVar("livelogs_tournament_ready_only", "0", "Whether livelogs should only log when teams ready up or not (mp_restartgame does not ready the teams up)", 
+    livelogs_tournament_ready_only = CreateConVar("livelogs_tournament_ready_only", "0", 
+                                            "Whether livelogs should only log when teams ready up or not (mp_restartgame does not ready the teams up)", 
                                             FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
     livelogs_force_logsecret = CreateConVar("livelogs_force_logsecret", "1", "Whether livelogs should force sv_logsecret or not",
                                             FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
-    livelogs_enable_debugging = CreateConVar("livelogs_enable_debugging", "1", "Enable or disable debug messages", FCVAR_NOTIFY, true, 0.0, true, 1.0);
+    livelogs_enable_debugging = CreateConVar("livelogs_enable_debugging", "1", "Enable or disable debug messages", 
+                                        FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
     livelogs_enabled = CreateConVar("livelogs_enabled", "1", "Enable or disable Livelogs", 
                             FCVAR_NOTIFY, true, 0.0, true, 1.0);
@@ -189,10 +190,10 @@ public OnPluginStart()
     livelogs_panel_display = CreateConVar("livelogs_panel", "0", "Whether to show logs in a panel or give a URL", 
                                     FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
-    livelogs_real_damage = CreateConVar("livelogs_real_damage", "1", "Whether to record real damage or not", 
-                                FCVAR_NOTIFY, true, 0.0, true, 1.0);
-
     livelogs_tournament_mode_cache = FindConVar("mp_tournament"); //cache mp_tournament convar
+
+    livelogs_log_overheal = CreateConVar("livelogs_log_overheal", "1", "Whether or not to log overhealing", 
+                                FCVAR_NOTIFY, true, 0.0, true, 1.0);
 
 
     //Cache sv_logsecret
@@ -200,11 +201,10 @@ public OnPluginStart()
 
     // convar change hooks
     HookConVarChange(livelogs_new_log_file, conVarChangeHook);
-    HookConVarChange(livelogs_logging_level, conVarChangeHook); //hook convar so we can change logging options on the fly
     HookConVarChange(livelogs_enable_debugging, conVarChangeHook);
     HookConVarChange(livelogs_force_logsecret, conVarChangeHook);
     HookConVarChange(livelogs_panel_display, conVarChangeHook);
-    HookConVarChange(livelogs_real_damage, conVarChangeHook);
+    HookConVarChange(livelogs_log_overheal, conVarChangeHook);
 
 
     //variables for later sending. we should get the IP via hostip, because people may not set "ip"
@@ -346,26 +346,19 @@ public conVarChangeHook(Handle:cvar, const String:oldval[], const String:newval[
             PrintToServer("Livelogs will not enable console log output on match start (no 'log on'). Ensure you have another method of enabling console logging");
         }
     }
-    else if (cvar == livelogs_logging_level)
+    else if (cvar == livelogs_log_overheal)
     {
-        //log_additional_stats = GetConVarInt(cvar);
+        log_overheal = GetConVarBool(cvar);
 
-        if (log_additional_stats > 0)
+        if (log_overheal)
         {
-            PrintToServer("Livelogs now outputting additional logging");
+            PrintToServer("Livelogs is now logging overhealing");
+            activateBuffTimer();
         }
-        else
+        else 
         {
-            PrintToServer("Livelogs no longer outputting additional statistics");
+            PrintToServer("Livelogs is no longer logging overhealing");
         }
-
-        //recache bitmask
-        for (new i = 1; i < sizeof(livelogs_bitmask_cache); i++)
-        {
-            logOptionEnabled(i);
-        }
-
-        activateBuffTimer();
     }
     else if (cvar == livelogs_enable_debugging)
     {
@@ -413,18 +406,6 @@ public conVarChangeHook(Handle:cvar, const String:oldval[], const String:newval[
         else
         {
             PrintToServer("Livelogs will no longer display !livelogs in a panel");
-        }
-    }
-    else if (cvar == livelogs_real_damage)
-    {
-        record_real_damage = GetConVarBool(cvar);
-        if (record_real_damage)
-        {
-            PrintToServer("Livelogs will now log real damage statistics");
-        }
-        else
-        {
-            PrintToServer("Livelogs will no longer record real damage statistics");
         }
     }
 }
@@ -487,182 +468,6 @@ public gameOverEvent(Handle:event, const String:name[], bool:dontBroadcast)
 	endLogging(); //stop the logging -- does this really need to be done? hmmm
 }
 
-public itemPickupEvent(Handle:event, const String:name[], bool:dontBroadcast)
-{
-    if (log_additional_stats && logOptionEnabled(BITMASK_ITEM_PICKUP))
-    {
-        decl String:player_name[MAX_NAME_LENGTH], String:auth_id[64], String:team[16], String:item[64];
-
-        new userid = GetEventInt(event, "userid");
-        new clientidx = GetClientOfUserId(userid);
-
-        strcopy(auth_id, sizeof(auth_id), client_auth_cache[clientidx]); //get the player ID from the cache if it's in there
-
-        if (!GetClientName(clientidx, player_name, sizeof(player_name)))
-            return;
-
-        GetTeamName(GetClientTeam(clientidx), team, sizeof(team));
-
-        GetEventString(event, "item", item, sizeof(item));
-
-        LogToGame("\"%s<%d><%s><%s>\" picked up item \"%s\"",
-                player_name,
-                userid,
-                auth_id,
-                team,
-                item
-            );
-    }
-}
-
-public playerHurtEvent(Handle:event, const String:name[], bool:dontBroadcast)
-{
-    if (log_additional_stats) {
-
-        if (logOptionEnabled(BITMASK_DAMAGE_TAKEN) && logOptionEnabled(BITMASK_DAMAGE_DEALT))
-        {
-            new victimid = GetEventInt(event, "userid");
-            new attackerid = GetEventInt(event, "attacker");
-
-            if (victimid != attackerid && attackerid != 0)
-            {
-                decl String:victim_name[MAX_NAME_LENGTH], String:victim_auth_id[64], String:victim_team[16];
-                decl String:player_name[MAX_NAME_LENGTH], String:auth_id[64], String:team[16];
-
-                new attackeridx = GetClientOfUserId(attackerid);
-                new victimidx = GetClientOfUserId(victimid);
-
-                new damage = getDamage(event, victimidx);
-
-                strcopy(auth_id, sizeof(auth_id), client_auth_cache[attackeridx]); //get the player ID from the cache if it's in there
-                strcopy(victim_auth_id, sizeof(victim_auth_id), client_auth_cache[victimidx]);
-
-                if (!GetClientName(attackeridx, player_name, sizeof(player_name)))
-                    return;
-
-                if (!GetClientName(victimidx, victim_name, sizeof(victim_name)))
-                    return;
-
-                GetTeamName(GetClientTeam(attackeridx), team, sizeof(team));
-                GetTeamName(GetClientTeam(victimidx), victim_team, sizeof(victim_team));
-
-                LogToGame("\"%s<%d><%s><%s>\" triggered \"damage\" against \"%s<%d><%s><%s>\" (damage \"%d\")",
-                        player_name,
-                        attackerid,
-                        auth_id,
-                        team,
-                        victim_name,
-                        victimid,
-                        victim_auth_id,
-                        victim_team,
-                        damage
-                    );
-            }
-        }
-        else if (logOptionEnabled(BITMASK_DAMAGE_TAKEN))
-        {
-            new victimid = GetEventInt(event, "userid");
-            new attackerid = GetEventInt(event, "attacker");
-            
-            if (victimid != attackerid)
-            {
-                decl String:player_name[MAX_NAME_LENGTH], String:auth_id[64], String:team[16];
-
-                new victimidx = GetClientOfUserId(victimid);
-                new damage = getDamage(event, victimidx);
-
-                strcopy(auth_id, sizeof(auth_id), client_auth_cache[victimidx]); //get the player ID from the cache if it's in there
-            
-                if (!GetClientName(victimidx, player_name, sizeof(player_name)))
-                    return;
-
-                GetTeamName(GetClientTeam(victimidx), team, sizeof(team));
-
-                // once again, make sure we're recording the real damage
-                new victimhealth = GetClientHealth(victimidx);
-                if (victimhealth < 0)
-                    damage += victimhealth;
-
-                LogToGame("\"%s<%d><%s><%s>\" triggered \"damage_taken\" (damage \"%d\")",
-                        player_name,
-                        victimid,
-                        auth_id,
-                        team,
-                        damage
-                    );
-            }
-        }
-        else if (logOptionEnabled(BITMASK_DAMAGE_DEALT))
-        {
-            new victimid = GetEventInt(event, "userid");
-            new attackerid = GetEventInt(event, "attacker");
-            
-            if (victimid != attackerid && attackerid != 0)
-            {
-                decl String:player_name[MAX_NAME_LENGTH], String:auth_id[64], String:team[16];
-                new attackeridx = GetClientOfUserId(attackerid);
-                new victimidx = GetClientOfUserId(victimid);
-
-                new damage = getDamage(event, victimidx);
-
-                strcopy(auth_id, sizeof(auth_id), client_auth_cache[attackeridx]);
-                if (!GetClientName(attackeridx, player_name, sizeof(player_name)))
-                    return;
-
-                GetTeamName(GetClientTeam(attackeridx), team, sizeof(team));
-
-                LogToGame("\"%s<%d><%s><%s>\" triggered \"damage\" (damage \"%d\")",
-                        player_name,
-                        attackerid,
-                        auth_id,
-                        team,
-                        damage
-                    );
-            }
-        }
-    }
-}
-
-public playerHealEvent(Handle:event, const String:name[], bool:dontBroadcast)
-{
-    if (log_additional_stats && logOptionEnabled(BITMASK_HEALING)) {
-        decl String:healer_name[MAX_NAME_LENGTH], String:healer_auth[64], String:healer_team[16];
-        decl String:patient_name[MAX_NAME_LENGTH], String:patient_auth[64], String:patient_team[16];
-
-        new healerid = GetEventInt(event, "healer");
-        new healer_idx = GetClientOfUserId(healerid);
-
-        new patientid = GetEventInt(event, "patient");
-        new patient_idx = GetClientOfUserId(patientid);
-
-        strcopy(healer_auth, sizeof(healer_auth), client_auth_cache[healer_idx]);
-        strcopy(patient_auth, sizeof(patient_auth), client_auth_cache[patient_idx]);
-        
-        if (!GetClientName(healer_idx, healer_name, sizeof(healer_name)))
-            return;
-
-        if (!GetClientName(patient_idx, patient_name, sizeof(patient_name)))
-            return;
-
-        GetTeamName(GetClientTeam(healer_idx), healer_team, sizeof(healer_team));
-        GetTeamName(GetClientTeam(patient_idx), patient_team, sizeof(patient_team));
-
-        new heal_amount = GetEventInt(event, "amount");
-
-        LogToGame("\"%s<%d><%s><%s>\" triggered \"healed\" against \"%s<%d><%s><%s>\" (healing \"%d\")",
-                healer_name,
-                healerid,
-                healer_auth,
-                healer_team,
-                patient_name,
-                patientid,
-                patient_auth,
-                patient_team,
-                heal_amount
-            );
-    }
-}
-
 public Action:tournamentRestartHook(client, const String:command[], arg)
 {
     //mp_tournament_restart was used, we should end logging so a new log can be initiated for the next start
@@ -678,45 +483,10 @@ public Action:restartCommandHook(client, const String:command[], arg)
     newLogOnRestartCheck();
 }
 
-public playerSpawnEvent_Log(Handle:event, const String:name[], bool:dontBroadcast)
-{
-    new userid = GetEventInt(event, "userid");
-    new client = GetClientOfUserId(userid);
-
-    if (logOptionEnabled(BITMASK_MEDIC_BUFF))
-    {
-        client_maxhealth[client] = GetClientHealth(client);
-        client_lasthealth[client] = client_maxhealth[client];
-    }
-
-    if (IsFakeClient(client))
-        return;
-
-    decl String:player_name[MAX_NAME_LENGTH], String:auth[64], String:team[16], String:class[32];
-
-    if (!GetClientName(client, player_name, sizeof(player_name)))
-        return;
-
-    strcopy(auth, sizeof(auth), client_auth_cache[client]);
-
-    if (!TF2_GetClassName(TF2_GetPlayerClass(client), class, sizeof(class)))
-        return;
-
-    GetTeamName(GetEventInt(event, "team"), team, sizeof(team));
-
-    LogToGame("\"%s<%d><%s><%s>\" spawned as \"%s\"",
-            player_name,
-            userid,
-            auth,
-            team,
-            class
-        );
-}
-
 public Action:getMedicBuffs(Handle:timer, any:data)
 {
     //If medic buffing recording isn't enabled, just kill the timer
-    if (!logOptionEnabled(BITMASK_MEDIC_BUFF))
+    if (!log_overheal)
     {
         livelogs_buff_timer = INVALID_HANDLE;
         return Plugin_Stop;
@@ -984,26 +754,6 @@ public Action:Test_SockSend(client, args)
 // Private functions
 //------------------------------------------------------------------------------
 
-getDamage(Handle:event, victimidx)
-{
-    new damage = GetEventInt(event, "damageamount");
-    
-    if (record_real_damage)
-    {
-        // Make sure we're recording the _real_ damage, i.e if a 100 dmg shot
-        // only deals 1 damage, we should count that as just 1 damage.
-        // we do this by adding the negative health to the positive damage
-        // abs(health) will never be > damage
-
-        new victimhealth = GetClientHealth(victimidx);
-
-        if (victimhealth < 0)
-            damage += victimhealth;
-    }
-
-    return damage;
-}
-
 clearVars()
 {
     is_logging = false;
@@ -1112,68 +862,21 @@ newLogOnRestartCheck()
     }
 }
 
-bool:logOptionEnabled(option_value)
-{
-    /*
-    option_value is a bitmask in the form of an int. we can use this to determine what logging options we should enable
-    values:
-
-    1 - damage taken
-    2 - damage dealt
-    4 - healing done
-    8 - item pickups
-
-    To set a level of logging the values are added together.
-    */
-
-    new bitmask = GetConVarInt(livelogs_logging_level); //a sum of whatever options are desired
-    if (livelogs_bitmask_cache[option_value]) //if the cached value is true
-    {
-        return true; //just return true here
-    }
-
-    if ((option_value & bitmask) == option_value)
-    {
-        /*bitwise AND the option with the bitmask. if the option is one of the values summed to obtain the bitmask, the result is the option
-        i.e 1 & 3 = 3, will return true, meaning damage taken is enabled. 
-        2 & 3 = 2, will return true, meaning damage dealt is enabled.
-        but 4 & 3 = 0, is false, so healing is disabled
-
-        logic in binary:
-        001 (1) & 011 (3) = 001 (1)
-        010 (2) & 011 (3) = 010 (2)
-        100 (4) & 011 (3) = 000 (0)
-        1000 (8) & 011 (3) = 0000 (0)
-
-        */
-        livelogs_bitmask_cache[option_value] = true;
-
-        return true;
-    }
-    else
-    {
-        livelogs_bitmask_cache[option_value] = false;
-        return false;
-    }
-
-}
-
 getConVarValues()
 {
     //updates convars with values that are already set
     //i.e if logging is set to 0, on reload the plugin will think that it's set to 15 because of the reload
 
-    //log_additional_stats = GetConVarInt(livelogs_logging_level);
     create_new_log_file = GetConVarBool(livelogs_new_log_file);
     debug_enabled = GetConVarBool(livelogs_enable_debugging);
     force_log_secret = GetConVarBool(livelogs_force_logsecret);
     show_motd_panel = GetConVarBool(livelogs_panel_display);
-    record_real_damage = GetConVarBool(livelogs_real_damage);
+    log_overheal = GetConVarBool(livelogs_log_overheal);
 }
 
 activateBuffTimer()
 {
-    if (!logOptionEnabled(BITMASK_MEDIC_BUFF)) return;
+    if (!log_overheal) return;
 
     if (livelogs_buff_timer == INVALID_HANDLE)
         livelogs_buff_timer = CreateTimer(BUFF_TIMER_INTERVAL, getMedicBuffs, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
