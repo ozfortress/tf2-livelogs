@@ -43,7 +43,6 @@
 
 #undef REQUIRE_PLUGIN
 
-#tryinclude <websocket>                       
 #tryinclude <updater>
 
 #if defined _updater_included
@@ -52,14 +51,10 @@
 
 public Plugin:myinfo =
 {
-#if defined _websocket_included
-	name = "Livelogs (SourceTV2D Capable)",
-#else
-    name = "Livelogs (SourceTV2D Disabled)",
-#endif
+    name = "Livelogs",
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
-	version = "0.6.8.1",
+	version = "0.7",
 	url = "http://livelogs.ozfortress.com"
 };
 
@@ -112,31 +107,6 @@ new Handle:livelogs_buff_timer = INVALID_HANDLE; //a timer for checking medic bu
 new Handle:livelogs_tournament_mode_cache = INVALID_HANDLE; //for caching the mp_tournament cvar handle
 new Handle:livelogs_mp_restartgame_cache = INVALID_HANDLE;
 new Handle:livelogs_sv_logsecret_cache = INVALID_HANDLE; //cache sv_logsecret cvar
-
-//if websocket is included, let's declare the websocket stuff!
-#if defined _websocket_included
-new webtv_round_time;
-new livelogs_webtv_buffer_length = 0;
-
-new bool:webtv_library_present = false;
-new bool:webtv_enabled = true;
-
-new Float:webtv_delay;
-
-new WebsocketHandle:livelogs_webtv_listen_socket = INVALID_WEBSOCKET_HANDLE;
-new Handle:livelogs_webtv_listen_port = INVALID_HANDLE;
-new Handle:livelogs_webtv_children = INVALID_HANDLE;
-new Handle:livelogs_webtv_children_ip = INVALID_HANDLE;
-new Handle:livelogs_webtv_enabled = INVALID_HANDLE;
-new Handle:livelogs_webtv_buffer_timer = INVALID_HANDLE; //timer to process the buffer every WEBTV_UPDATE_RATE seconds, only sends events that have time >= tv_delay
-new Handle:livelogs_webtv_positions_timer = INVALID_HANDLE;
-new Handle:livelogs_webtv_cleanup_timer = INVALID_HANDLE;
-
-new Handle:livelogs_server_hostname_cache = INVALID_HANDLE; //for caching the hostname cvar handle
-new Handle:livelogs_server_tv_delay_cache = INVALID_HANDLE; //for caching the tv_delay cvar handle
-
-new String:livelogs_webtv_buffer[MAX_BUFFER_SIZE][4096]; //string array buffer, MUCH faster than dynamic arrays
-#endif
 
 //------------------------------------------------------------------------------
 // Startup
@@ -248,34 +218,6 @@ public OnPluginStart()
     
     server_port = GetConVarInt(FindConVar("hostport"));
 
-#if defined _websocket_included
-    new String:default_web_port[12];
-    Format(default_web_port, sizeof(default_web_port), "%d", server_port + 2);
-    
-    livelogs_webtv_listen_port = CreateConVar("livelogs_webtv_port", default_web_port, "The port to listen on for SourceTV 2D connections. Defaults to server port + 2", FCVAR_PROTECTED);
-    livelogs_webtv_enabled = CreateConVar("livelogs_enable_webtv", "1", "Toggle whether or not SourceTV2D will run",
-                                    FCVAR_NOTIFY, true, 0.0, true, 1.0);
-
-
-    livelogs_webtv_children = CreateArray();
-    livelogs_webtv_children_ip = CreateArray(ByteCountToCells(33));
-
-    livelogs_server_tv_delay_cache = FindConVar("tv_delay"); //cache the tv_delay convar handle
-
-    //add event hooks and shiz for websocket, self explanatory names and event hooks
-    HookEvent("player_team", playerTeamChangeEvent);
-    HookEvent("player_death", playerDeathEvent);
-    HookEvent("player_spawn", playerSpawnEvent);
-    HookEvent("player_changeclass", playerClassChangeEvent);
-    HookEvent("player_chargedeployed", playerUberEvent);
-    HookEvent("teamplay_flag_event", playerFlagEvent);
-    HookEvent("teamplay_round_start", roundStartEvent);
-    HookEvent("teamplay_round_win", roundEndEvent);
-    
-    HookConVarChange(livelogs_webtv_enabled, websocketConVarChangeHook); //hook the webtv enable cvar, so we can enable/disable on the fly
-    HookConVarChange(livelogs_server_tv_delay_cache, websocketConVarChangeHook); //hook tv_delay so we can adjust the delay dynamically
-#endif
-
     if (late_loaded)
     {
         decl String:auth[64];
@@ -310,17 +252,6 @@ public OnAllPluginsLoaded()
         late_loaded = false;
     }
 
-#if defined _websocket_included
-    if (LibraryExists("websocket"))
-    {
-        webtv_library_present = true;
-        if (debug_enabled) { LogMessage("Websocket library present. Using SourceTV2D"); }
-        
-        cleanUpWebSocket();
-    }
-    else
-        if (debug_enabled) { LogMessage("Websocket library is not present. Not using SourceTV2D"); }
-#endif
 #if defined _updater_included
     if (LibraryExists("updater"))
     {
@@ -332,24 +263,11 @@ public OnAllPluginsLoaded()
 public OnMapStart()
 {
 	clearVars();
-    
-#if defined _websocket_included
-    livelogs_webtv_buffer_timer = INVALID_HANDLE;
-    livelogs_webtv_positions_timer = INVALID_HANDLE;
-    livelogs_webtv_cleanup_timer = INVALID_HANDLE;
-#endif
+
 }
 
 public OnLibraryAdded(const String:name[])
 {
-#if defined _websocket_included
-    //this forward is only fired if websocket is added
-    if (StrEqual(name, "websocket"))
-    {
-        webtv_library_present = true;
-        cleanUpWebSocket();
-    }
-#endif
 #if defined _updater_included
     if (StrEqual(name, "updater"))
     {
@@ -357,18 +275,6 @@ public OnLibraryAdded(const String:name[])
     }
 #endif
 }
-
-#if defined _websocket_included
-public OnLibraryRemoved(const String:name[])
-{
-    //this forward is only fired if websocket is added
-    if (StrEqual(name, "websocket"))
-    {
-        webtv_library_present = false;
-        cleanUpWebSocket();
-    }
-}
-#endif
 
 //------------------------------------------------------------------------------
 // Callbacks and hooks (non-webtv)
@@ -383,16 +289,6 @@ public OnClientAuthorized(client, const String:auth[])
 public OnClientDisconnect(client)
 {
     strcopy(client_auth_cache[client], sizeof(client_auth_cache[]), "\0"); //clear client's steamid
-    
-#if defined _websocket_included
-    if (IsClientInGame(client))
-    {
-        decl String:buffer[12];
-        Format(buffer, sizeof(buffer), "D%d", GetClientUserId(client));
-        
-        addToWebBuffer(buffer);
-    }
-#endif
 }
 
 public Action:urlCommandCallback(client, args)
@@ -891,13 +787,6 @@ public Action:getMedicBuffs(Handle:timer, any:data)
     return Plugin_Continue;
 }
 
-//---------------------------
-//Include all the sourcetv2d event hooks, timers and functions
-//---------------------------
-#if defined _websocket_included
-#include "livelogs_websocket.sp"
-#endif
-
 //------------------------------------------------------------------------------
 // Clean up
 //------------------------------------------------------------------------------
@@ -911,17 +800,6 @@ public OnMapEnd()
         KillTimer(livelogs_buff_timer);
         livelogs_buff_timer = INVALID_HANDLE;
     }
-
-#if defined _websocket_included
-    //notify connected clients of map end
-    sendToAllWebChildren("MAP_END");
-
-    if (livelogs_webtv_cleanup_timer != INVALID_HANDLE)
-    {
-        KillTimer(livelogs_webtv_cleanup_timer);
-        livelogs_webtv_cleanup_timer = INVALID_HANDLE;
-    }
-#endif
 }
 
 //------------------------------------------------------------------------------
@@ -1016,10 +894,6 @@ public onSocketReceive(Handle:socket, String:rcvd[], const dataSize, any:arg)
 
             // log a message to indicate the game has started?
             LogToGame("\"LIVELOG_LOGGING_START\"");
-            
-        #if defined _websocket_included
-            startNewWebTVSession();
-        #endif
         }
         else
         {
@@ -1185,19 +1059,8 @@ requestListenerAddress()
     }
             
     
-#if defined _websocket_included
-    new webtv_port = GetConVarInt(livelogs_webtv_listen_port);
-    if ((webtv_enabled) && (webtv_library_present))
-    {
-        Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s!%d", ll_api_key, log_secret, server_port, map, log_name, webtv_port);  
-    }
-    else
-    {
-        Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s", ll_api_key, log_secret, server_port, map, log_name);
-    }
-#else
     Format(ll_request, sizeof(ll_request), "LIVELOG!%s!%s!%d!%s!%s", ll_api_key, log_secret, server_port, map, log_name);
-#endif
+
     sendSocketData(ll_request);
 }
 
@@ -1216,10 +1079,6 @@ endLogging(bool:map_end = false)
         KillTimer(livelogs_buff_timer);
         livelogs_buff_timer = INVALID_HANDLE;
     }
-    
-    #if defined _websocket_included
-    endWebTVSession(map_end);
-    #endif
 }
 
 newLogOnRestartCheck()
@@ -1310,10 +1169,6 @@ getConVarValues()
     force_log_secret = GetConVarBool(livelogs_force_logsecret);
     show_motd_panel = GetConVarBool(livelogs_panel_display);
     record_real_damage = GetConVarBool(livelogs_real_damage);
-
-#if defined _websocket_included
-    webtv_enabled = GetConVarBool(livelogs_webtv_enabled);
-#endif
 }
 
 activateBuffTimer()

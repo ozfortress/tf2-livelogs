@@ -548,7 +548,7 @@ shiftBufferLeft()
     //if (debug_enabled) { LogMessage("left shift. buffer length: %d", livelogs_webtv_buffer_length); }
 }
 
-emptyWebBuffer()
+/*emptyWebBuffer()
 {
     for (new i = 0; i < MAX_BUFFER_SIZE; i++)
     {
@@ -556,7 +556,7 @@ emptyWebBuffer()
     }
     livelogs_webtv_buffer_length = 0;
     if (debug_enabled) { LogMessage("cleared buffer"); }
-}
+}*/
 
 cleanUpWebSocket()
 {
@@ -564,7 +564,7 @@ cleanUpWebSocket()
         Websocket_Close(livelogs_webtv_listen_socket);
         
         
-    emptyWebBuffer();
+    //emptyWebBuffer();
     
     if (livelogs_webtv_buffer_timer != INVALID_HANDLE)
     {
