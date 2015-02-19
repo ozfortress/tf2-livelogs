@@ -1,6 +1,7 @@
 import threading
 import logging
 import time
+import random
 
 from pprint import pprint
 
@@ -34,10 +35,10 @@ stat_columns = (
             "ubers_used",
             "ubers_lost",
             "headshots",
+            "airshots",
             "damage_dealt",
             "damage_taken",
             "captures"
-            #"dominations"
         )
 
 
@@ -47,6 +48,16 @@ team_stat_columns = (
                 "team_healing_done",
                 "team_overhealing_done",
                 "team_damage_dealt",
+            )
+
+# from google colour chart http://there4development.com/blog/2012/05/02/google-chart-color-list/
+heal_pie_colours = ( 
+                "#3366CC", "#DC3912", "#FF9900",
+                "#109618", "#990099", "#0099C6", 
+                "#DD4477", "#B82E2E", "#316395",
+                "#994499", "#22AA99", "#AAAA11",
+                "#6633CC", "#E67300", "#329262",
+                "#5574A6", "#3B3EAC"
             )
 
 
@@ -87,6 +98,8 @@ class dbManager(object):
         self._team_stat_difference_table = {} #dict containing team stat differences
 
         self._name_table = {} #a dict containing player names wrt to steamids
+
+        self._player_colours = {} # a dict mapping hex colours to cids, such that we have constant colours in heal spreads
 
         self._log_status_check = False
         self._database_busy = False
@@ -198,6 +211,10 @@ class dbManager(object):
         if self._stat_table:
             update_dict["stat"] = self._stat_table
 
+            tmp = self.get_heal_spread()
+            if tmp:
+                update_dict["heal_spread"] = tmp
+
         if self._score_table:
             update_dict["score"] = self._score_table
 
@@ -215,6 +232,12 @@ class dbManager(object):
         if self._stat_difference_table and self._new_stat_update:
             self.log.debug("Have stat update diff in compressedUpdate")
             update_dict["stat"] = self._stat_difference_table
+
+            # stats have been changed, most likely heals have been updated. send
+            # a heal spread update too
+            tmp = self.get_heal_spread()
+            if tmp:
+                update_dict["heal_spread"] = tmp
 
             self._new_stat_update = False
 
@@ -630,6 +653,62 @@ class dbManager(object):
         except:
             self.log.exception("Exception during _name_update_callback")
         
+
+    def get_heal_spread(self):
+        if not self._stat_table:
+            return {}
+
+        # Want a per-team dict of who has received heals in a simple list of lists
+        # that can be decoded and used straight away by clients
+        heal_spread_values = {}
+        heal_spread_colours = {}
+        for cid in self._stat_table:
+            pstat = self._stat_table[cid]
+            team = pstat["team"]
+            
+            if team not in heal_spread_values:
+                heal_spread_values[team] = [["Player", "Heal %"]]
+
+            if team not in heal_spread_colours:
+                heal_spread_colours[team] = []
+
+            pname = str(cid)
+            if "name" in pstat:
+                pname = pstat["name"]
+
+            # Only send data if the player has received some healing
+            if "healing_received" in pstat:
+                heal_spread_values[team].append([ pname, pstat["healing_received"] ])
+
+                heal_spread_colours[team].append({ "color": self._get_player_colour(cid, team)})
+
+
+        self.log.debug("Got heal spread: %s", heal_spread_values)
+
+        heal_spread = { "values": heal_spread_values, "colours": heal_spread_colours }
+
+        return heal_spread
+
+    def _get_player_colour(self, cid, team):
+        if not team in self._player_colours:
+            self._player_colours[team] = {}
+
+        team_colours = self._player_colours[team]
+        
+        if cid in team_colours:
+            return team_colours[cid]
+
+        # make sure this colour is 100% unique
+        pcolour = None
+
+        while pcolour is None or pcolour in team_colours.values():
+            #pcolour = "#{:06x}".format(randrange(0x1000000))
+            pcolour = random.choice(heal_pie_colours)
+
+        # colour is unique!
+        team_colours[cid] = pcolour
+
+        return pcolour
 
     def cleanup(self):
         #the only cleanup we need to do is releasing the update thread and deleting data tables

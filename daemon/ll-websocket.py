@@ -292,7 +292,7 @@ class llWSApplication(tornado.web.Application):
                             self.logger.debug("Sending update to client %s", client.cip)
                             client.write_message(delta_update_dict)
         except:
-            self.logger.exception()
+            self.logger.exception("Exception sending log updates")
 
     def _log_finished_callback(self, log_ident):
         self.logger.info("Log id %s is over. Closing connections", log_ident)
@@ -441,7 +441,8 @@ class logUpdateHandler(tornado.websocket.WebSocketHandler):
         origin = origin.lower()
 
         host = self.request.headers.get("Host")
-
+        logging.debug("Origin: %s, host: %s", origin, host)
+        return True
         return host == origin or origin == "livelogs.ozfortress.com"
 
     def open(self):
