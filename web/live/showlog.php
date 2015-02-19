@@ -165,17 +165,7 @@
                             <li>
                                 <a href="#" data-toggle="collapse" data-target="#chat_event_feed">Show Chat</a>
                             </li>
-                            <?php 
-                            if (($log_live) && ($log_details["webtv_port"]))
-                            {
-                            ?>
-                            
-                            <li>
-                                <a href="#" data-toggle="collapse" data-target="#sourcetv2d">Show SourceTV 2D</a>
-                            </li>
                             <?php
-                            }
-                            
                             if (($log_live) && (!empty($ll_config["websock"]["server_ip"])))
                             {
                             ?>
@@ -352,13 +342,10 @@
                                 dominations
                      */
 
-                    /*OLD COLS:
-                    <td><span id="<?=$community_id . ".backstabs"?>"><?=$pstat["backstabs"]?></span></td>
-                    <td><span id="<?=$community_id . ".t_dominated"?>"><?=$pstat["times_dominated"]?></span></td>
-                    <td id="<?=$community_id . ".revenges"?>"><?=$pstat["revenges"]?></td>
-                     */
 
                     $mstats = array();
+                    $heal_spread = array();
+                    $heal_spread_colours = array();
                     //NAME:K:D:A:PC:PB:HS:PTS:DMG:DMGT:HEAL:DOM:R:KPD:DPD:DPR:DPM
 
                     if ($stat_result)
@@ -393,6 +380,15 @@
                         {
                             $mstats[$community_id] = $pstat;
                             $mstats[$community_id]["name"] = $p_name;
+                        }
+
+                        if (empty($heal_spread[$pstat["team"]])) {
+                            $heal_spread[$pstat["team"]] = array(array("Player", "Heal %"));
+                            $heal_spread_colours[$pstat["team"]] = array();
+                        }
+
+                        if ($pstat["healing_received"] > 0) {
+                            $heal_spread[$pstat["team"]][] = array($p_name, (int)$pstat["healing_received"]);
                         }
                 ?>
                     
@@ -472,6 +468,19 @@
             </table>
         </div>
 
+        <div>
+            <div class="heal_pie">
+                <span class="heal_pie_label red_player">RED heal spread</span>
+                <div id="healpie.red">
+                </div>
+            </div>
+            <div class="heal_pie">
+                <span class="heal_pie_label blue_player">BLUE heal spread</span>
+                <div id="healpie.blue">
+                </div>
+            </div>
+        </div>
+
         <div class="stat_table_container stat_table_container_small">
             <table class="table table-bordered table-hover ll_table" id="team_stats">
                 <thead>
@@ -526,33 +535,6 @@
             </table>
         </div>
         <?php
-
-        if (($log_live) && (!empty($log_details["webtv_port"])))
-        {
-        ?>
-        
-        <div class="sourcetv_container collapse in">
-            <div class="sourcetv_controls">
-                <p class="text-info">STV 2D</p>
-                <button class="btn btn-success" onclick="SourceTV2D.connect('<?=$log_details["server_ip"]?>', <?=$log_details["webtv_port"]?>)">Connect</button>
-                <button class="btn btn-danger" onclick="SourceTV2D.disconnect()">Disconnect</button>
-                <div class="btn-group" data-toggle="buttons-checkbox">
-                    <button class="btn btn-info" data-toggle="collapse" data-target="#sourcetv2d">Toggle STV</button>
-                    <button class="btn" onclick="SourceTV2D.toggleNames()" id="stv_nametoggle">Toggle Names</button>
-                </div>
-            </div>
-            
-            <div id="sourcetv2d">
-                <!--leave this blank, the sourcetv2d js will populate it on connect-->
-            </div>
-            
-            <div id="debug">
-            
-            </div>
-        </div>
-        <?php
-        }
-
         if (pg_num_rows($chat_result) > 0)
         {
         ?>
@@ -610,20 +592,43 @@
 
     <!-- Include scripts local to this page -->
     <script src="/js/sprintf-0.7-beta1.js" type="text/javascript"></script>
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
     <script src="/js/viewlog.js" type="text/javascript"></script>
+
     <?php
     if ($log_live)
     {
     ?>
     
     <script type="text/javascript">
-        llWSClient.init("<?=$ll_config["websock"]["server_ip"]?>", <?=$ll_config["websock"]["server_port"]?>, "<?=$_unique_ident?>")
+        "use strict";
+        llWSClient.init("<?=$ll_config["websock"]["server_ip"]?>", <?=$ll_config["websock"]["server_port"]?>, "<?=$_unique_ident?>");
     </script>
     <?php
     }
     ?>
-    
-    <script src="/js/sourcetv2d.js" type="text/javascript"></script>
+
+    <script type="text/javascript">
+        google.load("visualization", "1", {packages:["corechart"]});
+        google.setOnLoadCallback(draw_heal_pies);
+
+        function draw_heal_pies() {
+            console.log("got google callback");
+            <?php if (!empty($heal_spread["blue"]))
+            { ?>
+             
+            llWSClient.draw_heal_pie("blue", <?=json_encode($heal_spread["blue"])?>, <?=json_encode($heal_spread_colours["blue"])?>);
+
+            <?php
+            }
+            if (!empty($heal_spread["red"]))
+            { ?>
+            llWSClient.draw_heal_pie("red", <?=json_encode($heal_spread["red"])?>, <?=json_encode($heal_spread_colours["red"])?>);
+            <?php
+            }
+            ?>
+        }
+    </script>
 </body>
 </html>
 
