@@ -62,7 +62,8 @@ var llWSClient = llWSClient || (function() {
     "use strict";
 
     //our client socket and message that will be sent on connect, containing the log id
-    var client, ws, connect_msg = {}, HAD_FIRST_UPDATE = false, auto_update = true, time_elapsed_sec, client_index = [];
+    var client, ws, connect_msg = {}, HAD_FIRST_UPDATE = false, auto_update = true, time_elapsed_sec, client_index = [],
+        pie_charts = [];
 
     return {
         init : function(ip, port, log_id) {
@@ -177,6 +178,10 @@ var llWSClient = llWSClient || (function() {
 
                 if (update_json.team_stat !== undefined) {
                     this.parseTeamStatUpdate(update_json.team_stat);
+                }
+
+                if (update_json.heal_spread !== undefined) {
+                    this.parseHealSpreadUpdate(update_json.heal_spread);
                 }
 
                 if (!HAD_FIRST_UPDATE) {
@@ -449,6 +454,14 @@ var llWSClient = llWSClient || (function() {
             }
         },
 
+        parseHealSpreadUpdate : function(heal_spread) {
+            console.log(heal_spread);
+
+            $.each(heal_spread.values, function(team, spread) {
+                llWSClient.draw_heal_pie(team, spread, heal_spread.colours[team]);
+            });
+        },
+
         highlight : function(element, highlight_colour) {
             highlight_colour = typeof highlight_colour !== 'undefined' ? highlight_colour : "#CCFF66";
 
@@ -680,7 +693,8 @@ var llWSClient = llWSClient || (function() {
 
         convert_player_classes : function(class_string) {
             if (typeof class_string === 'undefined') {
-                return '<img src="/images/classes/noclass.png" style="max-width: 18px; max-height: 18px; height: auto; width: auto" alt="noclass"> ';
+                //return '<img src="/images/classes/noclass.png" style="max-width: 18px; max-height: 18px; height: auto; width: auto" alt="noclass"> ';
+                return '';
             }
 
             var classes = class_string.split(','), rtn_string = " ", pclass;
@@ -690,6 +704,7 @@ var llWSClient = llWSClient || (function() {
 
                 if (pclass === "UNKNOWN") {
                     pclass = "noclass";
+                    continue;
                 }
 
                 rtn_string += '<img src="/images/classes/' + pclass + '.png" style="max-width: 18px; max-height: 18px; height: auto; width: auto" alt="' + pclass + '" title="' + pclass + '"> ';
@@ -728,6 +743,29 @@ var llWSClient = llWSClient || (function() {
             } else {
                 return;
             }
+        },
+
+        draw_heal_pie : function(team, heals_received, slice_options) {
+            console.log("draw_heal_pie - team: %s", team);
+            console.log(heals_received);
+            var heal_array = heals_received;
+
+            var data = google.visualization.arrayToDataTable(heal_array);
+
+            var options = {
+                title: team.toUpperCase() + " heal spread",
+                chartArea: {left: '10%', top:0, width: '80%', height: '75%'},
+                legend: { position: 'labeled' },
+                slices: slice_options
+            };
+
+            if (!(team in pie_charts)) {
+                pie_charts.team = new google.visualization.PieChart(document.getElementById("healpie." + team));
+            }
+
+            var chart = pie_charts.team;
+
+            chart.draw(data, options);
         }
     };
 }());

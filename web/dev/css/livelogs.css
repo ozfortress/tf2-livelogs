@@ -195,3 +195,13 @@
     margin-left: 10px;
     margin-bottom: 5px;
 }
+
+.heal_pie {
+    width: 50%;
+    float: left;
+    text-align: center;
+}
+
+.heal_pie_label {
+    font-size: 16px;
+}
