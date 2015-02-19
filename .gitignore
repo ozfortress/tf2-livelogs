@@ -1,2 +1,6 @@
 sourcetv2d
 sourcemod/scripting/include
+*.pyc
+daemon/logs
+daemon/*.log*
+daemon/ll-config.ini
