@@ -624,26 +624,6 @@ class parserClass(object):
                     
                     return
 
-                res = regex(parser_lib.building_destroyed_assist, logdata)
-                if res:
-                    return
-
-                res = regex(parser_lib.player_extinguish, logdata)
-                if res:
-                    return
-
-                res = regex(parser_lib.player_damage_weapon, logdata)
-                if res:
-                    return
-
-                res = regex(parser_lib.player_jar_attack, logdata)
-                if res:
-                    return
-
-                res = regex(parser_lib.item_healing, logdata)
-                if res:
-                    return
-
             #end round_pause blocking
             
             #chat
@@ -993,7 +973,8 @@ class parserClass(object):
 
                 return
 
-            if not self.ROUND_PAUSE:
+            regex_match = parser_lib.ParserRegexHelper.match_expression(logdata)
+            if regex_match is None:
                 self.logger.debug("Reached end of regex checks with no match. Log data: %s", logdata)
 
         except Exception, e:
