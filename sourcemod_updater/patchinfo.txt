@@ -4,14 +4,10 @@
     {
         "Version"
         {
-            "Latest"        "0.7"
+            "Latest"        "0.7.1"
         }
 
-        "Notes"     "Livelogs no longer includes or utilizes SourceTV 2D"
-        "Notes"     "Additional stats are no longer output by Livelogs (aside from medic overheals)"
-	"Notes"	    "To have damage and healing recorded in your logs from now on, please use F2's SupStats and MedicStats"
-	"Notes"	    "F2's plugins can be found at http://teamfortress.tv/thread/13598/?page=1"
-	"Notes"	    "There is now a single CVar to toggle overheal logging, livelogs_log_overheal"
+        "Notes"     "Fixed overhealing not being logged, even when livelogs_log_overheal is enabled"
     }
 
     "Files"

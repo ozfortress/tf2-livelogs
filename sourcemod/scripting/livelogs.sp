@@ -54,7 +54,7 @@ public Plugin:myinfo =
     name = "Livelogs",
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
-	version = "0.7",
+	version = "0.7.1",
 	url = "http://livelogs.ozfortress.com"
 };
 
@@ -137,13 +137,8 @@ public OnPluginStart()
     HookEvent("tf_game_over", gameOverEvent); //mp_windifference_limit
     HookEvent("teamplay_game_over", gameOverEvent); //mp_maxrounds, mp_timelimit, mp_winlimit
 
-    //Hook events for additional statistic display
-    //HookEvent("item_pickup", itemPickupEvent); //item is picked up
-    //HookEvent("player_hurt", playerHurtEvent); //player is hurt
-    //HookEvent("player_healed", playerHealEvent); //player receives healing, from dispenser or medic
-
-    //Hook player spawn for buffs and class spawn
-    //HookEvent("player_spawn", playerSpawnEvent_Log);
+    //Hook player spawn for buffs
+    HookEvent("player_spawn", playerSpawnEvent_Log);
 
     // Hook into mp_tournament_restart
     AddCommandListener(tournamentRestartHook, "mp_tournament_restart");
@@ -229,6 +224,10 @@ public OnPluginStart()
                 {
                     OnClientAuthorized(i, auth); //call to onclientauth, which will cache the auth for us
                 }
+
+                // Fix up healths for overhealing
+                client_maxhealth[i] = GetClientHealth(i);
+                client_lasthealth[i] = client_maxhealth[i];
             }
         }
         
@@ -277,7 +276,7 @@ public OnLibraryAdded(const String:name[])
 }
 
 //------------------------------------------------------------------------------
-// Callbacks and hooks (non-webtv)
+// Callbacks and hooks
 //------------------------------------------------------------------------------
 
 public OnClientAuthorized(client, const String:auth[])
@@ -483,6 +482,15 @@ public Action:restartCommandHook(client, const String:command[], arg)
     newLogOnRestartCheck();
 }
 
+public playerSpawnEvent_Log(Handle:event, const String:name[], bool:dontBroadcast)
+{
+    new userid = GetEventInt(event, "userid");
+    new client = GetClientOfUserId(userid);
+
+    client_maxhealth[client] = GetClientHealth(client);
+    client_lasthealth[client] = client_maxhealth[client];
+}
+
 public Action:getMedicBuffs(Handle:timer, any:data)
 {
     //If medic buffing recording isn't enabled, just kill the timer
@@ -491,7 +499,6 @@ public Action:getMedicBuffs(Handle:timer, any:data)
         livelogs_buff_timer = INVALID_HANDLE;
         return Plugin_Stop;
     }
-
     // get medic targets
     for (new i = 1; i <= MaxClients; i++)
     {
@@ -514,7 +521,6 @@ public Action:getMedicBuffs(Handle:timer, any:data)
             }
         }
     }
-
 
     // check every clients buffs
     for (new i = 1; i <= MaxClients; i++)
@@ -879,7 +885,8 @@ activateBuffTimer()
     if (!log_overheal) return;
 
     if (livelogs_buff_timer == INVALID_HANDLE)
-        livelogs_buff_timer = CreateTimer(BUFF_TIMER_INTERVAL, getMedicBuffs, _, TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
+        livelogs_buff_timer = CreateTimer(BUFF_TIMER_INTERVAL, getMedicBuffs, _, 
+                                          TIMER_REPEAT|TIMER_FLAG_NO_MAPCHANGE);
 }
 
 // log this event, and only this event, outside of the hook because the hook is
@@ -892,7 +899,9 @@ LogOverHeal(patient_idx, amount)
     new healer_idx = client_healtarget[patient_idx];
     
     // if this player's healer is unknown, skip it
-    if (healer_idx <= 0) return;
+    if (healer_idx <= 0) {
+        return;
+    } 
 
     new healerid = GetClientUserId(healer_idx);
     new patientid = GetClientUserId(patient_idx);
