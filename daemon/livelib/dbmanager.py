@@ -665,6 +665,9 @@ class dbManager(object):
         for cid in self._stat_table:
             pstat = self._stat_table[cid]
             team = pstat["team"]
+
+            if (team is None or team == ""):
+                continue
             
             if team not in heal_spread_values:
                 heal_spread_values[team] = [["Player", "Heal %"]]
@@ -694,18 +697,29 @@ class dbManager(object):
             self._player_colours[team] = {}
 
         team_colours = self._player_colours[team]
+
+        # make sure this player isn't duplicated in another team's colours
+        # if they changed for whatever reason
+        for t in self._player_colours:
+            if t != team and cid in self._player_colours[t]:
+                del self._player_colours[t][cid]
         
         if cid in team_colours:
             return team_colours[cid]
 
-        # make sure this colour is 100% unique
-        pcolour = None
+        # try to make sure this colour is unique until we run out of colours
+        potential_colours = list(set(heal_pie_colours) - set(team_colours.values()))
 
-        while pcolour is None or pcolour in team_colours.values():
-            #pcolour = "#{:06x}".format(randrange(0x1000000))
-            pcolour = random.choice(heal_pie_colours)
+        if len(potential_colours) == 0:
+            self.log.error("NO colours left for player '%s' in team '%s'", cid, team)
+            pprint(self._player_colours)
 
-        # colour is unique!
+            # allow a duplicate colour
+            potential_colours = heal_pie_colours
+
+        pcolour = random.choice(potential_colours)
+
+        # colour is (hopefully) unique!
         team_colours[cid] = pcolour
 
         return pcolour
