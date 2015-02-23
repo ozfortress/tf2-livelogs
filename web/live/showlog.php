@@ -602,7 +602,9 @@
     
     <script type="text/javascript">
         "use strict";
-        llWSClient.init("<?=$ll_config["websock"]["server_ip"]?>", <?=$ll_config["websock"]["server_port"]?>, "<?=$_unique_ident?>");
+        $(document).ready(function() {
+            llWSClient.init("<?=$ll_config["websock"]["server_ip"]?>", <?=$ll_config["websock"]["server_port"]?>, "<?=$_unique_ident?>");
+        });
     </script>
     <?php
     }
