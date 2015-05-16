@@ -151,6 +151,10 @@ class parserClass(object):
         self._first_round_started = False
         self._last_event_times = None
 
+        # If we're using supstats we prevent logging of some specific data
+        # in other events, such as headshots in custom kills.
+        self._using_supstats = False
+
         self.create_log_file(unique_ident)
 
         self.logger.info("Parser initialised")
@@ -278,6 +282,8 @@ class parserClass(object):
                 #[[attacker]] triggered "damage" against [[victim]] (damage "0") (realdamage "0")? (weapon "shotgun_soldier") (healing "15")? (crit "crit|mini")? (airshot "1")? (headshot "1")?
                 res = regex(parser_lib.player_damage_weapon, logdata)
                 if res:
+                    self._using_supstats = True
+
                     a_sid = regml(res, 3)
                     a_name = parser_lib.escapePlayerString(regml(res, 1))
 
@@ -454,7 +460,9 @@ class parserClass(object):
                     elif (ck_type == "headshot"):
                         self.insert_player_class(k_sid, "sniper")
 
-                        self.stat_upsert(self.STAT_TABLE, "headshots", k_sid, k_name, 1)
+                        if not self._using_supstats:
+                            self.stat_upsert(self.STAT_TABLE, "headshots", k_sid, k_name, 1)
+
                         self.stat_upsert(self.STAT_TABLE, "points", k_sid, k_name, 1.5)
 
                         event_type = "kill_custom_headshot"
