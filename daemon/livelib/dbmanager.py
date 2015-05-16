@@ -664,6 +664,10 @@ class dbManager(object):
         heal_spread_colours = {}
         for cid in self._stat_table:
             pstat = self._stat_table[cid]
+
+            if "team" not in pstat:
+                continue
+                
             team = pstat["team"]
 
             if (team is None or team == ""):
