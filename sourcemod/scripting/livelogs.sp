@@ -54,7 +54,7 @@ public Plugin:myinfo =
     name = "Livelogs",
 	author = "Prithu \"bladez\" Parker",
 	description = "Server-side plugin for the livelogs system. Sends logging request to the livelogs daemon and instigates logging procedures",
-	version = "0.7.1",
+	version = "0.7.2",
 	url = "http://livelogs.ozfortress.com"
 };
 
@@ -102,7 +102,7 @@ new Handle:livelogs_log_overheal = INVALID_HANDLE; //whether to record real dama
 new Handle:livelogs_buff_timer = INVALID_HANDLE; //a timer for checking medic buff amounts
 
 new Handle:livelogs_tournament_mode_cache = INVALID_HANDLE; //for caching the mp_tournament cvar handle
-new Handle:livelogs_mp_restartgame_cache = INVALID_HANDLE;
+//new Handle:livelogs_mp_restartgame_cache = INVALID_HANDLE;
 new Handle:livelogs_sv_logsecret_cache = INVALID_HANDLE; //cache sv_logsecret cvar
 
 //------------------------------------------------------------------------------
@@ -126,8 +126,13 @@ public OnPluginStart()
     HookEvent("tournament_stateupdate", tournamentStateChangeEvent);
 
     // Game restarted (mp_restartgame, or when tournament countdown ends)
-    HookEvent("teamplay_restart_round", gameRestartEvent);
-    HookEvent("teamplay_ready_restart", gameRestartEvent);
+    // These two events are no longer fired as of 3/7/2015
+    //HookEvent("teamplay_restart_round", gameRestartEvent);
+    //HookEvent("teamplay_ready_restart", gameRestartEvent);
+    // This event is a kind of nasty way to do it, it'll start logging as
+    // soon as the countdown begins, which could be bad if the countdown
+    // is 60 seconds or something
+    HookEvent("teamplay_round_restart_seconds", gameRestartEvent);
 
     // round start
     HookEvent("teamplay_round_start", roundStartEvent_Log);
@@ -143,10 +148,11 @@ public OnPluginStart()
     // Hook into mp_tournament_restart
     AddCommandListener(tournamentRestartHook, "mp_tournament_restart");
 
-    // Hook mp_restartgame, mp_switchteams and mp_scrambleteams. ALl these commands restart the game completely, which means a new log file is required
+    // Hook mp_restartgame, mp_switchteams and mp_scrambleteams.
+    // ALl these commands restart the game completely, which means a new log file is required
     //mp_switchteams and mp_scrambleteams both use mp_restartgame
-    livelogs_mp_restartgame_cache = FindConVar("mp_restartgame");
-    HookConVarChange(livelogs_mp_restartgame_cache, conVarChangeHook); //this STUPID AS FUCK command is treated as a cvar for some FUCKED reason
+    //livelogs_mp_restartgame_cache = FindConVar("mp_restartgame");
+    //HookConVarChange(livelogs_mp_restartgame_cache, conVarChangeHook); //this STUPID AS FUCK command is treated as a cvar for some FUCKED reason
 
     // Client commands
     RegConsoleCmd("sm_livelogs", urlCommandCallback, "Displays the livelogs log URL to the client");
@@ -372,7 +378,7 @@ public conVarChangeHook(Handle:cvar, const String:oldval[], const String:newval[
             PrintToServer("Livelogs debug messages disabled");
         }
     }
-    else if (cvar == livelogs_mp_restartgame_cache)
+    /*else if (cvar == livelogs_mp_restartgame_cache)
     {
         if (debug_enabled) { LogMessage("mp_restartgame changed. old: %s, new %s", oldval, newval); }
         new restart_time = GetConVarInt(cvar);
@@ -380,9 +386,9 @@ public conVarChangeHook(Handle:cvar, const String:oldval[], const String:newval[
         if ((restart_time > 0) && (!live_on_restart)) //prevent multiple mp_restartgames starting/ending logs
         {
             //we have a restart command!
-            newLogOnRestartCheck();
+            //newLogOnRestartCheck();
         }
-    }
+    }*/
     else if (cvar == livelogs_force_logsecret)
     {
         force_log_secret = GetConVarBool(cvar);
@@ -433,8 +439,47 @@ public tournamentStateChangeEvent(Handle:event, const String:name[], bool:dontBr
 
 public gameRestartEvent(Handle:event, const String:name[], bool:dontBroadcast)
 {
-    //if teams are ready, get log listener address
-    if (live_on_restart && !is_logging)
+    // Called when match restart countdown is initiated. 
+
+    if (debug_enabled) 
+    { 
+        LogMessage("Restart command. treadyonly: %d, mp_tournament: %d", 
+                GetConVarBool(livelogs_tournament_ready_only), 
+                GetConVarBool(livelogs_tournament_mode_cache)
+            ); 
+    }
+
+    new bool:enabled = GetConVarBool(livelogs_enabled);
+
+    if (is_logging)
+    {
+        if (debug_enabled) { LogMessage("Restart command issued while currently logging. Ending log"); }
+        LogToGame("\"LIVELOG_GAME_RESTART\""); //tell the daemon that the current log needs to be closed, so a new one can be opened
+        endLogging();
+
+        //if we're already logging, we should be logging on restart too, so start a new log
+        startLogging();
+    }
+    else
+    {
+        //check whether we should only start logging on tournament ready or not
+        if (!GetConVarBool(livelogs_tournament_ready_only) && GetConVarBool(livelogs_tournament_mode_cache))
+        {
+            /*
+            Since logging isn't just enabled on tournament ready, we should start 
+            logging on the next restart (provided mp_tournament is set)
+
+            This means that an mp_restartgame that is initiated without teams 
+            readying up will still start logs properly
+            */
+            if (enabled)
+            {
+                startLogging();
+            }
+        }
+    }
+
+    /*if (live_on_restart && !is_logging)
     {
         if (GetConVarBool(livelogs_enabled))
         {
@@ -452,7 +497,7 @@ public gameRestartEvent(Handle:event, const String:name[], bool:dontBroadcast)
         live_on_restart = false;
         tournament_state[RED] = false;
         tournament_state[BLUE] = false;
-    }
+    }*/
 }
 
 public roundStartEvent_Log(Handle:event, const String:name[], bool:dontBroadcast)
@@ -474,12 +519,6 @@ public Action:tournamentRestartHook(client, const String:command[], arg)
     {
         endLogging();
     }
-}
-
-public Action:restartCommandHook(client, const String:command[], arg)
-{
-    //one of the restart commands was used (mp_switchteams/mp_scrambleteams)
-    newLogOnRestartCheck();
 }
 
 public playerSpawnEvent_Log(Handle:event, const String:name[], bool:dontBroadcast)
@@ -759,6 +798,21 @@ public Action:Test_SockSend(client, args)
 //------------------------------------------------------------------------------
 // Private functions
 //------------------------------------------------------------------------------
+
+startLogging()
+{
+    if (create_new_log_file)
+    {
+        ServerCommand("log on"); //create new log file, enable console log output
+    }
+
+    requestListenerAddress();
+
+    is_logging = true;
+    live_on_restart = false;
+    tournament_state[RED] = false;
+    tournament_state[BLUE] = false;
+}
 
 clearVars()
 {
