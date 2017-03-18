@@ -107,7 +107,16 @@ class llListener(SocketServer.UDPServer):
         self.__listener_shutdown()
 
     def timed_out(self, current_time):
-        if (current_time - self._last_message_time) > float(self._timeout): #difference between current time and last message is > the time out. therefore, the listener has timed out
+        # If the game has been paused, just set the last message to the current time
+        # and return False. This means logs that are paused due to a game pause
+        # will not prematurely expire
+        if self.parser.paused:
+            self._last_message_time = current_time
+            return False
+            
+        # Difference between current time and last message is > the time out.
+        # Therefore, the listener has timed out.
+        if (current_time - self._last_message_time) > float(self._timeout): 
             return True
 
         elif self.parser.all_users_are_bots(): # this log is filled with only bots. end it

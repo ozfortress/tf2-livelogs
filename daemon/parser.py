@@ -150,6 +150,7 @@ class parserClass(object):
 
         self._first_round_started = False
         self._last_event_times = None
+        self.paused = False
 
         # If we're using supstats we prevent logging of some specific data
         # in other events, such as headshots in custom kills.
