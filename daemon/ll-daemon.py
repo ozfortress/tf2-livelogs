@@ -21,6 +21,7 @@ import time
 import threading
 import math
 import ConfigParser
+import base64
 
 from HTMLParser import HTMLParser
 from pprint import pprint
@@ -134,7 +135,9 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
                     except:
                         self.logger.exception("Unknown exception casting webtv_port to int. Defaulting to None")
 
-                log_name = self.escapeString(msg[5])
+                log_name = self.decodePossibleBase32Name(msg[5])
+
+                log_name = self.escapeString(log_name)
 
                 data_obj = llData(self.server.db, client_secret, sip, (self.ll_clientip, self.ll_clientport), msg[4], log_name,
                                     self.server.removeListenerObject, self.server.listener_timeout, webtv_port)
@@ -172,6 +175,16 @@ class llDaemonHandler(SocketServer.BaseRequestHandler):
             self.logger.debug("Invalid data received")
 
         return
+
+    def decodePossibleBase32Name(self, name):
+        decoded = None
+
+        try:
+            decoded = base64.b32decode(name.upper())
+        except:
+            decoded = name
+
+        return decoded
         
     def escapeString(self, string):
         escaped_string = string.replace("'", "''").replace("\\", "\\\\")
